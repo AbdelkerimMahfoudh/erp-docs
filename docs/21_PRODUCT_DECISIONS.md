@@ -93,11 +93,29 @@ Owner does not consume an employee seat · Manager price editing requires an Own
 - Scanner lookup routed through `POST /scan` (recognition keeps learning) with the unit lookup in parallel.
 - Typed discriminated response — see the API contract note in §10.
 
-🟡 **Approved, not implemented**
+✅ **Pagination and server-side search — implemented (Phase B)**
 
-⚠️ **Correctness item — recorded, not yet fixed.** `listStock` applies a **silent fixed `take: 200`** per shape. A store that exceeds it would have valid stock **hidden with no indication**, which is a correctness bug rather than a performance limit.
+The silent `take: 200` is gone. `GET /inventory` now returns
+`{ rows, nextCursor, hasMore, totals }`:
 
-**Required before any store can approach that volume:** cursor pagination, or at minimum explicit `hasMore` / `total` metadata so the client can say "showing 200 of N" instead of quietly lying. Not expanded in this milestone by decision.
+- **Keyset pagination**, not offset — stock changes while a user scrolls, and
+  offset paging would skip a row every time one is sold mid-scroll.
+- **Value-based**, not Prisma's `cursor` — Prisma's variant locates an anchor
+  row, so when that unit is sold and leaves an `in_stock` filter the listing
+  silently ends early. Comparing values has no such failure mode.
+- **Tie-safe.** `date_in` is `DATETIME(6)` and a bulk receive can stamp a whole
+  delivery inside one microsecond, so the cursor carries the ids already emitted
+  at the boundary and accumulates them while that boundary does not advance.
+  Without accumulation, paging loops forever on a large tie group — caught by an
+  adversarial fixture where all 220 rows share one timestamp.
+- **`totals` counts the whole filtered result**, so the UI shows "3 of 340"
+  rather than implying a page is the entire branch.
+- **Search runs on the server** across product name, variant, barcode, both
+  IMEIs and serial number. Filtering only downloaded rows would answer "we don't
+  have it" for stock sitting on the shelf.
+
+`Bytes` has no `lt`/`gt` in Prisma, which is why the keyset compares timestamps
+and excludes tied ids via `notIn` — the one comparison the type does expose.
 
 ---
 
