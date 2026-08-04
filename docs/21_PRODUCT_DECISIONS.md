@@ -17,8 +17,17 @@
 
 ## 1. Repository facts worth knowing
 
-- Only `mobile/` is a git repository. **`backend/` and the repo root are not version-controlled** — backend edits have no rollback safety. Worth fixing before larger backend work.
-- `mobile/node_modules` (10,531 files) is tracked in git. Any commit will be enormous until that is addressed.
+**Resolved.** All three areas are now under version control with private GitHub
+remotes — see [`22_BACKUP_AND_ROLLBACK.md`](22_BACKUP_AND_ROLLBACK.md):
+
+| Area | Repository | Files |
+|---|---|---|
+| `docs/` + `CLAUDE.md` | `erp-docs` | 19 |
+| `backend/` | `erp-backend` | 180 |
+| `mobile/` | `erp-mobile` | 119 |
+
+- `mobile/node_modules` was **staged but never committed**, so untracking it needed no history rewriting.
+- No secret ever entered any commit; `.env.example` has been sanitised to placeholders.
 - `ImportBatch` / `ImportRow` models already exist and are branch-scoped, so "one import session targets one branch" is already modelled.
 - `Unit` carries `cost` but **no `price`** — see §6.
 

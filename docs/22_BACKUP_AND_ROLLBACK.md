@@ -9,13 +9,18 @@
 
 ## 1. Code rollback
 
-| Repository | State |
-|---|---|
-| `backend/` | Local git, baseline commit `f941a21` (179 files) |
-| `mobile/` | Local git, 3 commits, 119 tracked files |
-| repo root | Not a repository — `docs/` is currently **unprotected** |
+| Repository | Remote (private) | State |
+|---|---|---|
+| repo root | `AbdelkerimMahfoudh/erp-docs` | `docs/` + `CLAUDE.md`, 19 files |
+| `backend/` | `AbdelkerimMahfoudh/erp-backend` | baseline `f941a21`, 180 files |
+| `mobile/` | `AbdelkerimMahfoudh/erp-mobile` | 3 commits, 119 files |
 
-Neither has a remote. Both are local-only, so a disk failure loses everything — see §4.
+All three are **private** and pushed, so code and documentation now have an
+off-machine copy. Default branch is `master` on all three.
+
+⚠️ **The database is not covered by this.** These repositories hold code and
+documentation only. All business data — sales, units, costs, audit trail —
+exists solely in local MySQL until a dump is taken (§2).
 
 To return the backend to the verified baseline:
 
@@ -98,6 +103,24 @@ Restore into a **scratch database first** when practising, never straight over l
 
 ## 4. Known gaps
 
-- **No off-machine copy.** Both repositories and all dumps are local. A disk failure loses the project. A remote (even a private one) is the obvious next step — deliberately not created, since remotes are not authorised.
-- **`docs/` is unversioned.** The repo root is not a git repository, so `docs/21` and this file have no history.
-- **`backend/.env.example` currently holds the real credentials** from `.env` and is therefore excluded from git. It must be sanitised to placeholders before it can be tracked. See §1 of `docs/21`.
+- **Database dumps are still local-only.** Code is now off-machine; data is not. A disk failure still loses every sale, unit and audit record. Dumps should be copied somewhere off this machine — but **never into these repositories**, which is why `*.sql.gz`, `*.dump` and `backups/` are ignored.
+- **No dump has been taken yet.** The procedure in §2 is documented but unexercised.
+
+### Resolved
+
+- ~~No off-machine copy~~ — three private GitHub repositories, verified private via the API, with remote file counts matching local exactly.
+- ~~`docs/` unversioned~~ — now `erp-docs`.
+- ~~`.env.example` holds real credentials~~ — sanitised to placeholders (commit `71637b2`) and now tracked.
+
+### Exposure audit — no rotation required
+
+Before and after publishing, every commit of all three repositories was checked:
+
+- No `.env`, `.env.example`, `node_modules/`, `*.pem` or key file ever appeared in any commit, locally or on GitHub.
+- The actual secret **values** were searched for across every blob in all history: absent from all of them.
+
+The values that `.env` and `.env.example` shared were development defaults
+(`migrator_dev_pw`, `ChangeMe_Dev_Only!`, a self-describing placeholder JWT
+secret) on a local MySQL, never production credentials. **No exposure
+occurred, so no rotation was performed.** They must still be replaced with
+real, distinct secrets before any deployment.
