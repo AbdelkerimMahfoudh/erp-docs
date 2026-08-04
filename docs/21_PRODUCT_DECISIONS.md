@@ -35,7 +35,7 @@ remotes — see [`22_BACKUP_AND_ROLLBACK.md`](22_BACKUP_AND_ROLLBACK.md):
 
 ## 2. Roles and permissions
 
-### ✅ RESOLVED — three store-facing roles
+### ✅ MIGRATED (0016) — three store-facing roles
 
 Store-facing roles are **Owner · Store Manager · Store Employee**.
 
@@ -44,7 +44,67 @@ Store-facing roles are **Owner · Store Manager · Store Employee**.
 - **Platform Administrator** remains as an internal SaaS role. It is *not* a store employee role and does not belong in the store role matrix.
 - **Existing role records must not be deleted or renamed without a safe data migration** mapping Sales and Warehouse employees onto Store Employee.
 
-#### Audit — the migration is far smaller than feared
+#### Completed — migration 0016 + seed remap
+
+Store-facing roles are now **Owner · Store Manager · Store Employee**.
+
+| Before | After | Assignments |
+|---|---|---|
+| `sales_employee` | `store_employee` | 3 |
+| `warehouse_employee` | `store_employee` | 2 |
+| `branch_manager` | `store_manager` | 0 (none existed) |
+| `owner` | unchanged | 4 |
+| `administrator` | untouched (internal SaaS role) | 0 |
+
+Counts went `{owner: 4, sales_employee: 3, warehouse_employee: 2}` →
+`{owner: 4, store_employee: 5}`; total assignments unchanged at 9. Assignment
+ids, users, branches and companies were all preserved — only the role value
+moved. The exact per-row mapping is printed by the seed and recorded in the
+migration report.
+
+**Final permission matrix**
+
+| Permission | Owner | Store Manager | Store Employee |
+|---|:--:|:--:|:--:|
+| sale.create / sale.return | ✅ | ✅ | ✅ |
+| discount.apply | ✅ | ✅ | ✅ |
+| unit.add / unit.transfer / import.run | ✅ | ✅ | ✅ |
+| **purchase.manage** (the 403) | ✅ | ✅ | ✅ |
+| **cost.view** | ✅ | ✅ | ✅ |
+| supplier.manage | ✅ | ✅ | — |
+| closing.perform | ✅ | ✅ | — |
+| discount.override | ✅ | ✅ | — |
+| **report.view** | ✅ | ✅ | **—** |
+| **expense.manage** | ✅ | **—** | **—** |
+| branch/user/settings/integrations.manage | ✅ | — | — |
+
+Two deliberate narrowings, both recorded rather than inherited:
+
+- **Store Manager has no `expense.manage`**, although `branch_manager` did. The
+  approved decisions describe a narrower manager, and inheriting spend authority
+  because a permission happened to exist would be inventing a business rule.
+- **Store Employee sees cost but not reports.** That separation is the reason
+  `cost.view` and `report.view` are distinct permissions.
+
+**Blocked on future work**
+
+- **Price editing** has no permission to grant. It stays Owner-delegated and
+  needs per-user permission overrides, which do not exist.
+- **Submit-only expenses.** The model cannot distinguish "submit an expense"
+  from "manage expenses", so neither store role gets either.
+
+**Sessions.** No revocation was needed: the JWT carries only `{sub, companyId,
+type}` — no roles or permissions — and permissions resolve from the database on
+every request, cached only in request-scoped CLS. A role change therefore takes
+effect on the next request. The mobile client now also re-resolves permissions
+on app resume so a stale UI cannot outlive a role change.
+
+**Legacy enum members** `administrator`, `branch_manager`, `sales_employee`,
+`warehouse_employee` remain. Safe to retire once no `user_branches` row
+references them **and** no seed or utility can write them — the latter is now
+true. `administrator` should be kept: it is the internal Platform Administrator.
+
+#### Audit — the migration was far smaller than feared
 
 Role keys appear in exactly three places, all of them data definition:
 
