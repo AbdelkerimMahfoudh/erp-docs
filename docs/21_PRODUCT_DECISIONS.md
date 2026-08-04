@@ -62,21 +62,63 @@ ids, users, branches and companies were all preserved — only the role value
 moved. The exact per-row mapping is printed by the seed and recorded in the
 migration report.
 
-**Final permission matrix**
+**Final permission matrix** *(corrected by the D2.1 semantics audit)*
 
 | Permission | Owner | Store Manager | Store Employee |
 |---|:--:|:--:|:--:|
-| sale.create / sale.return | ✅ | ✅ | ✅ |
+| sale.create | ✅ | ✅ | ✅ |
+| cost.view | ✅ | ✅ | ✅ |
 | discount.apply | ✅ | ✅ | ✅ |
-| unit.add / unit.transfer / import.run | ✅ | ✅ | ✅ |
-| **purchase.manage** (the 403) | ✅ | ✅ | ✅ |
-| **cost.view** | ✅ | ✅ | ✅ |
-| supplier.manage | ✅ | ✅ | — |
-| closing.perform | ✅ | ✅ | — |
-| discount.override | ✅ | ✅ | — |
-| **report.view** | ✅ | ✅ | **—** |
-| **expense.manage** | ✅ | **—** | **—** |
+| unit.add / unit.transfer | ✅ | ✅ | ✅ |
+| **purchase.manage** *(the 403)* | ✅ | ✅ | ✅ |
+| sale.return *(completes a refund)* | ✅ | ✅ | **—** |
+| import.run *(activates inventory)* | ✅ | ✅ | **—** |
+| supplier.manage / closing.perform | ✅ | ✅ | — |
+| report.view | ✅ | ✅ | **—** |
+| **discount.override** *(below-cost gate)* | ✅ | **—** | **—** |
+| expense.manage | ✅ | **—** | **—** |
 | branch/user/settings/integrations.manage | ✅ | — | — |
+
+Totals: Owner 17 · Store Manager 11 · Store Employee 6.
+
+#### D2.1 — deployment safety and semantics audit
+
+**Deployment hole, fixed.** 0016 only added enum values; the remap and the new
+permission matrices lived in the SEED, and `prisma migrate deploy` never runs
+`prisma db seed`. A production deploy would have applied 0016 and left every
+employee on a legacy role with no permission rows — a silently broken system
+where applying migrations looked successful.
+
+- **0017_store_role_backfill** — creates both store roles per company, grants
+  their permissions by stable KEY, and remaps legacy assignments. Every
+  statement is guarded by `NOT EXISTS` or matches only rows still in the old
+  state, so reruns are no-ops.
+- **0018_store_role_revoke** — removes grants the audit withdrew. 0017 only
+  inserts, so a database that already ran the D2 seed would otherwise keep
+  permissions that were since revoked. Grants must shrink as well as grow.
+
+Verified on a temporary database restored from a pre-D2 dump: `migrate deploy`
+alone remapped 5 assignments and installed 11 + 6 permission rows, with no seed.
+A drift test fails the build if the SQL and the TypeScript matrix disagree.
+
+**Three permissions removed because their real behaviour is final authority:**
+
+| Removed from | Permission | What it actually does |
+|---|---|---|
+| Store Employee | `sale.return` | `returnUnit` voids the sale line, restocks the unit and computes a **refund** — it completes a return rather than requesting one |
+| Store Employee | `import.run` | Reserved for **activating** imported inventory, not preparing it |
+| Store Manager | `discount.override` | Despite the name, this is the **below-cost selling** gate in `assertBelowCostAllowed` |
+
+`discount.apply` is retained for Store Employee only because the cost floor is
+enforced independently on `discount.override`, which the role does not have —
+verified: it guards no endpoint of its own.
+
+**Approval gaps found, not expanded:**
+- `unit.transfer` guards **all five** transfer endpoints, including
+  `receive/confirm` and `cancel` — one permission both initiates and completes.
+- `purchase.manage` creates a **final** purchase immediately; the approved
+  model wants employee-entered cost to await approval while remaining usable.
+- `import.run` currently guards **no endpoint at all**.
 
 Two deliberate narrowings, both recorded rather than inherited:
 
@@ -92,6 +134,10 @@ Two deliberate narrowings, both recorded rather than inherited:
   needs per-user permission overrides, which do not exist.
 - **Submit-only expenses.** The model cannot distinguish "submit an expense"
   from "manage expenses", so neither store role gets either.
+- **`return.request`** — so an employee can report a return without completing
+  the refund.
+- **`import.prepare` / `import.approve`** — so an employee can upload, map and
+  correct a draft without activating inventory.
 
 **Sessions.** No revocation was needed: the JWT carries only `{sub, companyId,
 type}` — no roles or permissions — and permissions resolve from the database on
