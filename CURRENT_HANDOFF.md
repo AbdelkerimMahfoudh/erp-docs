@@ -25,7 +25,7 @@ All three are private, on `master`, and pushed.
 
 ## 2. Verified state
 
-- Backend **28 suites / 236 tests** green.
+- Backend **28 suites / 235 tests** green.
 - Backend `tsc --noEmit` clean · mobile `tsc --noEmit` clean · `expo lint` clean.
 - Migrations through **`0019_settings_foundation`** applied to `phonestore`,
   and verified separately on a clean throwaway database.

@@ -2,7 +2,7 @@
 
 > **Status:** F0 is a **read-only audit**. No schema, API or screen was created
 > or modified while producing it.
-> **Audited at:** backend 28 suites / 236 tests green · migration `0019` applied.
+> **Audited at:** backend 28 suites / 235 tests green · migration `0019` applied.
 > **Purpose:** establish exactly what exists before anyone designs the Users
 > system, so F1 extends what is there instead of rebuilding it.
 
