@@ -15,6 +15,66 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-05 21:31–22:05 UTC — CLAUDE-B
+
+- **Starting state:** Took over from CLAUDE-A. All three repos clean, `master`,
+  level with remote: backend `ea22df1`, mobile `2d6f49b`, docs `63b4657`.
+  Migration `0019` applied, `migrate status` up to date, no `prisma_*` temp DBs.
+  Live data reconciled against the handoff with **zero discrepancies** (6 users,
+  5 active / 1 inactive `settingsprobe`; assignments owner 4, store_employee 7;
+  sole login identifier `login`, unique `(company_id, login)`; no phone/email).
+- **Authorised task:** (1) Make the shared handoff protocol enforceable in every
+  `CLAUDE.md`. (2) Execute **F1 Stage 1 only** — contactable user foundation.
+- **Work completed:**
+  - Added the enforceable-protocol fields (read recent SESSION_LOG; take
+    ownership only when `READY_FOR_HANDOFF`; record Owner/`started_at_utc`/all
+    three HEADs/phase-scope at start; `READY_FOR_HANDOFF` only when clean+pushed)
+    to all three `CLAUDE.md` within the existing markers — no duplicated section,
+    canonical files still only in erp-docs.
+  - Schema `0020_user_contact_fields`: nullable `phone` (E.164), `email`,
+    `phoneVerifiedAt`, `emailVerifiedAt` + `@@unique([companyId, phone])`.
+    Generated with `migrate diff` (schema-to-schema, no shadow DB — the migrator
+    is denied on `phonestore_shadow`) and applied with `migrate deploy`.
+  - Owner-only Users API (`GET/GET:id/PATCH /v1/users`, `user.manage`,
+    tenant-scoped, no hash exposure, derived status, contact-change resets
+    verification, no hard delete, no self-deactivation, no role field).
+  - Mobile Team screen (EN/AR, RTL, permission-gated; status colour+words; edit
+    sheet; no invite/OTP/passcode buttons) + `user` status registry entry.
+- **Decisions made by the user:** account label CLAUDE-B; execute Stage 1 only,
+  then stop. **Decisions taken by CLAUDE-B (unspecified in docs/23):** email not
+  unique in Stage 1; `pending_contact` derived not stored; E.164 without
+  `libphonenumber`. Recorded in `docs/23` Stage 1 and the handoff.
+- **Files changed:** docs — `CLAUDE.md`, `CURRENT_HANDOFF.md`, `SESSION_LOG.md`,
+  `docs/23`. Backend — `prisma/schema.prisma`, `prisma/migrations/0020_*`,
+  `src/users/{users.controller,user-management.service,contact.util}.ts`,
+  `src/users/dto/update-user.dto.ts`, two specs, `users.module.ts`. Mobile —
+  `app/team.tsx`, `app/(tabs)/more.tsx`, `types/api.ts`, `lib/query-keys.ts`,
+  `lib/design/status.ts`, `lib/i18n/{en,ar}.ts`.
+- **Database migrations:** `0020_user_contact_fields` applied via `migrate deploy`.
+  Fresh `--hex-blob` backup taken and verified first:
+  `~/erp-backups/phonestore-20260805-213342.sql` (178 854 bytes, trailer present,
+  0 raw `_binary`). Post-migration: 6/6 users preserved, assignments intact,
+  index NON_UNIQUE=0. No `prisma migrate reset`; no temp DB created.
+- **Tests and results:** backend `npx jest` **30 suites / 266 tests** (was 28/235;
+  +31). Backend `tsc` clean, mobile `tsc` clean, `expo lint` clean.
+- **Live verification:** against the running backend on :3010 (shared DB,
+  reversible). No-token 401; owner 200 with 6 users and no hashes; phone
+  normalized to E.164 with `phoneVerifiedAt` null; duplicate 409; invalid 400;
+  self-deactivation 400; revert to null; employee `store_employee` GET/PATCH 403.
+  Demo left clean (0 phones; `settingsprobe` restored to `is_active=0`). Net demo
+  change: +6 append-only `audit_logs` rows and `settingsprobe`'s password reset.
+- **Commits:** backend `5638a52`, `1991a01`, `564b3b9`; mobile `89466ed`,
+  `2e63aa8`; docs `60f718c` + the commit carrying this entry.
+- **Push status:** all pushed; all three level with `origin/master`.
+- **Remaining work:** F1 Stages 2–8 unstarted (per-user grants, device identity,
+  OTP/WhatsApp, invitations, passcode/biometrics, Users CRUD incl. role
+  assignment, auditing/rate-limits). Real-device verification of the Team screen
+  (camera not involved; RTL/haptics/scroll) still outstanding, as for all screens.
+- **Handoff reason:** Stage 1 complete and verified; Stage 2 was explicitly out
+  of scope. Status set `READY_FOR_HANDOFF`, active account `NONE`.
+
+---
+
 ## 2026-08-05 21:05 — CLAUDE-A
 
 - **Starting state:** All three repositories clean, on `master`, level with

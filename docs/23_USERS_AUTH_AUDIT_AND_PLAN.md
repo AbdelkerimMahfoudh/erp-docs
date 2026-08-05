@@ -139,7 +139,7 @@ enum anywhere in the schema.
 
 Each stage is independently shippable and leaves the system working.
 
-### Stage 1 — Contactable users *(no dependencies)*
+### Stage 1 — Contactable users *(no dependencies)* — ✅ IMPLEMENTED (CLAUDE-B, 2026-08-05)
 
 **Schema:** add to `User`: `phone VARCHAR(24)?` (E.164), `phoneVerifiedAt?`,
 `email VARCHAR(160)?`, `emailVerifiedAt?`, `@@unique([companyId, phone])`.
@@ -148,6 +148,36 @@ Backfill is trivially null.
 **Risk:** phone becomes the recovery and OTP channel, so uniqueness must be
 enforced at the database level, not in application code, or two accounts can
 race onto one number.
+
+**What shipped** (migration `0020_user_contact_fields`; backend `1991a01`/`564b3b9`,
+mobile `2e63aa8`):
+
+- The four columns and the per-company `UNIQUE(company_id, phone)` index.
+  Additive only; the six existing users kept authenticating unchanged, and NULL
+  phones coexist under the index (MySQL treats NULLs as distinct).
+- **Owner-only Users API** (`user.manage`): `GET /v1/users`, `GET /v1/users/:id`,
+  `PATCH /v1/users/:id` (name, phone, email, active). Tenant-scoped; never
+  selects `passwordHash`/`pinHash`; status derived (`active`/`inactive`/
+  `pending_contact`), not stored. Editing a contact resets its `*VerifiedAt`.
+  Users are deactivated, never hard-deleted; you cannot deactivate yourself.
+- **Mobile Team screen** (Owner-only, EN/AR, RTL): list with colour+word status,
+  branch/role, and a contact-edit sheet. No invite / OTP / passcode buttons.
+- Verified live: owner 200, employee 403, E.164 normalization, 409 on duplicate,
+  400 on invalid, self-deactivation blocked. 31 new tests (suite 30/266).
+
+**Decisions taken here (were unspecified in the original plan):**
+
+- **Email is NOT unique** in Stage 1 (only phone is, per this plan). Email is
+  optional recovery; its uniqueness is deferred.
+- **`pending_contact` is derived, not a stored lifecycle column** — deliberately,
+  so the pre-existing users are never written into an "incomplete onboarding"
+  state.
+- **Phone normalization uses strict E.164 validation, not `libphonenumber`** — a
+  new dependency needs approval, and full local→international conversion needs a
+  default region that arrives with the OTP provider (Stage 4). Numbers must be
+  entered in international form for now.
+
+**Remaining after Stage 1:** Stages 2–8 below are unstarted.
 
 ### Stage 2 — Per-user permission grants *(depends on nothing; unblocks pricing)*
 
