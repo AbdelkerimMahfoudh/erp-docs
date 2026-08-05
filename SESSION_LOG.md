@@ -15,6 +15,47 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-05 23:04–23:40 UTC — CLAUDE-B (session 3)
+
+- **Starting state:** resumed own work. All three repos clean, `master`, level
+  with remote: backend `564b3b9`, mobile `2e63aa8`, docs `5ba0e01`. Migration
+  `0020` applied, up to date. Handoff `READY_FOR_HANDOFF` / NONE. Matched the
+  expected takeover state exactly. (The prompt's "take ownership as CLAUDE-A" was
+  a user typo, confirmed in chat — this account is CLAUDE-B.)
+- **Authorised task:** F1.1 deactivation/session hardening; then the Stage 2
+  branch-authorization audit (hard gate) and Stage 2 only if the gate passes.
+- **F1.1 — completed.** Audit found two gaps: the JWT strategy never checked
+  `is_active` (a deactivated user's access token worked until expiry), and
+  deactivation did not revoke `auth_sessions` (so a deactivate→reactivate cycle
+  revived the refresh token). Fix: access tokens now carry `sid` and every
+  request revalidates the session (not revoked/expired) + user (active, not
+  deleted); deactivation atomically sets `is_active=false` AND revokes all the
+  user's active sessions. Reactivation does not un-revoke → fresh login required.
+  Tenant-safe, self-deactivation still blocked, no hard delete, audit records the
+  revoked-session count but no secret. Contact normalization confirmed (email
+  trim+lowercase at the DTO; phone/email change resets only its own timestamp).
+  Restored `settingsprobe`'s original password hash from the pre-test backup.
+- **Files changed (F1.1):** `src/common/types/auth-user.ts`,
+  `src/auth/{tokens,sessions,auth}.service.ts`, `src/auth/strategies/jwt.strategy.ts`,
+  `src/users/user-management.service.ts`, + specs `jwt.strategy.spec.ts`,
+  `sessions.service.spec.ts`, extended `user-management.service.spec.ts`.
+- **Tests:** backend **32 suites / 286 tests** (was 30/266; +20). `tsc` clean.
+  Live-verified the full 6-step lifecycle on :3010 (11/11): session-bound token,
+  deactivation→access 401 + refresh 401, reactivation keeps old tokens 401,
+  fresh login works, self-deactivation 400. Demo left clean.
+- **Commits:** backend `318ea81` (pushed). Docs: this entry + handoff update.
+- **Stage 2 — NOT started. The branch-authorization gate FIRED.**
+  `getEffectivePermissions` unions permissions across all `UserBranch`
+  assignments when no `X-Branch-Id` is present (the branch-scoped path is sound
+  and validates assignment). Building delegated grants on the union would leak a
+  branch-A grant company-wide. Per instruction, stopped before the migration and
+  reported, with a recommended safe design (grants resolved only branch-scoped,
+  excluded from the union; price endpoints must require `X-Branch-Id`).
+- **Handoff reason:** F1.1 shipped green; Stage 2 blocked at the mandatory audit
+  gate awaiting a user decision on the resolution approach. No schema change made.
+
+---
+
 ## 2026-08-05 21:31–22:05 UTC — CLAUDE-B
 
 - **Starting state:** Took over from CLAUDE-A. All three repos clean, `master`,

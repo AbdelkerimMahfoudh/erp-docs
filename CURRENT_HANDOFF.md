@@ -6,7 +6,7 @@
 - Active account: CLAUDE-B
 - Owner: CLAUDE-B
 - Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second session)
-- Last updated: 2026-08-05 23:04 UTC
+- Last updated: 2026-08-05 23:35 UTC
 - Current authorised task: **F1.1 deactivation/session hardening**, then the
   **F1 Stage 2 branch-authorization audit** (a hard gate) and — only if that gate
   passes — **F1 Stage 2** (per-user branch-scoped delegated `price.edit`).
@@ -50,8 +50,8 @@ directory** (`../`), not a sibling.
 
 Measured by CLAUDE-B on 2026-08-05 after Stage 1.
 
-- Backend tests: **30 suites / 266 tests passing** (`npx jest`) — was 28/235;
-  +2 suites (`contact.util`, `user-management.service`), +31 tests
+- Backend tests: **32 suites / 286 tests passing** (`npx jest`) — Stage 1 was
+  30/266; F1.1 added +2 suites (`jwt.strategy`, `sessions.service`) and +20 tests
 - Backend TypeScript: clean (`npx tsc --noEmit`)
 - Mobile TypeScript: clean (`npx tsc --noEmit`)
 - Expo lint: clean (`npx expo lint`)
@@ -84,6 +84,14 @@ Measured by CLAUDE-B on 2026-08-05 after Stage 1.
 - Backup/restore hardened: `--hex-blob` mandatory, tested dump sanitiser,
   restore drill verified end to end
 - F0 read-only audit of Users/auth/device security → [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md)
+- **F1.1 — deactivation/session hardening: complete** (backend `318ea81`).
+  Access tokens are now bound to their `auth_sessions` row (`sid`) and every
+  request revalidates the session (not revoked/expired) + the user (active, not
+  deleted). Deactivation atomically sets `is_active=false` AND revokes all the
+  user's sessions, so access + refresh tokens die immediately and reactivation
+  does not revive them (fresh login required). Live-verified end to end. Note:
+  pre-existing access tokens without `sid` are now rejected — a one-time re-login
+  for anyone currently signed in.
 - **F1 Stage 1 — contactable users (`0020`): complete.** Nullable `phone`
   (E.164), `email`, `phoneVerifiedAt`, `emailVerifiedAt` on `User` +
   `@@unique([companyId, phone])`; Owner-only `GET/GET:id/PATCH /v1/users`
@@ -93,12 +101,35 @@ Measured by CLAUDE-B on 2026-08-05 after Stage 1.
 
 ## Work currently in progress
 
-- **Nothing in progress.** F1 Stage 1 is complete, committed, pushed and
-  verified. All three working trees are clean.
-- Temporary data or databases created: none (`SHOW DATABASES LIKE 'prisma%'`
-  was empty; the migration was applied with `migrate deploy`, not `migrate dev`,
-  because the migrator cannot reach `phonestore_shadow`).
-- Uncommitted work: none.
+- F1.1 hardening: **complete, committed (`318ea81`), pushed, verified.**
+- **F1 Stage 2 (delegated permissions): BLOCKED at the mandatory branch-audit
+  gate — no migration created.** See "Stage 2 branch-authorization audit" below.
+  Awaiting a user decision on the resolution approach before any schema change.
+- Temporary data or databases created: none.
+- Uncommitted work: none (docs updated + committed).
+
+## Stage 2 branch-authorization audit (hard gate) — FIRED
+
+`AccessService.getEffectivePermissions(userId, branchId?)`:
+- **With** `branchId` (from the `X-Branch-Id` header): permissions for the user's
+  role **at that branch only**, and it 403s if the user is not assigned there.
+  This path is sound and branch-scoped.
+- **Without** `branchId`: it **unions permissions across every `UserBranch`
+  assignment**. Consumers that can hit this path with no `X-Branch-Id`:
+  `permissions.guard`, `auth.controller /auth/permissions`,
+  `cost-gating.interceptor`, and company-level services (`settings`).
+
+A user can be Store Manager in branch A and Store Employee in branch B (role is
+per `UserBranch`). With no `X-Branch-Id`, the union grants manager authority
+company-wide. Permissions are resolved per request (not embedded in the JWT) and
+cached per-request (CLS) server-side and per-branch (react-query) on the client.
+
+**Why this blocks Stage 2:** if a delegated `price.edit` grant were added to the
+union, a grant made for branch A would apply in every branch whenever a request
+omits `X-Branch-Id` — exactly the leak the gate forbids. Per the instruction,
+**stop before the migration and report.** A safe design exists (delegated grants
+resolved only in the branch-scoped path and excluded from the union; price
+endpoints must require `X-Branch-Id`), but the approach is a user decision.
 
 ## Product and architecture decisions affecting the current task
 
@@ -153,11 +184,14 @@ migration.
   products 12 · units 11 · sales 7 · purchases 9 · audit_logs **83**
   (was 77; +6 append-only rows from Stage 1 live verification — legitimate
   contact-edit audits, not corruption) · company_settings 1 · receiving_accounts 3.
-- Stage 1 live verification side-effects (all benign, on the shared demo DB):
-  `settingsprobe`'s password hash was reset to a throwaway value and it was
-  re-activated then **restored to `is_active = 0`**; `owner` and `settingsprobe`
-  `last_login_at`/`auth_sessions` updated by normal login. No user holds a
-  phone/email (verified: 0). No financial or inventory record was touched.
+- Live-verification side-effects (all benign, on the shared demo DB): during
+  Stage 1 and F1.1, `settingsprobe` was temporarily reactivated with throwaway
+  passwords for 403/deactivation tests. **F1.1 restored its ORIGINAL password
+  hash from the pre-test backup `phonestore-20260805-213342.sql`** (97-char
+  argon2id) and left it `is_active = 0` — matching the backup. `owner`/`settingsprobe`
+  `last_login_at` + `auth_sessions` reflect normal logins; a few append-only
+  `audit_logs` `status_change` rows were added by the deactivation tests. No user
+  holds a phone/email (verified: 0). No financial or inventory record was touched.
 - `audit_logs` is append-only, enforced by database triggers for the
   application account. Never attempt to edit it.
 - **Never** run `prisma migrate reset` against `phonestore`.
@@ -167,21 +201,22 @@ No credentials appear in this file. Database and app credentials live in
 
 ## Next exact action
 
-**None authorised. Wait for an explicit user instruction.** Stage 1 is done;
-Stage 2 was explicitly out of scope for this session.
+**Awaiting a user decision on the Stage 2 branch-resolution approach** (the audit
+gate fired — see above). The two options put to the user:
 
-If **F1 Stage 2 (per-user permission grants)** is authorised next — the natural
-continuation, per [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md) §4 Stage 2:
+- **A (recommended):** Build Stage 2 as `UserBranchPermission` grants attached to
+  a `UserBranch` row, resolved **only** in the branch-scoped path and **excluded
+  from the union**; future price-edit endpoints must require `X-Branch-Id`
+  (fail-closed if absent). Narrowest change; delegation cannot leak; leaves the
+  pre-existing role-permission union untouched (a separate hardening concern).
+- **B:** First tighten branch resolution broadly (e.g. make the no-branch union
+  fail-closed for branch-scoped permissions) before adding delegation.
 
-1. Read this file + `docs/23` §4 Stage 2 and §2.1 (no per-user grant exists yet).
-2. `git fetch` + `git status` in all three repos; confirm the HEADs above.
-3. It is a schema change (`UserPermission`) → take a fresh `--hex-blob` backup
-   first, and remember the migrator cannot use `phonestore_shadow`, so generate
-   SQL with `prisma migrate diff --from-schema-datamodel <git HEAD schema> …` and
-   apply with `migrate deploy` (the pattern used for `0020`).
-4. Enforce the **delegatable-permission allowlist** (never `discount.override`,
-   `user.manage`, `settings.manage`) server-side.
-5. Set `Status: IN_PROGRESS` here **before** changing anything.
+Once the approach is chosen, Stage 2 is a schema change (`UserBranchPermission` +
+a `price.edit` permission): take a fresh `--hex-blob` backup, generate SQL with
+`prisma migrate diff --from-schema-datamodel <git HEAD schema> …` (shadow DB
+unavailable), apply with `migrate deploy`, enforce the delegatable allowlist
+(only `price.edit`; never `discount.override`/`user.manage`/`settings.manage`).
 
 ## Explicit boundaries
 
