@@ -1,10 +1,72 @@
 # SESSION_LOG
 
-Append-only. Newest entry at the top. One entry per working session: what
-changed, what was proven, and what was found to be wrong.
+**Append-only. Newest entry at the top.** One entry per meaningful work session.
 
-> This file was created on 2026-08-05. Sessions before that date are recorded
-> in `docs/21` and `docs/22` rather than here.
+Never rewrite or delete an earlier entry. The single exception is correcting an
+objective factual error, which must be marked inline as **CORRECTION** with the
+date and the account that made it — never by silently editing the original text.
+
+Do not paste large diffs, complete logs, secret values or customer data here.
+
+> This file was created on 2026-08-05. Work before that date is recorded in
+> `docs/21` and `docs/22` rather than here. The entry dated 2026-08-05 below
+> the bootstrap uses an earlier ad-hoc format; it is kept verbatim as valid
+> history. Entries from the bootstrap onward use the shared protocol format.
+
+---
+
+## 2026-08-05 21:05 — CLAUDE-A
+
+- **Starting state:** All three repositories clean, on `master`, level with
+  their remotes: backend `0940b41`, mobile `d9edbed`, documentation `641b787`.
+  No uncommitted or untracked files anywhere. No temporary databases.
+- **Authorised task:** Bootstrap a durable two-account handoff protocol.
+  Coordination files and Git commits only — explicitly **no product feature
+  work**.
+- **Work completed:**
+  - Discovered the three repositories and their remotes; identified the
+    documentation repository as the **workspace root** (`erp-docs`), with
+    `backend/` and `mobile/` nested inside its working tree but excluded by its
+    `.gitignore` and tracked as separate repositories.
+  - Verified the baseline from evidence rather than from the prior report:
+    tests, both typechecks, lint, migration status, role and permission counts,
+    demo-data counts, temporary databases, backups.
+  - Rewrote `CURRENT_HANDOFF.md` into the shared protocol structure, preserving
+    the valid content of the previous version.
+  - Added the marker-enclosed shared protocol section to `CLAUDE.md` in all
+    three repositories. `backend/CLAUDE.md` and `mobile/CLAUDE.md` did not
+    exist and were created; the root `CLAUDE.md` was extended, not overwritten.
+  - Recorded six corrections where reported state differed from actual state
+    (appendix of `CURRENT_HANDOFF.md`).
+- **Decisions made by the user:** Account label for this workspace is
+  `CLAUDE-A`. The other account may continue at the five-hour usage limit.
+  Bootstrap authorises coordination files and commits only.
+- **Files changed:** `CURRENT_HANDOFF.md`, `SESSION_LOG.md`, `CLAUDE.md`
+  (documentation repo); `CLAUDE.md` (backend, new); `CLAUDE.md` (mobile, new).
+  No source file, schema file or migration was touched.
+- **Database migrations:** None applied. Status inspected only:
+  `prisma migrate status` → *"Database schema is up to date!"*, 18 migrations,
+  latest `0019_settings_foundation`.
+- **Tests and results:** Backend `npx jest` → **28 suites / 235 tests passing**.
+  Backend `tsc --noEmit` clean. Mobile `tsc --noEmit` clean. `expo lint` clean.
+- **Live verification:** None performed in this session — no behaviour changed.
+  The Settings API and screen verification from earlier on 2026-08-05 still
+  stands and is recorded in `CURRENT_HANDOFF.md`.
+- **Commits:** backend **`ea22df1`** · mobile **`2d6f49b`** · documentation:
+  *current HEAD contains this handoff* (see the note below).
+- **Push status:** All three pushed to `origin/master`; all three level with
+  their remotes afterwards.
+- **Remaining work:** None for this task. No feature work was started, by
+  instruction.
+- **Handoff reason:** Bootstrap complete. Status set to `READY_FOR_HANDOFF`,
+  active account `NONE`, awaiting an explicit user instruction.
+
+*Note on the documentation commit hash: a file cannot contain the id of the
+commit that introduces it, and adding a follow-up commit merely to record the
+previous one creates an endless self-referential chain. The documentation
+repository therefore records **"current HEAD contains this handoff"**; the
+authoritative value is always `git -C <docs repo> log --oneline -1`. Backend
+and mobile hashes are recorded exactly because they are committed first.*
 
 ---
 
