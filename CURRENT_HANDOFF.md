@@ -2,12 +2,26 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Session started: 2026-08-05 20:55 GST (bootstrap by CLAUDE-A)
-- Last updated: 2026-08-05 21:05 GST
-- Current authorised task: Awaiting explicit user instruction
-- Last completed checkpoint: Shared handoff protocol bootstrapped; all three repositories synchronized with their remotes
+- Status: IN_PROGRESS
+- Active account: CLAUDE-B
+- Owner: CLAUDE-B
+- Session started / started_at_utc: 2026-08-05 21:31 UTC
+- Last updated: 2026-08-05 21:31 UTC
+- Current authorised task: **F1 Stage 1 — contactable user foundation** (docs/23
+  §4 Stage 1). Plus: make the shared handoff protocol enforceable in every
+  `CLAUDE.md`.
+- Active phase and scope: additive `User` contact columns (`phone`,
+  `phoneVerifiedAt`, `email`, `emailVerifiedAt`) + `@@unique([companyId, phone])`;
+  a **minimal** Owner-only Users read + contact-edit API; a permission-gated Team
+  screen (EN/AR). **Out of scope:** per-user grants (S2), device identity (S3),
+  OTP/WhatsApp (S4), invitations (S5), passcode/biometrics (S6), full Users CRUD
+  incl. role assignment (S7), subscription seats.
+- Takeover: from CLAUDE-A, whose last handoff (bootstrap, 2026-08-05 21:05 GST)
+  was **complete** — Status was `READY_FOR_HANDOFF`, active account `NONE`, all
+  three trees clean and pushed. No dirty files inherited.
+- HEADs at takeover: backend `ea22df1` · mobile `2d6f49b` · docs `63b4657`
+- Last completed checkpoint: takeover verified; handoff protocol made enforceable
+  in all three `CLAUDE.md` files
 
 ## Repository state
 
@@ -67,15 +81,25 @@ Measured 2026-08-05 21:00–21:04 GST, not copied from a previous report.
 
 ## Work currently in progress
 
-- Exact objective: none — bootstrap only
-- Files being changed: none
-- Migrations being prepared/applied: none
-- Commands already run: `git fetch`, `git status`, `npx jest`, `npx tsc --noEmit`
-  (both repos), `npx expo lint`, `npx prisma migrate status`, read-only SQL counts
-- Tests currently passing/failing: all passing, none failing
-- Temporary data or databases created: none (`SHOW DATABASES LIKE 'prisma%'` → empty)
-- Uncommitted work: none in any repository
-- Last known safe point: current HEADs, all pushed
+- Exact objective: F1 Stage 1 — make users contactable (phone/email), Owner-only
+  Users read + contact-edit API, permission-gated Team screen.
+- Files being changed: backend `prisma/schema.prisma` (+4 nullable cols, phone
+  unique index), new migration `0020_user_contact_fields`, `src/users/*`
+  (controller, DTOs, service, phone util, specs); mobile new `app/team*.tsx`,
+  i18n `en.ts`/`ar.ts`/`keys.ts`, api-client/query-keys; docs.
+- Migrations being prepared/applied: `0020_user_contact_fields` (additive).
+- Identity/uniqueness decisions: phone `@@unique([companyId, phone])` (DB-level,
+  per company; NULLs coexist). Email nullable, **not** unique in Stage 1 (docs/23
+  specifies only phone). E.164 validation without a new dependency (strict `+`
+  and 8–15 digits, separators stripped; full local→E.164 deferred to provider
+  choice).
+- Commands already run: takeover `git fetch`/`status` (all clean, level with
+  remote), read-only SQL audit of users/roles/indexes.
+- Tests currently passing/failing: not yet re-run this session (baseline 28/235).
+- Temporary data or databases created: none yet.
+- Uncommitted work: protocol enforceability edits to all three `CLAUDE.md` +
+  this handoff update (about to be committed).
+- Last known safe point: HEADs above, all pushed.
 
 ## Product and architecture decisions affecting the current task
 
@@ -137,20 +161,16 @@ No credentials appear in this file. Database and app credentials live in
 
 ## Next exact action
 
-None authorised. **Wait for an explicit user instruction.**
+**In progress (CLAUDE-B):** implementing F1 Stage 1. Sequence:
 
-When one arrives, the receiving account must, in order:
-
-1. Read this file and the relevant parts of `docs/21_PRODUCT_DECISIONS.md`.
-2. Run `git fetch` and `git status` in all three repositories and confirm the
-   HEADs above still match.
-3. Run `npx prisma migrate status` before any database-related work.
-4. Set `Status: IN_PROGRESS`, its account label and the authorised task here,
-   **before** changing anything.
-
-If Users/authentication is authorised next, the plan is already written:
-`docs/23`, stage 1 (add `phone`/`email` + verification timestamps to `User`).
-That is a schema change, so it requires a fresh backup first.
+1. Commit + push the protocol-enforceability `CLAUDE.md` edits (backend, mobile,
+   docs) and this handoff update.
+2. Take + verify a fresh `--hex-blob` backup per `docs/22`; record its id below.
+3. Add the four nullable `User` columns + `@@unique([companyId, phone])`; create
+   migration `0020_user_contact_fields`; apply with `migrate deploy`.
+4. Implement the Users read + contact-edit API and the Team screen.
+5. Full verification (jest, tsc ×2, expo lint, migrate status, live Owner/Employee
+   checks); update docs; set `READY_FOR_HANDOFF`.
 
 ## Explicit boundaries
 
