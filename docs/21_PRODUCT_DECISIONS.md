@@ -397,14 +397,28 @@ here would have been inventing a requirement.
 configuration, Bankily API credentials, website links, warranty/technician
 settings, customer credit, and branch naming/type.
 
-**Web-only rendering defect found during verification (pre-existing, not from
-this phase):** on Expo web, `BottomSheet` never plays its entry animation and
-stays parked at `translateY(<screen height>)`, i.e. entirely below the fold. The
-sheet mounts and its content is in the DOM — it is simply off-screen. Confirmed
-against the **M2 gallery's own BottomSheet demo**, so it affects `SelectSheet`
-and `ScannerSheet` identically and predates the Settings screen. Sheets have
-always been verified on a physical device, where they work. Worth fixing before
-anyone relies on the web build.
+**~~Web-only BottomSheet defect~~ — WITHDRAWN. This was a measurement artifact,
+not a defect.** The E5 report claimed `BottomSheet` never animates in on Expo
+web and stays parked at `translateY(<screen height>)` with the backdrop at
+`opacity: 0`.
+
+Re-checked in E.2 with the obvious question asked first: **is the page actually
+animating anything?** It is not. In the automated browser pane
+`document.visibilityState === 'hidden'` and a `requestAnimationFrame` loop
+delivers **0 frames**. Reanimated drives web animations from rAF, so *every*
+animation in the app is frozen at its initial value there — and the initial
+values are exactly `translateY = screenHeight` and `opacity = 0`, the two
+numbers that were reported as the bug.
+
+No change was made to the sheet. Nothing was proven broken, and speculatively
+editing the primitive that every picker, scanner and confirmation sits on —
+with no device or emulator to check native behaviour against — would have been
+the larger risk.
+
+**How to actually verify sheets:** on a physical device or emulator, or in a
+browser whose tab is genuinely visible. Any animation assertion made through a
+hidden/headless pane is meaningless. This applies to the toast and dialog hosts
+too.
 
 **Known gap left in place:** `settings.discount_limits_by_role` still names the
 retired `sales_employee` and `branch_manager` roles. Nothing reads it, so it was
