@@ -2,18 +2,24 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE
-- Session started / started_at_utc: 2026-08-05 21:31 UTC (CLAUDE-B)
-- Last updated: 2026-08-05 22:05 UTC
-- Current authorised task: **F1 Stage 1 — contactable user foundation** —
-  COMPLETE and verified. Awaiting the next explicit user instruction.
-- Takeover history: CLAUDE-B took over from CLAUDE-A (whose bootstrap handoff was
-  complete: `READY_FOR_HANDOFF`, all trees clean/pushed). No dirty files inherited.
-- HEADs at takeover: backend `ea22df1` · mobile `2d6f49b` · docs `63b4657`
-- Last completed checkpoint: Stage 1 implemented, tested (30/266), and
-  live-verified; all three repositories committed and pushed.
+- Status: IN_PROGRESS
+- Active account: CLAUDE-B
+- Owner: CLAUDE-B
+- Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second session)
+- Last updated: 2026-08-05 23:04 UTC
+- Current authorised task: **F1.1 deactivation/session hardening**, then the
+  **F1 Stage 2 branch-authorization audit** (a hard gate) and — only if that gate
+  passes — **F1 Stage 2** (per-user branch-scoped delegated `price.edit`).
+- Active phase and scope: (F1.1) atomically revoke a user's sessions on
+  deactivation + bind access-token validity to the session so both token types
+  die on deactivation and stay dead after reactivation; restore the `settingsprobe`
+  password from the pre-test backup. (Stage 2) audit branch permission resolution
+  first; **stop before the migration if permissions union across branches**.
+- Takeover history: same account (CLAUDE-B) resuming its own completed Stage 1.
+  Verified READY_FOR_HANDOFF / NONE, all trees clean and level with remote.
+- HEADs at takeover: backend `564b3b9` · mobile `2e63aa8` · docs `5ba0e01`
+  (all match the Stage 1 handoff exactly). Migration `0020` applied, up to date.
+- Last completed checkpoint: takeover verified; ownership taken.
 
 ## Repository state
 
