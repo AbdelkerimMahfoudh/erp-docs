@@ -270,7 +270,24 @@ Recorded: an iPhone 13 Pro Max repriced 17,500 → 17,000 MRU must **not** move 
 
 ## 7. Goals · 8. Money & reconciliation · 9. Returns
 
-⛔ **All blocked** — no models exist for goals, receiving accounts, progressive reconciliation, or return windows.
+🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the
+two things several of these decisions were waiting on:
+
+- **`company_settings.return_window_hours`** — the configurable window, stored as
+  hours with `0` meaning "no returns". `24`, `48` and any custom value are the
+  same field, so there is no second flag to contradict it. **Defaults to `0`**:
+  today `returnUnit` has no window check at all, and defaulting to a window
+  nobody chose would grant a refund period the Owner never agreed to.
+- **`receiving_accounts`** — multiple accounts per provider, each with a required
+  human label, active/inactive state and an explicit order. Cash is deliberately
+  not a row: it is always available and needs no configuration.
+
+Still blocked: goals, progressive reconciliation, per-sale return overrides,
+server-calculated deadlines, provisional profit during the window. Those belong
+to the Returns and Money workflows, not to settings.
+
+⛔ **The rest remains blocked** — no models exist for goals or progressive
+reconciliation.
 
 Recorded decisions, in brief:
 - **Goals:** types (gross-profit amount, units sold, product/exact-variant quantity) · scopes (business, branch, employee, category, exact variant) · periods (daily, weekly, monthly, custom) · visible to Owner and Manager only · returns reduce progress · pending costs make progress provisional · sale credit belongs to the assisting employee, correctable by a Manager with audit · in-app notifications at 50/80/100%, behind-target, period-end · **never via WhatsApp**.
@@ -287,7 +304,7 @@ Recorded decisions, in brief:
 - **Expenses:** variable expenses hit daily profit; **fixed recurring expenses do not** — they belong to monthly accounting only. Monthly fixed entries may be prepared automatically but need Owner confirmation. Blank expense explanations warn once, may still be approved, and are audited as approved-without-clarification. Employee balances may be deferred, deducted, partially or fully forgiven — forgiveness needs confirmation and audit.
 - **WhatsApp summaries:** daily (sales, gross profit, variable expenses, commissions separately, operating profit before fixed costs) and monthly (adds rent, salaries separately, net profit, outstanding receivables). Owner chooses language and whether amounts appear at all. External commissions are other income and do not touch inventory.
 - **Inter-store consignment:** permanent Store ID · public search exposes only name, logo, city and a "Coming soon" verified badge · blocking never erases debts · receiver sees phone info but never sender cost, margin, customer or resale price · sender records the agreed amount, receiver keeps resale upside · partial payments; sender confirms before balances move · forgiveness is a write-off, not a payment · disputes carry counteramount, reason, evidence and full history · navigation is Needs Attention / Active / Closed.
-- **Auth:** WhatsApp/phone verification, optional email recovery, OTP only for new device / explicit logout / revoked or expired session — **not** merely because the app closed or lost network · private passcode + optional Face ID · auto-lock choices with **no "Never"** · 5 failures cooldown, 10 require OTP · Owner may revoke devices but never see or reset a passcode · employee onboarding by temporary ID / one-time code / QR · **no fake email accounts**.
+- **Auth:** WhatsApp/phone verification, optional email recovery, OTP only for new device / explicit logout / revoked or expired session — **not** merely because the app closed or lost network · private passcode + optional Face ID · auto-lock choices with **no "Never"** (🟡 the *business maximum* is now stored and validated in `company_settings.auto_lock_max_seconds` — 0/30/60/300/900 seconds, with no value able to express "never"; the per-user preference still belongs to the Users API) · 5 failures cooldown, 10 require OTP · Owner may revoke devices but never see or reset a passcode · employee onboarding by temporary ID / one-time code / QR · **no fake email accounts**.
 - **Offline:** essential. Visible status by colour **and** words (Offline · N waiting / Syncing / Synced) · cache only the user's branch data · queue with stable IDs · **never silently resolve conflicting IMEI transactions** — first server-valid wins, the other freezes in a Conflict Center for Manager/Owner · offline manually-entered unknown IMEIs are High-risk pending review.
   *Note:* `SyncDevice` and `OutboxChange` models exist but are unused; `clientUuid` idempotency is already honoured by Sell.
 - **Subscription:** 500 MRU per branch per month, monthly only at launch · Owner seat free · two pooled employee seats per branch, extra seats 100 MRU, charged in full mid-cycle, no refunds, seat reusable to period end · unified renewal date, prorated first partial period · 72-hour grace, then employees lose transaction creation while the Owner keeps read-only and export · **never auto-delete business data**.
@@ -351,8 +368,47 @@ Retaining `administrator` is optional — it maps to the internal Platform Admin
 2. Drop `BranchType` from the mobile display (icon + label) — 2 references.
 3. Leave the column in place initially; drop it in a later migration once nothing reads it. It has no behavioural dependents (§11a).
 
-### Step 3 — Settings API
-Unblocks return windows, receiving accounts, thresholds and discount monitoring. Small, and several later modules wait on it.
+### Step 3 — Settings API ✅ DONE (0019)
+
+`GET/PUT /settings` plus `POST/PATCH /settings/receiving-accounts` and
+`PUT /settings/receiving-accounts/order`. Owner writes require
+`settings.manage`; the read is open to any signed-in user but the **response is
+narrowed by permission** — an employee receives the return window, the auto-lock
+maximum and the *active* account labels, and never the WhatsApp preferences, the
+concurrency token, or inactive accounts.
+
+**What the audit found first (E1), and how it was reconciled:**
+
+| Existing thing | Decision |
+|---|---|
+| `settings` key/value table (`low_stock_threshold`, `dead_stock_days`, `health_score_weights`, `transfer_prefix`) — live, read directly by the analytics services, with no API, validation, audit or guard | **Kept as-is** and documented in the schema as *internal tuning only*. Owner-facing policy must not go here |
+| `settings.whatsapp_schedule` (`{enabled, time}`), seeded but read by **no code** | **Removed** in 0019. Two answers to "is the summary on?" is exactly the duplicate concept this step exists to prevent |
+| `companies.settings` JSON blob, seeded to `{}`, read by nothing | **Left untouched, deliberately unused.** E3 rules out an unrestricted JSON blob for policy |
+| `settings.manage`, already guarding `POST/PATCH /categories` and `PUT /transfers/config/prefix` | Reused. No new permission was invented |
+| `PaymentMethod` enum (`cash card mobile bank other`) | Left alone. `ReceivingProvider` is a different axis — *which shop account*, not *how the customer paid* |
+| `returnUnit` — **no time-window check exists anywhere today** | The field is stored and validated; nothing reads it yet. Enforcement belongs to the Returns workflow |
+
+**Scope decision:** company-wide, not per branch. The approved decisions describe
+one return policy, one set of shop accounts, one Owner receiving summaries and
+one security floor. `Setting` already supports a branch dimension; adding one
+here would have been inventing a requirement.
+
+**Deliberately excluded:** MRU decimals, subscription pricing, payment
+configuration, Bankily API credentials, website links, warranty/technician
+settings, customer credit, and branch naming/type.
+
+**Web-only rendering defect found during verification (pre-existing, not from
+this phase):** on Expo web, `BottomSheet` never plays its entry animation and
+stays parked at `translateY(<screen height>)`, i.e. entirely below the fold. The
+sheet mounts and its content is in the DOM — it is simply off-screen. Confirmed
+against the **M2 gallery's own BottomSheet demo**, so it affects `SelectSheet`
+and `ScannerSheet` identically and predates the Settings screen. Sheets have
+always been verified on a physical device, where they work. Worth fixing before
+anyone relies on the web build.
+
+**Known gap left in place:** `settings.discount_limits_by_role` still names the
+retired `sales_employee` and `branch_manager` roles. Nothing reads it, so it was
+not touched here; it belongs with discount monitoring.
 
 ### Step 4 — Users API
 Employee onboarding, seat allocation, and the approvals model that Goals, Returns and Consignment all depend on.
