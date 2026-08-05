@@ -57,8 +57,10 @@ Confirm the file is not world-readable, and that it is outside any git working t
 ### Taking the dump
 
 ```bash
-mysqldump --defaults-extra-file="$HOME/.my.cnf" --single-transaction --routines --triggers --events --no-tablespaces phonestore > "$HOME/erp-backups/phonestore-$(date +%Y%m%d-%H%M%S).sql"
+mysqldump --defaults-extra-file="$HOME/.my.cnf" --single-transaction --routines --triggers --events --no-tablespaces --hex-blob phonestore > "$HOME/erp-backups/phonestore-$(date +%Y%m%d-%H%M%S).sql"
 ```
+
+**This is the canonical command. `--hex-blob` is not optional.**
 
 Why each flag matters:
 
@@ -69,6 +71,38 @@ Why each flag matters:
 | `--triggers` | **Essential here** — the append-only `audit_logs` protection is enforced by triggers (`prisma/sql/init/10_audit_append_only.sql`). A dump without them silently loses the audit guarantee |
 | `--events` | Scheduled events, if any |
 | `--no-tablespaces` | The migrator has no global `PROCESS` privilege. Without this flag `mysqldump` prints `Access denied … PROCESS privilege … when trying to dump tablespaces`. The dump is still complete, but a real error in a backup log is one nobody should have to learn to ignore |
+| `--hex-blob` | Writes every binary column as `0x…` instead of raw bytes. **This is what makes the file safe to handle with ordinary text tools** — see below |
+
+### Why `--hex-blob` matters more than it sounds
+
+Every id in this database is a `BINARY(16)` UUIDv7. Without `--hex-blob`,
+`mysqldump` writes them as raw bytes inside `_binary '…'`, and the resulting
+file is **not valid UTF-8**. Anything that decodes it as text and re-encodes it
+— `sed` under some locales, PowerShell `-replace`, `Get-Content`/`Set-Content`,
+a default Node `readFileSync(…, 'utf8')`, some editors, some file-transfer and
+cloud-sync tools — replaces each invalid sequence with `U+FFFD`. The restore
+then *succeeds*, and the corruption only surfaces later as rows that no longer
+join.
+
+With `--hex-blob` the same row becomes:
+
+```sql
+INSERT INTO `companies` VALUES (0x018F0000000070008000000000000001,'Demo Phone Store',…);
+```
+
+Pure ASCII for the ids, real UTF-8 for the text. Measured on the
+2026-08-05 dump: **0 raw `_binary` literals, 1430 hex literals, and the whole
+file round-trips through a UTF-8 decode unchanged.**
+
+The file is larger — 178 854 bytes against 164 295 for the same data without
+the flag, about 9% — which is a trivial price for a backup that survives being
+copied by ordinary tools.
+
+⚠️ **Legacy dumps taken before 2026-08-05 do not have this.** Everything in
+`~/erp-backups/` dated `20260804` and the `20260805-154240` file contain raw
+binary. They are still restorable, but they must be moved and processed only
+with byte-exact tools. `scripts/sanitize-dump.js` is byte-exact by design
+(§3), so it remains safe for them.
 
 On Windows, `mysql` and `mysqldump` do **not** read `~/.my.cnf` automatically —
 pass `--defaults-extra-file` explicitly, as above.
@@ -156,18 +190,27 @@ near-identical file only creates doubt about which one is authoritative.
 
 ### Why a script and not a `sed` one-liner
 
-**A dump of this database is not valid UTF-8.** `BINARY(16)` UUID keys are
-emitted as `_binary '<raw bytes>'`. Any tool that decodes the file as text and
-re-encodes it — `sed` under some locales, PowerShell `-replace`,
-`Get-Content`/`Set-Content`, or Node's default `utf8` read — replaces every
-invalid byte sequence with `U+FFFD` and corrupts **every primary key in the
-database**. The restore then succeeds, and the damage only surfaces later as
-rows that no longer join.
+Two independent reasons, and `--hex-blob` only removes the first one.
 
-`scripts/sanitize-dump.js` reads and writes `latin1`, which is a byte-for-byte
-round trip, and rewrites only DDL lines — `INSERT` lines are copied untouched,
-so a product name containing the word `DEFINER=` is left alone. It is covered
-by `src/prisma/sanitize-dump.spec.ts`, including the binary-corruption case.
+**1. Legacy dumps are not valid UTF-8.** Before `--hex-blob` became the
+canonical command, `BINARY(16)` keys were emitted as `_binary '<raw bytes>'`,
+and any tool that decoded the file as text destroyed every primary key (see §2).
+New dumps no longer have this problem — but the sanitiser must keep working on
+the older files sitting in `~/erp-backups/`, so it stays byte-exact.
+
+**2. `DEFINER=` can appear in row data.** A product named
+``Bankily DEFINER=`x`@`y` cable`` is a legitimate string. A blind substitution
+would rewrite it and silently corrupt the record. The script only rewrites DDL
+lines; `INSERT`/`REPLACE` lines are copied untouched.
+
+`scripts/sanitize-dump.js` therefore reads and writes `latin1` — a byte-for-byte
+round trip regardless of what the file contains — and refuses to touch the
+input, to overwrite an existing output, or to process a dump with no
+`-- Dump completed` trailer. Covered by `src/prisma/sanitize-dump.spec.ts`,
+including both the raw-binary and the hex-blob shapes.
+
+**New dumps do not depend on the sanitiser for binary preservation.** They
+depend on it only for the DEFINER problem, which `--hex-blob` does not address.
 
 ### Verify the restore
 
@@ -224,11 +267,35 @@ mysql --defaults-extra-file="$HOME/.my.cnf" -N -e "SELECT l.TRIGGER_NAME, (l.ACT
 
 Drop the scratch database as soon as the drill is done.
 
-### Drill record — 2026-08-05
+### Drill record — 2026-08-05 (E.1, `--hex-blob`)
 
-Both paths were exercised end to end against
-`phonestore-20260805-154240.sql` (164 295 bytes, trailer present), restoring
-into the scratch database `prisma_e0_restore`:
+The canonical command was re-run and the whole path exercised again against
+**`phonestore-20260805-203646.sql`** (178 854 bytes, trailer present, **0 raw
+`_binary` literals / 1430 hex literals**, valid UTF-8), restoring into the
+scratch database `prisma_e1_restore`:
+
+| Check | Result |
+|---|---|
+| Binary values are hexadecimal | 0 `_binary '` occurrences, 1430 `0x…` literals |
+| Whole file survives a UTF-8 decode/encode round trip | **yes** (the pre-`--hex-blob` dump did not) |
+| Original dump restored by the migrator | **Failed** — `ERROR 1227` at line 94, as designed |
+| Sanitiser | 2 definers stripped on 2 lines; original still had its 2 afterwards |
+| Sanitised dump restored by the migrator | Succeeded, exit 0 |
+| Tables | 48 live / 48 restored |
+| Triggers | 2 / 2, bodies and timing byte-identical |
+| Representative row counts | Identical across `companies`, `branches`, `users`, `units`, `sales`, `sale_items`, `purchases`, `audit_logs`, `stock_items`, `products`, `company_settings`, `receiving_accounts` |
+| `HEX(id)` checksums | `MD5(GROUP_CONCAT(HEX(id) ORDER BY id))` identical for `units`, `sales`, `audit_logs`, `receiving_accounts` |
+| Every table | `CHECKSUM TABLE` identical across all 48 — 0 mismatches |
+| UTF-8 text | Arabic label `مصرفي – الصندوق` and the en-dash restored intact |
+| Restored trigger executes | An `UPDATE` that genuinely changed a row succeeded as the migrator (1 row, rolled back) — the trigger ran and took its non-blocking branch |
+| Audit protection still fires | `UPDATE` and `DELETE` on `audit_logs` as `phonestore_app` both rejected with `ERROR 1644 (45000)`; 77 rows before and after |
+| Cleanup | `prisma_e1_restore` dropped, sanitised copy deleted, no `prisma_*` database left |
+
+### Drill record — 2026-08-05 (E0, pre-`--hex-blob`)
+
+The first drill, kept because it is what established the DEFINER failure mode.
+Run against `phonestore-20260805-154240.sql` (164 295 bytes) into
+`prisma_e0_restore`:
 
 | Check | Result |
 |---|---|
