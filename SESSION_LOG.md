@@ -15,6 +15,79 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 20:44–21:25 UTC — CLAUDE-B (Phase G1 — Product Catalog, backend complete)
+
+- **Starting state:** reality matched the brief exactly — backend `6192fd8`,
+  mobile `ddc23cb`, docs `e1298f7`, migration `0025`, **41 suites / 454 tests**,
+  three trees clean and level with origin, `READY_FOR_HANDOFF`/NONE, WhatsApp/OTP
+  present but disabled with no provider.
+- **Authorised task:** G1 Product Catalog and Manual Product Setup. Auth/OTP work
+  paused.
+- **Audit before any edit (the decisive findings):**
+  - `Product` **already IS an exact sellable variant** (`UNIQUE(companyId, brand,
+    model, variant)` + `specifications`). No identity redesign; no second catalog.
+  - **Price truth:** serialized sale price = price typed at sale time falling back
+    to `Product.defaultPrice`; quantity = `StockItem.price` per branch. **`Unit`
+    has `cost` but no price column** → an exact per-unit price does not exist yet
+    and is the next Pricing milestone. G1 only displays existing price data.
+  - `POST /products` was guarded by **`unit.add`**, which employees hold → any
+    employee could shape the catalog. Category writes were `settings.manage`
+    (Owner-only) → managers could not manage categories. Both wrong.
+  - **Lifecycle needed no schema change:** catalog list/search/suggest filter
+    `deletedAt` while Sell/Receive/Inventory/Scanner do not, so `deletedAt`
+    already means "hidden from selectors, still visible in Inventory, still
+    sellable" — exactly the approved archive semantics.
+- **Permission (migration `0026`):** new narrow **`catalog.manage`** — Owner ✔,
+  Store Manager ✔, Store Employee ✘, Administrator ✔ (not money-sensitive, per the
+  existing convention). Deliberately **branch-scoped** (absent from
+  COMPANY_PERMISSIONS) so a manager must act in a branch they are assigned to
+  while the catalog stays company-shared. Applied by migration because
+  `migrate deploy` never seeds; the TS catalogue is kept aligned and the drift
+  test now unions later additive migrations (0017 + 0022 + 0026 = the TS matrix).
+- **Backend contract:** `GET /products` gains server-side search (brand, model,
+  variant, barcode, specifications), keyset cursor pagination on the UUIDv7 PK,
+  and category/tracking/active filters; new `GET /products/:id` (metadata,
+  category, specs, exact-variant label, stock summary for the caller's branches
+  only, existing price info, **no IMEI list**); new `PATCH /products/:id`;
+  `:id/archive` and `:id/restore` for a reversible lifecycle with no hard delete.
+- **Price boundary held:** the metadata DTO has **no price or cost field**;
+  creation refuses a price from a caller lacking `price.edit` rather than
+  silently dropping it; cost/price/margin keys are rejected inside
+  specifications. `catalog.manage` never implies `price.edit`.
+- **Safety:** tracking mode freezes once units/stock/purchase/sale history exist;
+  a barcode move deletes the old scanner alias and learns the new one in the same
+  transaction; specifications bounded (40 keys, 200-char values, depth 2).
+- **Tests:** **42 suites / 494 tests** (+37 catalog, +3 matrix). Backend TS clean;
+  mobile TS clean; Expo lint clean; both mobile Node pure-test suites green
+  (6 + 7). `migrate status` up to date (25 migrations).
+- **Migration safety:** backup `phonestore-20260806-204539.sql` (`--hex-blob`,
+  trailer present, 0 raw `_binary`) taken before `0026`. Migration-only deploy
+  verified on a **restored scratch DB with no seed**: `0026` applied alone →
+  perm=1, owner=1, manager=1, **employee=0**, and 12 products / 11 units / 7
+  sales preserved. Scratch `prisma_g1_deploy` dropped; sanitised copy removed.
+- **Mobile:** the catalog list moved onto the new paginated contract (this was a
+  required fix — the response shape changed) with infinite scroll, server-side
+  search, tracking/archived filters, error-retry and empty states, and a
+  `catalog.manage`-gated create control. The mobile permission catalogue mirrors
+  19 keys.
+- **Files changed:** backend — `prisma/migrations/0026_*`, `seed-data/permissions.ts`,
+  `catalog/{catalog.service,catalog.controller,catalog-cursor}.ts`,
+  `catalog/dto/{list-products,update-product}.dto.ts`, `catalog.service.spec.ts`,
+  `categories/categories.controller.ts`, `rbac/{role-matrix-drift,store-roles}.spec.ts`.
+  Mobile — `app/catalog/index.tsx`, `lib/permissions.ts`, `types/api.ts`.
+  Docs — `docs/21`, `CURRENT_HANDOFF.md`, `SESSION_LOG.md`.
+- **Commits:** backend `22c4389`; mobile `5cd7bc6`; docs `8b4ef53` (ownership +
+  audit) + this entry. All pushed.
+- **Not done / next:** the G1 mobile detail screen, manual create/edit form,
+  category-management screen and EN/AR strings are **not started** — the backend
+  they need is live and tested, so it is UI work with no open design question.
+  Recorded precisely under "Next exact action". No demo financial or inventory
+  data was modified; no temporary catalog fixtures were left behind.
+- **Handoff reason:** G1 backend complete, green and pushed; stopping at a clean
+  checkpoint with the remaining UI work specified rather than half-applying it.
+
+---
+
 ## 2026-08-06 17:20–17:55 UTC — CLAUDE-A (Stage 4A.1 — Clipboard correction)
 
 - **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:

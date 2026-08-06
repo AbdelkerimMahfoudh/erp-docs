@@ -2,17 +2,22 @@
 
 ## Session control
 
-- Status: IN_PROGRESS
-- Active account: CLAUDE-B
-- Owner: CLAUDE-B
+- Status: READY_FOR_HANDOFF
+- Active account: NONE
+- Owner: NONE (last worked by CLAUDE-B)
 - Session started / started_at_utc: 2026-08-06 20:44 UTC (CLAUDE-B, Phase G1)
-- Last updated: 2026-08-06 20:44 UTC
-- Current authorised task: **Phase G1 — Product Catalog and Manual Product
-  Setup.** Checkpoints: (1) `catalog.manage` permission + migration; (2) backend
-  catalog/category APIs + tests; (3) mobile Catalog list/detail; (4) manual
-  create/edit + categories; (5) docs/handoff. **Paused / not authorised:** OTP,
-  invitations, passcodes, biometrics, WhatsApp provider, price-edit redesign,
-  Excel import, suppliers, transfers, returns, subscriptions.
+- Last updated: 2026-08-06 21:20 UTC
+- Current authorised task: **none — Phase G1 backend is complete and green.**
+  The remaining G1 mobile surfaces (product detail, manual create/edit form,
+  category management screen, EN/AR translations) are **not started** and are
+  the exact next checkpoint. Nothing is half-applied: every commit is green,
+  pushed, and the API it depends on is live.
+- **G1 status:** backend contract + permission + tests **done** (backend
+  `22c4389`); mobile catalog **list** migrated to the new paginated contract
+  (mobile `5cd7bc6`). Mobile detail/create/edit/categories **pending**.
+- Paused / not authorised: OTP, invitations, passcodes, biometrics, WhatsApp
+  provider, price-edit redesign, Excel import, suppliers, transfers, returns,
+  subscriptions.
 - Takeover verified at 20:44 UTC — reality matched the brief exactly: backend
   `6192fd8`, mobile `ddc23cb`, docs `e1298f7`, migration `0025`,
   **41 suites / 454 tests passing**, all three trees clean and level with
@@ -129,8 +134,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `6192fd8` | `6192fd8` | clean |
-| Mobile (`erp-mobile`) | master | `ddc23cb` | `ddc23cb` | clean |
+| Backend (`erp-backend`) | master | `22c4389` | `22c4389` | clean |
+| Mobile (`erp-mobile`) | master | `5cd7bc6` | `5cd7bc6` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 3.2 commit trail — mobile `da34e1f` (CP1: remove fail-closed bypass +
@@ -167,11 +172,11 @@ Measured by CLAUDE-A on 2026-08-06 after Stage 4A.
 - **Device-only check still outstanding:** an actual paste on a physical
   Android/iOS device or Expo Go. The web export proves the module resolves and
   the screen renders; it does not prove the native clipboard write.
-- Backend tests: **41 suites / 454 tests passing** — Stage 4A added
+- Backend tests: **42 suites / 494 tests passing** (G1: +37 catalog + 3 matrix). Previously 41/454 — Stage 4A added
   `messaging.spec.ts` (19), `otp-code.util.spec.ts` (18) and
   `otp.service.spec.ts` (27)
 - Backend TypeScript: clean · Mobile TypeScript: clean · Expo lint: clean
-- Latest Prisma migration: **`0025_otp_challenge_and_intent`**
+- Latest Prisma migration: **`0026_catalog_manage_permission`** (G1; backup `phonestore-20260806-204539.sql` taken first). Previously **`0025_otp_challenge_and_intent`**
 - Database migration status: *"Database schema is up to date!"*, **24 migrations**
 - Migration-only-deploy proof (scratch `prisma_s4a_deploy`, restored from the
   pre-`0025` backup, **NO seed**): 6 users / 76 sessions / 0 devices all
@@ -404,9 +409,34 @@ No credentials appear in this file. Database and app credentials live in
 
 **None authorised. Wait for an explicit user instruction.**
 
-F1 Stages 1–3, the 3.1 hardening and the 3.2 Store Account ID work are finished
-and everything is pushed. The mobile device-key auth-contract change is now
-**done** — the only thing gating Stage 4 is the WhatsApp/OTP provider choice.
+**The exact next checkpoint is G1's remaining mobile surfaces** — the backend
+contract they need is already live, tested and pushed, so this is UI work with
+no open design question:
+
+1. **Product detail screen** (`app/catalog/[id].tsx`) — `GET /v1/products/:id`
+   already returns identity, category, specifications, tracking mode, barcode,
+   `stockByBranch` (caller's branches only), `defaultPrice`, `lastSoldPrice`/
+   `lastSoldAt`, and `isActive`. Cost is already stripped for anyone without
+   `cost.view`. Show an Edit action only when `catalog.manage` is held.
+2. **Manual create/edit form** — progressive sections (identity → category →
+   tracking → barcode → specifications → review), `SelectSheet` for category,
+   dirty-state protection, per-field validation, scanner shortcut for the
+   barcode that calls the existing authoritative scan path and shows the
+   existing product instead of duplicating it. `PATCH /v1/products/:id` exists;
+   there is deliberately **no price field** on it.
+3. **Category management** — reuse `GET/POST/PATCH /v1/categories` (now
+   `catalog.manage`, so Store Managers can finally use them). No merging.
+4. **EN/AR strings + RTL** for all of the above, and a Catalog entry in the More
+   menu gated on nothing (browsing) with create/edit gated on `catalog.manage`.
+5. Then: mobile TypeScript, Expo lint, Expo Doctor, web export, and a live pass
+   over Sell / Receive / Inventory to confirm no regression.
+
+Known follow-ups, deliberately not done in G1: `GET /v1/products/all` is the
+legacy unpaginated array kept only while callers migrate — delete it once the
+mobile no longer uses it; `app/catalog/new.tsx` still posts the old create shape
+(it works, and the endpoint is now `catalog.manage`-guarded, but it should move
+onto the new form).
+
 When work is authorised again, the receiving account must, in order:
 
 1. Read this file and the relevant parts of `docs/21_PRODUCT_DECISIONS.md`.
