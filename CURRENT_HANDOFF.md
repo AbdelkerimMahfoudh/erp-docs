@@ -2,14 +2,23 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE (last worked by CLAUDE-B)
-- Session started / started_at_utc: 2026-08-06 03:55 UTC (CLAUDE-B, Stage 3.1)
-- Last updated: 2026-08-06 04:23 UTC
-- Current authorised task: **none — F1 Stage 3.1 is complete.** Awaiting an
-  explicit user instruction. The next planned step (Stage 4 OTP) is not
-  authorised and is blocked on a provider choice + an auth-contract decision.
+- Status: IN_PROGRESS
+- Active account: CLAUDE-B
+- Owner: CLAUDE-B
+- Session started / started_at_utc: 2026-08-06 15:20 UTC (CLAUDE-B, Stage 3.2)
+- Last updated: 2026-08-06 15:20 UTC
+- Current authorised task: **F1 Stage 3.2 — close the mobile fail-closed bypass
+  and introduce the approved Store Account ID as the pre-login tenant
+  identifier.** Four focused checkpoints: (1) remove the mobile auto-retry
+  bypass + blocking device-verification state; (2) `companies.public_store_id` +
+  the login auth-contract change (Store ID + login + password); (3) mobile Store
+  ID login + company-scoped SecureStore key + one-time legacy credential
+  migration; (4) docs + handoff. **Not authorised:** OTP provider/challenge,
+  WhatsApp, invitations, recovery, passcode, biometrics, subscriptions.
+- **NETWORK:** GitHub was unreachable at takeover (`git fetch` failed). Local
+  HEADs match expected and are clean/level with their remote-tracking refs.
+  Commits are made locally per checkpoint and pushed when connectivity returns;
+  push status is recorded here and in `SESSION_LOG.md`.
 - Last completed checkpoint: **F1 Stage 3.1 complete** — the incorrect-credential
   decision tree now fails closed (backend `8a5ee5c`), the mobile recovers without
   lock-out and keeps its device credential on logout (mobile `2188a34`), secret
