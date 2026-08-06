@@ -5,16 +5,25 @@
 - Status: READY_FOR_HANDOFF
 - Active account: NONE
 - Owner: NONE (last worked by CLAUDE-B)
-- Session started / started_at_utc: 2026-08-06 20:44 UTC (CLAUDE-B, Phase G1)
-- Last updated: 2026-08-06 21:20 UTC
-- Current authorised task: **none — Phase G1 backend is complete and green.**
-  The remaining G1 mobile surfaces (product detail, manual create/edit form,
-  category management screen, EN/AR translations) are **not started** and are
-  the exact next checkpoint. Nothing is half-applied: every commit is green,
-  pushed, and the API it depends on is live.
-- **G1 status:** backend contract + permission + tests **done** (backend
-  `22c4389`); mobile catalog **list** migrated to the new paginated contract
-  (mobile `5cd7bc6`). Mobile detail/create/edit/categories **pending**.
+- Session started / started_at_utc: 2026-08-06 22:05 UTC (CLAUDE-B, G1 mobile)
+- Last updated: 2026-08-06 22:45 UTC
+- Current authorised task: **none.** G1 backend is complete, live-validated and
+  green; the Catalog **list** and **detail** screens are done. The **manual
+  create/edit form (+ scanner) and the category-management screen are NOT
+  started** — that is the exact next checkpoint. Nothing is half-applied.
+- **G1 status:** backend contract + permission + tests **done** and now
+  **live-validated against real MySQL** (backend `fb1ad67`); mobile catalog
+  **list + detail + full EN/AR i18n** done (mobile `c36eeaf`).
+  **Pending:** shared create/edit form, scanner integration in that form,
+  category-management screen.
+- **Defect found and fixed this session:** catalog **specification search
+  returned nothing on real MySQL**. Prisma's `string_contains` on a JSON column
+  needs an explicit `path`, which category-defined specs cannot supply, so the
+  filter silently matched nothing. The unit double had implemented it as a
+  `JSON.stringify` match — more permissive than the database — so the suite
+  stayed green. Now a bounded, company-scoped raw query feeds matching ids back
+  as an `OR id IN (…)` predicate. **Lesson: a mocked filter can hide a
+  database-behaviour defect; the live check is what caught it.**
 - Paused / not authorised: OTP, invitations, passcodes, biometrics, WhatsApp
   provider, price-edit redesign, Excel import, suppliers, transfers, returns,
   subscriptions.
@@ -134,8 +143,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `22c4389` | `22c4389` | clean |
-| Mobile (`erp-mobile`) | master | `5cd7bc6` | `5cd7bc6` | clean |
+| Backend (`erp-backend`) | master | `fb1ad67` | `fb1ad67` | clean |
+| Mobile (`erp-mobile`) | master | `c36eeaf` | `c36eeaf` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 3.2 commit trail — mobile `da34e1f` (CP1: remove fail-closed bypass +
@@ -409,15 +418,10 @@ No credentials appear in this file. Database and app credentials live in
 
 **None authorised. Wait for an explicit user instruction.**
 
-**The exact next checkpoint is G1's remaining mobile surfaces** — the backend
-contract they need is already live, tested and pushed, so this is UI work with
-no open design question:
+**The exact next checkpoint is the G1 manual create/edit form and the category
+screen.** Everything they depend on is live, tested and pushed:
 
-1. **Product detail screen** (`app/catalog/[id].tsx`) — `GET /v1/products/:id`
-   already returns identity, category, specifications, tracking mode, barcode,
-   `stockByBranch` (caller's branches only), `defaultPrice`, `lastSoldPrice`/
-   `lastSoldAt`, and `isActive`. Cost is already stripped for anyone without
-   `cost.view`. Show an Edit action only when `catalog.manage` is held.
+1. ~~Product detail screen~~ — **DONE** (`app/catalog/[id].tsx`, mobile `960e3c1`).
 2. **Manual create/edit form** — progressive sections (identity → category →
    tracking → barcode → specifications → review), `SelectSheet` for category,
    dirty-state protection, per-field validation, scanner shortcut for the
@@ -431,11 +435,16 @@ no open design question:
 5. Then: mobile TypeScript, Expo lint, Expo Doctor, web export, and a live pass
    over Sell / Receive / Inventory to confirm no regression.
 
-Known follow-ups, deliberately not done in G1: `GET /v1/products/all` is the
-legacy unpaginated array kept only while callers migrate — delete it once the
-mobile no longer uses it; `app/catalog/new.tsx` still posts the old create shape
-(it works, and the endpoint is now `catalog.manage`-guarded, but it should move
-onto the new form).
+**Legacy `GET /v1/products/all` — consumer audit (2026-08-06): ZERO consumers.**
+No mobile caller (`grep` over `app/`, `components/`, `lib/`, `hooks/`), and the
+only backend reference is its own controller route. It is **safe to delete in
+the next pass**; it was kept this session only because the brief said not to
+remove it yet. `GET /v1/products/search` still has no mobile caller either but
+remains part of the public contract.
+
+`app/catalog/new.tsx` still posts the old create shape. It works and the
+endpoint is `catalog.manage`-guarded, but it should be replaced by the shared
+create/edit form rather than extended.
 
 When work is authorised again, the receiving account must, in order:
 

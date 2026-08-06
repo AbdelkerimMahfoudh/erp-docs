@@ -15,6 +15,84 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 22:05–22:50 UTC — CLAUDE-B (G1 mobile — live validation, detail screen, i18n)
+
+- **Starting state:** matched the brief exactly — backend `22c4389`, mobile
+  `5cd7bc6`, docs `08ea00f`, migration `0026`, **42 suites / 494 tests**, three
+  trees clean and level with origin, `READY_FOR_HANDOFF`/NONE.
+- **Authorised task:** finish the G1 mobile surfaces. Auth/WhatsApp paused.
+  (The brief said "take ownership as CLAUDE-A"; the user has previously
+  confirmed that is a typo for this account, so ownership was taken as CLAUDE-B.)
+- **Live contract validation before any UI work (18/18, then 18/18):** paginated
+  shape; cursor drained 12/12 with no duplicates; search by brand, model,
+  variant and barcode; tracking and archived filters; detail with stock summary
+  and **no IMEI**; categories; **employee can browse but cannot create a product
+  or a category (403)**; a `catalog.manage` write **without branch context is
+  refused (403)**, confirming the permission really is branch-scoped.
+- **DEFECT FOUND AND FIXED (backend `fb1ad67`):** specification search returned
+  **0 rows against real MySQL**. Prisma's `string_contains` on a JSON column
+  needs an explicit `path`; category-defined specs have no fixed path, so the
+  filter silently matched nothing. The unit double had implemented it as a
+  `JSON.stringify` match — more permissive than the database — so the suite
+  stayed green and only the live query exposed it. Replaced with a bounded,
+  company-scoped raw query whose ids feed back as an `OR id IN (…)` predicate,
+  keeping keyset pagination and every other filter intact; LIKE wildcards in the
+  user's term are escaped. The double now answers `$queryRaw` like MySQL.
+  Verified live: `q=SierraBlueUnique` returns the product (was 0).
+- **Write-path live checks (18/18):** create serialized + quantity products;
+  same brand+model with a **different variant is a separate product**; duplicate
+  **exact variant → 409**; duplicate **barcode → 409** (case-insensitive);
+  metadata PATCH; **PATCH rejects a price field (400)**; archive hides from the
+  active list but appears under `active=inactive`; restore; tracking mode
+  changeable only without history; category create / duplicate-409 /
+  deactivate / hidden-from-default-list.
+- **Product detail screen (mobile `960e3c1`):** `app/catalog/[id].tsx` on the
+  design system — identity, category, tracking, barcode, specifications, stock
+  per accessible branch, selling price, last sold price, and cost **only when
+  the server returned it** (withheld renders as "Hidden", never a fake zero).
+  No price control and no IMEI list; a "View in Inventory" link goes to the
+  paginated unit list. Archive/restore/Edit gated on `catalog.manage` with
+  confirmation; archived products stay visible and explained. Loading, 403, 404,
+  retry and network states handled.
+- **i18n:** the catalog list's prototype strings are translated and a full
+  EN/AR catalogue was added for the catalog surface (status, filters, empty and
+  error states, tracking modes, archive/restore, price read-only explanation),
+  type-aligned so a missing Arabic key is a compile error.
+- **Navigation (mobile `c36eeaf`):** Catalog browsing was gated on `unit.add`
+  ("may receive stock"), which every store role happens to hold — it worked by
+  coincidence. Browsing is now open to all store roles; create/edit/archive stay
+  on `catalog.manage`.
+- **Legacy endpoint audit:** `GET /v1/products/all` has **zero consumers** — no
+  mobile caller, only its own controller route. Safe to delete next pass (kept
+  this session because the brief said not to remove it yet).
+- **Regression (live, read-only):** Inventory list, search, discriminated
+  unit/stock rows and quantity-accessory visibility all fine; Receive/Sell
+  `products/suggest` still resolves; legacy `/products/all` and
+  `/products/search` still serve their array contracts; an **archived product
+  stays visible in Inventory** while disappearing from the receiving selector,
+  and restores cleanly. Two initial FAILs were **assertion bugs in my script**
+  (inventory nests product fields under `product`; `suggest` returns an empty
+  body for an archived product, so `.json()` threw) — not code defects.
+  **That thrown script left one demo product archived; it was detected and
+  restored immediately** (12 products, 0 archived, verified).
+- **Verification:** backend **42 suites / 494 tests**, backend TS clean, mobile
+  TS clean, Expo lint clean, **Expo Doctor 18/18**, `expo export --platform web`
+  succeeds with `/catalog` and `/catalog/[id]` in the route manifest, both Node
+  pure-test suites green, `migrate status` up to date (25 migrations). No new
+  migration this session. `dist/` build output removed after export.
+- **Real-device-only, still outstanding:** camera scanning, haptics, Arabic
+  visual RTL, bottom sheets, clipboard paste.
+- **Commits:** backend `fb1ad67`; mobile `960e3c1`, `c36eeaf`; docs this entry.
+  All pushed.
+- **Not done / next:** the shared manual create/edit form (+ scanner integration
+  in it) and the category-management screen. `app/catalog/new.tsx` still uses
+  the old prototype create shape and should be replaced by the shared form, not
+  extended.
+- **Handoff reason:** stopping at a clean, green, fully pushed checkpoint with
+  the remaining UI work specified, rather than half-applying a large form.
+
+---
+
 ## 2026-08-06 20:44–21:25 UTC — CLAUDE-B (Phase G1 — Product Catalog, backend complete)
 
 - **Starting state:** reality matched the brief exactly — backend `6192fd8`,
