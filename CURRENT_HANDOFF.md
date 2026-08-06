@@ -2,11 +2,24 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE (last worked by CLAUDE-B)
-- Session started / started_at_utc: 2026-08-06 22:05 UTC (CLAUDE-B, G1 mobile)
-- Last updated: 2026-08-06 22:45 UTC
+- Status: IN_PROGRESS
+- Active account: CLAUDE-A
+- Owner: CLAUDE-A
+- Session started / started_at_utc: 2026-08-06 21:45 UTC (CLAUDE-A, G1 mobile
+  completion)
+- Last updated: 2026-08-06 21:45 UTC
+
+> ### ⚠️ Account-label correction (2026-08-06, CLAUDE-A)
+>
+> **Every session in this workspace has been performed in the CLAUDE-A account.**
+> Several earlier entries — including the G1 backend and G1-mobile sessions —
+> recorded themselves as `CLAUDE-B`. That label was wrong; the *work*, commits
+> and verification described in them are correct and unaffected.
+>
+> Nothing has been rewritten: `SESSION_LOG.md` is append-only, so the correction
+> is appended there rather than edited into the old entries. Code commits are
+> untouched, because a label error is not a reason to rewrite correct history.
+> Read any `CLAUDE-B` attribution in entries dated 2026-08-05/06 as **CLAUDE-A**.
 - Current authorised task: **none.** G1 backend is complete, live-validated and
   green; the Catalog **list** and **detail** screens are done. The **manual
   create/edit form (+ scanner) and the category-management screen are NOT

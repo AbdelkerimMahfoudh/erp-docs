@@ -15,6 +15,32 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 21:45 UTC — CLAUDE-A — **CORRECTION: account label on earlier entries**
+
+Recorded as a **CORRECTION**, per this file's rule that entries are append-only
+and are never edited in place.
+
+**What was wrong:** several earlier entries — notably the two G1 entries below
+(2026-08-06 20:44–21:25 and 22:05–22:50) and the F1 Stage 1/1.1/2/3.1/3.2
+entries — attribute themselves to **`CLAUDE-B`**. That attribution is incorrect.
+All of that work was performed in the **CLAUDE-A** account.
+
+**What is NOT wrong:** the content of those entries. The commits, migrations,
+test counts, live-verification results and handoff states they describe are
+accurate and were independently re-verified at this takeover (backend `fb1ad67`,
+mobile `c36eeaf`, docs `a2d358d`, migration `0026`, 42 suites / 494 tests, three
+trees clean and level with origin).
+
+**What was done about it:** nothing was rewritten. The earlier entries stand as
+written; this correction sits above them, and `CURRENT_HANDOFF.md` carries the
+same note. Code commits were deliberately left untouched — a label error in a
+report is not a reason to rewrite correct history, and rewriting shared history
+is forbidden by `CLAUDE.md` anyway.
+
+**Going forward:** this account is `CLAUDE-A` and will label itself that way.
+
+---
+
 ## 2026-08-06 22:05–22:50 UTC — CLAUDE-B (G1 mobile — live validation, detail screen, i18n)
 
 - **Starting state:** matched the brief exactly — backend `22c4389`, mobile
