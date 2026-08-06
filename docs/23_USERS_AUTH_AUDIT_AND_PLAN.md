@@ -429,8 +429,25 @@ existing enum value. The enum member and timestamp remain useful — they are th
 ### Stage 4A — Provider-neutral messaging + OTP infrastructure ✅ **IMPLEMENTED** (0025)
 
 **Shipped:** backend `7337b10` (boundary + config), `f987380` (schema + services),
-`6192fd8` (tests) · mobile `e936e4e` (Store Account ID visibility) · migration
-`0025_otp_challenge_and_intent`.
+`6192fd8` (tests) · mobile `e936e4e` (Store Account ID visibility), `ddc23cb`
+(Stage 4A.1 clipboard correction) · migration `0025_otp_challenge_and_intent`.
+
+**Stage 4A.1 — clipboard correction.** The Store Account ID card originally
+copied through React Native's built-in `Clipboard`, described at the time as a
+supported core API. It is not: `Clipboard` has been extracted from React Native
+core, and RN 0.81.5 only resolves it through a deprecation shim that points at a
+separate package. It is replaced by **`expo-clipboard@~8.0.8`**, installed with
+`npx expo install` so the SDK resolver chose the version — the only dependency
+this whole stage adds, and the backend still has no messaging SDK and no HTTP
+client.
+
+Its API is asynchronous and reports whether the write landed, which fixes a real
+defect as well as the deprecation: the previous code confirmed "copied"
+unconditionally, so a failed copy still told the Owner it had worked. Success is
+now shown only after the write succeeds, failure says so plainly in English and
+Arabic, and the clipboard is never read. The card stays read-only, the ID stays
+worded as shareable rather than secret, and the `settings.manage` gate is
+unchanged.
 
 **No provider is integrated. No message is sent. OTP is not active in
 production. New-device login still blocks on `device_unrecognized`, unchanged.**

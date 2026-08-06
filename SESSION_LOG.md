@@ -15,6 +15,76 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 17:20–17:55 UTC — CLAUDE-A (Stage 4A.1 — Clipboard correction)
+
+- **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:
+  backend `6192fd8`, mobile `e936e4e`, docs `926896c`, migration `0025`,
+  **41 suites / 454 tests passing**, all three trees clean and level. Matched
+  the brief exactly.
+- **Authorised task:** replace the React Native core `Clipboard` used by the
+  Store Account ID card. Mobile and documentation only.
+
+### CORRECTION to the Stage 4A entry below (CLAUDE-A, 2026-08-06)
+
+That entry says React Native's built-in `Clipboard` was used "per CLAUDE.md's
+dependency rule". Treating it as a supported API was **wrong**: `Clipboard` was
+extracted from React Native core and is on its way out. RN 0.81.5 still resolves
+it, but only through a `warnOnce` deprecation shim in `index.js` that tells the
+caller to import it from a separate package — so the card was built on an API
+scheduled for removal, and would have broken on a future upgrade rather than
+today. *(Precisely: deprecated and shimmed in the version this project pins, not
+already absent.)* The user explicitly authorised installing the official Expo
+package to fix it.
+
+### The fix (mobile `ddc23cb`)
+
+Installed with `npx expo install expo-clipboard` so the SDK 54 resolver chose
+the version — **`expo-clipboard@~8.0.8`**. Exactly one dependency line and one
+lockfile entry were added; nothing else moved, and `app.json` is untouched, so
+no permission was requested.
+
+`setStringAsync` is asynchronous **and reports whether the write landed**, which
+is the real improvement: the old code showed "copied" unconditionally, so a
+failed copy still told the Owner it had worked — and an Owner reading the ID
+aloud over the phone would have read nothing. Success is now shown only after
+the write succeeds; both a `false` result and a thrown error produce a plain
+message in English and Arabic. The clipboard is never read.
+
+Unchanged: the card is read-only, the ID is worded as shareable rather than
+secret, the internal `BINARY(16)` company id is never shown, and the screen's
+existing three-layer `settings.manage` gate and save/dirty behaviour were not
+touched.
+
+- **Files changed:** mobile — `app/settings.tsx`, `lib/i18n/{en,ar}.ts`,
+  `package.json`, `package-lock.json`. Docs — `CURRENT_HANDOFF.md`,
+  `SESSION_LOG.md`, `docs/23`.
+- **Database migrations:** none. No backend or database change was needed, so
+  no backup was required.
+- **Tests and results:** mobile TypeScript clean · `expo lint` clean ·
+  **`expo-doctor` 18/18 checks passed** · `expo export --platform web`
+  succeeded and statically rendered all 23 routes **including `/settings`**,
+  proving the screen's module graph loads with no undefined native module. The
+  built bundle contains `setStringAsync` and both new strings. Backend
+  untouched; its 41/454 baseline was re-measured at takeover and is unchanged.
+- **Live verification:** the browser pane reports `visibilityState: 'hidden'`
+  in this environment, so interactive tools time out there (the same limitation
+  recorded in the E.2 entry). The web export was used instead, which is a
+  stronger compile-and-render proof than a pane screenshot would have been.
+- **Remaining device-only check:** an actual paste on a physical Android/iOS
+  device or Expo Go. The export proves the module resolves and the screen
+  renders; it does **not** prove the native clipboard write or the failure
+  toast on a real device.
+- **Commits:** mobile `ddc23cb` · documentation: *current HEAD contains this
+  entry*. Backend not touched (`6192fd8` unchanged).
+- **Push status:** all three pushed and level with `origin/master`.
+- **Remaining work:** unchanged from Stage 4A. **Stage 4B is blocked on
+  choosing a WhatsApp Business provider**, and **revoked-device recovery
+  semantics remain an open product decision.**
+- **Handoff reason:** authorised task complete. `READY_FOR_HANDOFF`, owner
+  `NONE`.
+
+---
+
 ## 2026-08-06 16:30–17:05 UTC — CLAUDE-A (Stage 4A)
 
 - **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:

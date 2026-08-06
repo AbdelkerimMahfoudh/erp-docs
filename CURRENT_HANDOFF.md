@@ -5,15 +5,24 @@
 - Status: READY_FOR_HANDOFF
 - Active account: NONE
 - Owner: NONE (last worked by CLAUDE-A)
-- Session started / started_at_utc: 2026-08-06 15:20 UTC (CLAUDE-B, Stage 3.2)
-- Last updated: 2026-08-06 17:00 UTC
-- Current authorised task: **none — Stage 4A is complete.** Awaiting an explicit
-  user instruction. **Stage 4B (provider integration) is blocked on choosing a
-  WhatsApp Business provider** — that is a product/commercial decision, not a
+- Session started / started_at_utc: 2026-08-06 17:20 UTC (CLAUDE-A, Stage 4A.1)
+- Last updated: 2026-08-06 17:55 UTC
+- Current authorised task: **none — Stage 4A.1 is complete.** Awaiting an
+  explicit user instruction. **Stage 4B (provider integration) is blocked on
+  choosing a WhatsApp Business provider** — a product/commercial decision, not a
   technical one.
-- Takeover: CLAUDE-A took over from CLAUDE-B at 2026-08-06 16:30 UTC from a
-  clean `READY_FOR_HANDOFF`/NONE state. All three HEADs, migration `0024` and
-  the 38/390 test baseline verified before any change.
+- Last completed checkpoint: **Stage 4A.1 complete** (mobile `ddc23cb`) — the
+  Store Account ID copy action now uses `expo-clipboard`, asynchronously, and
+  confirms only after the write actually lands. **Mobile-only. No OTP,
+  messaging, authentication, backend or database change.**
+- Takeover: CLAUDE-A took ownership at 2026-08-06 17:20 UTC from a clean
+  `READY_FOR_HANDOFF`/NONE state. Verified before any change: backend
+  `6192fd8`, mobile `e936e4e`, docs `926896c`, migration `0025`,
+  **41 suites / 454 tests passing**, all three trees clean and level with
+  `origin/master`. Reality matched the brief exactly.
+- Previous takeover: CLAUDE-A took over from CLAUDE-B at 2026-08-06 16:30 UTC
+  for Stage 4A (backend `6fde7bb`, mobile `fca89f4`, docs `55a7c78`, migration
+  `0024`, 38/390 verified).
 - **NETWORK:** GitHub was unreachable at the very start of the session but
   **recovered before the first commit**; every checkpoint below was pushed
   successfully and all three trees are level with `origin`.
@@ -64,7 +73,7 @@ All clean, all `master`, all pushed and level with `origin`.
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
 | Backend (`erp-backend`) | master | `6192fd8` | `6192fd8` | clean |
-| Mobile (`erp-mobile`) | master | `e936e4e` | `e936e4e` | clean |
+| Mobile (`erp-mobile`) | master | `ddc23cb` | `ddc23cb` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 3.2 commit trail — mobile `da34e1f` (CP1: remove fail-closed bypass +
@@ -92,6 +101,15 @@ directory** (`../`), not a sibling.
 
 Measured by CLAUDE-A on 2026-08-06 after Stage 4A.
 
+- Stage 4A.1 re-verification (2026-08-06 17:55): mobile TypeScript clean ·
+  `expo lint` clean · **`expo-doctor` 18/18 checks passed** · `expo export
+  --platform web` succeeded and statically rendered all 23 routes **including
+  `/settings`**, which proves the screen's module graph loads with no undefined
+  native module. Backend untouched, so its 41/454 baseline below still stands
+  (measured again at takeover, unchanged).
+- **Device-only check still outstanding:** an actual paste on a physical
+  Android/iOS device or Expo Go. The web export proves the module resolves and
+  the screen renders; it does not prove the native clipboard write.
 - Backend tests: **41 suites / 454 tests passing** — Stage 4A added
   `messaging.spec.ts` (19), `otp-code.util.spec.ts` (18) and
   `otp.service.spec.ts` (27)
@@ -187,11 +205,15 @@ Measured by CLAUDE-A on 2026-08-06 after Stage 4A.
 
 ## Work currently in progress
 
-**Nothing. Stage 4A is complete, committed, pushed and verified.**
+**Nothing. Stage 4A and the Stage 4A.1 correction are complete, committed,
+pushed and verified.**
 
 - Uncommitted work: none in any repository.
-- Migrations applied this session: **`0025_otp_challenge_and_intent`** (additive;
-  `0024` untouched).
+- Migrations applied by Stage 4A: **`0025_otp_challenge_and_intent`** (additive;
+  `0024` untouched). **Stage 4A.1 applied none** — it is mobile-only.
+- Only dependency ever added by this line of work: **`expo-clipboard@~8.0.8`**
+  (Stage 4A.1). No backend dependency; still no messaging SDK and no HTTP
+  client.
 - Temporary databases: `prisma_s4a_deploy` and `prisma_s4a_clean` — **both
   dropped**. None remain.
 - Live fixtures created: **none.** Stage 4A needed no live data, so no fixture
