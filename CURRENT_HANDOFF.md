@@ -2,15 +2,72 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE (last worked by CLAUDE-A)
-- Session started / started_at_utc: 2026-08-06 17:20 UTC (CLAUDE-A, Stage 4A.1)
-- Last updated: 2026-08-06 17:55 UTC
-- Current authorised task: **none — Stage 4A.1 is complete.** Awaiting an
-  explicit user instruction. **Stage 4B (provider integration) is blocked on
-  choosing a WhatsApp Business provider** — a product/commercial decision, not a
-  technical one.
+- Status: IN_PROGRESS
+- Active account: CLAUDE-B
+- Owner: CLAUDE-B
+- Session started / started_at_utc: 2026-08-06 20:44 UTC (CLAUDE-B, Phase G1)
+- Last updated: 2026-08-06 20:44 UTC
+- Current authorised task: **Phase G1 — Product Catalog and Manual Product
+  Setup.** Checkpoints: (1) `catalog.manage` permission + migration; (2) backend
+  catalog/category APIs + tests; (3) mobile Catalog list/detail; (4) manual
+  create/edit + categories; (5) docs/handoff. **Paused / not authorised:** OTP,
+  invitations, passcodes, biometrics, WhatsApp provider, price-edit redesign,
+  Excel import, suppliers, transfers, returns, subscriptions.
+- Takeover verified at 20:44 UTC — reality matched the brief exactly: backend
+  `6192fd8`, mobile `ddc23cb`, docs `e1298f7`, migration `0025`,
+  **41 suites / 454 tests passing**, all three trees clean and level with
+  `origin/master`, `READY_FOR_HANDOFF`/NONE, WhatsApp/OTP present but disabled
+  with no provider configured.
+
+### G1 repository-truth audit (before any edit)
+
+**Reuse as-is (no second catalog, no second price source):**
+- `Product` **already IS an exact sellable variant** — `@@unique([companyId,
+  brand, model, variant])` plus a `specifications` JSON. No identity redesign
+  needed; brand/model group for display only.
+- `ProductCategory` (company-shared, `isActive`, `defaultTrackingType`,
+  `attributeSchema`) and its `POST/PATCH /v1/categories` already exist and are
+  correct — reuse, do not duplicate.
+- `ProductRecognition` + the recognition outbox already learn a product's
+  barcode transactionally on create.
+
+**Current price truth (traced end to end):**
+- **Serialized (phones/Units):** `Unit` has `cost` but **no price column**.
+  `sales.service` resolves the line price via
+  `sales-policy.resolvePrice(provided, product.defaultPrice)` — i.e. the price
+  typed at sale time, falling back to **`Product.defaultPrice`**.
+- **Quantity (accessories):** `StockItem.price` **per branch**, seeded at
+  receiving from `dto.price ?? Product.defaultPrice`
+  (`inventory.service`/`purchasing.service`).
+- ⇒ `Product.defaultPrice` is the existing authoritative *fallback*; G1 only
+  **displays** it and must not introduce a competing source. **`Unit` still has
+  no individual price — that is the exact next Pricing milestone.**
+
+**Gaps / inconsistencies found:**
+- `POST /v1/products` is guarded by **`unit.add`**, which **Store Employees
+  hold** — employees can create catalog products today. This is the concrete
+  reason `catalog.manage` is needed.
+- Category writes are guarded by `settings.manage` (**Owner-only**), so a Store
+  Manager cannot manage categories at all.
+- `GET /v1/products` has **no pagination** (fixed `take: 200`), no filters, and
+  no detail endpoint; `search` is capped at 50 and covers only brand/model/
+  variant. **No PATCH/update endpoint exists at all.**
+- `Product.defaultCost` exists (a generic permanent product cost, contrary to
+  the approved rule) but is already stripped by the cost-gating interceptor —
+  left untouched, and deliberately **not** surfaced in the new catalog form.
+
+**Lifecycle — no schema change required:** `Product` has no `isActive`, but
+`catalog.list/search/suggest` filter `deletedAt: null` **while Sell, Receive,
+Inventory and Scanner do not filter it at all**. So `deletedAt` already yields
+exactly the approved archive semantics — hidden from receiving/creation
+selectors, still visible in Inventory, still sellable until depleted, fully
+reversible. The API exposes it as a derived `isActive`, matching the project's
+derived-status convention.
+
+**Would break if changed:** any narrowing of `products/suggest`, `search`, or
+the `Product.defaultPrice` fallback would break Receive and Sell; the
+`(companyId, brand, model, variant)` and `(companyId, barcode)` unique keys and
+the recognition outbox contract must be preserved.
 - Last completed checkpoint: **Stage 4A.1 complete** (mobile `ddc23cb`) — the
   Store Account ID copy action now uses `expo-clipboard`, asynchronously, and
   confirms only after the write actually lands. **Mobile-only. No OTP,
