@@ -4,15 +4,24 @@
 
 - Status: READY_FOR_HANDOFF
 - Active account: NONE
-- Owner: NONE (last worked by CLAUDE-B)
+- Owner: NONE (last worked by CLAUDE-A)
 - Session started / started_at_utc: 2026-08-06 15:20 UTC (CLAUDE-B, Stage 3.2)
-- Last updated: 2026-08-06 16:00 UTC
-- Current authorised task: **none — F1 Stage 3.2 is complete.** Awaiting an
-  explicit user instruction. The next planned step (Stage 4 OTP) is not
-  authorised and is blocked on a provider choice.
+- Last updated: 2026-08-06 17:00 UTC
+- Current authorised task: **none — Stage 4A is complete.** Awaiting an explicit
+  user instruction. **Stage 4B (provider integration) is blocked on choosing a
+  WhatsApp Business provider** — that is a product/commercial decision, not a
+  technical one.
+- Takeover: CLAUDE-A took over from CLAUDE-B at 2026-08-06 16:30 UTC from a
+  clean `READY_FOR_HANDOFF`/NONE state. All three HEADs, migration `0024` and
+  the 38/390 test baseline verified before any change.
 - **NETWORK:** GitHub was unreachable at the very start of the session but
   **recovered before the first commit**; every checkpoint below was pushed
   successfully and all three trees are level with `origin`.
+- Last completed checkpoint: **Stage 4A complete** — Store Account ID visible to
+  the Owner, provider-neutral messaging boundary, OTP challenge + verification
+  intent (`0025`), 64 new tests. **No provider integrated, no message sent, OTP
+  not active in production, new-device login still blocked.**
+<!-- superseded: Stage 3.2 checkpoint —
 - Last completed checkpoint: **F1 Stage 3.2 complete** — the mobile fail-closed
   bypass is removed (blocking verification state instead), the public Store
   Account ID (`0024`) is the pre-login tenant selector, login is
@@ -20,6 +29,7 @@
   and failing non-enumerating + timing-safe, and the mobile keys its device
   credential by `env + storeId + login` with a one-time legacy migration. All
   committed, pushed and live-verified (multi-company); three trees clean.
+-->
 <!-- superseded: Stage 3.1 checkpoint —
   live-verified; three trees clean.
 -->
@@ -53,8 +63,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `6fde7bb` | `6fde7bb` | clean |
-| Mobile (`erp-mobile`) | master | `fca89f4` | `fca89f4` | clean |
+| Backend (`erp-backend`) | master | `6192fd8` | `6192fd8` | clean |
+| Mobile (`erp-mobile`) | master | `e936e4e` | `e936e4e` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 3.2 commit trail — mobile `da34e1f` (CP1: remove fail-closed bypass +
@@ -80,83 +90,27 @@ directory** (`../`), not a sibling.
 
 ## Verified baseline
 
-Measured by CLAUDE-B on 2026-08-06 after F1 Stage 3.2.
+Measured by CLAUDE-A on 2026-08-06 after Stage 4A.
 
-- Backend tests: **38 suites / 390 tests passing** (`npx jest`) — Stage 3.2 added
-  `store-code.util.spec.ts` and rewrote `auth.service.spec.ts` for the Store ID
-  contract (same login in two companies, foreign-login rejection, non-enumerating
-  + timing-safe failures) alongside the A–E device tree.
-- Mobile pure regression guards (Node type-stripping, no test runner / no new
-  dependency): `sign-in-decision.test.ts` (6) + `device-key.test.ts` (7).
+- Backend tests: **41 suites / 454 tests passing** — Stage 4A added
+  `messaging.spec.ts` (19), `otp-code.util.spec.ts` (18) and
+  `otp.service.spec.ts` (27)
 - Backend TypeScript: clean · Mobile TypeScript: clean · Expo lint: clean
-- Latest Prisma migration: **`0024_company_public_store_id`** (applied via
-  `migrate deploy`; backend `044234b`; pre-migration backup recorded below)
-- Database migration status: *"Database schema is up to date!"*, **23 migrations**
-- Migration-only-deploy proof (restored scratch DB `prisma_s32_deploy`, NO seed):
-  restored 0023 state (6 users, 76 sessions, 2 branches) → `migrate deploy` applied
-  only `0024` → backfilled `F62B8D1EEB` (valid, 0 nulls), **all rows preserved**,
-  unique index present, guarded backfill rerun → 0 rows. Empty-DB run created the
-  column+index with 0 companies. Scratch dropped, sanitized copy removed.
-- Stage 3.2 live verification (own backend on :3010, temp company B, then clean):
-  - Same login `owner` @ **Store A** vs **Store B** → each authenticates its own
-    company (different user) — multi-company disambiguation works
-  - Wrong password / wrong Store ID / a login only in company B → all **401, no
-    machine code** (non-enumerating)
-  - Valid returning device recognised; **wrong secret → 401 device_unrecognized**;
-    **company B's device credential presented to company A → 401** (no cross-company
-    collision); device-row count unchanged; **revoked device → 401**
-  - Cold-restore: `/auth/me` returns `publicStoreId` (namespacing without re-login)
-  - Cleanup: temp company B + its 2 users deleted; A-owner test devices + sessions
-    deleted. Companies 1, users 6, `user_devices` 0, demo store `F62B8D1EEB`. **+1
-    append-only `audit_logs` row** (the revoke). No financial/inventory touched.
+- Latest Prisma migration: **`0025_otp_challenge_and_intent`**
+- Database migration status: *"Database schema is up to date!"*, **24 migrations**
+- Migration-only-deploy proof (scratch `prisma_s4a_deploy`, restored from the
+  pre-`0025` backup, **NO seed**): 6 users / 76 sessions / 0 devices all
+  preserved; both tables created; both UNIQUE indexes present; FKs
+  `RESTRICT`/`CASCADE`/`SET NULL` as designed; SQL rerun twice changed nothing.
+  Clean-database run produced 52 tables. Both scratch DBs dropped.
+- **Database-level proof of the "one live challenge" rule:** MySQL accepted two
+  terminal rows with `active_key = NULL` and rejected a second row with the same
+  non-NULL `active_key` (`ERROR 1062`). That is the mechanism, verified.
+- Local channel verification: the backend starts and is healthy with **no
+  `OTP_PEPPER` and no provider configured**, and `device_unrecognized` still
+  blocks in `auth.service.ts`. A grep confirms **nothing in the login flow calls
+  `OtpService` or `VerificationIntentService`.**
 
-<!-- Superseded Stage 3.1 device-recognition verification (kept as history):
-  - **A** no credential → enrolls, secret once, `trustMethod: password`
-  - **B** valid pair → recognised, no secret returned, no re-enrollment
-  - **C** known id + wrong secret → `401 { code: device_unrecognized }`, **no new
-    device**, no secret echoed
-  - **D** unknown id + secret → 401, not enrolled
-  - **E** revoked credential → 401, no new trusted device
-  - Repeated bad claims → device count **unchanged** (no unbounded growth)
-  - Device list shows the revoked device as history + the current one; **no
-    secret / secretHash / argon2**, every `otpVerified` false
-  - Owner lists an employee device (200, no secret); employee on the Owner route
-    → **403**; a cross-user credential (faithful cross-company) → 401 fail-closed
-  - Logout set `reverifyRequired`; recognition still succeeded next sign-in (no
-    lock-out with no OTP). Mobile now KEEPS the credential on logout so the flag
-    governs the same device
-  - Cleanup: all test device rows + sessions deleted, `settingsprobe` restored to
-    its backed-up hash and `is_active = 0`. **+1 append-only `audit_logs` row**
-    (the E revoke). Users 6, `user_devices` 0
--->
-- All Stage 3.2 fixtures removed; the shared demo DB is clean (companies 1,
-  users 6, `user_devices` 0). `settingsprobe` remains restored + `is_active = 0`.
-- Live verification (2026-08-06, backend on :3010, fixtures fully removed):
-  - First sign-in with no credential **enrolls**; `trustMethod: password`;
-    43-char secret, distinct from the public id
-  - Returning sign-in presenting the pair is **recognised** — no re-enrollment
-  - A **wrong secret** is not a login failure (the password was right): it
-    enrolls a *new* device and leaves the old one alone
-  - Device list: current one flagged, **no secret, no `secretHash`, no
-    `argon2`** anywhere in the payload; every `otpVerified` false
-  - Revoking another device killed its session (1 revoked) and left the current
-    session working; the revoked row **stays listed as history**
-  - A **revoked credential cannot re-enroll as trusted** — it becomes a new
-    device and the old row stays revoked
-  - Revoke is idempotent (`alreadyRevoked: true`, 0 sessions)
-  - Revoking the **current** device returns `wasCurrent: true` and the token is
-    401 on the next call
-  - **Explicit logout** set `reverifyRequired: true`; the device is still
-    recognised (no lock-out with no OTP to recover) and `otpVerified` stays false
-  - Reopening the app and restoring a session left `reverifyRequired: false`
-  - Employee sees only their own device; **403** on the Owner list route
-  - Owner listed and revoked an employee device (session died, 401); a
-    cross-user device id under that employee → **404**
-- Migration-only deployment proof: a temp database restored from the pre-`0023`
-  backup ran `migrate deploy` **with no seed** — `user_devices` created,
-  `device_record_id` added, **all 65 existing sessions preserved and unbound**,
-  enum `('legacy','password','otp')`, FKs `RESTRICT`/`CASCADE` as designed.
-  Re-running the SQL twice changed nothing. Temp database dropped.
 
 ## Completed milestones
 
@@ -233,48 +187,28 @@ Measured by CLAUDE-B on 2026-08-06 after F1 Stage 3.2.
 
 ## Work currently in progress
 
-**Nothing. F1 Stage 3.2 is complete, committed, pushed and verified.**
+**Nothing. Stage 4A is complete, committed, pushed and verified.**
 
 - Uncommitted work: none in any repository.
-- Migrations applied this session (Stage 3.2): **`0024_company_public_store_id`**
-  (backup taken first — see Database safety).
-- Temporary databases: `prisma_s32_deploy` — created for the migration-only-deploy
-  proof and **dropped**. None remain.
-- Temporary fixtures: a temp **company B** (+ two users) was created for the
-  same-login-two-companies live test and **fully deleted**; A-owner test devices
-  and their sessions were deleted. Companies 1, users 6, `user_devices` **0**.
-- A `backend` entry was added to `.claude/launch.json` so the API server can be
-  started for live verification (the other session's dev server was down).
-- Unavoidable append-only rows: **+1 `audit_logs` entry** (a `UserDevice`
-  status_change from the case-E revoke). Total **92**.
-- No financial or inventory record touched.
+- Migrations applied this session: **`0025_otp_challenge_and_intent`** (additive;
+  `0024` untouched).
+- Temporary databases: `prisma_s4a_deploy` and `prisma_s4a_clean` — **both
+  dropped**. None remain.
+- Live fixtures created: **none.** Stage 4A needed no live data, so no fixture
+  cleanup and **no new append-only audit rows** were produced.
+- No financial or inventory record was touched.
 
-### Stage 2 lifecycle fix shipped first (backend `0db0fc4`)
+### What Stage 4A deliberately does NOT do
 
-An audit of every write path found **no role-management API exists** — only
-`prisma/create-user.ts` (a dev utility whose upsert doubles as a role changer)
-and the seed's legacy remap can change a `UserBranch` role, and nothing anywhere
-deletes an assignment. The CLI did not prune delegated grants, so a downgrade
-followed by a re-promotion would have silently restored `price.edit`.
+- No Meta / Twilio / Infobip integration and no messaging SDK installed.
+- No real WhatsApp message is sent; `disabled` is the default channel.
+- OTP is **not active in production**: `OTP_PEPPER` is unset, so challenge
+  creation refuses.
+- New-device login **still blocks** on `device_unrecognized`.
+- Nothing marks a phone or a device verified. `otpVerifiedAt` and
+  `phoneVerifiedAt` are still never written.
+- No public OTP endpoint exists — the services are internal.
 
-The rule now lives in `src/rbac/delegation-lifecycle.ts` — used by the CLI today
-and required of any future role API — and prunes inside the same transaction as
-the role change. Cascade re-verified on the live database.
-Deactivation is deliberately **not** a lapse: it does not change the role, the
-Owner withdrew nothing, and F1.1 already cuts off access.
-
-### Uncommitted work inherited from CLAUDE-B — all resolved
-
-| Repo | File | Outcome |
-|---|---|---|
-| docs | `CURRENT_HANDOFF.md` | The `0021` checkpoint was kept and extended by this update |
-| backend | `src/users/user-management.service.ts` | **Completed, not rewritten.** Its direction was right; the only thing dropped was a speculative `GrantDto` import, because the shipped contract names the authority in the route path and accepts no permission key from the client. Committed in `7047c93` |
-| mobile | `lib/permissions.ts` | Kept — the `price.edit` catalogue addition. Committed in `80bc285` |
-
-The backend tree did not compile at takeover (`./dto/grant.dto` was missing);
-it does now. The Stage 1 spec harness — which predated the new `permissions`
-select and was the deeper reason that suite failed — was updated to model
-assignments and grants for real.
 
 ## Stage 2 branch-authorization audit (hard gate) — FIRED, then RESOLVED
 

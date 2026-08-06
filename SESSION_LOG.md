@@ -15,6 +15,86 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 16:30–17:05 UTC — CLAUDE-A (Stage 4A)
+
+- **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:
+  backend `6fde7bb`, mobile `fca89f4`, docs `55a7c78`, migration `0024`,
+  38 suites / 390 tests, all clean and level. Matched the brief exactly.
+- **Authorised task:** Stage 4A — provider-neutral WhatsApp/OTP infrastructure
+  only. No provider integration, no real messages.
+
+### CP1 — Store Account ID visibility (mobile `e936e4e`)
+
+Stage 3.2 made the Store Account ID the pre-login tenant selector and the server
+already returned it, but **nothing displayed it** — an Owner could not onboard a
+single employee. Added to Business settings, read-only, with a copy action and
+confirmation. Worded as shareable rather than secret, since a code that looks
+like a password never gets shared. Used React Native's built-in `Clipboard`
+rather than adding `expo-clipboard`, per CLAUDE.md's dependency rule.
+
+### CP2 — Messaging audit + provider boundary (backend `7337b10`)
+
+Audit found **no messaging SDK and no HTTP client at all**, which is why a
+disabled channel is safe by construction. Reusable: `AuditService`, Joi env
+validation, throttler, tenant plumbing. Deliberately **not** reused: the
+recognition outbox (it persists payloads and retries — wrong for a deliverable
+secret) and the `Notification` model (plaintext, in-app).
+
+`WhatsAppChannel` has no raw-message call and lets no provider error escape.
+`disabled` is the default and production-safe; `test` cannot be selected by
+configuration; `development-log` fails production startup.
+
+### CP3 — OTP challenge + verification intent (backend `f987380`, `0025`)
+
+**Corrected a wrong claim from the Stage 3 report**, which said Stage 4 needed no
+migration because `user_devices` already had an `otp` trust method and
+`otpVerifiedAt`. Those record an outcome, not a challenge: there was nowhere for
+the code hash, attempts, sends, cooldowns, expiry, delivery outcome or
+idempotency key. Two additive tables.
+
+HMAC-SHA256 keyed by a configuration pepper, challenge id mixed in,
+constant-time comparison, all from `node:crypto`. `OTP_PEPPER` has no default:
+absent means OTP refuses, never OTP-with-a-guessable-hash. Delivery is
+synchronous and honest — nothing claims a send that did not happen.
+
+### CP4 — Tests (backend `6192fd8`)
+
+64 new tests. Notably: 400 draws to prove leading-zero codes survive (a naive
+implementation formats through a number and silently turns `000123` into `123`);
+three concurrent correct submissions yielding exactly one success; and an
+assertion that the code, hash, pepper and full phone number are all absent from
+audit metadata.
+
+- **Files changed:** backend — `prisma/schema.prisma`,
+  `prisma/migrations/0025_otp_challenge_and_intent/`, `src/messaging/*` (new),
+  `src/auth/otp/*` (new), `src/auth/auth.module.ts`, `src/app.module.ts`,
+  `src/common/config/{env.validation,app-config.service}.ts`, `.env.example`.
+  Mobile — `app/settings.tsx`, `lib/i18n/{en,ar}.ts`. Docs — `docs/23`,
+  `CURRENT_HANDOFF.md`, `SESSION_LOG.md`.
+- **Database migrations:** `0025`. Backup taken first:
+  `~/erp-backups/phonestore-20260806-163400.sql` (196 144 bytes, `--hex-blob`,
+  0 raw `_binary`, 1542 hex literals, valid UTF-8).
+- **Tests and results:** **41 suites / 454 tests passing.** Backend and mobile
+  `tsc` clean; `expo lint` clean; `migrate status` clean, 24 migrations.
+  Migration-only deploy preserved 6 users / 76 sessions with no seed; reruns
+  changed nothing; clean DB produced 52 tables; MySQL itself proved the
+  `active_key` uniqueness semantics.
+- **Live verification:** backend starts healthy with no pepper and no provider;
+  `device_unrecognized` still blocks; nothing in the login flow references the
+  OTP services. **No fixtures created, no audit rows added, no financial or
+  inventory data touched.**
+- **Commits:** mobile `e936e4e` · backend `7337b10`, `f987380`, `6192fd8` ·
+  documentation: *current HEAD contains this handoff*.
+- **Push status:** all three pushed and level with `origin/master`.
+- **Remaining work / unresolved decision:** **Stage 4B is blocked on choosing a
+  WhatsApp Business provider.** Separately, **revoked-device recovery semantics
+  are an open product decision** — who may restore a revoked device, on what
+  evidence, and whether an Owner may do it for an employee. That purpose was
+  deliberately left out of the OTP enum rather than invented.
+- **Handoff reason:** authorised task complete. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
 ## 2026-08-06 15:20–16:05 UTC — CLAUDE-B (F1 Stage 3.2 — Store Account ID + bypass fix)
 
 - **Starting state:** resumed after F1 Stage 3.1. Reconciliation matched the

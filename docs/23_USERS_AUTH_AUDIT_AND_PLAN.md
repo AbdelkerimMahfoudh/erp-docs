@@ -426,22 +426,120 @@ migration** (the `OtpChallenge` model sketched below), not merely writing the
 existing enum value. The enum member and timestamp remain useful — they are the
 *outcome* Stage 4 sets once a challenge in that new table is verified.
 
-### Stage 4 — OTP provider abstraction *(depends on 1; blocked on provider choice)*
+### Stage 4A — Provider-neutral messaging + OTP infrastructure ✅ **IMPLEMENTED** (0025)
 
-```
-interface OtpChannel {
-  send(to: E164, code: string, locale: 'en'|'ar'): Promise<void>;
-}
-```
+**Shipped:** backend `7337b10` (boundary + config), `f987380` (schema + services),
+`6192fd8` (tests) · mobile `e936e4e` (Store Account ID visibility) · migration
+`0025_otp_challenge_and_intent`.
 
-- `OtpChallenge { id, companyId, userId?, phone, codeHash, purpose, attempts,
-  expiresAt, consumedAt?, createdAt }` — **Argon2 hash of the code, never the
-  code**; 6 digits, 5-minute expiry, max 5 attempts, single use.
-- Ship a `LogOtpChannel` (writes to the server log) so Stages 5–7 can be built
-  and tested with **no provider contract signed**.
-- ⚠️ **Blocked:** the real channel. `docs/21` §16 records that Bankily has no
-  confirmed public API; the same discipline applies here — do not implement a
-  guessed WhatsApp Business integration.
+**No provider is integrated. No message is sent. OTP is not active in
+production. New-device login still blocks on `device_unrecognized`, unchanged.**
+
+#### Correction to the Stage 3 report
+
+The Stage 3 report claimed Stage 4 would need **no migration**, because
+`user_devices` already carried an `otp` trust method and `otpVerifiedAt`. That
+was **wrong**, and Stage 4A corrects it.
+
+Those two fields record an *outcome*. A working OTP flow needs durable
+*challenge* state, and none of it existed: code hash, attempt counter, maximum
+attempts, last attempt, send count, last send, resend-not-before, expiry,
+consumed/cancelled/locked timestamps, delivery outcome, provider message
+reference and a client idempotency key. An enum value and a timestamp are not
+an OTP system. Hence two new tables, additive, after `0024`.
+
+#### The messaging boundary
+
+`WhatsAppChannel` is the only messaging type authentication code may see. Two
+deliberate absences:
+
+- **No raw-message call.** A caller names a registry template and supplies
+  variables the registry validates. A generic `sendText(body)` would let any
+  later feature put arbitrary content — including a code — into a message path
+  nobody reviewed.
+- **No provider error escapes.** Adapters classify failures as
+  `channel_unavailable` / `rejected` / `temporary` / `not_authorized`, so no
+  vendor payload can reach a log, an audit row or a caller's branch.
+
+| Adapter | Where | Behaviour |
+|---|---|---|
+| `DisabledWhatsAppChannel` | **default, production-safe** | No network call. Returns a controlled "delivery unavailable" |
+| `TestWhatsAppChannel` | tests only | Captures the message so tests can assert the real code. **Not selectable by configuration** — asking for it throws |
+| `DevelopmentLogWhatsAppChannel` | local only | Masked destination in the app log; the code only to an explicitly marked `console` dev sink, never the application logger. **Production startup fails if selected** |
+
+There is no HTTP client anywhere in this project, so "performs no network call"
+is true by construction rather than by review.
+
+#### OTP secret handling
+
+Six digits carries ~20 bits of entropy: an unkeyed digest of a code is a lookup
+table, not a one-way function, and a stolen `otp_challenges` table would hand
+over every live code. Argon2 (used for passwords here) would slow that down but
+still permits an offline attack and is far too slow to run per attempt.
+
+So: **HMAC-SHA256 keyed by `OTP_PEPPER`**, which lives in configuration and
+never in the database, with the challenge id mixed in so the same code in two
+challenges does not produce the same hash. Comparison is constant-time over
+fixed-width digests. All from `node:crypto` — **no new dependency**.
+
+`OTP_PEPPER` has **no default and no fallback**. Unset means OTP challenge
+creation refuses; the rest of the application still starts. A missing pepper
+degrades to "no OTP", never to "OTP with a guessable hash".
+
+#### Concurrency, delivery and the outbox boundary
+
+`active_key` is non-NULL only while a challenge is pending and is NULLed on
+every terminal transition. MySQL lets NULLs repeat under a UNIQUE index, so
+"**at most one live challenge per user, purpose and device**" is a database
+guarantee, not an application promise. Verification wins through a conditional
+`updateMany` on `status: pending`, so concurrent correct submissions produce
+exactly one success.
+
+**Delivery is synchronous and its true outcome is recorded.** The
+recognition-outbox pattern is deliberately **not** reused: a durable delivery
+queue would mean persisting a deliverable secret and retrying it blind. On
+temporary failure the caller must make a new controlled attempt. Nothing ever
+claims a send that did not happen — with no provider, the honest recorded state
+is `channel_unavailable`.
+
+#### Pre-auth verification intent
+
+`VerificationIntent` is the foundation for continuing a new-device sign-in
+**without issuing an access token first** — an access token is authority, and
+"your password was right, now prove the device" is not. 256-bit opaque token,
+SHA-256 stored (no pepper needed at that entropy), single-use, bound to
+company + user + purpose + device, consumed atomically inside the transaction
+that performs the authorised work.
+
+**Built and tested; nothing issues one in the production login flow yet.**
+
+#### Purposes supported
+
+`phone_verification` · `device_verification` · `logout_reauth`.
+
+**Revoked-device recovery is deliberately absent.** Neither `docs/21` nor this
+document defines who may restore a revoked device, on what evidence, or whether
+an Owner can do it on an employee's behalf. That is a **product decision needed
+before implementation** — adding a purpose for it now would be inventing the
+rule.
+
+### Stage 4B — Provider integration *(NOT started; blocked on a provider decision)*
+
+Everything below waits on choosing a WhatsApp Business provider. The
+application layer should not need to change:
+
+1. Write one adapter implementing `WhatsAppChannel`; register it in
+   `MessagingModule`; set `WHATSAPP_CHANNEL` and `WHATSAPP_TEMPLATE_AUTH_OTP`.
+2. Get the `auth.otp` template approved and fill `providerTemplateName`.
+3. Gate the login *enroll* branch: an unrecognised device issues a
+   `VerificationIntent` + challenge instead of the current hard block.
+4. Honour `reverifyRequired` after an explicit logout.
+5. Set `User.phoneVerifiedAt` **only** on a verified `phone_verification`
+   challenge whose `candidatePhone` still matches the user's current phone.
+6. Decide revoked-device recovery (above) before wiring it.
+
+⚠️ `docs/21` §16 records that Bankily has no confirmed public API; the same
+discipline applies here. **Do not implement a guessed WhatsApp integration.**
 
 ### Stage 5 — Invitations *(depends on 1, 4)*
 
