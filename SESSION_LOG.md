@@ -15,6 +15,79 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 15:20–16:05 UTC — CLAUDE-B (F1 Stage 3.2 — Store Account ID + bypass fix)
+
+- **Starting state:** resumed after F1 Stage 3.1. Reconciliation matched the
+  expected state exactly — backend `8a5ee5c`, mobile `2188a34`, docs `fba767e`,
+  migration `0023`, 37/377, all clean/level with their remote-tracking refs.
+  GitHub was briefly unreachable at the very start (`git fetch` failed) but
+  recovered before the first commit; every checkpoint below pushed cleanly.
+- **Authorised task:** F1 Stage 3.2 — close the mobile fail-closed bypass and
+  introduce the approved public Store Account ID as the pre-login tenant
+  identifier. No OTP work. Four focused checkpoints, committed in order.
+- **CP1 — mobile bypass removed (mobile `da34e1f`).** Stage 3.1 had `signIn`
+  catch `device_unrecognized`, delete the stored credential, and retry without
+  it — silently re-enrolling a trusted device from a claim the server had failed
+  closed. Removed entirely: the error now propagates untouched (credential
+  KEPT), and the login screen shows a blocking, translated "device needs
+  verification" state (EN/AR, RTL) with no fake actions; only a network error is
+  retryable. The decision is a pure module (`sign-in-decision.ts`) guarded by a
+  Node-run test (no test runner / no new dependency).
+- **CP2 — Store Account ID + auth contract (backend `044234b`, migration
+  `0024`).** `companies.public_store_id`: a 10-char uppercase-hex, human-typable,
+  NON-secret, unique, immutable code (no O/0, I/1, L/1 confusion). Backfilled
+  collision-free from `SHA2(id)`, then NOT NULL + UNIQUE; new companies get a
+  random code (unique-index backstop); seed sets it on create only. Login is now
+  `{ storeAccountId, login, password, device? }`: resolve the company from the
+  public code (never a client binary id), find the user WITHIN it
+  (`findByLoginForAuth` is company-scoped), verify the password. Bad Store ID /
+  login / password fail identically (`401`, no code) and every path spends an
+  Argon2 verify (`verifyDummy`) so timing cannot enumerate; the device credential
+  is evaluated only after primary auth. Backup taken first
+  (`phonestore-20260806-152840.sql`). Migration-only deploy proven on a restored
+  scratch DB (no seed): 0024 applied alone, all rows preserved, guarded backfill
+  rerun → 0 rows; empty-DB run created the column+index.
+- **CP3 — mobile Store ID login + scoped key + legacy migration (backend
+  `6fde7bb`, mobile `fca89f4`).** Backend adds `publicStoreId` to login/refresh/
+  `me` responses so both login and cold-restore key by the SAME canonical value.
+  Mobile: a Store ID field (EN/AR, RTL, remembered as a non-secret); the
+  SecureStore key is `env + storeId + login` (pure `device-key.ts`, Node-tested);
+  a one-time idempotent legacy migration moves `erp.device.<login>` into the
+  scoped key using the Store ID from the user's OWN session, writing the new key
+  before deleting the old so a failed write loses nothing, never crossing
+  companies. A logged-out legacy user presents the old credential once — the
+  server migrates it if recognised, or fails it closed (blocking state, old key
+  kept), never a silent enroll.
+- **CP4 — docs + verification (this entry).** docs/23 gains the Stage 3.2 auth
+  contract and marks the earlier company-ambiguous-key finding RESOLVED; docs/21
+  connects the approved Store ID to login. A `backend` entry was added to
+  `.claude/launch.json` (the other session's dev server was down).
+- **Files changed:** backend — `prisma/schema.prisma`, migration `0024`,
+  `prisma/seed.ts`, `src/common/utils/store-code.util.ts`(+spec),
+  `src/common/security/hashing.service.ts`, `src/users/users.service.ts`,
+  `src/auth/{auth.service,auth.controller,dto/login.dto}.ts`, `auth.service.spec`.
+  Mobile — `lib/{sign-in-decision,device-key,device}.ts`(+ two Node tests),
+  `hooks/useAuth.tsx`, `app/(auth)/login.tsx`, `lib/i18n/{en,ar}.ts`,
+  `types/api.ts`, `tsconfig.json`. Docs — `docs/21`, `docs/23`,
+  `CURRENT_HANDOFF.md`, `SESSION_LOG.md`, `.claude/launch.json`.
+- **Tests:** backend **38 suites / 390 tests**; backend + mobile TS clean; expo
+  lint clean; migrate status up to date. Mobile pure guards 6 + 7 (Node).
+- **Live verification** (own backend on :3010, temp company B, then clean): same
+  login `owner` @ Store A vs Store B → own company each; wrong password / Store ID
+  / foreign login → 401 no code; valid returning device recognised; wrong secret,
+  cross-company credential, and revoked device → 401 `device_unrecognized`; no
+  device-row growth; `/auth/me` returns `publicStoreId`. 12/12. Temp company B +
+  users deleted, A-owner test devices/sessions deleted; companies 1, users 6,
+  `user_devices` 0, demo store `F62B8D1EEB`. **+1 append-only `audit_logs` row.**
+- **Commits:** mobile `da34e1f`, `fca89f4`; backend `044234b`, `6fde7bb`; docs
+  `916f50b` (ownership) + this entry. All pushed; trees clean and level with origin.
+- **Remaining / next decision:** Stage 4 OTP — now blocked ONLY on the WhatsApp/
+  OTP provider choice (the device-key auth-contract change is done). Stage 4 needs
+  a fresh backup + an additive OTP-challenge migration.
+- **Handoff reason:** Stage 3.2 complete and verified; `READY_FOR_HANDOFF` / `NONE`.
+
+---
+
 ## 2026-08-06 03:55–04:23 UTC — CLAUDE-B (F1 Stage 3.1 — device-security hardening)
 
 - **Starting state:** resumed after CLAUDE-A's F1 Stage 3. Reconciliation matched

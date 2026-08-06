@@ -331,6 +331,60 @@ Until one is chosen, the login-only key is left **as-is** (not swapped for anoth
 ambiguous scheme), the fail-closed recovery prevents lock-out, and a login rename
 must re-key the stored credential (`get(old) → set(new) → delete(old)`).
 
+### Stage 3.2 — Store Account ID login + scoped credential (✅ RESOLVES the above)
+
+The auth-contract change flagged above is now **Option 1, implemented**. The
+already-approved public **Store Account ID** (docs/21 — "permanent Store ID")
+becomes the pre-login tenant selector, and the client-side fail-closed **bypass**
+is removed.
+
+**Store Account ID** (`companies.public_store_id`, migration `0024`): a 10-char
+uppercase-hex, human-typable, NON-secret code (no `O`/`0`, `I`/`1`, `L`/`1`
+confusion). Generated on create (random, unique-index backstop) or backfilled
+collision-free from `SHA2(id)`; NOT NULL + UNIQUE; immutable through store-facing
+APIs. It is **not** the binary company id, a branch id, a device id or a
+subscription id. The Owner sees it (returned by `/auth/me` and the login
+response); branch selection still happens after authentication.
+
+**Login contract** — `{ storeAccountId, login, password, deviceCredential? }`:
+
+1. Normalize the Store ID and resolve the company by `public_store_id` — never a
+   client-supplied binary company id.
+2. Find the user **within that company** (`findByLoginForAuth` is company-scoped),
+   so the same `login` in two companies is disambiguated, and Store-ID-A +
+   login-from-B fails.
+3. Verify the password. A bad Store ID, login or password all fail **identically**
+   (`401 Invalid credentials`, no machine code), and every path spends one Argon2
+   verify (`verifyDummy`) so timing cannot enumerate.
+4. Only **after** primary auth passes is the device credential evaluated (the
+   Stage 3.1 fail-closed tree). JWT company identity still comes from the resolved
+   server-side company. Existing sessions are unaffected (refresh does not use the
+   login), so a deployment logs no one out.
+
+**Client credential namespacing** (mobile): the SecureStore key is now
+`erp.device.<apiEnv>.<storeId>.<login>` (pure logic in `lib/device-key.ts`), so
+Company A and B never share a key and dev/staging/prod cannot collide. Both paths
+key by the server's **canonical** Store ID (from the login response and
+`/auth/me`), so login-save and restore-load always agree. Contact changes never
+affect the key.
+
+**Legacy credential migration** (one-time, idempotent): a restored session moves
+its pre-3.2 `erp.device.<login>` credential into the scoped key using the Store ID
+from its **own** `/auth/me` (never another company's namespace); the new key is
+written and confirmed **before** the old one is deleted, so a failed secure write
+loses nothing. A logged-out legacy user presents the old credential at login — the
+server either recognises it (then it migrates) or **fails it closed** (blocking
+"device needs verification" state, old key kept); it is never silently enrolled.
+
+**Bypass removed:** the Stage 3.1 client "forget the credential and retry without
+it" path is gone — that silently re-enrolled a trusted device from a claim the
+server had failed closed. `device_unrecognized` now maps to a blocking, translated
+verification state with no fake actions; only a network error is retryable.
+
+**Login-rename (future):** renaming a login changes the key; a rename endpoint
+must re-key the credential (`get(old) → set(new) → delete(old)`) or accept a fresh
+enrollment.
+
 ### Legacy-session adoption, and how Stage 4 takes over
 
 Existing sessions have a null device and **must keep working** — invalidating
