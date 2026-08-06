@@ -2,16 +2,24 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE (last worked by CLAUDE-A)
-- Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second
-  session) → **taken over by CLAUDE-A at 2026-08-06 00:05 UTC**
-- Last updated: 2026-08-06 03:05 UTC
-- Current authorised task: **none — awaiting explicit user instruction.**
-- Active phase and scope: F1 Stage 3 is finished. The next planned step is
-  `docs/23` **Stage 4 (OTP provider abstraction)**, which is NOT authorised and
-  is **blocked on choosing a WhatsApp/OTP provider**.
+- Status: IN_PROGRESS
+- Active account: CLAUDE-B
+- Owner: CLAUDE-B
+- Session started / started_at_utc: 2026-08-06 03:55 UTC (CLAUDE-B, Stage 3.1)
+- Last updated: 2026-08-06 03:55 UTC
+- Current authorised task: **F1 Stage 3.1 — device-security hardening.** Fix the
+  incorrect-credential decision tree (fail closed on a bad/unknown/revoked
+  device claim instead of enrolling a new device); fix the mobile credential
+  storage key so it cannot collide across companies; re-verify enrollment-secret
+  exposure; and correct the docs' Stage 4 "no migration needed" claim. **Not**
+  authorised: OTP provider, OTP challenge, WhatsApp, invitations, recovery,
+  passcodes, biometrics.
+- Active phase and scope: backend `auth.service`/`devices.service` recognition
+  logic + tests; mobile SecureStore key; docs/23 + docs/21 corrections.
+- Takeover history: CLAUDE-B resuming after CLAUDE-A completed F1 Stage 3.
+  Verified `READY_FOR_HANDOFF`/`NONE`, all three trees clean and level with
+  origin, and every expected HEAD/migration/test count matched exactly (backend
+  `91bbb44`, mobile `e5b7db6`, docs `647beea`, migration `0023`, 36/367).
 - Takeover history:
   1. CLAUDE-B resumed its own completed Stage 1 from `READY_FOR_HANDOFF`/`NONE`.
      HEADs at that takeover: backend `564b3b9` · mobile `2e63aa8` · docs
