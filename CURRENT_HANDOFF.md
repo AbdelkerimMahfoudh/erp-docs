@@ -2,24 +2,25 @@
 
 ## Session control
 
-- Status: IN_PROGRESS
-- Active account: CLAUDE-B
-- Owner: CLAUDE-B
+- Status: READY_FOR_HANDOFF
+- Active account: NONE
+- Owner: NONE (last worked by CLAUDE-B)
 - Session started / started_at_utc: 2026-08-06 03:55 UTC (CLAUDE-B, Stage 3.1)
-- Last updated: 2026-08-06 03:55 UTC
-- Current authorised task: **F1 Stage 3.1 — device-security hardening.** Fix the
-  incorrect-credential decision tree (fail closed on a bad/unknown/revoked
-  device claim instead of enrolling a new device); fix the mobile credential
-  storage key so it cannot collide across companies; re-verify enrollment-secret
-  exposure; and correct the docs' Stage 4 "no migration needed" claim. **Not**
-  authorised: OTP provider, OTP challenge, WhatsApp, invitations, recovery,
-  passcodes, biometrics.
-- Active phase and scope: backend `auth.service`/`devices.service` recognition
-  logic + tests; mobile SecureStore key; docs/23 + docs/21 corrections.
-- Takeover history: CLAUDE-B resuming after CLAUDE-A completed F1 Stage 3.
+- Last updated: 2026-08-06 04:23 UTC
+- Current authorised task: **none — F1 Stage 3.1 is complete.** Awaiting an
+  explicit user instruction. The next planned step (Stage 4 OTP) is not
+  authorised and is blocked on a provider choice + an auth-contract decision.
+- Last completed checkpoint: **F1 Stage 3.1 complete** — the incorrect-credential
+  decision tree now fails closed (backend `8a5ee5c`), the mobile recovers without
+  lock-out and keeps its device credential on logout (mobile `2188a34`), secret
+  exposure was re-verified, and the docs' Stage 4 "no migration" claim + the
+  company-ambiguous mobile key were corrected/reported. All committed, pushed and
+  live-verified; three trees clean.
+- Takeover history: CLAUDE-B resumed after CLAUDE-A completed F1 Stage 3.
   Verified `READY_FOR_HANDOFF`/`NONE`, all three trees clean and level with
-  origin, and every expected HEAD/migration/test count matched exactly (backend
-  `91bbb44`, mobile `e5b7db6`, docs `647beea`, migration `0023`, 36/367).
+  origin, and every expected HEAD/migration/test count matched exactly at
+  takeover (backend `91bbb44`, mobile `e5b7db6`, docs `647beea`, migration
+  `0023`, 36/367).
 - Takeover history:
   1. CLAUDE-B resumed its own completed Stage 1 from `READY_FOR_HANDOFF`/`NONE`.
      HEADs at that takeover: backend `564b3b9` · mobile `2e63aa8` · docs
@@ -46,9 +47,13 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `91bbb44` | `91bbb44` | clean |
-| Mobile (`erp-mobile`) | master | `e5b7db6` | `e5b7db6` | clean |
+| Backend (`erp-backend`) | master | `8a5ee5c` | `8a5ee5c` | clean |
+| Mobile (`erp-mobile`) | master | `2188a34` | `2188a34` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
+
+Stage 3.1 commit trail — backend `8a5ee5c` (fail-closed device recognition),
+mobile `2188a34` (fail-closed recovery + logout/credential consistency), docs
+`42f82e2` (ownership) + the commit carrying this handoff. No new migration.
 
 Stage 1 commit trail — backend: `5638a52` (protocol), `1991a01` (schema+0020),
 `564b3b9` (Users API+tests). Mobile: `89466ed` (protocol), `2e63aa8` (Team
@@ -67,13 +72,33 @@ directory** (`../`), not a sibling.
 
 ## Verified baseline
 
-Measured by CLAUDE-A on 2026-08-06 after F1 Stage 3.
+Measured by CLAUDE-B on 2026-08-06 after F1 Stage 3.1.
 
-- Backend tests: **36 suites / 367 tests passing** (`npx jest`) — Stage 3 added
-  `devices.service.spec.ts` (31) and `delegation-lifecycle.spec.ts` (9)
+- Backend tests: **37 suites / 377 tests passing** (`npx jest`) — Stage 3.1 added
+  `auth.service.spec.ts` (10: the A–E login decision tree + 20 repeated claims
+  → 0 device rows)
 - Backend TypeScript: clean · Mobile TypeScript: clean · Expo lint: clean
-- Latest Prisma migration: **`0023_device_identity`**
+- Latest Prisma migration: **`0023_device_identity`** (Stage 3.1 added no
+  migration — it is behaviour + docs only)
 - Database migration status: *"Database schema is up to date!"*, **22 migrations**
+- Stage 3.1 live verification (backend on :3010, fixtures fully removed, DB clean):
+  - **A** no credential → enrolls, secret once, `trustMethod: password`
+  - **B** valid pair → recognised, no secret returned, no re-enrollment
+  - **C** known id + wrong secret → `401 { code: device_unrecognized }`, **no new
+    device**, no secret echoed
+  - **D** unknown id + secret → 401, not enrolled
+  - **E** revoked credential → 401, no new trusted device
+  - Repeated bad claims → device count **unchanged** (no unbounded growth)
+  - Device list shows the revoked device as history + the current one; **no
+    secret / secretHash / argon2**, every `otpVerified` false
+  - Owner lists an employee device (200, no secret); employee on the Owner route
+    → **403**; a cross-user credential (faithful cross-company) → 401 fail-closed
+  - Logout set `reverifyRequired`; recognition still succeeded next sign-in (no
+    lock-out with no OTP). Mobile now KEEPS the credential on logout so the flag
+    governs the same device
+  - Cleanup: all test device rows + sessions deleted, `settingsprobe` restored to
+    its backed-up hash and `is_active = 0`. **+1 append-only `audit_logs` row**
+    (the E revoke). Users 6, `user_devices` 0
 - Live verification (2026-08-06, backend on :3010, fixtures fully removed):
   - First sign-in with no credential **enrolls**; `trustMethod: password`;
     43-char secret, distinct from the public id
@@ -144,23 +169,39 @@ Measured by CLAUDE-A on 2026-08-06 after F1 Stage 3.
   delegatable, only to a Store Manager, and the client never names a permission
   — it is in the route path. See [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md)
   Stage 2.
+- **F1 Stage 3 — device identity (`0023`): complete** (CLAUDE-A; backend
+  `91bbb44`, mobile `e5b7db6`). Server-issued `UserDevice` (public UUIDv7 + a
+  32-byte secret returned once, only the Argon2id hash stored), session linkage,
+  atomic device revocation, legacy-session adoption, Owner device APIs, and a
+  Security → Devices screen. See [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md)
+  Stage 3.
+- **F1 Stage 3.1 — device-security hardening: complete** (CLAUDE-B; backend
+  `8a5ee5c`, mobile `2188a34`). Login now fails a wrong/unknown/revoked/foreign
+  device credential **closed** instead of enrolling a new trusted device, decided
+  before any session exists; repeated bad claims create nothing. Mobile recovers
+  from the fail-closed error (forget + re-enroll) and keeps the credential on
+  logout for `reverifyRequired` consistency. Secret exposure re-verified; pino
+  redaction extended. docs corrected: the mobile credential key is
+  company-ambiguous (needs an auth-contract change), and **Stage 4 needs a fresh
+  backup + an additive OTP-challenge migration** — the enum value alone is not an
+  OTP implementation. See [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md)
+  Stage 3.1.
 
 ## Work currently in progress
 
-**Nothing. F1 Stage 3 is complete, committed, pushed and verified.**
+**Nothing. F1 Stage 3.1 is complete, committed, pushed and verified.**
 
 - Uncommitted work: none in any repository.
-- Migrations applied by CLAUDE-A this session: **`0023_device_identity`**
-  (additive; `0021` and `0022` untouched).
-- Temporary databases: `prisma_s3_deploy` — **dropped**. None remain.
-- Temporary fixtures: user `s3probe` and nine verification device rows —
-  **all removed**. Users back to 6, assignments 11, `user_devices` **0**,
-  `user_branch_permissions` **0**.
-- Unavoidable append-only rows: **3 `audit_logs` entries** (`UserDevice`
-  status_change) from the live revoke tests. Total 91.
-- No financial or inventory record touched: companies 1 · branches 2 ·
-  products 12 · units 11 · sales 7 · sale_items 14 · purchases 9 ·
-  stock_items 4 · company_settings 1 · receiving_accounts 3.
+- Migrations applied this session (Stage 3.1): **none** — behaviour + docs only.
+  Latest remains `0023_device_identity`.
+- Temporary databases: none.
+- Temporary fixtures: `settingsprobe` was briefly reactivated with throwaway
+  passwords for the device live tests, then **restored to its backed-up Argon2id
+  hash and `is_active = 0`**. All test `user_devices` rows and their sessions were
+  deleted. Users 6, `user_devices` **0**.
+- Unavoidable append-only rows: **+1 `audit_logs` entry** (a `UserDevice`
+  status_change from the case-E revoke). Total **92**.
+- No financial or inventory record touched.
 
 ### Stage 2 lifecycle fix shipped first (backend `0db0fc4`)
 
@@ -244,8 +285,9 @@ migration.
 | `purchase.manage` creates a **final** purchase immediately; the approved model wants employee-entered cost to await approval | Product decision required, then technical work |
 | `import.run` guards **no endpoint at all** | Technical work required |
 | Request/approval splits (`return.request`, `import.prepare` / `import.approve`) | Deferred — belong to Returns and Import workflows |
-| Per-user permission overrides do not exist, so "per-user price editing is Owner-delegated" cannot be expressed | Technical work required (F1 stage 2) |
+| Mobile device-credential storage key is **company-ambiguous** (login-only); a collision-free key needs an **auth-contract change** — a company/store id known before login (docs/23 Stage 3.1). Fail-closed recovery prevents lock-out meanwhile | Product decision required |
 | WhatsApp/OTP provider unchosen — blocks real OTP delivery and end-to-end invitation/new-device verification | Product decision required |
+| **Stage 4 OTP needs a fresh `--hex-blob` backup + an additive OTP-challenge migration** (durable challenge state: purpose, target, destination snapshot, hashed code, expiry, attempts, states, resend, idempotency). The `otp` enum value + `otpVerifiedAt` are only the *outcome*, not an implementation | Technical work + provider choice |
 | Camera, haptics, Arabic RTL end-to-end, receipt sharing, scroll-triggered pagination, and all bottom sheets | **Real-device verification required** |
 | `settings.discount_limits_by_role` still names retired roles (`sales_employee`, `branch_manager`); nothing reads it | Deferred — belongs with discount monitoring |
 | `mobile` has no test runner; adding one is a new dependency | Deferred — needs explicit approval |
@@ -275,9 +317,10 @@ migration.
   (the migrator's grants cover `phonestore` and `prisma\_%` only) and dropped
   after verification.
 - Demo records that must not be deleted: companies 1 · branches 2 · users 6 ·
-  products 12 · units 11 · sales 7 · purchases 9 · audit_logs **83**
-  (was 77; +6 append-only rows from Stage 1 live verification — legitimate
-  contact-edit audits, not corruption) · company_settings 1 · receiving_accounts 3.
+  products 12 · units 11 · sales 7 · purchases 9 · audit_logs **92**
+  (append-only; grew from Stage 1 / F1.1 / Stage 2 / Stage 3 / Stage 3.1 live
+  verification — legitimate contact/device/status audits, never corruption) ·
+  company_settings 1 · receiving_accounts 3 · `user_devices` 0.
 - Live-verification side-effects (all benign, on the shared demo DB): during
   Stage 1 and F1.1, `settingsprobe` was temporarily reactivated with throwaway
   passwords for 403/deactivation tests. **F1.1 restored its ORIGINAL password
@@ -297,8 +340,8 @@ No credentials appear in this file. Database and app credentials live in
 
 **None authorised. Wait for an explicit user instruction.**
 
-F1 Stage 2 is finished and everything is pushed. When work is authorised again,
-the receiving account must, in order:
+F1 Stages 1–3 and the 3.1 hardening are finished and everything is pushed. When
+work is authorised again, the receiving account must, in order:
 
 1. Read this file and the relevant parts of `docs/21_PRODUCT_DECISIONS.md`.
 2. `git fetch` and `git status` in all three repositories; confirm the HEADs in
@@ -307,12 +350,17 @@ the receiving account must, in order:
 4. Set `Status: IN_PROGRESS`, the account label and the authorised task here,
    **before** changing anything.
 
-The next planned step in the plan — **not authorised yet** — is
-[`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md) **Stage 3: device identity and
-session hardening**. It is a schema change, so it needs a fresh `--hex-blob`
-backup first. Note its stated compatibility risk: existing sessions have a null
-`deviceId` and must be treated as legacy-trusted rather than forced through OTP
-on deploy.
+The next planned step — **not authorised yet, and blocked on a provider choice** —
+is [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md) **Stage 4: OTP provider
+abstraction**. Two decisions gate it: (a) which WhatsApp/OTP provider; and (b)
+the **auth-contract change** for a collision-free mobile device key (a company/
+store identifier known before login — docs/23 Stage 3.1). Stage 4 **is a schema
+change**: it needs a fresh `--hex-blob` backup and an **additive OTP-challenge
+migration** (durable challenge state — the existing `otp` enum value and
+`otpVerifiedAt` record only the outcome). Generate the SQL with
+`prisma migrate diff --from-schema-datamodel <git HEAD schema> …` (the migrator
+cannot reach `phonestore_shadow`) and apply with `migrate deploy`. Do **not**
+implement a guessed WhatsApp integration; ship `LogOtpChannel` first.
 
 ## Explicit boundaries
 

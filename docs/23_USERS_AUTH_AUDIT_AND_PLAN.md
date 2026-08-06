@@ -272,6 +272,65 @@ for the same reason. No OTP is sent and nothing is marked verified.
 - Owner may list and revoke a member's devices (`user.manage` + company check);
   passcodes do not exist yet, so there is nothing for an Owner to see or reset.
 
+### Stage 3.1 — recognition contract (security hardening)
+
+The Stage 3 login treated **any** unrecognised credential the same as no
+credential: it enrolled a new `password`-trusted device. That conflated four
+different situations and let a failed credential claim mint trust — and let
+repeated claims grow the device table without bound. The corrected contract keeps
+five cases **structurally distinct**, and the decision is made **before a session
+exists**, so a rejected claim creates nothing (no session, device, token, or
+`lastLogin` bump):
+
+| Case | Presented | Result |
+|---|---|---|
+| **A** | No credential (metadata only, or nothing) | Enroll — password-era path, `trust_method = password`, honestly distinct from `otp`. A genuinely new or reset install |
+| **B** | A valid, complete pair for this user | Recognise and attach; no secret returned |
+| **C** | Known id, **wrong** secret | **Fail closed** — controlled `401 { code: device_unrecognized }`. No new device, no rotation, no secret, no auth |
+| **D** | **Unknown** id with a secret | **Fail closed** — an invalid/stale claim, not the absence of one. No device created |
+| **E** | **Revoked** id with its credential | **Fail closed** — stays revoked; requires the future OTP/recovery flow |
+
+A half-supplied pair (id without secret, or secret without id) is a claim too and
+fails closed. Because OTP does not exist yet, C/D/E **fail closed rather than
+falling back to enrollment** — that failure is exactly where Stage 4 will issue a
+verification challenge instead of a hard refusal. Recovery today is the honest
+"cleared storage = new device" path: the client forgets a rejected credential and
+the next sign-in enrolls fresh (case A). Proven by `auth.service.spec.ts`
+(including 20 repeated claims → 0 device rows) and live against all five cases.
+
+**Secret exposure** was re-verified end to end: the raw secret is returned only by
+a genuine enrollment/adoption, never by a list, an already-bound idempotent
+adopt, an audit row, or an error; only its Argon2id hash is stored; and the pino
+redaction now covers `req.body.deviceCredential.deviceSecret` for parity with the
+password.
+
+### Mobile credential-storage key — company-ambiguous (auth-contract change required)
+
+The client stores the device credential under a key derived from **login alone**
+(`erp.device.<login>`). Login is unique only within a company
+(`@@unique([companyId, login])`), so this key collides across companies — two
+`owner`s, one installation used for multiple companies, or future account
+switching. Before Stage 3.1 a collision mis-enrolled silently; now it **fails
+closed**, and the client recovers by forgetting the stale entry and re-enrolling
+(no lock-out, but device records thrash for colliding logins).
+
+**A collision-free key cannot be built on the client today**, because **no
+company/store identifier is known before login** — `signIn(login, password)`
+learns `companyId` only in the response. This is the precise auth-contract change
+required (not yet authorised — it is an interface change, not a bug fix):
+
+- **Option 1:** the login request carries a stable, public **company/store
+  identifier** (a short code the user selects or types, or a scanned/deep-linked
+  store id). The key becomes `apiEnv + companyKey + normalizedLogin`.
+- **Option 2:** the server issues an opaque **account namespace** the client can
+  recover before the next login (e.g. remembered per entered login *and* a
+  disambiguating store code) — which still needs a pre-login selector, so it
+  reduces to Option 1 in practice.
+
+Until one is chosen, the login-only key is left **as-is** (not swapped for another
+ambiguous scheme), the fail-closed recovery prevents lock-out, and a login rename
+must re-key the stored credential (`get(old) → set(new) → delete(old)`).
+
 ### Legacy-session adoption, and how Stage 4 takes over
 
 Existing sessions have a null device and **must keep working** — invalidating
@@ -292,8 +351,26 @@ from `otp`. When the provider exists, Stage 4:
 3. optionally expires `legacy` trust on a date, since those devices were never
    verified at all.
 
-None of that needs another schema change — which is why the enum carries `otp`
-and the timestamp column exists now.
+**Migration expectation — CORRECTED (F1 Stage 3.1).** An earlier draft claimed
+"none of that needs another schema change — the enum carries `otp` and the
+timestamp column exists now." **That was wrong, and is retracted.** `trust_method
+= 'otp'` and `otp_verified_at` record a *result* — "this device ended up
+OTP-verified" — but they are not an OTP *implementation*. A secure OTP system
+needs durable **challenge** state that none of the Stage 3 columns can hold:
+
+- challenge purpose (new-device, re-verify, recovery, …);
+- the target user, device and session;
+- a snapshot of the destination the code was sent to (the phone at send time);
+- the **hashed** code (never the code) or the provider's verification reference;
+- created-at and expires-at;
+- an attempt counter, and consumed / cancelled / failed states;
+- resend timing, and an idempotency / provider message reference;
+- audit-safe failure information (never the code).
+
+So **Stage 4 requires a fresh `--hex-blob` backup and an additive OTP-challenge
+migration** (the `OtpChallenge` model sketched below), not merely writing the
+existing enum value. The enum member and timestamp remain useful — they are the
+*outcome* Stage 4 sets once a challenge in that new table is verified.
 
 ### Stage 4 — OTP provider abstraction *(depends on 1; blocked on provider choice)*
 

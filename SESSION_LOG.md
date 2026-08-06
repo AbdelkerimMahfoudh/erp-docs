@@ -15,6 +15,69 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 03:55–04:23 UTC — CLAUDE-B (F1 Stage 3.1 — device-security hardening)
+
+- **Starting state:** resumed after CLAUDE-A's F1 Stage 3. Reconciliation matched
+  the expected state exactly — backend `91bbb44`, mobile `e5b7db6`, docs
+  `647beea`, migration `0023_device_identity`, 36 suites / 367 tests, all trees
+  clean and level with origin, `READY_FOR_HANDOFF`/`NONE`.
+- **Authorised task:** F1 Stage 3.1 hardening — no OTP work.
+- **Incorrect-secret root cause + fix:** `auth.service.login` treated
+  `recognise() == null` (wrong secret / unknown id / revoked / wrong user)
+  identically to "no credential" and **enrolled a new trusted device**, so a
+  failed claim minted trust and repeated claims grew the device table without
+  bound. Rewrote the decision tree, evaluated **before a session exists**: A (no
+  credential) → enroll; B (valid pair) → recognise+attach; **C/D/E and any
+  partial pair → fail CLOSED** with a controlled `401 { code: device_unrecognized }`
+  — no session, device, secret, rotation or `lastLogin`. The global exception
+  filter now passes a machine `code`; pino redaction gained
+  `req.body.deviceCredential.deviceSecret`.
+- **Multi-company key:** the mobile stores the device credential under
+  `erp.device.<login>`, and login is unique only within a company. **No company
+  identifier is known before login**, so a collision-free key needs an
+  auth-contract change — reported precisely in docs/23 (a pre-login company/store
+  id, then `env+companyKey+login`), and the ambiguous key was left as-is rather
+  than swapped for another. To stop the new fail-closed path from locking out a
+  stale/foreign credential, `signIn` now forgets a rejected credential and
+  re-enrolls once; ApiError carries the `code`. Logout now **keeps** the device
+  credential (clears only session material), so `reverifyRequired` governs the
+  same device.
+- **Secret exposure:** re-verified end to end — raw secret only on a genuine
+  enroll/adopt; never in lists, idempotent adopts, audit rows or errors; only the
+  Argon2id hash in the DB; owner routes never expose employee secrets; the
+  exception body cannot serialize the submitted credential.
+- **Stage 4 correction:** retracted the docs claim that Stage 4 needs no schema
+  change. A secure OTP system needs a durable **OTP-challenge** table (purpose,
+  target, destination snapshot, hashed code, expiry, attempts, states, resend,
+  idempotency); the `otp` enum value + `otpVerifiedAt` are only the outcome.
+  docs/23 and CURRENT_HANDOFF now say Stage 4 requires a fresh backup + an
+  additive migration.
+- **Files changed:** backend `src/auth/auth.service.ts` (+spec),
+  `src/common/filters/all-exceptions.filter.ts`, `src/app.module.ts`; mobile
+  `lib/api-client.ts`, `hooks/useAuth.tsx`, `lib/device.ts`; docs `docs/23`,
+  `CURRENT_HANDOFF.md`, `SESSION_LOG.md`. **No migration.** docs/21 unchanged (no
+  product decision changed — the fail-closed behaviour implements the existing
+  OTP-for-new-device decision).
+- **Tests:** backend **37 suites / 377 tests** (+`auth.service.spec.ts`, 10,
+  incl. 20 repeated claims → 0 device rows). Backend TS clean, mobile TS clean,
+  expo lint clean, `migrate status` up to date.
+- **Live verification** (:3010, three throttle-aware runs, DB restored clean):
+  A/B/C/D/E, repeated-claims-no-growth, own + Owner + employee device lists (no
+  secrets), employee 403, cross-user (faithful cross-company) fail-closed, and
+  logout keeping recognition without lock-out — all pass. Fixtures removed;
+  `settingsprobe` restored from backup to `is_active = 0`; **+1 append-only
+  `audit_logs` row** (the E revoke).
+- **Commits:** backend `8a5ee5c`; mobile `2188a34`; docs `42f82e2` (ownership) +
+  this entry. All pushed.
+- **Remaining / blockers:** Stage 4 OTP — blocked on a provider choice AND the
+  auth-contract decision for the device key; both recorded. No mobile test runner
+  (deferred, needs approval) → mobile verified by tsc + expo lint + the backend
+  live cross-user check.
+- **Handoff reason:** Stage 3.1 complete, verified and pushed; `READY_FOR_HANDOFF`
+  / `NONE`. Next (Stage 4) is not authorised.
+
+---
+
 ## 2026-08-06 02:00–03:10 UTC — CLAUDE-A (F1 Stage 3)
 
 - **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:
