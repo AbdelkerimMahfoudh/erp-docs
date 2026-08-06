@@ -2,24 +2,32 @@
 
 ## Session control
 
-- Status: IN_PROGRESS
-- Active account: CLAUDE-B
-- Owner: CLAUDE-B
-- Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second session)
-- Last updated: 2026-08-05 23:35 UTC
-- Current authorised task: **F1.1 deactivation/session hardening**, then the
-  **F1 Stage 2 branch-authorization audit** (a hard gate) and — only if that gate
-  passes — **F1 Stage 2** (per-user branch-scoped delegated `price.edit`).
-- Active phase and scope: (F1.1) atomically revoke a user's sessions on
-  deactivation + bind access-token validity to the session so both token types
-  die on deactivation and stay dead after reactivation; restore the `settingsprobe`
-  password from the pre-test backup. (Stage 2) audit branch permission resolution
-  first; **stop before the migration if permissions union across branches**.
-- Takeover history: same account (CLAUDE-B) resuming its own completed Stage 1.
-  Verified READY_FOR_HANDOFF / NONE, all trees clean and level with remote.
-- HEADs at takeover: backend `564b3b9` · mobile `2e63aa8` · docs `5ba0e01`
-  (all match the Stage 1 handoff exactly). Migration `0020` applied, up to date.
-- Last completed checkpoint: takeover verified; ownership taken.
+- Status: READY_FOR_HANDOFF
+- Active account: NONE
+- Owner: NONE (last worked by CLAUDE-A)
+- Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second
+  session) → **taken over by CLAUDE-A at 2026-08-06 00:05 UTC**
+- Last updated: 2026-08-06 01:35 UTC
+- Current authorised task: **none — awaiting explicit user instruction.**
+- Active phase and scope: F1 Stage 2 is finished. The next planned step is
+  `docs/23` **Stage 3 (device identity)**, which is NOT authorised yet.
+- Takeover history:
+  1. CLAUDE-B resumed its own completed Stage 1 from `READY_FOR_HANDOFF`/`NONE`.
+     HEADs at that takeover: backend `564b3b9` · mobile `2e63aa8` · docs
+     `5ba0e01`; migration `0020` applied.
+  2. **2026-08-06 00:05 UTC — CLAUDE-A took over from CLAUDE-B, explicitly
+     authorised by the user because CLAUDE-B reached its five-hour account
+     limit mid-implementation.** Not concurrent editing: CLAUDE-B has stopped.
+     Its last handoff was **interrupted** — the file still said
+     `IN_PROGRESS / CLAUDE-B` and its "Work currently in progress" section was
+     stale (it described Stage 2 as *blocked at the audit gate*, while commits
+     `cfa2dc8` and `a7ff563` show the gate was resolved and the Stage 2 core
+     landed). Three files were left uncommitted; all were preserved and are
+     described under "Work currently in progress".
+- HEADs verified at the CLAUDE-A takeover (after `git fetch`, all level with
+  `origin`): backend `a7ff563` · mobile `2e63aa8` · docs `8115067`.
+  Migration `0021` applied; `prisma migrate status` clean.
+- Last completed checkpoint: **F1 Stage 2 complete** — deployment backfill (0022), grant/revoke API, regression tests, Owner Team control. All committed, pushed and live-verified.
 
 ## Repository state
 
@@ -27,8 +35,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `564b3b9` | `564b3b9` | clean |
-| Mobile (`erp-mobile`) | master | `2e63aa8` | `2e63aa8` | clean |
+| Backend (`erp-backend`) | master | `7047c93` | `7047c93` | clean |
+| Mobile (`erp-mobile`) | master | `80bc285` | `80bc285` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 1 commit trail — backend: `5638a52` (protocol), `1991a01` (schema+0020),
@@ -48,23 +56,40 @@ directory** (`../`), not a sibling.
 
 ## Verified baseline
 
-Measured by CLAUDE-B on 2026-08-05 after Stage 1.
+Measured by CLAUDE-A on 2026-08-06 after F1 Stage 2.
 
-- Backend tests: **32 suites / 286 tests passing** (`npx jest`) — Stage 1 was
-  30/266; F1.1 added +2 suites (`jwt.strategy`, `sessions.service`) and +20 tests
+- Backend tests: **34 suites / 327 tests passing** (`npx jest`) — Stage 2 added
+  `price-edit-delegation.spec.ts` plus delegation cases in `access.service.spec.ts`
+  and `role-matrix-drift.spec.ts`
 - Backend TypeScript: clean (`npx tsc --noEmit`)
 - Mobile TypeScript: clean (`npx tsc --noEmit`)
 - Expo lint: clean (`npx expo lint`)
-- Live verification (Stage 1, against the running backend on :3010, reversible):
-  no-token 401; Owner `GET /users` 200 with 6 users, no hashes, derived status,
-  branch+role; phone set normalized to E.164 with `phoneVerifiedAt` null;
-  duplicate phone 409; invalid phone 400; self-deactivation 400; revert to null;
-  employee (`store_employee`) `GET`/`PATCH /users` both 403. Demo left clean
-  (0 users with a phone; `settingsprobe` restored to inactive).
-- Latest Prisma migration: **`0020_user_contact_fields`** (applied by CLAUDE-B
-  via `migrate deploy`; backend `1991a01`)
+- Latest Prisma migration: **`0022_price_edit_permission_backfill`**
 - Database migration status: `prisma migrate status` → *"Database schema is up
-  to date!"*, 19 migrations found, no drift
+  to date!"*, **21 migrations found**, no drift
+- Live verification (2026-08-06, against the running backend on :3010, fully
+  reversed afterwards). A temporary `f1probe` fixture was Store Manager in
+  Main Store and Store Employee in Warehouse:
+  - Owner has `price.edit` **with** a branch; **not** without one (branch-scoped)
+  - Owner keeps `user.manage` / `settings.manage` with **no** branch, so the
+    mobile cold start (`/auth/me`, `/auth/branches`, `/auth/permissions`) works
+    before a branch is chosen — 5 company-scoped permissions returned
+  - Manager had no `price.edit` from their role; after the Owner's grant the
+    manager's branch-A set changed by **exactly one key** (added `price.edit`,
+    removed nothing) **on the next request, with the same access token**
+  - Branch B unaffected; no-branch resolution still excludes it
+  - Grant twice → 200 with one row; revoke → 200; revoke again → 200
+  - Non-Owner (manager) `PUT`/`DELETE`/`GET /users` → **403**; acting as a Store
+    Employee (branch B) → **403**
+  - Granting to an employee assignment → **409** with a plain reason
+  - Forged branch uuid / non-uuid branch / unknown user → **404** (fail closed)
+  - `discount.override`: Owner true, manager false — unchanged
+- Migration-only deployment proof: a temp database restored from the pre-`0021`
+  backup ran `migrate deploy` **with no seed** and produced `0021`'s table (with
+  `CASCADE`) and `0022`'s `price.edit` mapped to every company's Owner and to
+  nobody else — 18 permissions, and per-role counts identical to the seeded
+  database (owner 18 · store_manager 11 · store_employee 6 · administrator 15).
+  Re-running the SQL twice changed nothing. Temp database dropped.
 
 ## Completed milestones
 
@@ -98,17 +123,57 @@ Measured by CLAUDE-B on 2026-08-05 after Stage 1.
   (name/phone/email/active, no role or password field); mobile Team screen
   (EN/AR). Existing users untouched; no hard delete; contact change resets
   verification. See [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md) Stage 1.
+- **F1 Stage 2 — branch-scoped delegated `price.edit`: complete**
+  (`cfa2dc8`, `a7ff563`, `0b6cbd9`, `7047c93`, mobile `80bc285`).
+  The no-branch resolution path now returns only company-scoped permissions, so
+  branch authority cannot leak; unknown permissions default to branch-scoped.
+  `UserBranchPermission` attaches a grant to ONE assignment (`0021`), `0022`
+  makes `price.edit` survive a seedless `migrate deploy`, and
+  `PUT|DELETE /v1/users/:userId/branches/:branchId/delegations/price-edit`
+  grants and revokes it idempotently, Owner-only. Only `price.edit` is
+  delegatable, only to a Store Manager, and the client never names a permission
+  — it is in the route path. See [`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md)
+  Stage 2.
 
 ## Work currently in progress
 
-- F1.1 hardening: **complete, committed (`318ea81`), pushed, verified.**
-- **F1 Stage 2 (delegated permissions): BLOCKED at the mandatory branch-audit
-  gate — no migration created.** See "Stage 2 branch-authorization audit" below.
-  Awaiting a user decision on the resolution approach before any schema change.
-- Temporary data or databases created: none.
-- Uncommitted work: none (docs updated + committed).
+**Nothing. F1 Stage 2 is complete, committed, pushed and verified.**
 
-## Stage 2 branch-authorization audit (hard gate) — FIRED
+- Uncommitted work: none in any repository.
+- Migrations prepared/applied by CLAUDE-A: **`0022_price_edit_permission_backfill`**
+  (deployment-only correction; `0021` was already applied and was NOT edited).
+- Temporary databases created: `prisma_f1_deploy` — **dropped** after the
+  migration-only proof. None remain (`SHOW DATABASES LIKE 'prisma%'` is empty).
+- Temporary fixtures created: user `f1probe` (Store Manager in Main Store,
+  Store Employee in Warehouse) — **fully removed** afterwards, with its
+  assignments, sessions and delegated grant. Users back to 6, assignments back
+  to 11, `user_branch_permissions` back to **0**.
+- Unavoidable append-only rows: **3 `audit_logs` entries** from the live grant
+  and revoke tests (`UserBranchPermission` create ×2, delete ×1). Audit is
+  append-only by database trigger, and these are legitimate records of real
+  operations, not corruption. Total is now 88.
+- No financial or inventory record was touched: companies 1 · branches 2 ·
+  products 12 · units 11 · sales 7 · sale_items 14 · purchases 9 ·
+  stock_items 4 · company_settings 1 · receiving_accounts 3 — all unchanged.
+
+### Uncommitted work inherited from CLAUDE-B — all resolved
+
+| Repo | File | Outcome |
+|---|---|---|
+| docs | `CURRENT_HANDOFF.md` | The `0021` checkpoint was kept and extended by this update |
+| backend | `src/users/user-management.service.ts` | **Completed, not rewritten.** Its direction was right; the only thing dropped was a speculative `GrantDto` import, because the shipped contract names the authority in the route path and accepts no permission key from the client. Committed in `7047c93` |
+| mobile | `lib/permissions.ts` | Kept — the `price.edit` catalogue addition. Committed in `80bc285` |
+
+The backend tree did not compile at takeover (`./dto/grant.dto` was missing);
+it does now. The Stage 1 spec harness — which predated the new `permissions`
+select and was the deeper reason that suite failed — was updated to model
+assignments and grants for real.
+
+## Stage 2 branch-authorization audit (hard gate) — FIRED, then RESOLVED
+
+> **Historical.** Kept because it explains why the delegation model is
+> assignment-scoped rather than user-scoped. The leak described below was
+> closed by `cfa2dc8` before any delegation shipped.
 
 `AccessService.getEffectivePermissions(userId, branchId?)`:
 - **With** `branchId` (from the `X-Branch-Id` header): permissions for the user's
@@ -177,6 +242,11 @@ migration.
   `phonestore-20260805-203646.sql`.)
 - Backup taken before latest migration: yes — `phonestore-20260805-213342.sql`
   precedes `0020_user_contact_fields`.
+- **Post-`0021` backup (CLAUDE-A, before migration `0022`):**
+  **`~/erp-backups/phonestore-20260806-005021.sql`** — 186 087 bytes, trailer
+  `-- Dump completed on 2026-08-06  0:50:22`, `--hex-blob`, 0 raw `_binary`
+  literals, 1479 hex literals, valid UTF-8 round trip, contains
+  `user_branch_permissions` and `price.edit`.
 - Temporary databases: **none.** Scratch databases must be named `prisma_*`
   (the migrator's grants cover `phonestore` and `prisma\_%` only) and dropped
   after verification.
@@ -201,36 +271,41 @@ No credentials appear in this file. Database and app credentials live in
 
 ## Next exact action
 
-**Awaiting a user decision on the Stage 2 branch-resolution approach** (the audit
-gate fired — see above). The two options put to the user:
+**None authorised. Wait for an explicit user instruction.**
 
-- **A (recommended):** Build Stage 2 as `UserBranchPermission` grants attached to
-  a `UserBranch` row, resolved **only** in the branch-scoped path and **excluded
-  from the union**; future price-edit endpoints must require `X-Branch-Id`
-  (fail-closed if absent). Narrowest change; delegation cannot leak; leaves the
-  pre-existing role-permission union untouched (a separate hardening concern).
-- **B:** First tighten branch resolution broadly (e.g. make the no-branch union
-  fail-closed for branch-scoped permissions) before adding delegation.
+F1 Stage 2 is finished and everything is pushed. When work is authorised again,
+the receiving account must, in order:
 
-Once the approach is chosen, Stage 2 is a schema change (`UserBranchPermission` +
-a `price.edit` permission): take a fresh `--hex-blob` backup, generate SQL with
-`prisma migrate diff --from-schema-datamodel <git HEAD schema> …` (shadow DB
-unavailable), apply with `migrate deploy`, enforce the delegatable allowlist
-(only `price.edit`; never `discount.override`/`user.manage`/`settings.manage`).
+1. Read this file and the relevant parts of `docs/21_PRODUCT_DECISIONS.md`.
+2. `git fetch` and `git status` in all three repositories; confirm the HEADs in
+   the table above still match.
+3. Run `npx prisma migrate status` before any database-related work.
+4. Set `Status: IN_PROGRESS`, the account label and the authorised task here,
+   **before** changing anything.
+
+The next planned step in the plan — **not authorised yet** — is
+[`docs/23`](docs/23_USERS_AUTH_AUDIT_AND_PLAN.md) **Stage 3: device identity and
+session hardening**. It is a schema change, so it needs a fresh `--hex-blob`
+backup first. Note its stated compatibility risk: existing sessions have a null
+`deviceId` and must be treated as legacy-trusted rather than forced through OTP
+on deploy.
 
 ## Explicit boundaries
 
-Not authorised in the current milestone:
+Nothing is authorised right now. When the next task is authorised, these stay
+off the table until named explicitly:
 
-- Implementing any product feature — this bootstrap authorises **coordination
-  files and Git commits only**
-- Returns, Transfers, Users, Goals, Money & reconciliation, Consignment,
-  Subscription or Expenses workflows
-- Any Prisma schema change or migration
+- **F1 Stage 3** device identity · OTP or WhatsApp providers · invitations ·
+  passcodes or biometrics
+- **The actual price-editing workflow.** Stage 2 decided *who may*; the Pricing
+  phase builds *what they do*. Nothing in the app should imply it already exists
+- Below-cost delegation — `discount.override` stays Owner-only and undelegatable
+- Subscription seats · technician work · Returns, Loans or Consignment
 - Widening any permission to close the two approval gaps above
 - Adding dependencies to either code repository
-- Guessing a WhatsApp, OTP or Bankily integration
 - Deleting demo data, resetting the database, or force-pushing any repository
+- Editing an applied migration. `0021` and `0022` are recorded in
+  `_prisma_migrations`; corrections move forward as a new migration
 
 ---
 

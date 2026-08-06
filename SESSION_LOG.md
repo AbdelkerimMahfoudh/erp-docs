@@ -15,6 +15,88 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 00:05–01:40 UTC — CLAUDE-A (emergency takeover)
+
+- **Starting state:** Authorised takeover from CLAUDE-B, which hit its five-hour
+  limit mid-implementation. Verified after `git fetch`: backend `a7ff563`,
+  mobile `2e63aa8`, docs `8115067`, all level with `origin`; migration `0021`
+  applied; `prisma migrate status` clean; 18 permissions with `price.edit`
+  mapped to Owner only; **0** rows in `user_branch_permissions`; the pre-`0021`
+  backup on disk. CLAUDE-B's handoff was **interrupted** — still
+  `IN_PROGRESS / CLAUDE-B`, and its "in progress" section was stale (it called
+  Stage 2 blocked at the audit gate, while `cfa2dc8` and `a7ff563` show the gate
+  resolved and the core landed).
+  **Discrepancy against the takeover brief:** it listed two uncommitted files;
+  there were **three**. Mobile `lib/permissions.ts` was also modified (adding
+  `price.edit` to the client catalogue). Coherent with the backend, so it was
+  preserved, not reverted. Every other stated fact verified exactly.
+  The backend tree **did not compile** at takeover: `user-management.service.ts`
+  imported `./dto/grant.dto`, which did not exist.
+- **Authorised task:** finish F1 Stage 2 — deployment-only `price.edit`
+  correction, grant/revoke API, regression tests, Owner Team control.
+- **Work completed:**
+  - Took ownership in the handoff before touching anything else.
+  - **Deployment gap (`0022`).** `0021` created the delegation table, but the
+    `price.edit` **row** is reference data and `migrate deploy` never runs the
+    seed — the same hole D2.1 fixed for store roles. New migration, guarded on
+    the stable KEY (the dev database already held a hand-generated id), Owner
+    only. `0021` was **not** edited. Drift tests extended so SQL and TypeScript
+    cannot diverge.
+  - **Grant/revoke API.** Finished CLAUDE-B's edit rather than rewriting it; its
+    direction was right. Dropped only the speculative `GrantDto` import — the
+    shipped contract names the authority in the route path, so there is no body
+    field a client could put `discount.override` into.
+  - **Regression tests**: a new delegation spec, plus the Owner/fail-closed/
+    next-request cases the resolver spec was missing.
+  - **Mobile**: one switch per managed branch, EN/AR, RTL-safe, confirmation,
+    409/403/offline handling, prefix query invalidation.
+  - Verified the mobile cold-start path still works after the no-branch
+    hardening: permissions are only requested once a branch exists, and the
+    Owner keeps company-scoped permissions without one.
+- **Decisions made by the user:** authorised the takeover; authorised finishing
+  Stage 2; forbade starting Stage 3, OTP/WhatsApp, invitations, passcodes,
+  actual price editing, below-cost delegation, seats, technician, Returns/Loans/
+  Consignment.
+- **Files changed:** backend — `prisma/migrations/0022_price_edit_permission_backfill/`,
+  `src/rbac/role-matrix-drift.spec.ts`, `src/rbac/access.service.spec.ts`,
+  `src/users/user-management.service.ts`, `src/users/users.controller.ts`,
+  `src/users/user-management.service.spec.ts`, `src/users/price-edit-delegation.spec.ts` (new),
+  `src/common/tenant/tenant-context.service.ts`. Mobile — `app/team.tsx`,
+  `types/api.ts`, `lib/i18n/{en,ar}.ts`, `lib/permissions.ts`. Docs — `docs/23`,
+  `CURRENT_HANDOFF.md`, `SESSION_LOG.md`.
+- **Database migrations:** `0022_price_edit_permission_backfill` applied to the
+  shared database (a no-op there by design — `price.edit` already existed).
+  Backup taken first: `~/erp-backups/phonestore-20260806-005021.sql`
+  (186 087 bytes, `--hex-blob`, 0 raw `_binary`, 1479 hex literals, valid UTF-8,
+  trailer present).
+- **Tests and results:** **34 suites / 327 tests passing.** Backend and mobile
+  `tsc` clean; `expo lint` clean; `prisma migrate status` clean, 21 migrations.
+  Migration-only deploy proven on a temp database restored from the pre-`0021`
+  backup via the DEFINER-safe path: no seed, `0021` table with `CASCADE`,
+  `0022` `price.edit` on every Owner and nobody else, per-role counts identical
+  to the seeded database, rerunning the SQL twice changed nothing.
+- **Live verification:** Owner grant/revoke 200 and idempotent; the manager's
+  branch-A permission set changed by **exactly one key** on the next request
+  with the same token; branch B and the no-branch path unaffected; non-Owner and
+  Store-Employee calls 403; granting to an employee assignment 409; forged
+  branch, non-uuid branch and unknown user all 404; `discount.override` still
+  Owner-only. Temporary `f1probe` fixture and `prisma_f1_deploy` database both
+  removed; users back to 6, assignments to 11, grants to 0; no financial or
+  inventory record touched. **3 append-only `audit_logs` rows** remain from the
+  grant/revoke tests (total 88) — legitimate records of real operations.
+- **Commits:** backend `0b6cbd9` (0022 + drift tests), `7047c93` (API + tests) ·
+  mobile `80bc285` (Team control) · documentation: *current HEAD contains this
+  handoff*.
+- **Push status:** all three pushed to `origin/master` and level with their
+  remotes.
+- **Remaining work:** none for this task. Real-device checks (camera, haptics,
+  Arabic RTL end-to-end, receipt sharing, scroll pagination, bottom sheets) are
+  still outstanding, as is everything from Stage 3 onward.
+- **Handoff reason:** authorised task complete. `READY_FOR_HANDOFF`, owner
+  `NONE`.
+
+---
+
 ## 2026-08-05 23:04–23:40 UTC — CLAUDE-B (session 3)
 
 - **Starting state:** resumed own work. All three repos clean, `master`, level

@@ -179,20 +179,55 @@ mobile `2e63aa8`):
 
 **Remaining after Stage 1:** Stages 2–8 below are unstarted.
 
-### Stage 2 — Per-user permission grants *(depends on nothing; unblocks pricing)*
+### Stage 2 — Per-user permission grants ✅ **IMPLEMENTED** (0021 + 0022)
 
-**Schema:** `UserPermission { companyId, userId, permissionId, grantedBy,
-grantedAt, reason }`, `@@id([userId, permissionId])`.
-`AccessService.getEffectivePermissions` becomes *role grants ∪ user grants*.
+**The plan changed during implementation, for a reason worth recording.** The
+original design was `UserPermission { userId, permissionId }` — per *user*.
+A mandatory branch-authorization audit run before the migration found that
+`getEffectivePermissions` **unioned permissions across every branch** when no
+`X-Branch-Id` was present. A per-user grant added to that union would have made
+authority given for one branch apply in all of them. The audit gate fired and
+the migration was stopped.
 
-This is the smallest change that unblocks "per-user normal-price editing is
-Owner-delegated" and the `return.request` / `import.prepare` gaps recorded in
-[`21`](21_PRODUCT_DECISIONS.md). **Deny-overrides are deliberately excluded** —
-union-only keeps the model something an Owner can reason about.
+**What shipped instead:**
 
-**Security note:** a user grant must never confer `discount.override`,
-`user.manage` or `settings.manage`. Enforce with an explicit
-**delegatable-permission allowlist**, checked server-side.
+- **`cfa2dc8` — branch-safety boundary.** The no-branch path now returns only
+  explicitly **company-scoped** permissions (`user.manage`, `settings.manage`,
+  `branch.manage`, `integrations.manage`, `supplier.manage`). Everything else,
+  **including any permission nobody has classified**, is branch-scoped and
+  cannot resolve without a branch. Fail-closed by default.
+- **`a7ff563` + migration `0021` — `UserBranchPermission`**, keyed
+  `@@id([userBranchId, permissionId])`. The grant attaches to an **assignment**,
+  not a user, which is what makes it branch-specific. `ON DELETE CASCADE` from
+  `UserBranch`, so removing an assignment removes its grants.
+- **`0b6cbd9` + migration `0022` — deployment safety.** `0021` created the table,
+  but the `price.edit` **row** is reference data, and `migrate deploy` never runs
+  the seed. `0022` creates the permission and maps it to every company's Owner,
+  idempotently, guarded on the stable key. This is the D2.1 lesson repeated one
+  level down; a drift test now fails the build if SQL and TypeScript disagree.
+- **`7047c93` — grant/revoke API.**
+  `PUT|DELETE /v1/users/:userId/branches/:branchId/delegations/price-edit`,
+  Owner-only via `user.manage`, both idempotent.
+- **`80bc285` — Owner Team control**, one switch per managed branch, EN/AR.
+
+**Deliberate narrowings, all enforced server-side:**
+
+| Rule | Where |
+|---|---|
+| Only `price.edit` is delegatable | `DELEGATABLE_PERMISSIONS` allow-list; resolution honours nothing else |
+| The client cannot name a permission | The authority is in the **route path**; there is no body field to widen |
+| Only a **Store Manager** assignment may hold it | `DELEGATION_ELIGIBLE_ROLE`, checked on grant *and* on every resolution — a downgrade neutralizes the grant without any cleanup job |
+| `discount.override` stays Owner-only | Not on the allow-list; a grant row for it is ignored even on a manager |
+| Never resolves without a branch | Branch-safety boundary above |
+
+**Still open from the original Stage 2 idea:** delegation for `return.request`
+and `import.prepare` / `import.approve`. Those permissions do not exist yet and
+belong to the Returns and Import workflows. Adding one means adding an explicit
+route, which is the friction that keeps this API narrow.
+
+**Not built, deliberately:** the actual price-editing workflow. Stage 2 decides
+**who may**; the Pricing phase builds **what they do**. The Team screen says so
+in as many words rather than implying the feature is live.
 
 ### Stage 3 — Device identity and session hardening *(depends on 1)*
 
