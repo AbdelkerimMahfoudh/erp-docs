@@ -7,10 +7,11 @@
 - Owner: NONE (last worked by CLAUDE-A)
 - Session started / started_at_utc: 2026-08-05 23:04 UTC (CLAUDE-B, second
   session) → **taken over by CLAUDE-A at 2026-08-06 00:05 UTC**
-- Last updated: 2026-08-06 01:35 UTC
+- Last updated: 2026-08-06 03:05 UTC
 - Current authorised task: **none — awaiting explicit user instruction.**
-- Active phase and scope: F1 Stage 2 is finished. The next planned step is
-  `docs/23` **Stage 3 (device identity)**, which is NOT authorised yet.
+- Active phase and scope: F1 Stage 3 is finished. The next planned step is
+  `docs/23` **Stage 4 (OTP provider abstraction)**, which is NOT authorised and
+  is **blocked on choosing a WhatsApp/OTP provider**.
 - Takeover history:
   1. CLAUDE-B resumed its own completed Stage 1 from `READY_FOR_HANDOFF`/`NONE`.
      HEADs at that takeover: backend `564b3b9` · mobile `2e63aa8` · docs
@@ -27,7 +28,9 @@
 - HEADs verified at the CLAUDE-A takeover (after `git fetch`, all level with
   `origin`): backend `a7ff563` · mobile `2e63aa8` · docs `8115067`.
   Migration `0021` applied; `prisma migrate status` clean.
-- Last completed checkpoint: **F1 Stage 2 complete** — deployment backfill (0022), grant/revoke API, regression tests, Owner Team control. All committed, pushed and live-verified.
+- Last completed checkpoint: **F1 Stage 3 complete** — device identity (0023),
+  legacy-session adoption, device APIs, Security → Devices screen, plus a Stage 2
+  lifecycle fix. All committed, pushed and live-verified.
 
 ## Repository state
 
@@ -35,8 +38,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `7047c93` | `7047c93` | clean |
-| Mobile (`erp-mobile`) | master | `80bc285` | `80bc285` | clean |
+| Backend (`erp-backend`) | master | `91bbb44` | `91bbb44` | clean |
+| Mobile (`erp-mobile`) | master | `e5b7db6` | `e5b7db6` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 1 commit trail — backend: `5638a52` (protocol), `1991a01` (schema+0020),
@@ -56,39 +59,38 @@ directory** (`../`), not a sibling.
 
 ## Verified baseline
 
-Measured by CLAUDE-A on 2026-08-06 after F1 Stage 2.
+Measured by CLAUDE-A on 2026-08-06 after F1 Stage 3.
 
-- Backend tests: **34 suites / 327 tests passing** (`npx jest`) — Stage 2 added
-  `price-edit-delegation.spec.ts` plus delegation cases in `access.service.spec.ts`
-  and `role-matrix-drift.spec.ts`
-- Backend TypeScript: clean (`npx tsc --noEmit`)
-- Mobile TypeScript: clean (`npx tsc --noEmit`)
-- Expo lint: clean (`npx expo lint`)
-- Latest Prisma migration: **`0022_price_edit_permission_backfill`**
-- Database migration status: `prisma migrate status` → *"Database schema is up
-  to date!"*, **21 migrations found**, no drift
-- Live verification (2026-08-06, against the running backend on :3010, fully
-  reversed afterwards). A temporary `f1probe` fixture was Store Manager in
-  Main Store and Store Employee in Warehouse:
-  - Owner has `price.edit` **with** a branch; **not** without one (branch-scoped)
-  - Owner keeps `user.manage` / `settings.manage` with **no** branch, so the
-    mobile cold start (`/auth/me`, `/auth/branches`, `/auth/permissions`) works
-    before a branch is chosen — 5 company-scoped permissions returned
-  - Manager had no `price.edit` from their role; after the Owner's grant the
-    manager's branch-A set changed by **exactly one key** (added `price.edit`,
-    removed nothing) **on the next request, with the same access token**
-  - Branch B unaffected; no-branch resolution still excludes it
-  - Grant twice → 200 with one row; revoke → 200; revoke again → 200
-  - Non-Owner (manager) `PUT`/`DELETE`/`GET /users` → **403**; acting as a Store
-    Employee (branch B) → **403**
-  - Granting to an employee assignment → **409** with a plain reason
-  - Forged branch uuid / non-uuid branch / unknown user → **404** (fail closed)
-  - `discount.override`: Owner true, manager false — unchanged
-- Migration-only deployment proof: a temp database restored from the pre-`0021`
-  backup ran `migrate deploy` **with no seed** and produced `0021`'s table (with
-  `CASCADE`) and `0022`'s `price.edit` mapped to every company's Owner and to
-  nobody else — 18 permissions, and per-role counts identical to the seeded
-  database (owner 18 · store_manager 11 · store_employee 6 · administrator 15).
+- Backend tests: **36 suites / 367 tests passing** (`npx jest`) — Stage 3 added
+  `devices.service.spec.ts` (31) and `delegation-lifecycle.spec.ts` (9)
+- Backend TypeScript: clean · Mobile TypeScript: clean · Expo lint: clean
+- Latest Prisma migration: **`0023_device_identity`**
+- Database migration status: *"Database schema is up to date!"*, **22 migrations**
+- Live verification (2026-08-06, backend on :3010, fixtures fully removed):
+  - First sign-in with no credential **enrolls**; `trustMethod: password`;
+    43-char secret, distinct from the public id
+  - Returning sign-in presenting the pair is **recognised** — no re-enrollment
+  - A **wrong secret** is not a login failure (the password was right): it
+    enrolls a *new* device and leaves the old one alone
+  - Device list: current one flagged, **no secret, no `secretHash`, no
+    `argon2`** anywhere in the payload; every `otpVerified` false
+  - Revoking another device killed its session (1 revoked) and left the current
+    session working; the revoked row **stays listed as history**
+  - A **revoked credential cannot re-enroll as trusted** — it becomes a new
+    device and the old row stays revoked
+  - Revoke is idempotent (`alreadyRevoked: true`, 0 sessions)
+  - Revoking the **current** device returns `wasCurrent: true` and the token is
+    401 on the next call
+  - **Explicit logout** set `reverifyRequired: true`; the device is still
+    recognised (no lock-out with no OTP to recover) and `otpVerified` stays false
+  - Reopening the app and restoring a session left `reverifyRequired: false`
+  - Employee sees only their own device; **403** on the Owner list route
+  - Owner listed and revoked an employee device (session died, 401); a
+    cross-user device id under that employee → **404**
+- Migration-only deployment proof: a temp database restored from the pre-`0023`
+  backup ran `migrate deploy` **with no seed** — `user_devices` created,
+  `device_record_id` added, **all 65 existing sessions preserved and unbound**,
+  enum `('legacy','password','otp')`, FKs `RESTRICT`/`CASCADE` as designed.
   Re-running the SQL twice changed nothing. Temp database dropped.
 
 ## Completed milestones
@@ -137,24 +139,34 @@ Measured by CLAUDE-A on 2026-08-06 after F1 Stage 2.
 
 ## Work currently in progress
 
-**Nothing. F1 Stage 2 is complete, committed, pushed and verified.**
+**Nothing. F1 Stage 3 is complete, committed, pushed and verified.**
 
 - Uncommitted work: none in any repository.
-- Migrations prepared/applied by CLAUDE-A: **`0022_price_edit_permission_backfill`**
-  (deployment-only correction; `0021` was already applied and was NOT edited).
-- Temporary databases created: `prisma_f1_deploy` — **dropped** after the
-  migration-only proof. None remain (`SHOW DATABASES LIKE 'prisma%'` is empty).
-- Temporary fixtures created: user `f1probe` (Store Manager in Main Store,
-  Store Employee in Warehouse) — **fully removed** afterwards, with its
-  assignments, sessions and delegated grant. Users back to 6, assignments back
-  to 11, `user_branch_permissions` back to **0**.
-- Unavoidable append-only rows: **3 `audit_logs` entries** from the live grant
-  and revoke tests (`UserBranchPermission` create ×2, delete ×1). Audit is
-  append-only by database trigger, and these are legitimate records of real
-  operations, not corruption. Total is now 88.
-- No financial or inventory record was touched: companies 1 · branches 2 ·
+- Migrations applied by CLAUDE-A this session: **`0023_device_identity`**
+  (additive; `0021` and `0022` untouched).
+- Temporary databases: `prisma_s3_deploy` — **dropped**. None remain.
+- Temporary fixtures: user `s3probe` and nine verification device rows —
+  **all removed**. Users back to 6, assignments 11, `user_devices` **0**,
+  `user_branch_permissions` **0**.
+- Unavoidable append-only rows: **3 `audit_logs` entries** (`UserDevice`
+  status_change) from the live revoke tests. Total 91.
+- No financial or inventory record touched: companies 1 · branches 2 ·
   products 12 · units 11 · sales 7 · sale_items 14 · purchases 9 ·
-  stock_items 4 · company_settings 1 · receiving_accounts 3 — all unchanged.
+  stock_items 4 · company_settings 1 · receiving_accounts 3.
+
+### Stage 2 lifecycle fix shipped first (backend `0db0fc4`)
+
+An audit of every write path found **no role-management API exists** — only
+`prisma/create-user.ts` (a dev utility whose upsert doubles as a role changer)
+and the seed's legacy remap can change a `UserBranch` role, and nothing anywhere
+deletes an assignment. The CLI did not prune delegated grants, so a downgrade
+followed by a re-promotion would have silently restored `price.edit`.
+
+The rule now lives in `src/rbac/delegation-lifecycle.ts` — used by the CLI today
+and required of any future role API — and prunes inside the same transaction as
+the role change. Cascade re-verified on the live database.
+Deactivation is deliberately **not** a lapse: it does not change the role, the
+Owner withdrew nothing, and F1.1 already cuts off access.
 
 ### Uncommitted work inherited from CLAUDE-B — all resolved
 
@@ -247,6 +259,10 @@ migration.
   `-- Dump completed on 2026-08-06  0:50:22`, `--hex-blob`, 0 raw `_binary`
   literals, 1479 hex literals, valid UTF-8 round trip, contains
   `user_branch_permissions` and `price.edit`.
+- **Pre-Stage-3 backup (CLAUDE-A, before migration `0023`):**
+  **`~/erp-backups/phonestore-20260806-022141.sql`** — 187 935 bytes, trailer
+  `-- Dump completed on 2026-08-06  2:21:42`, `--hex-blob`, 0 raw `_binary`,
+  1494 hex literals, valid UTF-8 round trip, contains `auth_sessions` rows.
 - Temporary databases: **none.** Scratch databases must be named `prisma_*`
   (the migrator's grants cover `phonestore` and `prisma\_%` only) and dropped
   after verification.

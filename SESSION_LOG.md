@@ -15,6 +15,100 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 02:00–03:10 UTC — CLAUDE-A (F1 Stage 3)
+
+- **Starting state:** `READY_FOR_HANDOFF` / NONE. Verified after `git fetch`:
+  backend `7047c93`, mobile `80bc285`, docs `8999d36`, all clean and level;
+  migration `0022`; 34 suites / 327 tests; 0 delegated grants. Matched the
+  expected state exactly.
+- **Authorised task:** close the remaining Stage 2 lifecycle risk, then F1
+  Stage 3 (device identity). Explicitly excluded: OTP/WhatsApp, invitations,
+  recovery, passcode, biometrics, seats, price editing.
+
+### Stage 2 lifecycle risk — closed (backend `0db0fc4`)
+
+Audited every path that can change a role, remove an assignment or deactivate a
+user. **No role-management API exists**: only `prisma/create-user.ts` (whose
+upsert doubles as a role changer) and the seed's legacy remap touch
+`user_branches`, and nothing anywhere deletes an assignment.
+
+The CLI did not prune delegated grants, so downgrade → re-promotion would have
+silently restored `price.edit`. The rule now lives in
+`src/rbac/delegation-lifecycle.ts`, is used by the CLI inside the same
+transaction as the role change, and is required of any future role API. Tests
+demonstrate **both** halves, including the failure itself: a stale row genuinely
+does revive on re-promotion when pruning is skipped, which is why resolution
+alone is not enough. Cascade re-verified on the live database.
+
+### Stage 3 audit gate — passed
+
+Audited `AuthSession`, every create/rotate/revoke path, token binding, the old
+`deviceId`, mobile storage, dependencies, and all auth consumers.
+
+The gate question was whether safe device identity needs OTP first. It does not:
+enrollment happens on an **already-authenticated** session, and the trust method
+is recorded honestly rather than claimed as verification. **No blocker.**
+
+One finding shaped the whole design: because the credential is **server-issued**,
+the client only stores what it is given — so **no new mobile dependency was
+needed**. `expo-secure-store` was already installed.
+
+### Stage 3 implemented (backend `91bbb44`, mobile `e5b7db6`, migration `0023`)
+
+Rejected the original plan's "client-generated deviceId": a client-generated
+identifier is a claim, not a credential. Shipped instead: server-issued public
+id + 32-byte secret returned **once**, stored only as an Argon2id hash. The id
+alone recognises nothing. Scoped per (company, user). No IMEI, serial,
+advertising id or fingerprinting.
+
+Trust is `legacy` / `password` / `otp`, and **nothing in Stage 3 writes `otp`**;
+`otp_verified_at` stays null. Explicit logout sets `reverify_required`; app
+close, backgrounding and offline restore never reach that path. Revoking a
+device revokes its sessions atomically, survives user reactivation, and keeps
+the row as history.
+
+Legacy sessions keep working — `device_record_id` is nullable and all 65 were
+preserved — and adopt a legacy-trusted device once, idempotently.
+
+- **Files changed:** backend — `prisma/schema.prisma`,
+  `prisma/migrations/0023_device_identity/`, `prisma/create-user.ts`,
+  `src/auth/{devices.service,devices.controller,auth.service,sessions.service,auth.module}.ts`,
+  `src/auth/dto/{device,login}.dto.ts`, `src/auth/strategies/jwt.strategy.ts`,
+  `src/common/types/auth-user.ts`, `src/rbac/delegation-lifecycle.ts`, + specs.
+  Mobile — `lib/device.ts` (new), `hooks/useAuth.tsx`, `app/devices.tsx` (new),
+  `app/(tabs)/more.tsx`, `types/api.ts`, `lib/i18n/{en,ar}.ts`,
+  `lib/query-keys.ts`. Docs — `docs/23`, `CURRENT_HANDOFF.md`, `SESSION_LOG.md`.
+- **Database migrations:** `0023_device_identity`. Backup taken first:
+  `~/erp-backups/phonestore-20260806-022141.sql` (187 935 bytes, `--hex-blob`,
+  0 raw `_binary`, 1494 hex literals, valid UTF-8).
+- **Tests and results:** **36 suites / 367 tests passing.** Backend and mobile
+  `tsc` clean; `expo lint` clean; `migrate status` clean, 22 migrations.
+  Migration-only deploy proven on a temp database restored from the pre-`0023`
+  backup: no seed, table created, column added, **65 sessions preserved**,
+  reruns changed nothing.
+- **Live verification:** enrollment, recognition, wrong-secret handling, list
+  without secrets, revoke other / current / idempotent, revoked-credential
+  re-enrollment, logout marking, lifecycle neutrality, employee isolation,
+  Owner list/revoke, cross-user 404. Fixtures removed; demo data untouched;
+  3 append-only audit rows remain (total 91).
+- **Commits:** backend `0db0fc4`, `91bbb44` · mobile `e5b7db6` ·
+  documentation: *current HEAD contains this handoff*.
+- **Push status:** all three pushed and level with `origin/master`.
+- **Remaining work:** Stage 4 (OTP) is blocked on provider choice. Real-device
+  checks still outstanding.
+- **Handoff reason:** authorised task complete. `READY_FOR_HANDOFF`, owner
+  `NONE`.
+
+**CORRECTION (2026-08-06, CLAUDE-A):** the commit message of backend
+`91bbb44` is missing three words. Backticked `password`, `legacy` and `otp`
+were consumed as shell command substitution when the message was composed, so
+one paragraph reads "Trust is recorded honestly.  means a password was
+verified…". The commit content is correct and unaffected. It was **not**
+amended, because it was already pushed and the protocol forbids force-pushing;
+the enum values it should have named are `password`, `legacy` and `otp`.
+
+---
+
 ## 2026-08-06 00:05–01:40 UTC — CLAUDE-A (emergency takeover)
 
 - **Starting state:** Authorised takeover from CLAUDE-B, which hit its five-hour

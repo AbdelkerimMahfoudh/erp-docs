@@ -229,19 +229,71 @@ route, which is the friction that keeps this API narrow.
 **who may**; the Pricing phase builds **what they do**. The Team screen says so
 in as many words rather than implying the feature is live.
 
-### Stage 3 — Device identity and session hardening *(depends on 1)*
+### Stage 3 — Device identity and session hardening ✅ **IMPLEMENTED** (0023)
 
-- Make `deviceId` **required** on login; generate it once on the client and keep
-  it in SecureStore.
-- Add `AuthSession.deviceFingerprintHash`, `trustedAt?`, `lastSeenIp`.
-- A session whose `(userId, deviceId)` pair has never been seen before is a
-  **new device** → OTP required before tokens are issued.
-- New endpoints: `GET /users/:id/sessions`, `POST /users/:id/sessions/:sid/revoke`
-  (Owner, `user.manage`), plus `GET /auth/sessions` for self.
+**Shipped:** backend `91bbb44` · mobile `e5b7db6` · migration
+`0023_device_identity`.
 
-**Compatibility risk:** existing sessions have null `deviceId`. Treat null as
-"legacy, trusted until expiry" rather than forcing every current user through
-OTP on deploy — and say so in the migration.
+The plan said "make `deviceId` required on login; generate it once on the
+client". That was **rejected during implementation** for a good reason: a
+client-generated identifier is a claim, not a credential — anyone who learns it
+can assert it. What shipped instead:
+
+| Property | How |
+|---|---|
+| Server-issued identity | `UserDevice` row with a UUIDv7 public id |
+| High-entropy credential | 32 random bytes, base64url, returned **once** at enrollment |
+| One-way storage | Only the Argon2id hash is stored (`secret_hash`) |
+| Public id alone proves nothing | `recognise()` requires id **and** secret; a leaked device list is not a credential |
+| Local storage | Existing `expo-secure-store`. **No new dependency** — the client never generates a secret, it only keeps what it was given |
+| No invasive identifiers | No IMEI, serial, advertising id or fingerprinting. `label`/`platform`/`model`/`appVersion` are untrusted display metadata |
+| Scoped identity | One row per (company, user); nothing correlates a device across users or companies |
+| Session linkage | `auth_sessions.device_record_id`, nullable, `ON DELETE RESTRICT` |
+| Atomic revocation | Revoking a device revokes every session it owns, in one transaction |
+| Survives reactivation | The device row stays revoked; re-enabling a user does not restore a lost phone |
+| Revoked ≠ forgotten | Revoked rows are kept as history, never deleted |
+| Throttled writes | `lastSeenAt` at most once per device per 15 minutes — recognition stays a read path |
+
+**Trust is recorded honestly.** `trust_method` is `legacy` (adopted from a
+pre-Stage-3 session), `password` (a password was verified; a phone was not) or
+`otp` — and **nothing in Stage 3 writes `otp`**. `otp_verified_at` stays null
+for the same reason. No OTP is sent and nothing is marked verified.
+
+**Approved rules, as implemented:**
+
+- Closing/reopening the app, backgrounding it and losing the network never touch
+  device trust — none of those paths reach the code that changes it.
+- An **explicit logout** sets `reverify_required`, recording that the next
+  sign-in here should re-verify by OTP. Stage 3 records; Stage 4 enforces.
+  Recognition deliberately still succeeds today, because refusing now would lock
+  people out with no OTP to recover with.
+- Reinstall, cleared storage or a different installation lose the local
+  credential and are therefore a **new device** — by design, not by failure.
+- Owner may list and revoke a member's devices (`user.manage` + company check);
+  passcodes do not exist yet, so there is nothing for an Owner to see or reset.
+
+### Legacy-session adoption, and how Stage 4 takes over
+
+Existing sessions have a null device and **must keep working** — invalidating
+them would push every signed-in user through an OTP flow that does not exist.
+
+`POST /v1/devices/adopt` binds one already-valid session to a **legacy-trusted**
+device. It is idempotent and single-shot: a session that already has a device
+gets that id back rather than a second enrollment, so a retry or two racing app
+launches cannot duplicate or rebind it, and one session can never be moved
+between devices. A stolen public id is useless without the secret.
+
+**Stage 4 transition.** `legacy` and `password` are deliberately distinguishable
+from `otp`. When the provider exists, Stage 4:
+
+1. gates the *enroll* branch of login behind a verified code, instead of
+   enrolling immediately;
+2. honours `reverify_required` by demanding a code before issuing tokens;
+3. optionally expires `legacy` trust on a date, since those devices were never
+   verified at all.
+
+None of that needs another schema change — which is why the enum carries `otp`
+and the timestamp column exists now.
 
 ### Stage 4 — OTP provider abstraction *(depends on 1; blocked on provider choice)*
 
@@ -337,8 +389,9 @@ endpoints · writing the audit actions that already exist · a redesigned login
 screen on the design system.
 
 **Security-sensitive redesign — do not treat as routine**
-New-device detection (requires trustworthy device identity, which does not
-exist today) · the local-passcode boundary (§4.6) · per-account lockout ·
+~~New-device detection~~ — **done in Stage 3**: identity is server-issued and
+credential-backed, so "is this a device we know?" is now a question with a
+trustworthy answer · the local-passcode boundary (§4.6) · per-account lockout ·
 invitation-token handling · the delegatable-permission allowlist.
 
 **Blocked on WhatsApp provider selection**
