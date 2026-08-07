@@ -4,10 +4,93 @@
 
 - Status: READY_FOR_HANDOFF
 - Active account: NONE
-- Owner: NONE (last worked by CLAUDE-A)
-- Session started / started_at_utc: 2026-08-06 21:45 UTC (CLAUDE-A, G1 mobile
-  completion)
-- Last updated: 2026-08-06 22:30 UTC
+- Owner: NONE (last worked by CLAUDE-B)
+- Session started / started_at_utc: 2026-08-07 05:05 UTC (CLAUDE-B, G2A-CP1)
+- Last updated: 2026-08-07 05:20 UTC
+- **Account label:** the user has since confirmed this account is **CLAUDE-B**
+  and that labels were sometimes mixed in briefs. The earlier "all sessions were
+  CLAUDE-A" correction block below is left in place at the user's explicit
+  request; treat the account label in historical entries as **unreliable**, not
+  as evidence. Current and future work is CLAUDE-B.
+
+## Phase G2A — Pricing Foundation: CP1 complete (audit + decision), CP2–CP6 open
+
+**CP1 (takeover, pricing-truth audit, decision record) is DONE and pushed.**
+No application code, schema or migration was touched. The audit found **no
+contradiction** with the approved pricing rules, so G2A may proceed as specified.
+
+### G2A.0 — Pricing truth (traced, not assumed)
+
+| Field | Scope | Mutability | Role |
+|---|---|---|---|
+| `Product.defaultPrice` (`Decimal(14,2)?`) | **Company-wide** | Mutable default | Legacy/company fallback for serialized sale price |
+| `StockItem.price` (`Decimal(14,2)`) | **Branch** (`@@unique([companyId, productId, branchId])`) | Mutable default | **Authoritative branch price for quantity stock** |
+| `SaleItem.price` (`Decimal(14,2)`) | Sale line | **IMMUTABLE snapshot** | The agreed price actually charged |
+| `DigestLine.salePrice` | Reporting | Immutable snapshot | Digest/reporting copy |
+| `Unit.cost` (`Decimal(14,2)`) | **Unit** | Set at receiving | **There is NO `Unit` price column** |
+
+**How a selling price resolves today**
+- **Serialized:** `sales-policy.resolvePrice(providedPrice, product.defaultPrice)`
+  — the price typed at sale time, falling back to the company-wide default.
+  **There is no branch-level or unit-level serialized price at all.** That is
+  precisely the gap G2A fills.
+- **Quantity:** `StockItem.price`, per branch. Already correct — G2A must **not**
+  add a second branch price for quantity stock.
+
+**Answers to the audit's specific questions**
+- **Does receiving mutate `Product.defaultPrice`?** **No.** Nothing writes it
+  except catalog create, which G1 already gated behind `price.edit`.
+- **Does receiving mutate `StockItem.price`?** **Only on first receive.**
+  `upsertStock` does `create { …, price }` but `update: { quantity: { increment } }`
+  — a later receive increments quantity and **leaves the price untouched**.
+- **Can a Store Employee make an authoritative price change?** **Yes, in exactly
+  one narrow case:** the *first* receive of a quantity product into a branch
+  creates the `StockItem` and sets its price (falling back to
+  `Product.defaultPrice ?? 0`). After that the employee cannot change it. This is
+  the one place today's behaviour anticipates the employee-proposal model.
+  **Preserved unchanged in G2A; it is the G2B migration target** (see below).
+- **What price does a newly received serialized unit use?** None of its own —
+  it inherits `Product.defaultPrice` at sale time.
+- **What if no price exists?** `resolvePrice` falls back to the provided price;
+  with neither, the sale line has no configured price → G2A's `unpriced` source.
+- **Does any service trust a client-calculated profit/margin?** **No.**
+  `sales.service` computes `margin = round(total − totalCost)` server-side and
+  passes it to `assertBelowCostAllowed`. The client's numbers are never trusted.
+- **Could a price edit alter an old sale/invoice/return/report?** **No.**
+  `SaleItem.price`, the sale `total` and `margin` are stored snapshots; no read
+  path recomputes them from `Product.defaultPrice`.
+
+### Decided design for CP2 (no code written yet)
+
+Two additive tables, no change to `Product.defaultPrice` and no second quantity
+price:
+
+- **`BranchVariantPrice`** — one row per (company, product, branch):
+  `@@unique([productId, branchId])`, `price Decimal(14,2)`, `version Int`,
+  `setById`, timestamps. The branch price for one **exact variant**.
+- **`UnitPriceOverride`** — one row per unit: `@@unique([unitId])` (a unit
+  belongs to exactly one product and branch already, so quantity products
+  structurally cannot acquire one), `price`, `version`, `setById`.
+- **`PriceChangeEvent`** — append-only history: actor, branch, scope
+  (`unit` | `branch_variant`), target id, previous value, new value, reason,
+  timestamp. **No hard delete**; "revert" writes a removal event.
+
+Names deliberately avoid a bare `price` so nothing is confused with the
+immutable `SaleItem.price` snapshot.
+
+**Resolution order** (server-side, returned with an explicit `source`):
+`unit_override` → `branch_variant` → `product_default` → `unpriced`.
+
+**Notifications:** reuse the existing `Notification` model — it already has
+`companyId`, `branchId`, `targetUserId`, `type`, `title`, `body`, `actionLink`,
+`isRead` and the right index. No second notification system, and no cost or
+margin in the payload.
+
+### G2B (recorded, NOT started)
+Employee price proposals and approvals — including migrating the "first receive
+sets `StockItem.price`" behaviour into an explicit proposal that stays
+provisionally usable while Manager/Owner confirmation remains outstanding and
+visible. G2A deliberately implements none of it.
 
 > ### ⚠️ Account-label correction (2026-08-06, CLAUDE-A)
 >

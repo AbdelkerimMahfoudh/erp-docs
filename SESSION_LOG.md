@@ -15,6 +15,67 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-07 05:05–05:25 UTC — CLAUDE-B (Phase G2A-CP1 — pricing truth audit + decision record)
+
+- **Account label:** the user confirmed this account is **CLAUDE-B** and that
+  briefs sometimes mix the two labels, instructing that CLAUDE-B stands unless
+  they say otherwise in a specific message. The earlier "all sessions were
+  CLAUDE-A" correction is left in place at the user's explicit request; the
+  practical guidance is that **historical account labels are unreliable** and
+  should not be read as evidence.
+- **Starting state:** matched the brief exactly — backend `b3cfcbc`, mobile
+  `65edca8`, docs `d1c547b`, migration `0026`, **42 suites / 495 tests**, three
+  trees clean and level with origin, `READY_FOR_HANDOFF`/NONE.
+- **Authorised task:** Phase G2A (Pricing Foundation). This session completed
+  **CP1 only** — takeover, the G2A.0 pricing-truth audit, and the decision
+  record. **No application code, schema or migration was touched.**
+- **Audit result: no contradiction with the approved pricing rules**, so G2A may
+  proceed as specified. Traced every price field and consumer rather than
+  assuming:
+  - `Product.defaultPrice` = company-wide mutable fallback; `StockItem.price` =
+    branch-level authoritative price for quantity stock; `SaleItem.price` and
+    `DigestLine.salePrice` = immutable snapshots; `Unit` has `cost` but **no
+    price column at all**.
+  - Serialized price today resolves as `resolvePrice(providedAtSale,
+    Product.defaultPrice)` — **no branch or unit level exists**, which is exactly
+    the gap G2A fills.
+  - **Nothing mutates `Product.defaultPrice`** outside catalog create (already
+    gated on `price.edit` in G1).
+  - `upsertStock` sets `StockItem.price` **only on create**; later receives
+    increment quantity and leave price untouched. So a Store Employee can set an
+    authoritative branch price exactly once — on the *first* receive of a
+    quantity product into a branch. Preserved unchanged; recorded as the G2B
+    migration target.
+  - **Margin is computed server-side** (`total − totalCost`) and fed to
+    `assertBelowCostAllowed`; no client-supplied profit or margin is trusted.
+  - **A price edit cannot alter history:** sale price, total and margin are
+    stored snapshots and no read path recomputes them from the product default.
+- **Design decided for CP2** (documented, not built): additive
+  `BranchVariantPrice` (unique per product+branch), `UnitPriceOverride` (unique
+  per unit, so quantity products structurally cannot acquire one) and an
+  append-only `PriceChangeEvent`; both price tables carry a `version` for
+  compare-and-swap. Resolution `unit_override → branch_variant →
+  product_default → unpriced`, returned with an explicit source. `Notification`
+  is reused for the Owner alert — it already carries company, branch, target
+  user, type, title, body, action link and read state.
+- **Stopped deliberately at CP1.** CP2 applies a **financial schema migration to
+  the shared database**, and the remaining context was not enough to also run its
+  required proofs (migration-only deploy, restored-database deploy, clean
+  deploy, rerun idempotency, full suite). Beginning that and running out midway
+  is the one outcome worth avoiding on financial schema, so the decision record
+  was committed instead and the migration left unwritten.
+- **Verification:** backend **42 suites / 495 tests** re-confirmed at takeover;
+  `migrate status` up to date (25 migrations, latest `0026`). No backup was taken
+  because no schema change was made — **CP2 must take one first**.
+- **Demo data:** untouched. No temporary fixtures, no new audit or notification
+  rows.
+- **Commits:** docs only (this entry + the handoff decision record). Backend and
+  mobile unchanged at `b3cfcbc` / `65edca8`.
+- **Next milestone:** G2A-CP2 — verified `--hex-blob` backup, then the additive
+  pricing migration and its schema tests, exactly as designed in the handoff.
+
+---
+
 ## 2026-08-06 21:45–22:35 UTC — CLAUDE-A (Phase G1 COMPLETE — shared form, scanner, categories)
 
 - **Starting state:** matched the brief exactly — backend `fb1ad67`, mobile
