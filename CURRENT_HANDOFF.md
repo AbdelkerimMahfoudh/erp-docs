@@ -8,19 +8,18 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-A**, 2026-08-07 — **Phase G2A-CP3, Pricing Resolution
-  and Secure Backend Operations** (complete). Backend only; no mobile pricing UI,
-  no G2B proposals.
-- Previous session: **CLAUDE-A**, 2026-08-07 — G2A-CP2 (complete)
+- Last session: **CLAUDE-B**, 2026-08-07 — **Phase G2A-CP4, Mobile Pricing
+  Experience** (complete). No G2B proposals. **No migration was needed.**
+- Previous sessions: **CLAUDE-A** — G2A-CP2 and G2A-CP3
 
-> **Account label — current truth: this account is `CLAUDE-A`.** Several earlier
-> entries (G1 backend, G1 mobile, G2A-CP1) recorded themselves as `CLAUDE-B`.
-> **Only the ownership label was wrong** — the work, commits, audits and
-> verification described in them are correct and unaffected. Nothing was
-> rewritten: `SESSION_LOG.md` is append-only, so the correction is appended
-> there, and no commit was amended. Read any `CLAUDE-B` attribution dated
-> 2026-08-05/07 as **CLAUDE-A**. This account stays `CLAUDE-A` until the user
-> explicitly switches it.
+> **Account labels.** The user set this session's account to **`CLAUDE-B`**
+> explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
+> (G1 backend, G1 mobile, G2A-CP1) recorded themselves as `CLAUDE-B` when the
+> work was actually `CLAUDE-A` — **only those ownership labels were wrong**; the
+> work, commits, audits and verification in them are correct and unaffected.
+> Nothing was rewritten: `SESSION_LOG.md` is append-only, so that correction is
+> appended there and no commit was amended. Read any `CLAUDE-B` attribution
+> dated **2026-08-05/06** as `CLAUDE-A`.
 
 ## Repository state
 
@@ -28,16 +27,13 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `103588f` | `103588f` | clean |
-| Mobile (`erp-mobile`) | master | `65edca8` | `65edca8` | clean |
+| Backend (`erp-backend`) | master | `63cae31` | `63cae31` | clean |
+| Mobile (`erp-mobile`) | master | `0d0d9a0` | `0d0d9a0` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-Mobile is unchanged — CP3 is backend-only, and its TypeScript/lint checks were
-run to confirm the shared and generated types still hold.
-
-CP3 backend commits: `159c4f3` (0028 audit-trigger repair) · `72b8861` (pricing
-service, API, Sell and transfer integration, 0029) · `103588f` (branch-context
-fixes found by live verification).
+CP4 commits — backend `63cae31` (cost-gating fix found by the preflight) ·
+mobile `c2fc0a0` (pricing types + stale-branch recovery) and `0d0d9a0`
+(pricing UI). CP3 commits were backend `159c4f3`, `72b8861`, `103588f`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -48,23 +44,24 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (measured at the end of G2A-CP3)
+## Verified baseline (measured at the end of G2A-CP4)
 
-- **Backend tests: 45 suites / 579 tests passing**, 0 failing. CP3 added
-  `price-resolution.spec.ts` (18) and `pricing.service.spec.ts` (42) and grew the
-  migration-contract spec to 24, over the CP2 baseline of 43 suites / 515 tests.
-- **Live verification: 55 checks, 0 failures** (30 + 25) against the running API
-  and real MySQL. Temporary fixtures removed; demo data byte-identical to the
-  CP2 baseline afterwards.
+- **Backend tests: 45 suites / 582 tests passing**, 0 failing (CP3 baseline
+  45/579; CP4 added 3 cost-gating regression tests).
+- **CP4 preflight: 24 checks, 0 failures** against the running API — login,
+  refresh rotation, refresh-reuse revocation, logout, `/auth/me`,
+  `/auth/branches`, `/auth/permissions`, no-branch, malformed-branch and
+  stale-branch requests, and branch-scoped pricing still failing closed.
+- **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
+  `expo export --platform web` built **28 routes**, including
+  `/pricing/unit` and `/pricing/history`. Node pure suites: **11 + 5 + 6 + 7**.
 - Backend TypeScript **clean** · `prisma validate` **valid** · `prisma generate`
   regenerated the client (3 500 references to the new models; both `tsc` and the
   suite compile against it). The `EPERM … query_engine-windows.dll` rename
   warning is the known WAMP file-lock from another running dev server, not a
   generation failure.
-- Mobile TypeScript **clean** · `expo lint` **clean**. No mobile file changed;
-  this only confirms the shared/generated types were not broken.
 - Migration status: *"Database schema is up to date!"* — **28 migrations**,
-  latest **`0029_stock_item_version`**.
+  latest **`0029_stock_item_version`** — **unchanged by CP4**.
 - **Trigger inventory (exact, live dev):** `audit_logs_block_update` BEFORE
   UPDATE · `audit_logs_block_delete` BEFORE DELETE · `price_change_events_block_update`
   BEFORE UPDATE · `price_change_events_block_delete` BEFORE DELETE. **4 total**,
@@ -286,19 +283,93 @@ migrator account, which the append-only design permits for a DBA; this is
 recorded here rather than left implicit. The transfer invoice-number sequence
 advanced by two and was not rewound.
 
-## Next exact action — Phase G2A-CP4 or G2B (not started)
+### CP4 ✅ — mobile pricing experience (mobile `0d0d9a0`, backend `63cae31`)
 
-Backend pricing is complete. Nothing is half-enforced. The open choices are:
+**Backend contracts connected to the app. No G2B. No migration was needed.**
 
-1. **Mobile pricing UI** — the read endpoints already return everything a screen
-   needs: price, source, version, whether it can be removed, and the fallback
-   preview. Deliberately not started this session.
-2. **G2B — employee price proposals**, including the open `StockItem.price`
-   question recorded above, which needs a user decision before any code.
+The app renders the server's decision and never re-derives precedence: it
+displays the `price`, `source`, `version` and `fallback` the CP3 endpoints
+return. Sources are translated to shop language (EN + AR) with a sentence
+explaining why each applies, shown as a labelled chip — **words plus tone, never
+colour alone**.
+
+**Who sees what.** All roles see the effective price and its source. Edit
+controls need branch-scoped `price.edit`, so a delegated Manager gets them in
+the granted branch only, an Employee gets **none at all** (not disabled ones),
+and `catalog.manage` shows nothing. Branch changes re-resolve both, since the
+branch is in the query key. Cost moved to its own section; withheld cost still
+reads "Hidden", never `0`.
+
+**Two serialized actions, deliberately separate screens** — a single screen with
+a scope toggle is how someone reprices the whole shop by accident. One phone is
+priced via `*#06#` and scanning the IMEI **off the phone**, not the box, with
+manual entry always available. Quantity products edit `stock_items.price`
+through the `0029` version and never touch overrides.
+
+**One shared `PriceEditor`** for all three scopes. `parsePrice` is a separate
+dependency-free module (11 Node tests): blank, `NaN`, negative and over-precise
+values cannot reach the API, where `DECIMAL(14,2)` would silently truncate.
+409 explains what was tried versus what it now is and stops — never a silent
+refresh-and-resubmit. Below cost stays the server's call; an Owner's
+authorisation resends **the same price and version**.
+
+### CP4 preflight — the defect it caught
+
+CP3 moved active-branch resolution into CLS middleware. The preflight checked
+the routes that legitimately run without a branch, and found a **lock-out**:
+
+`CostGatingInterceptor` resolved permissions for the active branch and let
+`AccessService`'s 403 escape, so a restored session holding a branch the user
+had been removed from failed **every** request — including `GET /auth/branches`,
+the one screen needed to pick a different branch. Retry could only 403 again.
+
+Cost gating decides what to *strip*, not who may call. It now degrades to the
+strictest gating and does not cache that set. `/auth/permissions` still answers
+403 — the honest answer — and the client drops the branch, which routes it to the
+picker. The decision is a pure `classifyPermissionFailure()` with 5 Node tests.
+
+**Standing lesson: a guard that also resolves context changes behaviour for every
+route that skips the guard — and only a real request through the real stack
+shows it.**
+
+### What CP4 did NOT verify — stated plainly
+
+- **No mobile UI was driven by a human or a device.** Verification was
+  TypeScript, lint, expo-doctor, a web export proving every route's module graph
+  loads, the Node pure suites, and API-level checks. The screens were not
+  exercised by tapping through them.
+- **Camera scanning was not physically verified.** It needs a real device or
+  emulator; this environment has neither. The manual-entry path is code-complete
+  and the scanner reuses the existing `ScannerSheet`.
+- **Role behaviour was proven at the API level in CP3** (Owner, delegated
+  Manager, Employee, forged identifiers, below-cost, 409). CP4 changed **no**
+  authorization code, so that evidence still stands — but the *client-side*
+  gating (which controls each role actually sees) was not verified by running
+  the app as those roles.
+- **Sell, Receive, Inventory and Notifications were not re-exercised through the
+  UI.** Sell's server-side resolution was proven live in CP3; the mobile Sell
+  screen was not re-run.
+
+### Notifications — still incomplete
+
+`price.changed` notifications are created by the backend and carry no cost or
+margin (CP3, verified live). The mobile Notifications screen was **not** upgraded
+in CP4, so Owners will see these through whatever the existing prototype renders.
+**Record the Notifications milestone as still incomplete.**
+
+## Next exact action
+
+1. **Device pass on the pricing screens** — tap through as Owner, delegated
+   Manager and Employee; verify camera scanning, Arabic RTL layout and that the
+   Employee genuinely sees no controls.
+2. **Notifications screen** — make `price.changed` render properly for an Owner
+   with an action link into the product's pricing section.
+3. **G2B — employee price proposals**, including the open `StockItem.price`
+   question above, which needs a user decision before any code.
 
 **Deferred — do not start without the user:** Excel import · suppliers ·
 transfers UI · returns · loans · consignment · goals · expenses · subscriptions ·
-WhatsApp integration · authentication work · technician functionality.
+WhatsApp · authentication work · technician functionality.
 
 ## Completed milestones
 
@@ -327,7 +398,9 @@ WhatsApp integration · authentication work · technician functionality.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
-- **Phase G2A — Pricing Foundation: CP1, CP2 and CP3 complete.** Audit, schema
+- **Phase G2A — Pricing Foundation: CP1–CP4 complete.** Mobile pricing UI
+  landed in CP4 (device pass still outstanding).
+- **Phase G2A backend: CP1, CP2 and CP3.** Audit, schema
   (`0027`), and the full backend pricing behaviour — resolver, API,
   authorization, concurrency, below-cost, atomic history, Owner notifications,
   transfer invalidation and Sell integration (`0028`, `0029`).
@@ -346,6 +419,14 @@ WhatsApp integration · authentication work · technician functionality.
   missing from every clean deployment for as long as they lived in a manual
   script, and no test, migration or startup check noticed. Protection belongs in
   the migration chain, not in a runbook.
+- **A guard that also resolves context changes behaviour for every route that
+  skips it.** CP3 put branch resolution in `PermissionsGuard`; CP4's preflight
+  found it had silently left unguarded routes with no branch — and cost gating
+  turned that into a lock-out. Only a real request through the real stack showed
+  either.
+- **An interceptor must not decide authorization.** Cost gating exists to strip
+  fields. When it was allowed to throw, it failed requests that guards had
+  already cleared.
 - **A Git rollback does not roll back the database.** Restoring the dump is a
   separate, deliberate step.
 - **`prisma migrate deploy` never runs the seed**, so anything reference-like

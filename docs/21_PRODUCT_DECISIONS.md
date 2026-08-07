@@ -423,6 +423,85 @@ database built from every migration had **no** `audit_logs` triggers and a fresh
 production deployment would have shipped a mutable audit log. Grants cannot
 substitute: `partial_revokes` is schema-level only.
 
+### ✅ RESOLVED — the mobile pricing experience (G2A-CP4)
+
+**The app renders the server's decision and never re-derives precedence.** Every
+pricing screen displays the `price`, `source`, `version` and `fallback` the
+CP3 endpoints return. Two implementations of one ladder is how a screen and a
+till start disagreeing about a price.
+
+**Source in shop language, never database words.** `unit_override` →
+"This phone's own price" · `branch_variant` → "This branch's price for this
+model" · `stock_item` → "This branch's price for this item" · `product_default`
+→ "Company price" · `unpriced` → "No price set". Each carries a sentence saying
+*why* that one applies, and is rendered as a labelled chip — **words plus tone,
+never colour alone**. Full EN and AR.
+
+**Who sees what.** Every store role sees the effective price and its source;
+the counter needs it most. Edit controls require branch-scoped `price.edit`, so
+a delegated Manager sees them in the granted branch and not in another, and an
+Employee sees **no controls at all** rather than disabled ones. `catalog.manage`
+shows nothing. Changing branch re-resolves both price and controls, because the
+branch is part of the query key.
+
+**Cost was moved out of the pricing section** into its own block. Mixing what a
+thing cost with what it sells for is how a counter charges the wrong number.
+Withheld cost still reads "Hidden", never `0`.
+
+**Two clearly different serialized actions**, deliberately not one screen with a
+scope toggle — that is how someone reprices the whole shop by accident:
+
+1. **This model's price here**, stating explicitly that other variants, other
+   branches and individual phones are unaffected.
+2. **One phone's price**, reached by `*#06#` on the dialer and scanning the IMEI
+   **off the phone itself**. Scanning the box is *not* offered as the preferred
+   route: boxes get separated from phones and the price follows the wrong one.
+   Manual entry is always available, not only when the camera fails.
+
+**Quantity products** edit `stock_items.price` through the `0029` version, and
+never touch a unit override or create a branch-variant row.
+
+**One shared `PriceEditor`** for all three scopes. Three editors would be three
+chances for version handling, the below-cost flow or the scope wording to drift.
+Save stays disabled until the value both parses and differs; closing dirty asks
+first.
+
+**`parsePrice` is a separate dependency-free module** (11 Node tests) so blank,
+`NaN`, negative and over-precise values cannot reach the API — `DECIMAL(14,2)`
+would silently truncate the last of those into a price nobody typed. Arabic-Indic
+digits are accepted because the Arabic keyboard produces them. `Intl` is not
+used; Hermes ships inconsistent ICU data.
+
+**409 explains and stops.** The user is told what they tried and what it is now,
+then chooses. Silently refreshing and resubmitting would overwrite the decision
+someone else just made. Invalidation is scoped to pricing, the product and the
+branch's inventory — not a blanket refetch of the whole app for one edit.
+
+**Below cost stays the server's call.** A refusal is shown as-is with no bypass
+offered; an Owner's authorisation reuses `dialog.confirmWithReason` and resends
+**the same price and the same version**, so the retry is the edit that was just
+reviewed and not a different one.
+
+**History** is bounded to one keyset page, shows `previous → new` or "Price
+removed", and reports a transfer invalidation as *Automatic*. It never infers a
+historical role from the actor's current one — `initiator` stays `user|system`
+as CP3 decided.
+
+### ✅ RESOLVED — cost gating must not fail a request it only meant to filter
+
+Found by the CP4 preflight. `CostGatingInterceptor` resolved permissions for the
+active branch and let `AccessService`'s 403 escape, so a restored session holding
+a branch the user had been removed from failed **every** request — including
+`GET /auth/branches`, the one screen needed to pick a different branch. That was
+a lock-out with no way back.
+
+Cost gating decides what to *strip*, not who may call. Guards run first and have
+already rejected anything genuinely branch-scoped, so a failed resolution now
+degrades to the strictest gating (no `cost.view`) and is not cached.
+`/auth/permissions` still answers **403** — the honest answer to a question about
+a branch the user cannot use — and the client recovers by dropping the branch,
+which routes it to the branch picker.
+
 ### 🔴 OPEN — who may establish `StockItem.price` (belongs to G2B)
 
 **Not settled, and not silently approved.** Today, `upsertStock` writes `price`

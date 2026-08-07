@@ -1263,3 +1263,113 @@ not rewound.
 **Commits:** backend `159c4f3`, `72b8861`, `103588f`; docs the commit carrying
 this entry. Mobile unchanged (`65edca8`). All three trees clean and level with
 `origin`. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-07 — CLAUDE-B — **Phase G2A-CP4: mobile pricing experience**
+
+**Scope: mobile only, plus one narrow backend fix the preflight forced.** No G2B
+proposals. **No migration was needed and none was taken.**
+
+### Takeover
+
+Every check matched the brief exactly: backend `103588f`, mobile `65edca8`, docs
+`82e74a6`, all clean and level with `origin`; latest migration `0029` (28 total);
+backend 45 suites / 579 tests; four append-only triggers; `READY_FOR_HANDOFF`,
+owner `NONE`.
+
+### The preflight found a lock-out
+
+CP3 moved active-branch resolution into CLS middleware, so the brief required
+proving the no-branch auth routes still worked. They did — but the check
+uncovered a different, pre-existing defect.
+
+`CostGatingInterceptor` resolved permissions for the active branch and let
+`AccessService`'s 403 escape. A restored session holding a branch the user had
+since been removed from therefore failed **every** request, including
+`GET /auth/branches` — the one screen needed to pick a different branch. The tab
+bar's only control was Retry, which could only 403 again. No way back.
+
+Cost gating decides what to *strip*, not who may call; guards run first and have
+already rejected anything genuinely branch-scoped. It now degrades to the
+strictest gating (no `cost.view`, strip everything) and deliberately does not
+cache that set. It also no longer parses `X-Branch-Id` itself — the middleware
+owns it, and two readers of one header is how they drift.
+
+`/auth/permissions` still answers **403**, which is the honest answer to a
+question about a branch the user cannot use. The client recovers instead: a 403
+drops the branch and routing sends the user to the picker. That decision is a
+pure `classifyPermissionFailure()` so it is testable without a store or network
+— a 500, a 404 or being offline still keep the branch rather than discarding one
+that is probably fine.
+
+**Preflight: 24 checks, 0 failures.** Two early "failures" were my own test being
+wrong, not the product: replaying an old refresh token correctly revoked the
+session (reuse detection), and `/auth/permissions` returning 403 is intended.
+Both were corrected rather than papered over.
+
+### Mobile pricing
+
+Contract audited from live responses before any UI was written — no guessed
+shapes. `types/api.ts` now carries `EffectivePrice`, `UnitEffectivePrice`, the
+three write bodies and the history page, with `PriceSource` documented as
+server-owned.
+
+The app renders the server's decision and never re-derives precedence. Sources
+are translated into shop language in EN and AR with an explanation each, shown as
+a labelled chip — words plus tone, never colour alone.
+
+Product Details gained a Selling price section visible to every role; cost moved
+to its own section, still "Hidden" rather than `0` when withheld. Edit controls
+require branch-scoped `price.edit`: a delegated Manager sees them only in the
+granted branch, an Employee sees none at all rather than disabled ones.
+
+Two separate serialized actions — the model's branch price, and one phone's price
+via `*#06#` and scanning the IMEI off the phone rather than the box, with manual
+entry always available. Quantity products edit `stock_items.price` through the
+`0029` version and never touch overrides.
+
+One shared `PriceEditor` for all three scopes. `parsePrice` is a separate
+dependency-free module with 11 Node tests, so blank, `NaN`, negative and
+over-precise values cannot reach the API — `DECIMAL(14,2)` would silently
+truncate the last of those. 409 explains what was tried versus what it now is and
+stops; below cost stays the server's call and an Owner's authorisation resends
+the same price and version. Invalidation is scoped to pricing, the product and
+the branch's inventory, not the whole app.
+
+### Verification
+
+Backend **45 suites / 582 tests** (CP4 added 3 cost-gating regression tests),
+TypeScript clean, migration status up to date at 28 migrations, **4 triggers**
+still present. Mobile TypeScript clean, `expo lint` clean, **expo-doctor 18/18**,
+`expo export --platform web` built **28 routes** including `/pricing/unit` and
+`/pricing/history`. Node pure suites 11 + 5 + 6 + 7.
+
+### What was NOT verified — stated plainly
+
+No mobile UI was driven by a human or a device: no tapping through screens, no
+camera scanning, no Arabic RTL rendering check, no per-role walk-through of the
+client-side gating, and no re-run of Sell, Receive, Inventory or Notifications
+through the app. Role behaviour and Sell's server-side resolution were proven at
+the API level in CP3 and CP4 changed no authorization code, so that evidence
+stands — but it is not the same as watching the app behave. A device pass is the
+first item in the next action.
+
+The **Notifications screen was not upgraded**; `price.changed` rows are created
+correctly by the backend but render through whatever the existing prototype
+provides. That milestone is recorded as still incomplete.
+
+### Cleanup
+
+The contract audit created 2 `price_change_events`, 2 `price.changed`
+notifications and 2 pricing `audit_logs` rows, plus one branch price which was
+removed through the API during the audit. The append-only rows were **removed by
+the migrator account** — permitted for a DBA and recorded here rather than left
+implicit. No temporary users, delegations or databases were created this session.
+Demo data afterwards: products 12 · units 11 (all in Main Store) · sales 7 ·
+`sum_total = 10051.00` · stock 4 · pricing tables empty · 4 triggers — identical
+to the CP3 baseline.
+
+**Commits:** backend `63cae31`; mobile `c2fc0a0` and `0d0d9a0`; docs the commit
+carrying this entry. All three trees clean and level with `origin`.
+`READY_FOR_HANDOFF`, owner `NONE`.
