@@ -266,6 +266,114 @@ Current state: `Unit` has `cost` but no `price`; selling price lives on `Product
 
 Recorded: an iPhone 13 Pro Max repriced 17,500 → 17,000 MRU must **not** move every iPhone 13 Pro Max unless exact-variant scope is chosen deliberately · every edit notifies the Owner with old price, new price, cost, employee, timestamp and scope · "Restore previous price" affects future unsold inventory, never completed sales · below-cost still requires Owner approval and a recorded reason (✅ already enforced server-side and surfaced in Sell).
 
+### ✅ RESOLVED — the pricing schema (G2A-CP2, migration `0027_pricing_foundation`)
+
+The schema above is no longer deferred. **Migration `0027` is applied.** It adds
+three tables and changes nothing that already existed.
+
+| Table | Holds | Identity rule |
+|---|---|---|
+| `branch_variant_prices` | the current price of one **exact variant** in one **branch** | `UNIQUE (product_id, branch_id)` |
+| `unit_price_overrides` | the current price of one **individual unit** | `UNIQUE (unit_id)` |
+| `price_change_events` | every price change, forever | append-only, no uniqueness |
+
+All money is `DECIMAL(14,2)`, all keys are `BINARY(16)` UUIDv7, matching the rest
+of the schema.
+
+**Effective price — first match wins:**
+
+1. `unit_price_overrides` for that unit, **if its `branch_id` is the branch selling it**
+2. `branch_variant_prices` for that exact variant in that branch
+3. `StockItem.price` — for quantity-tracked stock only
+4. `Product.defaultPrice`
+
+**Why `Product.defaultPrice` was not replaced.** It is the company-wide fallback,
+and step 4 is what makes an absent row meaningful. It is set once at catalog
+create and nothing else mutates it. Replacing it would have forced a value into
+every branch on day one.
+
+**Why the migration backfills nothing.** Copying `defaultPrice` into
+`branch_variant_prices` for every product × branch would invent prices nobody
+set, and would permanently destroy the fallback — once every branch has a row,
+step 4 can never be reached again, and changing the catalog price would silently
+stop reaching the shops. Verified on the restored pre-migration database: 12
+products, 11 units, and `bvp=0 upo=0 pce=0` afterwards.
+
+**Why `StockItem.price` stays authoritative for quantity stock.** Quantity stock
+has no unit to override, and its branch price is already there. Adding a second
+quantity-price source would create two answers to one question. It stays at
+step 3. *(See the open issue below — who may set it is not settled.)*
+
+**Why a unit override carries `branch_id`.** CP1 proposed keying the override on
+`unit_id` alone. That is wrong: a price set by a Manager in Branch A would follow
+the phone into Branch B and take effect there under authority nobody granted.
+`branch_id` records the **branch whose authority created the price**, not where
+the unit currently is. It is deliberately *not* a foreign key to the unit's
+current location — the two must be allowed to diverge, because that divergence is
+exactly the signal CP3 acts on.
+
+**Mandatory CP3 behaviour — transfer invalidation.** When a unit moves to a
+different branch, its override must **stop applying** (resolution step 1 fails
+its branch test) and a `price_change_events` row must record the invalidation
+with `initiator = 'system'`. The receiving branch prices from step 2 or below
+until someone with `price.edit` **in that branch** sets a new one. The schema
+makes this enforceable; CP3 must implement it. **Until CP3 ships, no code reads
+these tables at all**, so there is no half-enforced state.
+
+**Concurrency.** Both current-price tables carry `version INT DEFAULT 0`.
+Updates are compare-and-swap on `(id, version)`; a stale write affects 0 rows and
+returns **409**, the same pattern as the catalog. Two managers repricing the same
+phone cannot silently overwrite each other. `price_change_events` needs no
+version — it is never updated.
+
+**Append-only, enforced by the database.** `price_change_events` has
+`BEFORE UPDATE` and `BEFORE DELETE` triggers that `SIGNAL SQLSTATE '45000'` when
+`USER()` is the application account — the same mechanism as `audit_logs`, and for
+the same reason: service convention does not survive a mistake, a script, or a
+future refactor. A DBA account can still archive by date range. Unlike
+`audit_logs`, these triggers live **inside the migration**, so a fresh deployment
+gets them automatically instead of depending on someone running an init script.
+Proven against real MySQL as `phonestore_app`: read ✅ insert ✅ update **blocked**
+✅ delete **blocked** ✅ negative price rejected by CHECK ✅ history intact ✅ (7/7).
+
+Nullable `previous_price` / `new_price` let *created*, *changed* and *removed*
+share one append-only shape — a removed override is recorded, never erased.
+
+**Backup and deployment.** Pre-migration backup
+`phonestore-20260807-051508.sql` (`--hex-blob`, `--single-transaction`, routines,
+triggers, events, no tablespaces; 52 tables, 2 triggers). The DEFINER-safe
+restore path in [`22`](22_BACKUP_AND_ROLLBACK.md) was **proven before** applying:
+restored copy matched live table-for-table and `units` HEX(id) checksums were
+identical. `0027` then deployed cleanly on a clean database, on the restored
+pre-migration database, on dev, and on rerun; all temporary databases dropped.
+
+### 🔴 OPEN — who may establish `StockItem.price` (belongs to G2B)
+
+**Not settled, and not silently approved.** Today, `upsertStock` writes `price`
+on the **first receive of a quantity product into a branch** — and receiving is
+open to a **Store Employee**. So an Employee performing an ordinary intake can
+establish the branch selling price for that product, without holding
+`price.edit`. Subsequent receives do not overwrite it, so this happens exactly
+once per product per branch and is easy to miss.
+
+This is current behaviour, discovered during the CP1 audit. It is **not** an
+approved pricing rule, and CP2 deliberately did not change it — changing intake
+behaviour is outside the schema phase and would have shipped an unreviewed
+workflow change alongside a migration.
+
+Three candidate resolutions, for the user to decide in **G2B**:
+
+1. Receive never sets price; the branch price comes from the pricing tables or
+   the fallback chain. Cleanest, but a first receive with no price anywhere means
+   the product sells at `defaultPrice`.
+2. Receive may set price only if the actor holds `price.edit` **in that branch**;
+   otherwise the field is ignored and the fallback applies.
+3. Receive may propose a price that stays pending until someone with `price.edit`
+   confirms it — consistent with the deferred employee-proposal subphase.
+
+Until this is decided, treat the Employee write as **known, tolerated, and
+unapproved** — not as the pricing model's intended behaviour.
+
 ---
 
 ## 7. Goals · 8. Money & reconciliation · 9. Returns
@@ -430,8 +538,10 @@ not touched here; it belongs with discount monitoring.
 ### Step 4 — Users API
 Employee onboarding, seat allocation, and the approvals model that Goals, Returns and Consignment all depend on.
 
-### Step 5 — `Unit.price` override
-Nullable column + scope/actor/timestamp audit trail. Unblocks §6 pricing completely.
+### Step 5 — `Unit.price` override ✅ DONE (0027), as three tables not a column
+Delivered by `0027_pricing_foundation` (§6). A nullable column on `Unit` was
+rejected: it cannot record the branch authority that set the price, and a column
+cannot be made append-only. Schema only — resolution, APIs and UI are CP3.
 
 ### Step 6 — Inventory pagination
 Cursor or `hasMore`/`total`. Required before any store approaches 200 rows (§3).

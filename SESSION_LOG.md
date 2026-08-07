@@ -1055,3 +1055,88 @@ Headline findings:
 - `docs/23` — new: F0 audit + F1 plan.
 - `CURRENT_HANDOFF.md`, `SESSION_LOG.md` — new; neither existed, and `CLAUDE.md`
   defines no handoff protocol.
+
+---
+
+## 2026-08-07 — CLAUDE-A — **Phase G2A-CP2: pricing schema and migration `0027`**
+
+**Scope: schema only.** No API, no resolution service, no notifications, no
+mobile UI, no CP3. Nothing reads the new tables yet, so there is no
+half-enforced state.
+
+**Backup first.** `~/erp-backups/phonestore-20260807-051508.sql` — `--hex-blob`,
+`--single-transaction`, routines/triggers/events, no tablespaces; credentials
+never printed or placed on a command line. Verified: 207 450 bytes, 0 raw
+`_binary` literals against 1 622 hex literals, valid UTF-8, 52 tables, 2
+triggers. The documented DEFINER-safe restore path was **proven before** the
+migration was applied: restored into `prisma_g2a_pre` as 52/52 tables and 2/2
+triggers, with the `units` `HEX(id)` MD5 `2a1dc9bf284afde32b402ad108d38a76`
+byte-identical to live.
+
+**Migration `0027_pricing_foundation`** (additive, after `0026`; no earlier
+migration modified, squashed or regenerated). Three tables:
+`branch_variant_prices` `UNIQUE (product_id, branch_id)` ·
+`unit_price_overrides` `UNIQUE (unit_id)` **plus `branch_id`** ·
+`price_change_events` append-only. `DECIMAL(14,2)` money, `BINARY(16)` UUIDv7
+keys, `version INT DEFAULT 0` for compare-and-swap.
+
+**The design correction.** CP1 proposed keying the unit override on `unit_id`
+alone. That would let a price set by a Manager in Branch A follow the phone into
+Branch B and take effect there under authority nobody granted. `branch_id` now
+records the branch whose authority created the price — deliberately not an FK to
+the unit's current location, because CP3 acts on exactly that divergence.
+
+**What it does not do:** does not replace or mutate `Product.defaultPrice` ·
+does not copy `defaultPrice` into any branch (an absent row must keep meaning
+"fall back"; backfilling would invent prices nobody set and destroy the fallback
+permanently) · adds no parallel quantity-price source, `StockItem.price` stays
+authoritative · touches no existing table.
+
+**Append-only is enforced by the database, not by service convention.**
+`BEFORE UPDATE` and `BEFORE DELETE` triggers `SIGNAL SQLSTATE '45000'` when
+`USER()` is the application account — the `audit_logs` pattern, except these
+live inside the migration, so a fresh deployment gets them automatically instead
+of depending on someone running an init script. Confirmed the migrator holds
+`ALL PRIVILEGES`, so this is deployment-safe. Four CHECK constraints reject
+negative money.
+
+**Deployment proofs, all four passed.** Clean database: 55 tables, 3 pricing
+tables, 2 pricing triggers, 4 CHECKs, 13 FKs, 26 migrations. Restored
+pre-migration database: `0027` applied alone with the **seed never running**, 12
+products / 11 units / 7 sales / 14 sale_items / 4 stock preserved, `bvp=0 upo=0
+pce=0` proving no backfill, and `sum_total=10051.00` / `sum_item_price=9615.00`
+identical to live. Dev database: applied, status up to date. Rerun: idempotent.
+Append-only exercised as `phonestore_app` — **7/7**: read, insert, UPDATE
+blocked, DELETE blocked, negative price rejected, history intact. Both temporary
+databases **dropped**, probe rows removed, sanitized copy deleted.
+
+**Tests.** Added `src/pricing/pricing-migration.spec.ts` — 20 tests asserting the
+migration's contract (uniqueness, the override's `branch_id`, the FK to `units`,
+CHECKs, both triggers, and that it never touches `products.default_price`,
+`stock_items` or `sale_items`, never `INSERT`s and never `DROP`s). Deliberately
+**not** Prisma-mock tests for database constraints — those were exercised against
+real MySQL above, because a mocked constraint only tests the mock.
+
+**Verification: backend 43 suites / 515 tests passing** (up from 42/495) · TS
+clean · `prisma validate` valid · `prisma generate` regenerated (the
+`EPERM query_engine-windows.dll` rename is the known WAMP lock from another
+running dev server; the client was written and both tsc and the suite compile
+against it) · migration status up to date, 26 migrations · mobile TS clean and
+`expo lint` clean, confirming shared/generated types are unbroken.
+
+**Recorded as unresolved, not approved:** the first quantity-stock receive lets a
+**Store Employee** establish `StockItem.price` without holding `price.edit`.
+Discovered in the CP1 audit, deliberately unchanged here — changing intake
+behaviour is outside a schema phase. Three candidate resolutions are written into
+`docs/21` §6 for the user to decide in **G2B**.
+
+**Commits:** backend `167bbcf`; docs `b3409ac` (ownership correction + verified
+backup) and the commit carrying this entry. Mobile unchanged (`65edca8`). All
+three trees clean and level with `origin`. Status set to `READY_FOR_HANDOFF`,
+owner `NONE`.
+
+**Debugging note worth keeping.** Several migration-generation failures traced to
+a single cause: piping `prisma migrate diff --script` through `tee … | head`
+gives `tee` a SIGPIPE and silently truncates the file mid-statement, producing a
+confusing "check query number N" error that looks like a SQL syntax problem.
+Redirect to the file directly.
