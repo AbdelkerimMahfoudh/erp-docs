@@ -2,16 +2,29 @@
 
 ## Session control
 
-- Status: READY_FOR_HANDOFF
-- Active account: NONE
-- Owner: NONE (last worked by CLAUDE-B)
-- Session started / started_at_utc: 2026-08-07 05:05 UTC (CLAUDE-B, G2A-CP1)
-- Last updated: 2026-08-07 05:20 UTC
-- **Account label:** the user has since confirmed this account is **CLAUDE-B**
-  and that labels were sometimes mixed in briefs. The earlier "all sessions were
-  CLAUDE-A" correction block below is left in place at the user's explicit
-  request; treat the account label in historical entries as **unreliable**, not
-  as evidence. Current and future work is CLAUDE-B.
+- Status: IN_PROGRESS
+- Active account: CLAUDE-A
+- Owner: CLAUDE-A
+- Session started / started_at_utc: 2026-08-07 05:14 UTC (CLAUDE-A, G2A-CP2)
+- Last updated: 2026-08-07 05:14 UTC
+- **Account label — current truth: this account is `CLAUDE-A`.** The G2A-CP1
+  entry recorded itself as `CLAUDE-B`; **only the ownership label was wrong.**
+  The pricing audit and decision record in that entry are unaffected and remain
+  valid. Per the standing instruction, this account stays `CLAUDE-A` until the
+  user explicitly switches it. Nothing was rewritten — the correction is
+  appended in `SESSION_LOG.md`, and no commit was amended.
+
+### G2A-CP2 backup (taken BEFORE the pricing migration)
+
+- **Path:** `~/erp-backups/phonestore-20260807-051508.sql`
+- **Verified:** 207 450 bytes · trailer `-- Dump completed on 2026-08-07 5:15:09`
+  · **0 raw `_binary` literals** / 1622 hex literals · **valid UTF-8 round trip**
+  · 52 `CREATE TABLE` · 2 triggers · `products` and `sales` INSERTs present.
+- **Restore proven before migrating**, through the documented DEFINER-safe path
+  (`scripts/sanitize-dump.js` → restore as the migrator) into
+  `prisma_g2a_pre`: **52/52 tables, 2/2 triggers**, products 12 · units 11 ·
+  sales 7 · sale_items 14 · 26 migration rows, and the `units` `HEX(id)`
+  checksum is **byte-identical to live** (`2a1dc9bf…`).
 
 ## Phase G2A — Pricing Foundation: CP1 complete (audit + decision), CP2–CP6 open
 

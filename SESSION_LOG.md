@@ -15,6 +15,33 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-07 05:14 UTC — CLAUDE-A — **CORRECTION: ownership label on the G2A-CP1 entry**
+
+Appended as a **CORRECTION**, per this file's append-only rule. The entry below
+is left exactly as written.
+
+**What was wrong:** the G2A-CP1 entry immediately below records its owner as
+`CLAUDE-B`. **Only the ownership label was wrong.** The standing instruction is
+that this account remains **`CLAUDE-A`** until the user explicitly switches it.
+
+**What is NOT wrong:** everything else in that entry. The G2A.0 pricing-truth
+audit — the price-field map, the finding that nothing mutates
+`Product.defaultPrice`, that `upsertStock` sets `StockItem.price` only on
+create, that margin is computed server-side, that a price edit cannot alter
+historical sales, and the CP2 design decision — **remains valid and is the basis
+for this checkpoint.** No re-audit was needed.
+
+**One design correction carried into CP2** (a genuine improvement, not a label
+issue): CP1 proposed `UnitPriceOverride` keyed on `unitId` alone. That would let
+an override follow a phone into another branch. CP2 adds `branchId` as the
+**created-authority** so an override can be effective only while the unit is
+still in that branch. See the CP2 entry.
+
+**What was done about it:** nothing rewritten, no commit amended. Ownership is
+`CLAUDE-A` going forward.
+
+---
+
 ## 2026-08-07 05:05–05:25 UTC — CLAUDE-B (Phase G2A-CP1 — pricing truth audit + decision record)
 
 - **Account label:** the user confirmed this account is **CLAUDE-B** and that
