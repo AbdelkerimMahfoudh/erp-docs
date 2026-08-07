@@ -2,12 +2,12 @@
 
 ## Session control
 
-- Status: IN_PROGRESS
-- Active account: CLAUDE-A
-- Owner: CLAUDE-A
+- Status: READY_FOR_HANDOFF
+- Active account: NONE
+- Owner: NONE (last worked by CLAUDE-A)
 - Session started / started_at_utc: 2026-08-06 21:45 UTC (CLAUDE-A, G1 mobile
   completion)
-- Last updated: 2026-08-06 21:45 UTC
+- Last updated: 2026-08-06 22:30 UTC
 
 > ### ⚠️ Account-label correction (2026-08-06, CLAUDE-A)
 >
@@ -20,15 +20,21 @@
 > is appended there rather than edited into the old entries. Code commits are
 > untouched, because a label error is not a reason to rewrite correct history.
 > Read any `CLAUDE-B` attribution in entries dated 2026-08-05/06 as **CLAUDE-A**.
-- Current authorised task: **none.** G1 backend is complete, live-validated and
-  green; the Catalog **list** and **detail** screens are done. The **manual
-  create/edit form (+ scanner) and the category-management screen are NOT
-  started** — that is the exact next checkpoint. Nothing is half-applied.
-- **G1 status:** backend contract + permission + tests **done** and now
-  **live-validated against real MySQL** (backend `fb1ad67`); mobile catalog
-  **list + detail + full EN/AR i18n** done (mobile `c36eeaf`).
-  **Pending:** shared create/edit form, scanner integration in that form,
-  category-management screen.
+- Current authorised task: **none — Phase G1 is COMPLETE.** Catalog list, product
+  detail, the shared create/edit form with scanner, and category management are
+  all shipped, verified and pushed.
+- **G1 status: complete** (backend `b3cfcbc`, mobile `65edca8`).
+  - Backend: `catalog.manage` (`0026`), paginated/filtered `GET /products`,
+    `GET /products/:id` (now with `canChangeTracking`), metadata `PATCH`,
+    archive/restore, the real-MySQL JSON specification-search fix, and the
+    legacy `GET /products/all` **removed** (zero consumers, re-verified).
+  - Mobile: catalog list, product detail, **one shared `ProductForm`** used by
+    both create and edit, scanner integration, category management, and a full
+    EN/AR catalogue.
+- **Two dead/misleading actions were found and fixed:** the detail screen's Edit
+  button pointed at `/catalog/edit`, a route that **did not exist**; and "View in
+  Inventory" filtered by product *name*, which two variants can share — it now
+  uses the exact `productId` filter `InventoryQueryDto` already supported.
 - **Defect found and fixed this session:** catalog **specification search
   returned nothing on real MySQL**. Prisma's `string_contains` on a JSON column
   needs an explicit `path`, which category-defined specs cannot supply, so the
@@ -156,8 +162,8 @@ All clean, all `master`, all pushed and level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `fb1ad67` | `fb1ad67` | clean |
-| Mobile (`erp-mobile`) | master | `c36eeaf` | `c36eeaf` | clean |
+| Backend (`erp-backend`) | master | `b3cfcbc` | `b3cfcbc` | clean |
+| Mobile (`erp-mobile`) | master | `65edca8` | `65edca8` | clean |
 | Documentation (`erp-docs`) | master | *current HEAD contains this handoff* | same | clean |
 
 Stage 3.2 commit trail — mobile `da34e1f` (CP1: remove fail-closed bypass +
@@ -194,7 +200,7 @@ Measured by CLAUDE-A on 2026-08-06 after Stage 4A.
 - **Device-only check still outstanding:** an actual paste on a physical
   Android/iOS device or Expo Go. The web export proves the module resolves and
   the screen renders; it does not prove the native clipboard write.
-- Backend tests: **42 suites / 494 tests passing** (G1: +37 catalog + 3 matrix). Previously 41/454 — Stage 4A added
+- Backend tests: **42 suites / 495 tests passing** (G1 total: +38 catalog + 3 matrix over the 41/454 Stage 4A baseline). Mobile: TS clean, Expo lint clean, **Expo Doctor 18/18**, `expo export --platform web` builds all five catalog routes (`/catalog`, `/new`, `/[id]`, `/edit`, `/categories`), both Node pure suites green (6 + 7). Migration status up to date (25 migrations, latest `0026`). — Stage 4A added
   `messaging.spec.ts` (19), `otp-code.util.spec.ts` (18) and
   `otp.service.spec.ts` (27)
 - Backend TypeScript: clean · Mobile TypeScript: clean · Expo lint: clean
@@ -431,33 +437,28 @@ No credentials appear in this file. Database and app credentials live in
 
 **None authorised. Wait for an explicit user instruction.**
 
-**The exact next checkpoint is the G1 manual create/edit form and the category
-screen.** Everything they depend on is live, tested and pushed:
+**Phase G1 is complete.** Every G1 surface is shipped and verified:
 
-1. ~~Product detail screen~~ — **DONE** (`app/catalog/[id].tsx`, mobile `960e3c1`).
-2. **Manual create/edit form** — progressive sections (identity → category →
-   tracking → barcode → specifications → review), `SelectSheet` for category,
-   dirty-state protection, per-field validation, scanner shortcut for the
-   barcode that calls the existing authoritative scan path and shows the
-   existing product instead of duplicating it. `PATCH /v1/products/:id` exists;
-   there is deliberately **no price field** on it.
-3. **Category management** — reuse `GET/POST/PATCH /v1/categories` (now
-   `catalog.manage`, so Store Managers can finally use them). No merging.
-4. **EN/AR strings + RTL** for all of the above, and a Catalog entry in the More
-   menu gated on nothing (browsing) with create/edit gated on `catalog.manage`.
-5. Then: mobile TypeScript, Expo lint, Expo Doctor, web export, and a live pass
-   over Sell / Receive / Inventory to confirm no regression.
+1. ~~Product detail~~ — **DONE** (`app/catalog/[id].tsx`).
+2. ~~Shared create/edit form + scanner~~ — **DONE** (`components/catalog/ProductForm.tsx`,
+   `app/catalog/new.tsx`, `app/catalog/edit.tsx`).
+3. ~~Category management~~ — **DONE** (`app/catalog/categories.tsx`).
+4. ~~EN/AR strings + Catalog navigation~~ — **DONE**.
+5. ~~Verification~~ — **DONE** (see the verified baseline above).
 
-**Legacy `GET /v1/products/all` — consumer audit (2026-08-06): ZERO consumers.**
-No mobile caller (`grep` over `app/`, `components/`, `lib/`, `hooks/`), and the
-only backend reference is its own controller route. It is **safe to delete in
-the next pass**; it was kept this session only because the brief said not to
-remove it yet. `GET /v1/products/search` still has no mobile caller either but
-remains part of the public contract.
+**Legacy `GET /v1/products/all`: REMOVED** (backend `b3cfcbc`). A repository-wide
+re-check found zero code consumers — the only mentions left were these audit
+notes. `GET /v1/products/search` and `/products/suggest` are **kept**: Sell and
+Receive still depend on them.
 
-`app/catalog/new.tsx` still posts the old create shape. It works and the
-endpoint is `catalog.manage`-guarded, but it should be replaced by the shared
-create/edit form rather than extended.
+**The next milestone is the Pricing phase**, which G1 deliberately did not touch:
+`Unit` still has a per-unit `cost` but **no per-unit price**, so an exact
+serialized selling price cannot be expressed. That is a schema change and needs
+its own backup, migration and decision on where per-variant/per-branch price
+lives. `catalog.manage` must continue never to imply `price.edit`.
+
+Still outstanding and **device-only** (cannot be checked in a browser): camera
+scanning, haptics, Arabic visual RTL, bottom sheets, clipboard paste.
 
 When work is authorised again, the receiving account must, in order:
 

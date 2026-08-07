@@ -15,6 +15,77 @@ Do not paste large diffs, complete logs, secret values or customer data here.
 
 ---
 
+## 2026-08-06 21:45–22:35 UTC — CLAUDE-A (Phase G1 COMPLETE — shared form, scanner, categories)
+
+- **Starting state:** matched the brief exactly — backend `fb1ad67`, mobile
+  `c36eeaf`, docs `a2d358d`, migration `0026`, **42 suites / 494 tests**, three
+  trees clean and level with origin, `READY_FOR_HANDOFF`/NONE.
+- **Authorised task:** finish G1 (shared create/edit form, scanner, categories)
+  and correct the account label. Pricing, `Unit.price`, auth/WhatsApp untouched.
+- **Account label:** corrected to **CLAUDE-A** (see the correction entry below;
+  appended, never edited into the old entries, and no code commit rewritten).
+- **Two dead/misleading actions found in the audit and fixed:**
+  1. The product-detail **Edit** button pointed at `/catalog/edit` — **a route
+     that did not exist**. It now reaches a real screen.
+  2. **"View in Inventory"** filtered by product *name*, which two variants of
+     the same model can share. `InventoryQueryDto` already accepted `productId`,
+     so the action now passes the exact id; the inventory screen reads the param
+     and its query key carries it, preserving pagination, branch scoping and
+     unit/stock discrimination. Live-verified: 2 of 15 rows, correct product.
+- **Backend (`b3cfcbc`):** added `canChangeTracking` to the detail response so
+  the edit form can disable the control with an explanation instead of letting a
+  save collect a 409 (the server still enforces the rule). Removed the legacy
+  `GET /products/all` after a repository-wide re-check found **zero code
+  consumers** — the only mentions left were audit notes in the handoff files.
+  `/products/search` and `/products/suggest` were **kept**: Sell and Receive
+  depend on them. +1 test.
+- **Shared `ProductForm` (mobile `00c4ce2`):** one component used by both Create
+  and Edit, so validation and field logic cannot drift. Fields mirror the backend
+  DTOs exactly — no cost, no margin, no IMEI, no mandatory defect. Price appears
+  only on create and only for a holder of `price.edit`; the metadata PATCH has no
+  price field at all. Inactive categories cannot be chosen but one already
+  attached to a product is kept and labelled. Dirty-state protection on back,
+  header and hardware gestures; Save disabled until something really changed.
+- **Create's no-idempotency-key problem, handled honestly:** the unique
+  `(company, brand, model, variant)` and `(company, barcode)` constraints mean a
+  timed-out retry returns 409 rather than duplicating. The screen resolves the
+  existing product, explains it may already have been created, and offers to open
+  it — never a blind repeat request. No generic outbox was added.
+- **Scanner:** IMEIs are refused as product barcodes with an explanation; a known
+  barcode opens the existing product instead of permitting a duplicate; on edit,
+  the product's own barcode is harmless while another product's is a conflict,
+  and recognition evidence is never moved silently. Manual entry always works —
+  the form never requires camera access.
+- **Categories (mobile `65edca8`):** Catalog → Categories on the existing API.
+  List with an inactive toggle, create, rename, change default counting,
+  deactivate, reactivate; status in colour AND words; duplicate names turn one
+  field red. **No delete** — deactivating only hides a category for new products
+  while existing products, stock and history keep it. No merging.
+- **Verification:** backend **42 suites / 495 tests**; backend TS clean; mobile TS
+  clean; Expo lint clean; **Expo Doctor 18/18**; `expo export --platform web`
+  builds all five catalog routes; both Node pure suites green (6 + 7);
+  `migrate status` up to date. **Live (7/7):** `canChangeTracking` honest in both
+  directions, `inventory?productId` narrows to the exact product and keeps
+  unit/stock discrimination, `/products/all` now 404, `/products/search` still
+  200. Demo untouched: 12 products, 0 archived, 11 units, 7 sales, 3 categories,
+  0 leftover devices, audit unchanged at 112.
+- **Files:** backend `catalog.service.ts`, `catalog.controller.ts`,
+  `catalog.service.spec.ts`. Mobile `components/catalog/ProductForm.tsx` (new),
+  `app/catalog/{new,edit,categories,index,[id]}.tsx`, `app/(tabs)/inventory.tsx`,
+  `lib/query-keys.ts`, `lib/i18n/{en,ar}.ts`, `types/api.ts`.
+- **Commits:** docs `9d78f9b`; backend `b3cfcbc`; mobile `00c4ce2`, `65edca8`;
+  docs (this entry). All pushed.
+- **Device-only, still outstanding:** camera scanning, haptics, Arabic visual
+  RTL, bottom sheets, clipboard paste.
+- **Next milestone:** the **Pricing phase**. `Unit` still has a per-unit `cost`
+  but **no per-unit price**, so an exact serialized selling price cannot be
+  expressed. That is a schema change needing its own backup, migration and a
+  decision on where per-variant/per-branch price lives. `catalog.manage` must
+  continue never to imply `price.edit`.
+- **Handoff reason:** G1 complete, green and pushed.
+
+---
+
 ## 2026-08-06 21:45 UTC — CLAUDE-A — **CORRECTION: account label on earlier entries**
 
 Recorded as a **CORRECTION**, per this file's rule that entries are append-only
