@@ -1499,3 +1499,127 @@ tables empty · 4 triggers — identical to the CP4 baseline.
 **Commits:** backend `88e25bd`, `7adf598`; mobile `7049ea4`, `55f52b0`; docs the
 commit carrying this entry. All three trees clean and level with `origin`.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-07 — CLAUDE-B — **Phase H0: transfers truth and workflow audit (read-only)**
+
+**No application code, schema, permission or transfer behaviour was changed.**
+Documentation only, plus one rulebook addition. Ends blocked on the user's
+workflow decisions, by design.
+
+### Takeover
+
+Matched the brief exactly: backend `7adf598`, mobile `55f52b0`, docs `c321550`,
+migration `0029` (28), 46 suites / 597 tests, four triggers, clean and level,
+`READY_FOR_HANDOFF` / `NONE`.
+
+### Session-token incident — re-verified closed
+
+The file is absent from every working tree and every current HEAD and is not
+staged. `owner` sessions: 84 total, **0 live**. The tokens committed in `7049ea4`
+were re-tested against the running API — **access 401, refresh 401, both dead**.
+A value-free scan (searching history for the actual secret values without
+printing them) found **no** JWT secret, seed password, or migrator/app database
+password in any commit of any repository; the only `.sql` files ever added are
+Prisma migrations. History was not rewritten, and the JWT secret was not rotated
+— revoked session-bound tokens do not warrant it.
+
+The requirement had been recorded only in narrative, which gets replaced. It is
+now in `CLAUDE.md` as a rule: scratch and tooling files must live in an OS
+temporary directory outside every repository, and a leaked credential is fixed by
+invalidating it, never by force-pushing.
+
+### Transfers as they actually are
+
+Serialized units moving between branches of one company. `ready_to_ship →
+in_transit → received | cancelled`. `draft`, `pending_approval` and `rejected`
+appear in the enum as "future (design-only)" and were never built, so **there is
+no approval step at all**.
+
+**One permission guards the whole feature.** All five mutating routes use
+`unit.transfer`, and all three roles hold it — Store Employee included. Proven
+twice: from the role matrix in the database, and live by aiming each mutating
+endpoint at a non-existent transfer id so the guard's 403-vs-404 answer was
+unambiguous and nothing moved. An employee can create, ship, receive, confirm and
+cancel. Branch assignment is the only real control, and it is enforced correctly
+— ship and cancel require the source branch, receive requires the destination —
+so an employee assigned to **both** branches can run a transfer end to end alone.
+
+Reads (`GET /transfers`, `GET /transfers/:id`) carry no permission at all; they
+are tenant-scoped, so no cross-company leak, but any signed-in user can browse
+them.
+
+### Three defects found by probing, not by reading
+
+1. **Creating a transfer reserves nothing.** The unit stays `in_stock` and fully
+   sellable — confirmed live, a unit inside an open transfer resolved with
+   `status=in_stock, canPrice=true`. A promised phone can be sold underneath the
+   transfer; the clash only appears later at `ship`.
+2. **Two open transfers can claim the same unit** — the second create returned
+   **201**. Nothing is reserved, so nothing objects.
+3. **No idempotency anywhere.** A retried `POST /transfers` creates a second
+   transfer. Sales solved this with a client `clientUuid` plus a company-scoped
+   unique key; transfers has no equivalent. Duplicate identifiers inside one
+   request are silently deduplicated and accepted rather than reported.
+
+One probe (duplicate identifiers) returned 201 and created a real transfer, and a
+second was created deliberately to test double-claiming. Both were removed along
+with their items and audit rows; the invoice sequence was **not** rewound, per the
+brief.
+
+### Quantity stock
+
+**Cannot be transferred at all.** The DTO accepts only IMEI/serial identifiers,
+and no transfer path reads or writes `StockItem`. `TransferItem.productId` and
+`quantity` exist in the schema and are dead columns. Recorded as a product gap,
+so none of the quantity questions have an implementation to audit — they are
+design decisions for the user.
+
+### Verified intact
+
+The CP3 pricing invariant: request and ship do not touch the override; receipt
+invalidates it atomically with the branch move; the row is deleted so a returning
+phone cannot resurrect it; history records `initiator='system'`,
+`reason='branch_transfer'`. Cross-company destination fails closed with 404, same
+branch 400, sold/unknown/wrong-branch units 400, deactivated user 401.
+
+### Mobile
+
+**No transfer UI exists** — no screens, no `/transfers` calls, only an unused
+`qk.transfers` key plus transfer status labels and tones in EN/AR. Nothing to
+classify as prototype or dead route; it is simply absent. The backend does emit
+transfer notifications, which the CP4.5 Notifications screen now renders, and
+tapping one currently has nowhere to go.
+
+### Verification
+
+Backend **46 suites / 597 tests**, TypeScript clean, migration status up to date
+at 28 migrations. Transfers' own coverage is **6 tests in 2 files** — the
+state-machine table and the discrepancy helper; there is no service,
+authorization or lifecycle test. Mobile TypeScript clean, `expo lint` clean, Node
+pure suites 11 + 5 + 6 + 7.
+
+### Fixtures and cleanup
+
+Three temporary **accounts** (`h0emp`, `h0mgr`, `h0dead`) were created for the
+authorization probe — accounts only, no inventory or financial data — and
+removed with their assignments and sessions. The two probe transfers and their
+items and audit rows were removed. Demo data afterwards: products 12 · units 11 ·
+sales 7 · `sum_total = 10051.00` · sale_items 14 · stock 4 at 19/20/20/15 all v0
+· transfers 0 · pricing tables empty — identical to the CP4.5 baseline.
+
+### Deliverable and stop
+
+`docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md`: real lifecycle and transition table,
+permission matrix, atomicity and idempotency risks, serialized and quantity
+behaviour, pricing interaction, mobile state, security findings, three workflow
+options with Option A recommended, ten decisions needed, and a proposed H1 order
+starting with reservation and idempotency — the one piece needed whichever
+workflow is chosen.
+
+**Stopped, waiting on the user.** H1 not started. Consignment explicitly out of
+scope and must not reuse the transfer model.
+
+**Commits:** backend and mobile **unchanged**; docs the commit carrying this
+entry. `READY_FOR_HANDOFF`, owner `NONE`.

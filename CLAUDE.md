@@ -181,6 +181,18 @@ and the current failure.
 - Never force-push, rewrite shared history, or amend a commit the other account
   has already used.
 - Never commit environment files, database dumps, dependencies or secrets.
+- **Scratch and tooling files MUST live in an OS temporary directory, never
+  inside any repository working tree** — not in `public/`, not in a `tmp/`
+  folder, nowhere a `git add -A` can reach. This includes anything holding a
+  token, a session, a credential or a database extract, however short-lived.
+  *(G2A-CP4.5: a file of ephemeral session tokens was written to
+  `mobile/public/` so a browser could pick it up, and `git add -A` committed it.
+  The tokens were revoked and verified dead, but the only reliable defence is
+  that the file never exists inside a repository.)*
+- If a secret does reach a commit, **invalidate the credential first** — revoke
+  the session, rotate the key — and record it in `SESSION_LOG.md`. Do **not**
+  force-push to erase it: rewriting shared history is still forbidden, and a
+  revoked credential is already worthless.
 
 ### Database rules
 

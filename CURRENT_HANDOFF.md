@@ -8,9 +8,13 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-07 — **Phase G2A-CP4.5, Pricing UI
-  Completion and Verification** (complete). No G2B, no Transfers.
-- Previous sessions: **CLAUDE-B** — G2A-CP4; **CLAUDE-A** — G2A-CP2 and CP3
+- Last session: **CLAUDE-B**, 2026-08-07 — **Phase H0, Transfers Truth and
+  Workflow Audit** (complete). **Read-only:** no application code, schema,
+  permission or transfer behaviour changed. Documentation only.
+- **BLOCKED ON THE USER:** H1 cannot start until the transfer-workflow
+  decisions in [`docs/25`](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md) §8 are
+  answered — they change the schema.
+- Previous sessions: **CLAUDE-B** — G2A-CP4 and CP4.5; **CLAUDE-A** — CP2, CP3
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
@@ -31,10 +35,8 @@ All clean, all `master`, all level with `origin`.
 | Mobile (`erp-mobile`) | master | `55f52b0` | `55f52b0` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-CP4.5 commits — backend `88e25bd` (sellable-status guard) and `7adf598`
-(notification pagination) · mobile `7049ea4` (conflict + status UI) and
-`55f52b0` (notifications screen). CP4 was backend `63cae31`, mobile `c2fc0a0`
-and `0d0d9a0`.
+H0 changed **no code** — backend and mobile are untouched at the CP4.5 commits.
+CP4.5 was backend `88e25bd`, `7adf598` · mobile `7049ea4`, `55f52b0`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -45,10 +47,12 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (measured at the end of G2A-CP4.5)
+## Verified baseline (re-measured at the end of H0)
 
-- **Backend tests: 46 suites / 597 tests passing**, 0 failing (CP4 baseline
-  45/582; CP4.5 added 7 sellable-status tests and 8 notification tests).
+- **Backend tests: 46 suites / 597 tests passing**, 0 failing — unchanged by H0.
+  Of these, **transfers has only 6 tests in 2 files** (the state-machine table
+  and the discrepancy helper); there is no transfer service, authorization or
+  lifecycle test.
   *Correction: commit `88e25bd`'s message says "9 added / 591" — the real
   figures are 7 added and 589 at that point. History was not rewritten for a
   count error.*
@@ -433,18 +437,80 @@ shared history, and invalidating the credential is the fix that actually matters
 No password, `.env` value or database dump was ever committed. The lesson: work
 files belong in the scratchpad, never inside a repository working tree.
 
-## Next exact action
+## Phase H0 ✅ — Transfers truth and workflow audit (read-only)
 
-1. **Device pass** using [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) — camera,
-   haptics, keyboard, and Arabic RTL layout are the real gaps.
-2. **G2B — employee price proposals**, including the open `StockItem.price`
-   question above, which still needs a user decision before any code.
-3. **Transfers** is the next planned visible-store milestone. **Not started, and
-   not to be started automatically.**
+Full findings: [`docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md`](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md).
 
-**Deferred — do not start without the user:** Excel import · suppliers ·
-returns · loans · consignment · goals · expenses · subscriptions · WhatsApp ·
-authentication work · technician functionality.
+**Transfers today = serialized units moving between branches of one company.**
+Lifecycle is `ready_to_ship → in_transit → received | cancelled`. There is no
+draft, no approval and no rejection — the enum names them as "future
+(design-only)" and they were never built.
+
+### The four findings that matter
+
+1. **One permission guards everything.** All five mutating routes use
+   `unit.transfer`, and **all three roles hold it, Store Employee included** —
+   confirmed from the role matrix and live against the API. A Store Employee can
+   create, ship, receive, confirm and cancel. Branch assignment is the only real
+   constraint, and it is enforced correctly (ship/cancel need the source branch,
+   receive needs the destination) — so an employee assigned to **both** branches
+   can run a whole transfer alone.
+2. **Creating a transfer reserves nothing.** The unit stays `in_stock` and fully
+   sellable — verified live (`status=in_stock, canPrice=true` for a unit sitting
+   in an open transfer). It can be sold out from under a promised transfer; the
+   clash only surfaces later at `ship`.
+3. **Two open transfers can claim the same unit** — verified live, the second
+   create returned **201**. And there is **no idempotency anywhere**: a retried
+   `POST /transfers` makes a second transfer.
+4. **Quantity stock cannot be transferred at all.** The DTO takes only IMEI/serial
+   identifiers. `TransferItem.productId` and `quantity` exist in the schema and
+   are dead. This is a product gap, not a bug.
+
+**Mobile has no transfer UI whatsoever** — no screens, no calls to `/transfers`,
+only an unused query key plus status labels and tones. The backend emits transfer
+notifications the Owner can now see (CP4.5), and tapping one has nowhere to go.
+
+### Verified intact
+
+The CP3 pricing invariant holds: request and ship do **not** touch the override;
+receipt invalidates it atomically with the branch move; the row is deleted so a
+returning phone cannot resurrect it; history records `initiator='system'`,
+`reason='branch_transfer'`. Cross-company destination fails closed (404), same
+branch 400, sold/unknown/wrong-branch units 400, deactivated user 401.
+
+### Session-token incident — re-verified closed
+
+The file is absent from every working tree and every current HEAD, and is not
+staged. All `owner` sessions show **84 total, 0 live**. The committed tokens were
+re-tested against the running API: **access 401, refresh 401 — both dead.** A
+value-free history scan found **no** JWT secret, seed password or database
+credential in any commit of any repository. History was not rewritten, per
+protocol. `CLAUDE.md` now **requires** scratch and tooling files to live in an OS
+temporary directory outside every repository, and requires invalidating a leaked
+credential rather than force-pushing.
+
+## Next exact action — **waiting on the user**
+
+**H0 ends here by design.** Answer §8 of
+[`docs/25`](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md) — especially:
+
+1. Who may create, approve, ship, receive and cancel? *(Option A recommended:
+   Employee requests, Manager/Owner approves, destination receives.)*
+2. What happens when a branch has no Manager present?
+3. **Should quantity accessories be transferable?** — the biggest scope question.
+4. When does stock stop being sellable: request, approval or shipment?
+
+Proposed H1 order once decided: **H1.1 reservation + idempotency** (independent
+of the workflow choice, and the prerequisite for everything else) → H1.2
+permission split → H1.3 lifecycle states → H1.4 quantity transfers → H1.5
+notifications/audit → H1.6 mobile UI → H1.7 tests.
+
+**Do not start H1 automatically.** Inter-store consignment stays out of scope and
+must not reuse the transfer model.
+
+**Deferred — do not start without the user:** G2B employee price proposals ·
+Excel import · suppliers · returns · loans · consignment · goals · expenses ·
+subscriptions · WhatsApp · authentication · technician functionality.
 
 ## Completed milestones
 
@@ -473,6 +539,8 @@ authentication work · technician functionality.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
+- **Phase H0 — Transfers audit: complete (read-only).** Findings and workflow
+  options in `docs/25`; blocked on the user's decisions.
 - **Phase G2A — Pricing Foundation: CP1–CP4.5 complete.** Mobile pricing UI
   landed in CP4 and was verified by driving the app in CP4.5; in-app
   notifications now exist. Device pass still outstanding.
@@ -510,6 +578,13 @@ authentication work · technician functionality.
 - **A screen with no entry point is a dead route.** Notifications had a query key
   and no way in; the pricing screens were only ever reached by typed URLs until
   CP4.5 exercised the real buttons.
+- **A single permission guarding a whole workflow is a workflow with no
+  controls.** `unit.transfer` gates request, ship, receive and cancel alike, so
+  the feature has no second pair of eyes anywhere — separation of duties has to
+  be designed in, it does not emerge.
+- **Nothing is reserved until something says it is.** Transfers promise stock
+  without holding it, so the same phone can be sold, or promised twice, and the
+  conflict only appears later at shipment.
 - **A Git rollback does not roll back the database.** Restoring the dump is a
   separate, deliberate step.
 - **`prisma migrate deploy` never runs the seed**, so anything reference-like
