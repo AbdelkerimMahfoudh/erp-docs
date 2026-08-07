@@ -1373,3 +1373,129 @@ to the CP3 baseline.
 **Commits:** backend `63cae31`; mobile `c2fc0a0` and `0d0d9a0`; docs the commit
 carrying this entry. All three trees clean and level with `origin`.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-07 — CLAUDE-B — **Phase G2A-CP4.5: pricing UI completion and verification**
+
+**Scope: verify CP4 by running it, finish the Notifications minimum, write a
+device checklist.** No G2B, no Transfers. No migration was needed or taken.
+
+### Takeover
+
+Matched the brief exactly: backend `63cae31`, mobile `0d0d9a0`, docs `d13de04`,
+migration `0029` (28), backend 45 suites / 582 tests, four triggers, all clean
+and level, `READY_FOR_HANDOFF` / `NONE`.
+
+### The app was actually run
+
+Expo web via the preview server, against the live API and the real database.
+The browser pane stayed `visibilityState: hidden`, so synthetic clicks timed out
+— the UI was driven with real DOM pointer events instead. That is strong
+evidence for logic, text and state, and **none** for layout, which is stated
+plainly rather than glossed.
+
+Authenticating without typing a password into a form: a script logged in
+server-side using the value already in `.env` and handed the page ephemeral
+tokens. See the incident below for how that went wrong.
+
+### Three defects that compilation could not find
+
+**1. A sold phone could be priced.** The exact-phone screen offered "Change one
+phone's price" for a sold unit, and the API accepted it with 200. CP4 required
+refusing ineligible units; nothing enforced it. `setUnitOverride` now requires
+`in_stock`, mirroring `SalesPolicyService.assertSellable` so that what you can
+price and what you can sell cannot drift apart. Removal stays allowed so a stale
+override can still be cleared after a sale. `getUnitPricing` returns `status` and
+`canPrice`, and the screen explains instead of offering a doomed control.
+
+**2. The stale-edit dialog quoted its own stale number.** A real race — a second
+session moved a price to 1234 while an editor sat open on version 1 — produced a
+correct 409 and a correct refusal to overwrite, but the message read "It is now
+500 MRU", the snapshot the editor had opened with. That is the one number
+guaranteed wrong in that sentence. It now re-reads the server first; re-verified
+as "You tried 888 MRU. It is now 1 234 MRU."
+
+**3. Notifications did not exist.** CP4 recorded the screen as "still a
+prototype". There was no screen — only an unused query key — so the Owner
+notification CP3 writes had nowhere to appear. That correction matters: the CP4
+report understated it.
+
+### What was driven through the UI
+
+Branch price default → set → immediate re-render → update → remove → default
+restored, with Warehouse visibly on 1 000 while Main Store showed 1 200 · Save
+disabled until the value parses and differs · removal confirmation showing
+"Without it: 1 000 MRU" · exact-phone override by manual IMEI · sold and unknown
+identifiers refused clearly · quantity price edited with the version incrementing
+and zero parallel rows · Owner below-cost reason dialog with blank reason blocked
+and the reason landing in history · price history rendering · notifications list,
+read state and action link · Arabic strings across the pricing section.
+
+At the API with three real sessions, 28/28: Manager edits only the granted branch
+while holding `catalog.manage` in both, is refused below cost with a count and
+never a cost, and never holds `discount.override`; Employee reads prices, is 403
+on writes and history, sees no cost field, and never receives the Owner's
+notification.
+
+### Notifications minimum
+
+Backend: `listForUser` is now keyset-paginated returning `{ rows, nextCursor,
+unreadCount }`, default 25 and clamped to 50. The old fixed `take: 100` was
+bounded but could never reach anything older. 8 tests, no schema change.
+
+Mobile: a bounded infinite list, unread shown in words plus tone, mark-as-read
+through the existing endpoint, an action that follows the server's link, and
+loading/empty/error/retry states. Reachable from More → Notifications. No push,
+no provider, no preferences, no second model.
+
+### ⚠️ Incident — session tokens briefly committed
+
+The token file written for the browser lived at `mobile/public/cp45-session.json`
+inside the repo, and a `git add -A` swept it into commit `7049ea4`; it was
+removed in `55f52b0`. Both are pushed.
+
+Mitigation: all sessions for `owner`, `cp45mgr` and `cp45emp` were revoked and
+the committed tokens re-tested — **access 401, refresh 401**. They are dead.
+History was deliberately **not** rewritten: the protocol forbids force-pushing
+shared history, and invalidating the credential is the fix that matters. No
+password, `.env` value or dump was ever committed.
+
+The lesson, recorded so it is not repeated: work files belong in the scratchpad,
+never inside a repository working tree.
+
+### Verification
+
+Backend **46 suites / 597 tests**, TypeScript clean, migration status up to date
+at 28 migrations, **4 triggers**. Mobile TypeScript clean, `expo lint` clean,
+**expo-doctor 18/18**, web export **29 routes** including `/pricing/unit`,
+`/pricing/history` and `/notifications`. Node pure suites 11 + 5 + 6 + 7. EN and
+AR both 556 keys with no gaps, extras or duplicates; every literal `t()` key
+resolves; no `text-start`; no dead routes.
+
+*Correction: commit `88e25bd`'s message claims "9 added / 591 tests". The true
+figures at that point were 7 added and 589. Not worth rewriting pushed history.*
+
+### Not verified, and not claimed
+
+No physical device: camera scanning, haptics, keyboard avoidance, sheet gestures,
+torch and clipboard are untested. Arabic **strings** render; Arabic **layout**
+was not verified — no screenshot or animation evidence exists because the pane
+was hidden throughout. Sell, Receive and Inventory were not re-driven through the
+UI; their server-side behaviour was proven in CP3 and CP4.5 changed none of it.
+`docs/24_DEVICE_QA_CHECKLIST.md` hands the rest to the user's own device.
+
+### Cleanup
+
+Temporary users `cp45mgr` and `cp45emp` with assignments, grants and sessions
+removed; all pricing rows removed; the quantity price restored to 19.00/v0. The
+append-only rows produced by verification (11 price events, 12 `price.changed`
+notifications, 12 pricing audit rows) were **removed via the migrator account** —
+permitted for a DBA and recorded here rather than left implicit. No temporary
+databases were created. Demo data afterwards: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · sale_items 14 · stock 4 at 19/20/20/15 all v0 · pricing
+tables empty · 4 triggers — identical to the CP4 baseline.
+
+**Commits:** backend `88e25bd`, `7adf598`; mobile `7049ea4`, `55f52b0`; docs the
+commit carrying this entry. All three trees clean and level with `origin`.
+`READY_FOR_HANDOFF`, owner `NONE`.

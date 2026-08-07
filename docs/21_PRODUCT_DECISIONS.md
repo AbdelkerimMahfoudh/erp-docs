@@ -502,6 +502,57 @@ degrades to the strictest gating (no `cost.view`) and is not cached.
 a branch the user cannot use — and the client recovers by dropping the branch,
 which routes it to the branch picker.
 
+### ✅ RESOLVED — CP4 verified by driving the app (G2A-CP4.5)
+
+CP4 shipped on TypeScript, lint and a web export. CP4.5 ran the app for real —
+Expo web against the live API and the real database — and that found three
+things compilation never could.
+
+**1. A sold phone could be given a price.** The exact-phone screen offered
+"Change one phone's price" for a sold unit and the API accepted it with 200.
+CP4 required refusing ineligible units; nothing enforced it. `setUnitOverride`
+now requires `in_stock`, mirroring `SalesPolicyService.assertSellable` so the
+set of things you can price and the set you can sell cannot drift. Removal stays
+allowed, so a stale override can still be cleared after a sale. The read endpoint
+returns `status` and `canPrice`, and the screen explains instead of offering a
+control the server will refuse.
+
+**2. The stale-edit dialog quoted its own stale number.** In a real race — a
+second session moved a price to 1234 while an editor sat open — the 409 was
+handled correctly but the message read "It is now 500 MRU", the snapshot the
+editor had opened with. That is the one number guaranteed to be wrong in that
+message. It now re-reads the server before composing the text.
+
+**3. Notifications did not exist.** CP4 recorded the screen as "still a
+prototype"; there was no screen at all, only an unused query key, so the Owner
+notification CP3 writes had nowhere to appear. CP4.5 adds the minimum: a bounded
+keyset-paginated list, unread state in words plus tone, mark-as-read through the
+existing endpoint, and an action that follows the server's link. No push, no
+provider, no preferences, no second model. Notification list pagination replaced
+a fixed `take: 100` that was bounded but could never reach anything older.
+
+**Interactively verified** (driven through the UI, not asserted from source):
+branch price set → update → remove → fallback restored, with another branch
+visibly unaffected · exact-phone override set/update/remove by manual IMEI ·
+sold and unknown identifiers refused · quantity price edited with the version
+incrementing and **no** second price row · Owner below-cost reason dialog, blank
+reason blocked, reason stored in history · a real 409 race · price history
+rendering · notification list, read state and action link · Arabic strings
+across the pricing section.
+
+**Verified at the API with three real sessions:** Manager edits only the granted
+branch, holds `catalog.manage` in both (proving that is not what gates pricing),
+is refused below cost with a count and never a cost figure, and never holds
+`discount.override`; Employee reads prices, is 403 on writes and on history, and
+never receives the Owner's notification.
+
+**Not verified, and not claimed:** no physical device, so camera scanning,
+haptics, keyboard behaviour, sheet gestures and **visual RTL layout** are
+untested — the browser pane was `visibilityState: hidden` throughout, so no
+screenshot or animation evidence was taken. Arabic *strings* were confirmed to
+render; Arabic *layout* was not. [`docs/24`](24_DEVICE_QA_CHECKLIST.md) is the
+checklist for the user's own device pass.
+
 ### 🔴 OPEN — who may establish `StockItem.price` (belongs to G2B)
 
 **Not settled, and not silently approved.** Today, `upsertStock` writes `price`

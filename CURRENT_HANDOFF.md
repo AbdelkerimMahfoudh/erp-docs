@@ -8,9 +8,9 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-07 — **Phase G2A-CP4, Mobile Pricing
-  Experience** (complete). No G2B proposals. **No migration was needed.**
-- Previous sessions: **CLAUDE-A** — G2A-CP2 and G2A-CP3
+- Last session: **CLAUDE-B**, 2026-08-07 — **Phase G2A-CP4.5, Pricing UI
+  Completion and Verification** (complete). No G2B, no Transfers.
+- Previous sessions: **CLAUDE-B** — G2A-CP4; **CLAUDE-A** — G2A-CP2 and CP3
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
@@ -27,13 +27,14 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `63cae31` | `63cae31` | clean |
-| Mobile (`erp-mobile`) | master | `0d0d9a0` | `0d0d9a0` | clean |
+| Backend (`erp-backend`) | master | `7adf598` | `7adf598` | clean |
+| Mobile (`erp-mobile`) | master | `55f52b0` | `55f52b0` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-CP4 commits — backend `63cae31` (cost-gating fix found by the preflight) ·
-mobile `c2fc0a0` (pricing types + stale-branch recovery) and `0d0d9a0`
-(pricing UI). CP3 commits were backend `159c4f3`, `72b8861`, `103588f`.
+CP4.5 commits — backend `88e25bd` (sellable-status guard) and `7adf598`
+(notification pagination) · mobile `7049ea4` (conflict + status UI) and
+`55f52b0` (notifications screen). CP4 was backend `63cae31`, mobile `c2fc0a0`
+and `0d0d9a0`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -44,17 +45,23 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (measured at the end of G2A-CP4)
+## Verified baseline (measured at the end of G2A-CP4.5)
 
-- **Backend tests: 45 suites / 582 tests passing**, 0 failing (CP3 baseline
-  45/579; CP4 added 3 cost-gating regression tests).
-- **CP4 preflight: 24 checks, 0 failures** against the running API — login,
-  refresh rotation, refresh-reuse revocation, logout, `/auth/me`,
-  `/auth/branches`, `/auth/permissions`, no-branch, malformed-branch and
-  stale-branch requests, and branch-scoped pricing still failing closed.
+- **Backend tests: 46 suites / 597 tests passing**, 0 failing (CP4 baseline
+  45/582; CP4.5 added 7 sellable-status tests and 8 notification tests).
+  *Correction: commit `88e25bd`'s message says "9 added / 591" — the real
+  figures are 7 added and 589 at that point. History was not rewritten for a
+  count error.*
+- **CP4 preflight: 24/24** · **CP4.5 role + notification verification: 28/28**
+  against the live API with three real sessions (Owner, delegated Manager,
+  Employee).
+- **Interactive UI verification:** the app was run for real (Expo web against the
+  live API) and driven through the pricing flows — see the CP4.5 section.
 - **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
-  `expo export --platform web` built **28 routes**, including
-  `/pricing/unit` and `/pricing/history`. Node pure suites: **11 + 5 + 6 + 7**.
+  `expo export --platform web` built **29 routes**, including `/pricing/unit`,
+  `/pricing/history` and `/notifications`. Node pure suites: **11 + 5 + 6 + 7**.
+- **i18n:** EN and AR both **556 keys**, no missing, no extra, no duplicates;
+  every literal `t()` key resolves; no `text-start`; no dead routes.
 - Backend TypeScript **clean** · `prisma validate` **valid** · `prisma generate`
   regenerated the client (3 500 references to the new models; both `tsc` and the
   suite compile against it). The `EPERM … query_engine-windows.dll` rename
@@ -357,19 +364,87 @@ margin (CP3, verified live). The mobile Notifications screen was **not** upgrade
 in CP4, so Owners will see these through whatever the existing prototype renders.
 **Record the Notifications milestone as still incomplete.**
 
+### CP4.5 ✅ — pricing UI verified by driving the app (mobile `55f52b0`, backend `7adf598`)
+
+CP4 shipped on TypeScript, lint and a web export. CP4.5 **ran the app** — Expo
+web against the live API and the real database — and that found three things
+compilation could not.
+
+| # | Found by running it | Fixed in |
+|---|---|---|
+| 1 | A **sold** phone could be given a price: the screen offered the action and the API returned 200 | backend `88e25bd` |
+| 2 | The 409 dialog quoted **its own stale snapshot** — "It is now 500 MRU" when the server held 1234 | mobile `7049ea4` |
+| 3 | **Notifications did not exist at all** — CP4 called the screen a prototype; there was only an unused query key | `7adf598` + `55f52b0` |
+
+#### Interactively driven (real DOM events, not asserted from source)
+
+Branch price: default → set 1200 → immediate re-render → update 1300 → remove →
+default restored, with **Warehouse visibly unaffected at 1 000 while Main Store
+showed 1 200** · Save disabled until the value parses *and* differs · removal
+confirmation showed **"Without it: 1 000 MRU"** · exact-phone override set by
+manual IMEI, source became "This phone's own price" · sold phone refused with an
+explanation and no action · unknown identifier "No item with that number" · a
+real 409 race producing **"You tried 888 MRU. It is now 1 234 MRU."** · Owner
+below-cost reason dialog with blank-reason blocked and the reason stored ·
+quantity price 19 → 22 with the version incrementing and **zero** parallel price
+rows · price history showing previous → new, actor, scope and reason ·
+notifications list, read state and an action link landing on the pricing section
+· Arabic strings across the whole pricing section.
+
+#### Verified at the API with three real sessions (28/28)
+
+Manager edits only the granted branch and holds `catalog.manage` in **both**
+(proving that is not what gates pricing) · Manager refused below cost with a
+**count** and never a cost figure · Manager never holds `discount.override` ·
+Employee reads prices, is 403 on writes and on history, sees no `cost` field,
+and never receives the Owner's notification.
+
+#### Not verified — and not claimed
+
+The browser pane was `visibilityState: hidden` for the entire session, so
+**clicks could not be dispatched and no screenshot or animation evidence was
+taken**; the UI was driven with real DOM pointer events instead. That is good
+evidence for logic, text and state, and **no evidence at all** for layout.
+
+- **No physical device.** Camera scanning, haptics, keyboard avoidance, sheet
+  gestures, torch and clipboard are untested.
+- **Arabic *strings* render; Arabic *layout* was not verified.** No claim is made
+  about mirroring, wrapping or control order.
+- Sell, Receive and Inventory were **not** re-driven through the UI this session.
+  Their server-side behaviour was proven in CP3 and CP4.5 changed none of it.
+
+[`docs/24_DEVICE_QA_CHECKLIST.md`](docs/24_DEVICE_QA_CHECKLIST.md) is the
+checklist for the user's own device pass, separating what is already verified
+from what only a phone can answer.
+
+### ⚠️ Incident — session tokens briefly committed
+
+Running the UI needed an authenticated session. Rather than type a password into
+a form, a script logged in server-side and wrote the resulting **ephemeral
+tokens** to `mobile/public/cp45-session.json` for the page to pick up. A
+`git add -A` then swept that file into commit `7049ea4`; it was removed in
+`55f52b0`. Both are pushed.
+
+**Mitigation:** every session for `owner`, `cp45mgr` and `cp45emp` was revoked,
+and the committed tokens were re-tested afterwards — **access 401, refresh 401**.
+They are dead. History was **not** rewritten: the protocol forbids force-pushing
+shared history, and invalidating the credential is the fix that actually matters.
+
+No password, `.env` value or database dump was ever committed. The lesson: work
+files belong in the scratchpad, never inside a repository working tree.
+
 ## Next exact action
 
-1. **Device pass on the pricing screens** — tap through as Owner, delegated
-   Manager and Employee; verify camera scanning, Arabic RTL layout and that the
-   Employee genuinely sees no controls.
-2. **Notifications screen** — make `price.changed` render properly for an Owner
-   with an action link into the product's pricing section.
-3. **G2B — employee price proposals**, including the open `StockItem.price`
-   question above, which needs a user decision before any code.
+1. **Device pass** using [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) — camera,
+   haptics, keyboard, and Arabic RTL layout are the real gaps.
+2. **G2B — employee price proposals**, including the open `StockItem.price`
+   question above, which still needs a user decision before any code.
+3. **Transfers** is the next planned visible-store milestone. **Not started, and
+   not to be started automatically.**
 
 **Deferred — do not start without the user:** Excel import · suppliers ·
-transfers UI · returns · loans · consignment · goals · expenses · subscriptions ·
-WhatsApp · authentication work · technician functionality.
+returns · loans · consignment · goals · expenses · subscriptions · WhatsApp ·
+authentication work · technician functionality.
 
 ## Completed milestones
 
@@ -398,8 +473,9 @@ WhatsApp · authentication work · technician functionality.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
-- **Phase G2A — Pricing Foundation: CP1–CP4 complete.** Mobile pricing UI
-  landed in CP4 (device pass still outstanding).
+- **Phase G2A — Pricing Foundation: CP1–CP4.5 complete.** Mobile pricing UI
+  landed in CP4 and was verified by driving the app in CP4.5; in-app
+  notifications now exist. Device pass still outstanding.
 - **Phase G2A backend: CP1, CP2 and CP3.** Audit, schema
   (`0027`), and the full backend pricing behaviour — resolver, API,
   authorization, concurrency, below-cost, atomic history, Owner notifications,
@@ -427,6 +503,13 @@ WhatsApp · authentication work · technician functionality.
 - **An interceptor must not decide authorization.** Cost gating exists to strip
   fields. When it was allowed to throw, it failed requests that guards had
   already cleared.
+- **Compiling is not working.** CP4 passed TypeScript, lint and a web export and
+  still shipped a sold phone that could be priced, a conflict dialog that quoted
+  the wrong price, and a Notifications screen that did not exist. Running the app
+  found all three in one session.
+- **A screen with no entry point is a dead route.** Notifications had a query key
+  and no way in; the pricing screens were only ever reached by typed URLs until
+  CP4.5 exercised the real buttons.
 - **A Git rollback does not roll back the database.** Restoring the dump is a
   separate, deliberate step.
 - **`prisma migrate deploy` never runs the seed**, so anything reference-like
