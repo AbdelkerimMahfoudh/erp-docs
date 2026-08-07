@@ -68,7 +68,7 @@ Why each flag matters:
 |---|---|
 | `--single-transaction` | Consistent snapshot on InnoDB **without locking tables** — the app keeps working during the dump |
 | `--routines` | Stored procedures and functions |
-| `--triggers` | **Essential here** — the append-only `audit_logs` protection is enforced by triggers (`prisma/sql/init/10_audit_append_only.sql`). A dump without them silently loses the audit guarantee |
+| `--triggers` | **Essential here** — append-only protection for `audit_logs` **and `price_change_events`** is enforced by triggers, created by migrations `0028_audit_append_only_triggers` and `0027_pricing_foundation`. A dump without them silently loses both guarantees. Expect **4 triggers** in any current dump |
 | `--events` | Scheduled events, if any |
 | `--no-tablespaces` | The migrator has no global `PROCESS` privilege. Without this flag `mysqldump` prints `Access denied … PROCESS privilege … when trying to dump tablespaces`. The dump is still complete, but a real error in a backup log is one nobody should have to learn to ignore |
 | `--hex-blob` | Writes every binary column as `0x…` instead of raw bytes. **This is what makes the file safe to handle with ordinary text tools** — see below |

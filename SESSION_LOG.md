@@ -1140,3 +1140,126 @@ a single cause: piping `prisma migrate diff --script` through `tee … | head`
 gives `tee` a SIGPIPE and silently truncates the file mid-statement, producing a
 confusing "check query number N" error that looks like a SQL syntax problem.
 Redirect to the file directly.
+
+---
+
+## 2026-08-07 — CLAUDE-A — **Phase G2A-CP3: pricing resolution and secure backend operations**
+
+**Scope: backend only.** No mobile pricing UI, no G2B employee proposals.
+
+### The CP2 trigger ambiguity was worth chasing — it hid a real gap
+
+CP2 reported "2 triggers" on a clean database. That figure was truthful for what
+it measured, and it concealed a genuine pre-existing defect. Live dev had 4
+triggers; a clean database built from all 27 migrations had **2** — the pricing
+pair only. The `audit_logs` guard lived solely in
+`prisma/sql/init/10_audit_append_only.sql`, run by hand as root, in no migration.
+Dev had it because someone ran that script once. **A fresh production deployment
+would have shipped a fully mutable audit log**, and grants cannot substitute
+because `partial_revokes` is schema-level only.
+
+Repaired by `0028_audit_append_only_triggers` — additive, idempotent
+(`DROP IF EXISTS` then `CREATE`), `0027` untouched. Verified 2→4 on a clean
+database, 4→4 on a restored one, idempotent on rerun, and functionally as
+`phonestore_app`: all four of `audit_logs` UPDATE/DELETE and
+`price_change_events` UPDATE/DELETE rejected. The init script is kept but marked
+superseded.
+
+*(An earlier functional attempt reported false negatives: `SET col=col` is a
+no-op MySQL skips, and `price_change_events` was empty so the subquery matched no
+rows. Re-run with a real value change and a real row, all four blocked.)*
+
+### Tenant recheck
+
+FKs on the pricing tables are single-column, so the database alone permits a
+mismatched `company_id`/`branch_id` pair. Closure is application-side and
+complete: every query runs on the tenant-scoped client, writes state `companyId`
+explicitly, ids from another company resolve to nothing and 404, and the branch
+is verified against the caller's assignments. No corrective migration was needed
+for this.
+
+### Implementation
+
+One `PricingService`. Resolution: `unit_override` → `branch_variant` →
+`stock_item` (quantity only) → `product_default` → `unpriced`, always with an
+explicit source. An override applies only when its branch, the unit's current
+branch and the active branch all agree; otherwise it is reported as
+`staleOverrideIgnored` and ignored. Product-level resolution structurally cannot
+see an override.
+
+Narrow API, no generic endpoint taking a model, field, permission or branch from
+the body. Reads of the effective price open to any signed-in user; writes and
+history require branch-scoped `price.edit`. Compare-and-swap on `version` with
+409 on stale, and a lost create race translated from the unique key into
+`refresh_required`. Below cost requires `discount.override` plus a reason,
+expressed purely in permissions. Price change, history event, audit row and Owner
+notification are one transaction. Notifications exclude the actor, which covers
+both the manager and owner rules at once, and deduplicate multi-branch Owners.
+Transfer invalidation runs inside the receive transaction and deletes the
+override so a returning phone cannot resurrect it.
+
+`transfers.receiveConfirm` is the only production path that changes
+`Unit.branchId`; `cancel` writes the origin branch back to where the unit already
+was, and that no-op is skipped.
+
+`0029_stock_item_version` adds `version` to `stock_items`. `updatedAt` could not
+serve: MySQL keeps microseconds, a JavaScript `Date` only milliseconds, so a CAS
+on it would round-trip lossily and two writes in one millisecond are
+indistinguishable. Faking it in application memory was the alternative and is
+worse — it cannot see a concurrent writer.
+
+`initiator` is recorded as `user` | `system` rather than CP2's sketched
+`owner` | `manager`: `actorId` already says who acted, and a copied role drifts
+from the real one. A third scope, `stock_item`, covers quantity changes.
+
+### Two defects found by live verification, not by the suite
+
+1. The active branch was parsed inside `PermissionsGuard`, which returns early on
+   routes requiring no permission — so open reads had no branch and returned 400
+   for a header the client had sent. Moved to the CLS middleware, which runs for
+   every request.
+2. That alone would have left open reads unchecked, since no permission means no
+   guard means nothing verifies the branch. `PricingService.activeBranch()` now
+   confirms the caller is assigned to the branch, for reads as well as writes.
+
+### Verification
+
+Backend **45 suites / 579 tests**, 0 failing (CP2 baseline 43/515; CP3 added 18
+resolution tests, 42 service tests, and grew the migration contract to 24).
+TypeScript clean, `prisma validate` valid, migration status up to date with **28
+migrations**, latest `0029`. Mobile TypeScript and `expo lint` clean — no mobile
+file changed; this only confirms shared/generated types still hold.
+
+**Live: 55 checks, 0 failures** (30 + 25) against the running API and real MySQL,
+covering per-branch and per-unit pricing, fallback reveals, 409s, delegated
+authorization in one branch only, employee read-but-not-write, forged tenant
+identifiers, below-cost refusal without revealing a cost, quantity pricing,
+transfer invalidation including the shipped-but-not-received case and the
+returning phone, append-only rejection from the application account, and
+**completed sale totals, cost and margin unchanged after every price scope
+change**.
+
+Backups: `phonestore-20260807-140256.sql` before `0028`,
+`phonestore-20260807-141018.sql` before `0029`; both verified and the DEFINER-safe
+restore proven before migrating (55/55 tables, 4/4 triggers, identical `units`
+checksum).
+
+### Cleanup
+
+Temporary users `cp3mgr` and `cp3emp` with their assignments, grants and
+sessions; two stock transfers and items; all pricing rows — removed. The
+accessory price touched by the quantity check restored to 19.00/version 0. Temp
+databases `prisma_cp3_trig` and `prisma_cp3_pre` dropped. Demo data afterwards:
+products 12, units 11 all back in Main Store, sales 7, `sum_total = 10051.00`,
+stock 4, pricing tables empty — identical to the CP2 baseline.
+
+**Deliberately retained:** `audit_logs` rows written by the verification
+transfers. **Deliberately removed by the migrator:** the pricing
+`price_change_events`, the `BranchVariantPrice`/`UnitPriceOverride` audit rows and
+the `price.changed` notifications — permitted for a DBA account, recorded here
+rather than left implicit. The transfer invoice sequence advanced by two and was
+not rewound.
+
+**Commits:** backend `159c4f3`, `72b8861`, `103588f`; docs the commit carrying
+this entry. Mobile unchanged (`65edca8`). All three trees clean and level with
+`origin`. `READY_FOR_HANDOFF`, owner `NONE`.

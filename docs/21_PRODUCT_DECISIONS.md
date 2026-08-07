@@ -347,6 +347,82 @@ restored copy matched live table-for-table and `units` HEX(id) checksums were
 identical. `0027` then deployed cleanly on a clean database, on the restored
 pre-migration database, on dev, and on rerun; all temporary databases dropped.
 
+### ✅ RESOLVED — pricing behaviour (G2A-CP3, backend complete)
+
+**One `PricingService` is the only authority on selling price.** Sell, product
+detail, the pricing API and the future mobile screens all ask it. Two places
+each implementing "override, else branch, else default" is how a shop ends up
+with two answers at the counter.
+
+**Effective price, first match wins** — every response names its `source`:
+
+| # | Source | Applies to |
+|---|---|---|
+| 1 | `unit_override` | one exact item, **only when the override's branch, the unit's current branch and the active branch all match** |
+| 2 | `branch_variant` | that exact variant in that branch |
+| 3 | `stock_item` | quantity products only |
+| 4 | `product_default` | company-wide fallback |
+| 5 | `unpriced` | nothing is set — stated, never guessed |
+
+A product view with no unit selected **cannot** see rung 1: one phone's price is
+not the model's price. A stale override is reported as `staleOverrideIgnored`
+rather than applied, so a transfer that somehow failed to invalidate is visible
+instead of silently charging the wrong price.
+
+**Authorization.** Writes and history need branch-scoped `price.edit`; reads of
+the effective price are open to any signed-in user, because the counter needs
+them. `catalog.manage` grants nothing here — live-verified with a Manager who
+holds `catalog.manage` in both branches but `price.edit` in only one.
+
+**Below cost** is expressed purely in permissions: `discount.override` plus a
+non-blank reason, recorded in history. A Manager is refused because that
+permission is Owner-only and never delegatable — no role name is compared. A
+branch price must clear the most expensive in-stock unit of that variant; the
+refusal states **how many** items are affected and never a cost. With no units
+in stock the price is allowed, and Sell still enforces the real unit-cost floor
+at the counter.
+
+**Concurrency.** Compare-and-swap on `version`; a stale update or removal is
+`409`. A lost create race is translated from the unique-key rejection into
+`409 refresh_required` — the winner's price is never overwritten.
+
+**Atomicity.** The price change, its `PriceChangeEvent`, the audit row and the
+Owner notification are one transaction. A failed history or notification write
+rolls the price back, so a price without its history cannot exist.
+
+**Owner notifications** reuse the existing `Notification` model and exclude the
+actor. That one rule covers both cases: a Manager's change reaches every active
+Owner; an Owner's own change notifies nobody, while still being audited and in
+history. An Owner assigned to several branches gets one message, not one per
+branch. No cost, no margin, no threshold in the payload. No WhatsApp, and the
+dormant OTP/WhatsApp infrastructure is not called.
+
+**Transfer invalidation** runs inside the receive transaction, so the move and
+the invalidation commit or roll back together. The override row is **deleted**,
+not flagged, so a phone that comes back cannot resurrect a price nobody
+re-approved; history keeps the value with `initiator = 'system'` and
+`reason = 'branch_transfer'`. `transfers.receiveConfirm` is the **only**
+production path that changes `Unit.branchId` — `cancel` writes the origin branch
+back to where the unit already was, and that no-op is skipped.
+
+**`initiator` is `user` | `system`**, not CP2's sketched `owner` | `manager`:
+`actorId` already records who acted, roles change afterwards while history must
+not, and a copied role would drift from the real one. A third `scope` value,
+`stock_item`, covers quantity price changes.
+
+**Migration `0029_stock_item_version`** adds `version` to `stock_items`.
+`updatedAt` could not serve: MySQL keeps microseconds but a JavaScript `Date`
+carries only milliseconds, so a compare-and-swap on it would round-trip lossily,
+and two writes in the same millisecond are indistinguishable. Faking the check
+in application memory was the alternative and is worse — it cannot see a
+concurrent writer at all.
+
+**Migration `0028_audit_append_only_triggers`** moved the `audit_logs` guard into
+the migration chain. It had lived only in a manual init script, so a clean
+database built from every migration had **no** `audit_logs` triggers and a fresh
+production deployment would have shipped a mutable audit log. Grants cannot
+substitute: `partial_revokes` is schema-level only.
+
 ### 🔴 OPEN — who may establish `StockItem.price` (belongs to G2B)
 
 **Not settled, and not silently approved.** Today, `upsertStock` writes `price`
@@ -373,6 +449,13 @@ Three candidate resolutions, for the user to decide in **G2B**:
 
 Until this is decided, treat the Employee write as **known, tolerated, and
 unapproved** — not as the pricing model's intended behaviour.
+
+**CP3 left receiving untouched, deliberately.** The first quantity receive still
+establishes `StockItem.price`; later receives increment quantity and leave the
+price alone. Serialized receives set no price of their own and now resolve
+through the ladder above. Nothing in receiving mutates `Product.defaultPrice`.
+Changing any of this is a workflow decision for G2B, not a side effect of a
+pricing phase.
 
 ---
 

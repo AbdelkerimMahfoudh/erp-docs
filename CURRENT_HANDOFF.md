@@ -8,9 +8,10 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-A**, 2026-08-07 from 05:14 UTC — **Phase G2A-CP2,
-  Pricing Schema and Migration**
-- Last updated: 2026-08-07, at the end of G2A-CP2
+- Last session: **CLAUDE-A**, 2026-08-07 — **Phase G2A-CP3, Pricing Resolution
+  and Secure Backend Operations** (complete). Backend only; no mobile pricing UI,
+  no G2B proposals.
+- Previous session: **CLAUDE-A**, 2026-08-07 — G2A-CP2 (complete)
 
 > **Account label — current truth: this account is `CLAUDE-A`.** Several earlier
 > entries (G1 backend, G1 mobile, G2A-CP1) recorded themselves as `CLAUDE-B`.
@@ -27,12 +28,16 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `167bbcf` | `167bbcf` | clean |
+| Backend (`erp-backend`) | master | `103588f` | `103588f` | clean |
 | Mobile (`erp-mobile`) | master | `65edca8` | `65edca8` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-Mobile is unchanged this session — CP2 was schema-only. Docs `b3409ac` carried
-the ownership correction and the verified backup record.
+Mobile is unchanged — CP3 is backend-only, and its TypeScript/lint checks were
+run to confirm the shared and generated types still hold.
+
+CP3 backend commits: `159c4f3` (0028 audit-trigger repair) · `72b8861` (pricing
+service, API, Sell and transfer integration, 0029) · `103588f` (branch-context
+fixes found by live verification).
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -43,11 +48,14 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (measured at the end of G2A-CP2)
+## Verified baseline (measured at the end of G2A-CP3)
 
-- **Backend tests: 43 suites / 515 tests passing**, 0 failing. CP2 added
-  `src/pricing/pricing-migration.spec.ts` (**20 tests**) over the G1 baseline of
-  42 suites / 495 tests.
+- **Backend tests: 45 suites / 579 tests passing**, 0 failing. CP3 added
+  `price-resolution.spec.ts` (18) and `pricing.service.spec.ts` (42) and grew the
+  migration-contract spec to 24, over the CP2 baseline of 43 suites / 515 tests.
+- **Live verification: 55 checks, 0 failures** (30 + 25) against the running API
+  and real MySQL. Temporary fixtures removed; demo data byte-identical to the
+  CP2 baseline afterwards.
 - Backend TypeScript **clean** · `prisma validate` **valid** · `prisma generate`
   regenerated the client (3 500 references to the new models; both `tsc` and the
   suite compile against it). The `EPERM … query_engine-windows.dll` rename
@@ -55,8 +63,15 @@ From either code repository the documentation repository is `../`.
   generation failure.
 - Mobile TypeScript **clean** · `expo lint` **clean**. No mobile file changed;
   this only confirms the shared/generated types were not broken.
-- Migration status: *"Database schema is up to date!"* — **26 migrations**,
-  latest **`0027_pricing_foundation`**.
+- Migration status: *"Database schema is up to date!"* — **28 migrations**,
+  latest **`0029_stock_item_version`**.
+- **Trigger inventory (exact, live dev):** `audit_logs_block_update` BEFORE
+  UPDATE · `audit_logs_block_delete` BEFORE DELETE · `price_change_events_block_update`
+  BEFORE UPDATE · `price_change_events_block_delete` BEFORE DELETE. **4 total**,
+  all DEFINER `phonestore_migrator@localhost`. A clean database built from all 28
+  migrations now produces the same 4.
+- **No temporary databases remain** (`prisma_cp3_trig` and `prisma_cp3_pre`
+  dropped). No temporary business fixtures remain.
 
 ## Phase G2A — Pricing Foundation
 
@@ -164,31 +179,126 @@ migration. Three candidate resolutions are recorded in
 [`docs/21` §6](docs/21_PRODUCT_DECISIONS.md). **Treat it as known, tolerated and
 unapproved until the user decides in G2B.**
 
-## Next exact action — Phase G2A-CP3 (not started)
+### CP3 ✅ — pricing resolution and secure backend operations (backend `103588f`)
 
-None of this exists yet. In order:
+**Backend complete. No mobile pricing UI, no G2B proposals.**
 
-1. **Price resolution service**, returning an explicit `source`:
-   `unit_override` (**only when the override's `branch_id` is the selling
-   branch**) → `branch_variant` → `stock_item` (quantity only) →
-   `product_default` → `unpriced`.
-2. **Write APIs** gated on `price.edit` **in the target branch** — it is
-   branch-scoped and must never be implied by `catalog.manage`. Compare-and-swap
-   on `version`; every write appends a `price_change_event` in the same
-   transaction.
-3. **Transfer invalidation (mandatory).** When a unit moves branch its override
-   stops applying, and a `price_change_events` row records the invalidation with
-   `initiator = 'system'`.
-4. **Owner notification** — reuse the existing `Notification` model (it already
-   has `companyId`, `branchId`, `targetUserId`, `type`, `title`, `body`,
-   `actionLink`, `isRead` and the right index). No second notification system,
-   and **no cost or margin in the payload**.
-5. Mobile pricing UI last.
+**One `PricingService` is the only authority on selling price** — Sell, product
+detail and the pricing API all ask it rather than re-deriving precedence.
+Effective price, first match wins, with the source always returned:
+`unit_override` → `branch_variant` → `stock_item` (quantity only) →
+`product_default` → `unpriced`.
 
-**Deferred — do not start without the user:** employee price proposals and
-approvals (**G2B**, including the open issue above) · Excel import · suppliers ·
-transfers · returns · subscriptions · OTP, invitations, passcodes, biometrics ·
-WhatsApp provider.
+A unit override applies **only when the override's branch, the unit's current
+branch and the active request branch all match**. A stale override is reported
+as `staleOverrideIgnored` and never applied, so a transfer that failed to
+invalidate is visible rather than silently charging the wrong price. Product-level
+resolution structurally cannot see an override — one phone's price is not the
+model's price.
+
+**API:** narrow, explicit routes under `/v1/pricing`. **No generic endpoint**
+taking a model, field, permission or target branch from the body. Reads of the
+effective price are open to any signed-in user; writes and history need
+branch-scoped `price.edit`.
+
+**Concurrency:** compare-and-swap on `version`, `409` on a stale update or
+removal, and a lost create race translated from the unique-key rejection into
+`409 refresh_required` rather than overwriting the winner.
+
+**Below cost:** `discount.override` plus a non-blank reason, recorded. Purely
+permission-based — a Manager is refused because that permission is Owner-only and
+never delegatable. A branch price must clear the most expensive in-stock unit;
+the refusal states how many items are affected and never a cost.
+
+**Atomicity:** price change + `PriceChangeEvent` + audit row + Owner
+notification are one transaction. A failed history or notification write rolls
+the price back.
+
+**Notifications** exclude the actor — one rule covering both cases — and
+deduplicate an Owner assigned to several branches. No cost, no margin, no
+threshold, no WhatsApp.
+
+**Transfer invalidation** runs inside the receive transaction. The override is
+**deleted**, so a returning phone cannot resurrect it; history keeps the value
+with `initiator = 'system'`, `reason = 'branch_transfer'`.
+`transfers.receiveConfirm` is the **only** production path that changes
+`Unit.branchId`; `cancel` writes the origin branch back to where the unit
+already was, and that no-op is skipped.
+
+### CP3 migrations
+
+| Migration | Why |
+|---|---|
+| `0028_audit_append_only_triggers` | **Repairs a real gap.** The `audit_logs` guard lived only in a manual init script, so a clean database built from every migration had **no** `audit_logs` triggers — a fresh production deployment would have shipped a mutable audit log. Idempotent (`DROP IF EXISTS` + `CREATE`); `0027` untouched. |
+| `0029_stock_item_version` | Adds `version` to `stock_items` for quantity-price compare-and-swap. `updatedAt` cannot serve: MySQL keeps microseconds, a JS `Date` only milliseconds, so a CAS on it would round-trip lossily. |
+
+Backups taken before each: `phonestore-20260807-140256.sql` (before `0028`) and
+`phonestore-20260807-141018.sql` (before `0029`) — both `--hex-blob`,
+`--single-transaction`, routines/triggers/events, no tablespaces, 0 raw
+`_binary`, valid UTF-8, 55 tables. The DEFINER-safe restore was proven **before**
+migrating: 55/55 tables, 4/4 triggers, `units` checksum identical to live. Both
+migrations verified on clean, restored and dev databases, and on rerun.
+
+### Two defects the live verification caught that the unit suite could not
+
+1. **The active branch was resolved inside `PermissionsGuard`**, which exits
+   early on routes needing no permission — so open reads had no branch at all and
+   returned 400 for a header the client had sent. Branch is request context, not
+   an authorization result; it now comes from the CLS middleware.
+2. **That left open reads unchecked** — no permission meant nothing verified the
+   branch, so an employee could have read another branch's prices by changing a
+   header. `PricingService.activeBranch()` now confirms the caller is assigned
+   to the branch, on reads as well as writes.
+
+Both are fixed and covered by tests. **Lesson: a guard that also does context
+resolution silently changes behaviour for every route that skips the guard.**
+
+### Live verification — 55 checks, 0 failures
+
+Against the running API and real MySQL: per-branch prices differ for the same
+variant · one phone differs from another of the same model · removal reveals the
+layer beneath · stale version 409 · lost create race 409 · delegated Manager can
+edit only the granted branch · Employee cannot write but can read · Employee
+cannot read history · no-branch write fails closed · `catalog.manage` alone
+cannot price · forged product, identifier and branch all fail closed · Manager
+below-cost refused with no cost revealed · Owner below-cost needs and records a
+reason · quantity uses `stock_items.price` with its own 409 · a shipped-but-not-
+received transfer does **not** invalidate · a completed transfer does, with the
+previous price preserved and `initiator='system'` · a returning phone does not
+resurrect its price · price history rejects UPDATE and DELETE from the
+application account · **completed sale totals, cost and margin unchanged after
+every price scope change**.
+
+**Fixtures created and removed:** two temporary users (`cp3mgr` with
+`price.edit` delegated in Main Store only, `cp3emp`), their assignments, grants
+and sessions; two stock transfers and their items; all pricing rows. The
+accessory price touched by the quantity check was restored to 19.00/version 0.
+Demo data afterwards: products 12 · units 11 (all back in Main Store) · sales 7 ·
+`sum_total = 10051.00` · stock 4 · bvp/upo/pce 0 — **identical to the CP2
+baseline**.
+
+**Retained after cleanup, deliberately:** the `audit_logs` rows written by the
+verification transfers (Unit and StockTransfer status changes). They are
+append-only and were left in place rather than archived. The pricing-specific
+`price_change_events`, `audit_logs` rows for `BranchVariantPrice`/
+`UnitPriceOverride`, and `price.changed` notifications **were** removed by the
+migrator account, which the append-only design permits for a DBA; this is
+recorded here rather than left implicit. The transfer invoice-number sequence
+advanced by two and was not rewound.
+
+## Next exact action — Phase G2A-CP4 or G2B (not started)
+
+Backend pricing is complete. Nothing is half-enforced. The open choices are:
+
+1. **Mobile pricing UI** — the read endpoints already return everything a screen
+   needs: price, source, version, whether it can be removed, and the fallback
+   preview. Deliberately not started this session.
+2. **G2B — employee price proposals**, including the open `StockItem.price`
+   question recorded above, which needs a user decision before any code.
+
+**Deferred — do not start without the user:** Excel import · suppliers ·
+transfers UI · returns · loans · consignment · goals · expenses · subscriptions ·
+WhatsApp integration · authentication work · technician functionality.
 
 ## Completed milestones
 
@@ -217,7 +327,10 @@ WhatsApp provider.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
-- **Phase G2A — Pricing Foundation: CP1 + CP2 complete**
+- **Phase G2A — Pricing Foundation: CP1, CP2 and CP3 complete.** Audit, schema
+  (`0027`), and the full backend pricing behaviour — resolver, API,
+  authorization, concurrency, below-cost, atomic history, Owner notifications,
+  transfer invalidation and Sell integration (`0028`, `0029`).
 
 ## Standing lessons
 
@@ -225,6 +338,14 @@ WhatsApp provider.
   search returned nothing on real MySQL while the suite stayed green, because the
   unit double was more permissive than the database. This is why CP2's
   constraints were proven against real MySQL rather than mocked.
+- **A guard that also resolves context changes behaviour for every route that
+  skips the guard.** CP3's branch resolution lived in `PermissionsGuard`, so
+  routes needing no permission silently had no branch. Only a real request
+  through the real stack showed it.
+- **Nothing fails when a guard is merely absent.** The `audit_logs` triggers were
+  missing from every clean deployment for as long as they lived in a manual
+  script, and no test, migration or startup check noticed. Protection belongs in
+  the migration chain, not in a runbook.
 - **A Git rollback does not roll back the database.** Restoring the dump is a
   separate, deliberate step.
 - **`prisma migrate deploy` never runs the seed**, so anything reference-like
