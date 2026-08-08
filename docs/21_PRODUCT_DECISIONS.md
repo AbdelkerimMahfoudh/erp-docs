@@ -589,6 +589,56 @@ pricing phase.
 
 ---
 
+## 6b. Transfers *(approved 2026-08-07, not yet implemented)*
+
+Audit and full reasoning: [`25_TRANSFERS_AUDIT_AND_DECISIONS.md`](25_TRANSFERS_AUDIT_AND_DECISIONS.md).
+
+**Transfers move one company's own stock between its own branches.** They are not
+inter-store consignment and the model must not be stretched to cover it.
+
+### ✅ APPROVED — Option A, request and confirmation separation
+
+| Decision | Approved answer |
+|---|---|
+| Who does what | **Employee requests** · **Manager/Owner approves or rejects** · source records shipment · destination reports receipt · **Manager/Owner cancels after shipment** |
+| No Manager present | **The Owner may approve remotely.** Approval still requires `transfer.approve` **in the source branch** — an Owner is assigned everywhere, so this needs no cross-branch escape hatch and branch scoping is unchanged |
+| Quantity accessories | **Transferable — in scope for H1** |
+| When stock stops being sellable | **At request.** Reserved the moment it is promised, released on rejection or cancellation |
+
+The same actor should not both initiate and give final confirmation **when another
+authorised user is available**.
+
+### What this changes
+
+- **Lifecycle:** `pending_approval → ready_to_ship → in_transit → received`, with
+  `rejected` and `cancelled` as terminal exits. Today's flow starts at
+  `ready_to_ship` and has no approval at all.
+- **Permissions:** `unit.transfer` splits into `transfer.request`,
+  `transfer.approve`, `transfer.ship`, `transfer.receive`, `transfer.cancel`.
+  Today one permission guards every transition and **all three roles hold it**, so
+  an employee assigned to both branches can run a transfer end to end alone.
+- **Reservation:** serialized units use the existing unused `UnitStatus.reserved`
+  — no enum migration, and `assertSellable` already refuses anything that is not
+  `in_stock`, so reserved stock stops being sellable for free. Quantity stock has
+  **no** reservation primitive and needs a `StockItem.reservedQuantity` column;
+  sellable quantity becomes `quantity − reservedQuantity` everywhere.
+- **Idempotency:** `POST /transfers` needs a client-generated request id, as Sale
+  already has. Today a retry creates a second transfer, and two open transfers can
+  claim the same unit.
+
+### 🔴 Still open — decide during H1
+
+- **Destination cost for quantity stock.** Moving 10 cables at 4.10 into a branch
+  holding 5 at 5.00 needs a rule: weighted average, or carry the source cost. It
+  changes margin, so it is a product decision.
+- **Destination price for quantity stock.** Recommend the CP3 rule: the
+  destination keeps its own price, else the company default. It must **not**
+  inherit the source's price.
+- Partial receipt · cancellation and rejection reasons · which transitions notify
+  the Owner · history grouping · shipment/receipt photos.
+
+---
+
 ## 7. Goals · 8. Money & reconciliation · 9. Returns
 
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the

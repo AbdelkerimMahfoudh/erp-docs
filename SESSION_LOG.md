@@ -1623,3 +1623,73 @@ scope and must not reuse the transfer model.
 
 **Commits:** backend and mobile **unchanged**; docs the commit carrying this
 entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-07 — CLAUDE-B — **H0 follow-up: transfer decisions recorded (documentation only)**
+
+**No implementation.** H0's blocker is resolved; H1 is designed but not started,
+because it changes schema and permissions and `CLAUDE.md` requires approval first.
+
+### The four answers
+
+| Decision | Answer |
+|---|---|
+| Who does what | **Option A** — Employee requests · Manager/Owner approves or rejects · source ships · destination receives · Manager/Owner cancels after shipment |
+| No Manager present | **Owner approves remotely** |
+| Quantity accessories | **Transferable — in H1** |
+| Stock stops being sellable | **At request** |
+
+Recorded in `docs/21` §6b (approved product decisions) and `docs/25` §8/§10/§11
+(audit and plan). `docs/25`'s header no longer says "waiting"; Option A is marked
+chosen and B and C marked not chosen.
+
+### Making "Owner approves remotely" precise
+
+It does **not** mean weakening branch scoping. Approval requires
+`transfer.approve` **in the source branch**, and an Owner is assigned to every
+branch, so they can approve by selecting that branch from anywhere. No
+cross-branch escape hatch is needed and the branch rules that already work stay
+untouched. Worth stating, because the loose reading of "remotely" would have been
+a security regression.
+
+### Two findings that change H1's size
+
+**Serialized reservation is nearly free.** `UnitStatus.reserved` already exists
+and is unused; `unit-state-machine.ts` already permits `in_stock → reserved` and
+`reserved → in_stock`; and `SalesPolicyService.assertSellable` already requires
+`in_stock`. So "stock stops being sellable at request" is enforced the moment
+transfers start setting the status — no enum migration, no change to Sell.
+
+*Caveat recorded for H1:* the state machine also allows `reserved → sold`, which
+Sell refuses. Harmless today because nothing sets `reserved`, but the two should
+be made to agree rather than left contradicting each other. And if
+hold-for-customer is built later it must be distinguishable from a transfer
+reservation — a reason column or a separate status.
+
+**Quantity reservation has no primitive at all.** `StockItem` carries only
+`quantity`. Decision 3 + decision 4 together require a `reservedQuantity` column,
+and sellable quantity becomes `quantity − reservedQuantity` **everywhere stock is
+checked, including Sell**. This is the largest single piece of H1 and the reason
+H1.1 must come first.
+
+### Two questions the answers surfaced, still open
+
+- **Destination cost for quantity stock.** Moving 10 cables at 4.10 into a branch
+  holding 5 at 5.00 needs a rule — weighted average, or carry the source cost. It
+  changes margin, so it is a product decision, not an implementation detail.
+- **Destination price for quantity stock.** Recommend the CP3 rule: the
+  destination keeps its own price, else the company default, and never inherits
+  the source's.
+
+Neither blocks the schema, so both are listed for H1 design rather than asked now.
+
+### Verification
+
+Nothing was executed beyond documentation edits. Repository state unchanged from
+H0: backend `7adf598`, mobile `55f52b0`, both clean and level with `origin`;
+backend 46 suites / 597 tests; 28 migrations; four triggers; demo data at the
+CP4.5 baseline.
+
+**Commits:** backend and mobile **unchanged**; docs the commit carrying this
+entry. `READY_FOR_HANDOFF`, owner `NONE`. **H1 not started.**

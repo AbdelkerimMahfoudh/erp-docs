@@ -8,13 +8,11 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-07 — **Phase H0, Transfers Truth and
-  Workflow Audit** (complete). **Read-only:** no application code, schema,
-  permission or transfer behaviour changed. Documentation only.
-- **BLOCKED ON THE USER:** H1 cannot start until the transfer-workflow
-  decisions in [`docs/25`](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md) §8 are
-  answered — they change the schema.
-- Previous sessions: **CLAUDE-B** — G2A-CP4 and CP4.5; **CLAUDE-A** — CP2, CP3
+- Last session: **CLAUDE-B**, 2026-08-07 — **Phase H0** (read-only audit) plus
+  the user's four workflow decisions, now recorded. **No implementation.**
+- **H1 is designed but NOT started.** It changes schema and permissions, so per
+  `CLAUDE.md` it waits for explicit approval.
+- Previous sessions: **CLAUDE-B** — G2A-CP4, CP4.5; **CLAUDE-A** — CP2, CP3
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
@@ -489,28 +487,59 @@ protocol. `CLAUDE.md` now **requires** scratch and tooling files to live in an O
 temporary directory outside every repository, and requires invalidating a leaked
 credential rather than force-pushing.
 
-## Next exact action — **waiting on the user**
+## Transfer decisions — ANSWERED (2026-08-07)
 
-**H0 ends here by design.** Answer §8 of
-[`docs/25`](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md) — especially:
+| Decision | Answer |
+|---|---|
+| Who does what | **Option A** — Employee requests · Manager/Owner approves or rejects · source ships · destination receives · Manager/Owner cancels after shipment |
+| No Manager present | **Owner approves remotely** — still `transfer.approve` **in the source branch**, so branch scoping is unchanged |
+| Quantity accessories | **Transferable — in H1** |
+| Stock stops being sellable | **At request** |
 
-1. Who may create, approve, ship, receive and cancel? *(Option A recommended:
-   Employee requests, Manager/Owner approves, destination receives.)*
-2. What happens when a branch has no Manager present?
-3. **Should quantity accessories be transferable?** — the biggest scope question.
-4. When does stock stop being sellable: request, approval or shipment?
+Recorded in [`docs/21` §6b](docs/21_PRODUCT_DECISIONS.md) and
+[`docs/25` §8/§10](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md).
 
-Proposed H1 order once decided: **H1.1 reservation + idempotency** (independent
-of the workflow choice, and the prerequisite for everything else) → H1.2
-permission split → H1.3 lifecycle states → H1.4 quantity transfers → H1.5
-notifications/audit → H1.6 mobile UI → H1.7 tests.
+### Two findings that shape the work
 
-**Do not start H1 automatically.** Inter-store consignment stays out of scope and
-must not reuse the transfer model.
+- **Serialized reservation is nearly free.** `UnitStatus.reserved` already
+  exists and is unused, the unit state machine already allows
+  `in_stock ↔ reserved`, and `assertSellable` already refuses anything that is
+  not `in_stock` — so reserved stock stops being sellable with no enum migration.
+  *(Caveat for H1: the state machine also permits `reserved → sold`, which Sell
+  refuses. Harmless today, but the two should be made to agree.)*
+- **Quantity reservation has no primitive.** `StockItem` has only `quantity`, so
+  it needs `reservedQuantity`, and sellable quantity becomes
+  `quantity − reservedQuantity` **everywhere stock is checked, including Sell**.
+  This is the largest piece of H1.
+
+### Still open, small enough to settle during H1
+
+- **Destination cost for quantity stock** — weighted average, or carry source
+  cost? Affects margin, so it is a product decision.
+- **Destination price for quantity stock** — recommend the CP3 rule: destination
+  keeps its own price, else company default; never inherit the source's.
+- Partial receipt · cancellation/rejection reasons · which transitions notify the
+  Owner · history grouping · shipment photos.
+
+## Next exact action — **H1.1, once approved**
+
+**Do not start without the user's go-ahead.** Proposed order:
+
+1. **H1.1 — reservation + idempotency.** Client request id on create;
+   `Unit.status → reserved` at request; `StockItem.reservedQuantity`. Fixes both
+   live defects. **Touches Sell**, so it needs a backup and the same care as a
+   pricing migration.
+2. **H1.2 — permission split** (`transfer.request/approve/ship/receive/cancel`),
+   migration + backfill + drift test, following the `0016`–`0018` pattern.
+3. **H1.3 — lifecycle states** `pending_approval` / `rejected`, reasons.
+4. **H1.4 — quantity transfers** (destination StockItem, cost rule once decided).
+5. **H1.5 — notifications and audit.** 6. **H1.6 — mobile transfer UI.**
+7. **H1.7 — tests** (transfers has 6, covering a lookup table and a helper).
 
 **Deferred — do not start without the user:** G2B employee price proposals ·
-Excel import · suppliers · returns · loans · consignment · goals · expenses ·
-subscriptions · WhatsApp · authentication · technician functionality.
+Excel import · suppliers · returns · loans · **consignment (must not reuse the
+transfer model)** · goals · expenses · subscriptions · WhatsApp · authentication ·
+technician functionality.
 
 ## Completed milestones
 

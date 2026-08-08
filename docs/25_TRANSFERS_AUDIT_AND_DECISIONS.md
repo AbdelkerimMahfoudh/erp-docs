@@ -5,8 +5,9 @@
 > from source and confirmed against the running API — not what any document says
 > it should do.
 >
-> **Status: waiting on the user's workflow decisions (§8).** H1 cannot start
-> until §8 is answered, because the answers change the schema.
+> **Status: §8 ANSWERED (2026-08-07).** The four blocking decisions are settled
+> and recorded below. H1 is designed but **not started** — it is a schema and
+> permission change, so it waits for explicit approval per `CLAUDE.md`.
 
 ---
 
@@ -234,11 +235,20 @@ human-readable number — not the operation.
 
 ---
 
-## 8. Decisions needed before H1
+## 8. Decisions — ANSWERED by the user (2026-08-07)
 
-These change the schema, so they are asked before any code.
+**The user chose Option A**, plus the three answers below. These are now approved
+product decisions and govern H1.
 
-**Recommended: Option A — request and confirmation separation** *(see §9)*
+| # | Decision | Answer |
+|---|---|---|
+| 1 | Who may create/approve/ship/receive/cancel | **Option A** — Employee requests · Manager/Owner approves · source ships · destination receives · Manager/Owner cancels after shipment |
+| 2 | No Manager present | **The Owner may approve remotely** — approval is never blocked by who is physically in the shop |
+| 3 | Quantity accessories transferable | **Yes — included in H1** |
+| 4 | When stock stops being sellable | **At request** — reserved as soon as it is promised |
+
+Remaining questions below are smaller and can be settled during H1 design rather
+than before it.
 
 1. **Who may create, approve, ship, receive and cancel?** Today all three roles
    can do all five. *(Recommend: Employee creates and ships; Manager/Owner
@@ -267,7 +277,7 @@ These change the schema, so they are asked before any code.
 
 ## 9. Workflow options
 
-### Option A — request and confirmation separation *(recommended)*
+### Option A — request and confirmation separation ✅ **CHOSEN**
 
 Employee requests → Manager/Owner approves → source ships → destination reports
 receipt → Manager/Owner confirms the inventory movement. Cancellation after
@@ -285,7 +295,7 @@ give final confirmation **when another authorised user is available**.
 - **Migration size:** medium — 3 enum values, approval/rejection columns, reason,
   a permission split with a backfill, new endpoints
 
-### Option B — Manager/Owner only
+### Option B — Manager/Owner only *(not chosen)*
 
 Only Manager or Owner may create, ship, receive or cancel.
 
@@ -297,7 +307,7 @@ Only Manager or Owner may create, ship, receive or cancel.
 - **Permissions:** revoke `unit.transfer` from Store Employee (one seed/migration change)
 - **Migration size:** small
 
-### Option C — employee operational flow with Owner visibility
+### Option C — employee operational flow with Owner visibility *(not chosen)*
 
 Employees execute every transition; the app compensates with strong audit records
 and immediate Owner notifications.
@@ -313,32 +323,94 @@ and immediate Owner notifications.
 
 ---
 
-## 10. Implementation dependencies and proposed H1 order
+## 10. What the answers mean for H1
 
-Regardless of which option is chosen, these are ordered by dependency:
+### The lifecycle the decisions produce
 
-1. **H1.1 — reservation and idempotency.** Fix §4.1, §4.2 and §7 first: a
-   client-generated request id on create, and a reservation that makes a
-   promised unit unsellable. Everything else is unsafe until stock cannot be
-   double-promised. *Independent of the workflow decision.*
-2. **H1.2 — permission split** (only if Option A or B). Requires questions 1 and
-   2 answered. Migration + backfill + drift test, following the `0016`–`0018`
-   pattern where the matrix lives in a migration, not only in the seed.
-3. **H1.3 — lifecycle states** — `pending_approval` / `rejected`, reasons,
-   partial receipt. Requires questions 6 and 7.
-4. **H1.4 — quantity transfers** (only if question 3 is yes). Largest single
-   piece: reservation semantics, destination `StockItem` creation, cost, and the
-   `0029` version for concurrency.
-5. **H1.5 — notifications and audit** to match the chosen workflow (question 8).
-6. **H1.6 — mobile transfer UI**, built last against a settled contract, with the
-   status labels and tones that already exist.
-7. **H1.7 — tests.** Transfers currently has 6 tests covering a lookup table and
-   a helper. It needs authorization, lifecycle, concurrency and pricing-invariant
-   coverage before it is trusted with stock.
+```
+  request            approve                 ship              receive
+  (Employee,      (Manager/Owner,         (source)         (destination)
+   source)         source branch)
+      │                  │                     │                  │
+      ▼                  ▼                     ▼                  ▼
+pending_approval ──► ready_to_ship ──►    in_transit    ──►    received
+      │                  │                     │
+      │ reject           │ cancel              │ cancel (Manager/Owner only)
+      ▼                  ▼                     ▼
+   rejected          cancelled             cancelled
+```
 
-**Inter-store consignment is explicitly out of scope.** Transfers move
-**one company's own stock between its own branches**; consignment involves a
-separately owned store, payment, settlement and shared product data. The current
-model **cannot** express it — `companyId` is on every row and the tenant client
-narrows every query — and it must not be stretched to try. Cross-company transfer
-already fails closed (`404`), which is the correct behaviour and should stay.
+**Stock is reserved at `pending_approval`** — the moment it is promised — and
+released on `rejected` or `cancelled`.
+
+### Two findings that shrink the work
+
+**Serialized reservation needs no enum migration.** `UnitStatus.reserved`
+already exists, is unused, and `unit-state-machine.ts` already permits
+`in_stock → reserved` and `reserved → in_stock`. Better still,
+`SalesPolicyService.assertSellable` requires `in_stock`, so a reserved unit is
+**already unsellable** — decision 4 is enforced the moment transfers start
+setting the status.
+
+*One caveat to settle in H1:* the state machine also allows `reserved → sold`,
+which Sell refuses. Those two disagree today with no practical effect; H1 should
+make them agree rather than leave a latent contradiction. And if hold-for-customer
+is built later, it will need to be distinguishable from a transfer reservation —
+either a reason column or a separate status.
+
+**Quantity reservation has no primitive at all.** `StockItem` has `quantity` and
+nothing else, so decision 3 + decision 4 together require a new
+`reservedQuantity` column, with sellable quantity becoming
+`quantity − reservedQuantity` everywhere stock is checked. That is the single
+largest piece of H1 and it touches Sell.
+
+### Decision 2, made precise
+
+"The Owner may approve remotely" does **not** mean weakening branch scoping.
+Approval requires `transfer.approve` **in the source branch**; an Owner is
+assigned to every branch, so they can approve by selecting that branch from
+anywhere. Nothing needs a cross-branch escape hatch, and the branch rules that
+already work stay exactly as they are.
+
+### Still open, but small enough to settle during H1
+
+- **Destination price on receipt** — the CP3 rule already governs: the unit
+  override is deleted and the destination's own branch price or the company
+  default applies. For **quantity** stock this is new: the destination
+  `StockItem` must **not** inherit the source's price. Recommend it follows the
+  same rule — destination price, else company default.
+- **Destination cost on receipt (quantity only).** Genuinely undecided. Moving 10
+  cables worth 4.10 into a branch holding 5 at 5.00 needs a rule: weighted
+  average, or carry the source cost. This affects margin, so it is a real product
+  decision, not an implementation detail.
+- Partial receipt, cancellation/rejection reasons, which transitions notify the
+  Owner, history grouping, and shipment photos — all listed in the questions above
+  and none block the schema.
+
+## 11. Proposed H1 order
+
+1. **H1.1 — reservation + idempotency.** Fixes §4.1, §4.2 and §7. A
+   client-generated request id on create, `Unit.status → reserved` at request,
+   and `StockItem.reservedQuantity`. Everything else is unsafe until stock
+   cannot be double-promised. **Touches Sell**, so it needs the same care as a
+   pricing change.
+2. **H1.2 — permission split.** `unit.transfer` → `transfer.request`,
+   `transfer.approve`, `transfer.ship`, `transfer.receive`, `transfer.cancel`.
+   Migration + backfill + drift test, following the `0016`–`0018` pattern where
+   the matrix lives in a migration and not only in the seed.
+3. **H1.3 — lifecycle states.** `pending_approval` and `rejected`, approval and
+   rejection columns, reasons.
+4. **H1.4 — quantity transfers.** Destination `StockItem` creation, the cost rule
+   once decided, and `0029`'s version for concurrency.
+5. **H1.5 — notifications and audit** for the new transitions.
+6. **H1.6 — mobile transfer UI**, built last against a settled contract, reusing
+   the transfer status labels and tones that already exist.
+7. **H1.7 — tests.** Transfers has 6 tests covering a lookup table and a helper.
+   It needs authorization, lifecycle, concurrency and pricing-invariant coverage
+   before it is trusted with stock.
+
+**Inter-store consignment remains out of scope.** Transfers move one company's
+own stock between its own branches; consignment involves a separately owned
+store, payment and settlement. The current model cannot express it — `companyId`
+is on every row and the tenant client narrows every query — and it must not be
+stretched to try. Cross-company transfer already fails closed (404); that stays.
