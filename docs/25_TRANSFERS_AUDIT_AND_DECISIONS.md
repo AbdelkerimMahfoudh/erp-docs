@@ -5,9 +5,10 @@
 > from source and confirmed against the running API — not what any document says
 > it should do.
 >
-> **Status: §8 ANSWERED (2026-08-07).** The four blocking decisions are settled
-> and recorded below. H1 is designed but **not started** — it is a schema and
-> permission change, so it waits for explicit approval per `CLAUDE.md`.
+> **Status: §8 answered · H1.1 SHIPPED (2026-08-08, migration `0030`).**
+> The two stock-integrity defects in §4 are fixed and re-verified against real
+> MySQL. §4.1, §4.2 and the idempotency gap in §7 are closed; the permission gap
+> in §3 remains open and is H1.2.
 
 ---
 
@@ -137,14 +138,14 @@ in-transit and other-branch units are all rejected with a reason.
 
 ### Two real defects
 
-**4.1 — Creating a transfer reserves nothing.** After `POST /transfers` the unit
+**4.1 — Creating a transfer reserves nothing.** ✅ **FIXED in H1.1 (`0030`).** After `POST /transfers` the unit
 is still `in_stock` at the source branch and **fully sellable**. Verified live:
 a unit sitting in an open transfer resolved normally through the pricing endpoint
 with `status=in_stock, canPrice=true`. Someone can sell a phone that another
 member of staff has already promised to a different branch. The clash only
 surfaces later, at `ship`, as "Some units are no longer in stock at this branch".
 
-**4.2 — Two open transfers can claim the same unit.** Verified live: with one
+**4.2 — Two open transfers can claim the same unit.** ✅ **FIXED in H1.1.** Verified live: with one
 `ready_to_ship` transfer already holding a unit, a second create for the same
 unit returned **`201 Created`**. Nothing prevents it, because nothing is
 reserved. The first `ship` wins; the second fails late.
@@ -386,6 +387,59 @@ already work stay exactly as they are.
 - Partial receipt, cancellation/rejection reasons, which transitions notify the
   Owner, history grouping, and shipment photos — all listed in the questions above
   and none block the schema.
+
+## 10b. H1.1 — what shipped (migration `0030`)
+
+**Reservation begins at request.** A transfer request moves every unit
+`in_stock → reserved` in the same transaction that creates the transfer. Sell
+and Pricing already required `in_stock`, so a promised phone stopped being
+sellable and stopped being priceable for free.
+
+**One active claim, arbitrated by the database.** The claim is a compare-and-swap
+— `updateMany` with `status: 'in_stock'` in the WHERE. MySQL takes a row lock
+for the UPDATE and holds it to commit, so a concurrent request blocks, re-reads a
+row that is already `reserved`, and matches nothing. Exactly one transaction can
+see the unit as `in_stock`. An application-level "is it free?" read could never
+promise that: true when checked, false when acted on.
+
+**Idempotency.** `clientUuid` is mandatory, stored with a payload fingerprint
+under `UNIQUE (company_id, client_uuid)`. Replay returns the original; a
+different payload under the same key is 409; identifier order is normalised;
+duplicates inside one request are now **reported** rather than silently
+deduplicated.
+
+**Quantity availability.** `StockItem.reservedQuantity` with two CHECK
+constraints — non-negative, and never above physical. `quantity` remains the
+PHYSICAL total and is deliberately never reduced to express unavailability,
+because reserved goods are still company-owned and still count in valuation.
+Available to sell is `quantity − reservedQuantity`. H1.1 does **not** create
+quantity transfer lines; this is the foundation H1.4 will use.
+
+**State machine corrected.** `reserved → sold` is now illegal, matching
+`assertSellable`, which always refused it.
+
+### Two defects the live races found that code review had not
+
+| Found | Fix |
+|---|---|
+| **Sell and a transfer request both returned 201.** Sell's unit write was a blind update, so a transfer reserved the phone between `assertSellable` and the write, and the sale stamped it `sold` anyway — a phone simultaneously sold and promised, both callers told "success" | Sell now CLAIMS the unit with a compare-and-swap on `in_stock`; the loser gets a clear 409 |
+| **Concurrent identical requests:** the loser reported a conflict for work that had in fact succeeded, because only `P2002` was treated as a race — the reservation swap can lose first | Both failure paths now look up the request id and return the winner's transfer |
+
+**Race suite: 32/32** against the running API and real MySQL, covering both
+races above, replay, reordering, cross-payload 409, missing key, cancel release,
+ship/receive retries, quantity availability, the three database invariants, and
+valuation being unaffected by reservation.
+
+### Still open after H1.1
+
+- **The permission gap is untouched.** `unit.transfer` still guards every
+  transition and all three roles still hold it, so a Store Employee assigned to
+  both branches can still run a transfer alone. That is **H1.2**, and it is
+  recorded here as an unresolved authorization gap rather than approved
+  behaviour.
+- Cancellation after shipment still rewrites the unit's branch back to source
+  without proof it physically returned. Recorded for H1.3.
+- Quantity transfer lines, partial receipt, approval states: H1.3/H1.4.
 
 ## 11. Proposed H1 order
 

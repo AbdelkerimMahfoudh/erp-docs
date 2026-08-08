@@ -1693,3 +1693,120 @@ CP4.5 baseline.
 
 **Commits:** backend and mobile **unchanged**; docs the commit carrying this
 entry. `READY_FOR_HANDOFF`, owner `NONE`. **H1 not started.**
+
+---
+
+## 2026-08-08 — CLAUDE-B — **Phase H1.1: transfer reservation and idempotency**
+
+Migration **`0030_transfer_reservation_and_idempotency`**. Closes both
+stock-integrity defects the H0 audit proved live. **H1.2 not started.**
+
+### Takeover
+
+Matched the brief exactly: backend `7adf598`, mobile `55f52b0`, docs `8efff8e`,
+migration `0029` (28), 46 suites / 597 tests, four triggers, clean and level,
+`READY_FOR_HANDOFF` / `NONE`.
+
+### Availability-consumer audit, before designing anything
+
+Classified every production reader of `StockItem.quantity` and `Unit.status`
+rather than replacing `quantity` globally:
+
+- **Available-to-sell** (must subtract reserved): Sell's quantity check — the
+  only one.
+- **Physical** (must NOT subtract): receiving and purchase increments, the
+  inventory `quantity > 0` filter, the analytics valuation SQL, the low-stock
+  threshold. Reserved goods are still company-owned, so financial inventory
+  value is deliberately unchanged by reservation — proven at the end.
+- **Serialized eligibility:** `assertSellable` already required `in_stock`, so
+  reserved units became unsellable with no change to Sell at all.
+
+### Backup and legacy audit
+
+`phonestore-20260808-035107.sql` — 55 tables, 4 triggers, 0 raw `_binary`, valid
+UTF-8, financial tables present. DEFINER-safe restore proven **before** migrating:
+55/55 tables, 4/4 triggers, `sum_total = 10051.00`, and units, sales and
+stock_items ID checksums byte-identical to live.
+
+Legacy audit found **nothing to reconcile**: zero transfers, zero items, zero
+duplicate active claims, zero reserved or in-transit units. So `0030` could not
+retroactively reserve a conflicting historical claim. Recorded because a
+production database needs this rerun before deployment.
+
+### What shipped
+
+Reservation at request: `in_stock → reserved` inside the transfer's transaction.
+One active claim, arbitrated by a compare-and-swap on the status — MySQL row-locks
+the UPDATE until commit, so a concurrent request blocks, re-reads a `reserved`
+row and matches nothing. Exactly one transaction can see the unit free; an
+application-level "is it free?" read could never promise that.
+
+Idempotency mirroring Purchase: mandatory `clientUuid` plus a payload fingerprint
+under `UNIQUE (company_id, client_uuid)`. Identifier order normalised; duplicates
+inside one request now **reported** rather than silently deduplicated, which had
+made a miscount look like success.
+
+`StockItem.reservedQuantity` with two CHECK constraints. `quantity` stays PHYSICAL
+and is never reduced to express unavailability. Ship, receive and cancel all
+compare-and-swap on the status they expect, so retries cannot move stock twice
+and a cancel cannot release a unit claimed elsewhere.
+
+State machine corrected: `reserved → sold` is now illegal, matching
+`assertSellable`, which had always refused it.
+
+### Two defects the live races found that reading the code had not
+
+**Sell and a transfer request both returned 201.** Sell's unit status write was a
+blind update, so a transfer reserved the phone between `assertSellable` reading it
+and the write, and the sale stamped it `sold` anyway. The shop would have had a
+phone simultaneously sold and promised to another branch, with both operations
+reporting success. Sell now CLAIMS the unit with a compare-and-swap; re-verified
+as sell 409 / transfer 201, unit ending `reserved`.
+
+**A lost identical race reported a conflict for work that had succeeded.** The
+loser of two concurrent identical requests can fail in two ways — the unique key,
+or the reservation swap finding the unit already claimed by the winner running the
+same request. Only `P2002` was handled. Both paths now return the winner's
+transfer; re-verified as both callers receiving the same id.
+
+Neither was visible in review. Only a real concurrent race showed them.
+
+### Verification
+
+Backend **47 suites / 607 tests** (H0 baseline 46/597; +10). TypeScript clean,
+`prisma validate` valid, **29 migrations**, four triggers.
+
+**Race suite 32/32** against the running API and real MySQL: request reserves ·
+Sell refuses reserved · Pricing refuses reserved · a second transfer refuses ·
+sequential replay · replay creates no second transfer · identifier reordering ·
+cross-payload 409 · missing key 400 · cancel releases · **two concurrent claims,
+one winner** · concurrent identical requests produce one transfer with one id ·
+**Sell vs transfer, one winner** · ship retry 409 · receive retry 409 · unit
+arrives once at the destination · quantity availability refuses over-selling and
+allows within · physical falls while reservation holds · DB rejects negative
+reservation, reserved above physical, and physical below reserved · valuation
+unchanged by reservation.
+
+Mobile: TypeScript clean, `expo lint` clean, EN/AR parity 557 = 557, Node suites
+11 + 5 + 6 + 7. No Transfers UI built.
+
+### Cleanup
+
+All probe transfers, items and units restored; the race suite's `StockTransfer`
+and `Unit` audit rows from 2026-08-08 removed via the migrator and reported here
+rather than left implicit; earlier demo audit history untouched. Temporary
+databases `prisma_h11_pre` and `prisma_h11_clean` dropped. Demo data afterwards:
+products 12 · units 11 (3 in_stock, 8 sold) · sales 7 · `sum_total = 10051.00` ·
+sale_items 14 · stock 4 at 52/90/90/15 all reserved 0 · transfers 0 · pricing
+tables empty · 4 triggers. `units` and `sales` ID checksums identical to the
+pre-migration backup.
+
+### 🔴 Unresolved, recorded not approved
+
+`unit.transfer` still guards request, ship, receive and cancel alike and all
+three roles still hold it, so a Store Employee assigned to both branches can
+still run a transfer alone. That is H1.2. Cancellation after shipment still
+rewrites the unit's branch to source without proof it physically returned (H1.3).
+
+**Commits:** backend `e40af13`, `b63e5c6`, `d3ea0c6`; mobile `84b5b84`; docs the
+commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

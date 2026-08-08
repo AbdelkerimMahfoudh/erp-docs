@@ -6,51 +6,14 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- started_at_utc: **2026-08-07 (H1.1 takeover)**
-- Active phase and scope: **H1.1 — Transfer Reservation and Idempotency.**
-  Reserve at request, one active claim per unit, mandatory client UUID on create,
-  and `StockItem.reservedQuantity` as the availability foundation. **Not** the
-  permission split, approval endpoints, quantity transfer execution, notifications
-  or mobile transfer UI.
-- HEADs at takeover — backend `7adf598` · mobile `55f52b0` · docs `8efff8e`;
-  all clean and level. Migration `0029` (28). Baseline **46 suites / 597 tests**.
-  Triggers **4**. All matched the brief.
-- Next intended action: schema + migration `0030` (CP2).
-
-### H1.1-CP1 — backup and legacy audit
-
-- **Backup:** `~/erp-backups/phonestore-20260808-035107.sql` — `--hex-blob`,
-  `--single-transaction`, routines/triggers/events, no tablespaces. Credentials
-  never printed or placed on a command line.
-- **Verified:** 232 634 bytes · trailer `-- Dump completed on 2026-08-08 3:51:08`
-  · **0 raw `_binary`** / 1 770 hex literals · valid UTF-8 · **55 tables** ·
-  **4 triggers** · INSERTs present for sales, sale_items, stock_items, units,
-  products.
-- **Restore proven BEFORE migrating** through the DEFINER-safe path
-  (`scripts/sanitize-dump.js` → restore as migrator) into `prisma_h11_pre`:
-  **55/55 tables, 4/4 triggers**, `sum_total = 10051.00`, and all three binary-ID
-  checksums byte-identical to live — units `2a1dc9bf…`, sales `1e9d9c8c…`,
-  stock `681660e7…`.
-
-### H1.1 legacy transfer data — nothing to reconcile
-
-| Check | Count |
-|---|---|
-| Transfers (any status) | **0** |
-| Transfer items | **0** |
-| Open transfers (`ready_to_ship`/`in_transit`) | **0** |
-| **Duplicate active claims on one unit** | **0** |
-| Items with NULL or dangling `unit_id` | 0 |
-| Items with `product_id` set (quantity lines) | 0 |
-| Units currently `in_transit` | 0 |
-| Units currently `reserved` | 0 |
-
-The demo database has no transfer history at all, so the migration cannot
-silently reserve a conflicting historical claim and **no reconciliation rule is
-needed**. Recorded because a production database would need this audit rerun
-before deploying `0030`.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last session: **CLAUDE-B**, 2026-08-08 — **H1.1, Transfer Reservation and
+  Idempotency** (complete). Migration **`0030`**.
+- **H1.2 (permission split) NOT started.** `unit.transfer` still guards every
+  transition and all three roles hold it — an **unresolved authorization gap**,
+  recorded as such, not approved behaviour.
+- Previous sessions: **CLAUDE-B** — H0, G2A-CP4/CP4.5; **CLAUDE-A** — CP2, CP3
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
@@ -67,12 +30,12 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `7adf598` | `7adf598` | clean |
-| Mobile (`erp-mobile`) | master | `55f52b0` | `55f52b0` | clean |
+| Backend (`erp-backend`) | master | `d3ea0c6` | `d3ea0c6` | clean |
+| Mobile (`erp-mobile`) | master | `84b5b84` | `84b5b84` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-H0 changed **no code** — backend and mobile are untouched at the CP4.5 commits.
-CP4.5 was backend `88e25bd`, `7adf598` · mobile `7049ea4`, `55f52b0`.
+H1.1 commits — backend `e40af13` (migration 0030) · `b63e5c6` (reservation +
+idempotency) · `d3ea0c6` (the two race fixes) · mobile `84b5b84`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -83,12 +46,12 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (re-measured at the end of H0)
+## Verified baseline (end of H1.1)
 
-- **Backend tests: 46 suites / 597 tests passing**, 0 failing — unchanged by H0.
-  Of these, **transfers has only 6 tests in 2 files** (the state-machine table
-  and the discrepancy helper); there is no transfer service, authorization or
-  lifecycle test.
+- **Backend tests: 47 suites / 607 tests passing**, 0 failing (H0 baseline
+  46/597; H1.1 added 10 reservation and DTO tests).
+- **Race suite: 32/32** against the running API and real MySQL — see the H1.1
+  section.
   *Correction: commit `88e25bd`'s message says "9 added / 591" — the real
   figures are 7 added and 589 at that point. History was not rewritten for a
   count error.*
@@ -107,8 +70,8 @@ From either code repository the documentation repository is `../`.
   suite compile against it). The `EPERM … query_engine-windows.dll` rename
   warning is the known WAMP file-lock from another running dev server, not a
   generation failure.
-- Migration status: *"Database schema is up to date!"* — **28 migrations**,
-  latest **`0029_stock_item_version`** — **unchanged by CP4**.
+- Migration status: *"Database schema is up to date!"* —
+  latest **`0030_transfer_reservation_and_idempotency`** — **29 migrations**.
 - **Trigger inventory (exact, live dev):** `audit_logs_block_update` BEFORE
   UPDATE · `audit_logs_block_delete` BEFORE DELETE · `price_change_events_block_update`
   BEFORE UPDATE · `price_change_events_block_delete` BEFORE DELETE. **4 total**,
@@ -559,25 +522,81 @@ Recorded in [`docs/21` §6b](docs/21_PRODUCT_DECISIONS.md) and
 - Partial receipt · cancellation/rejection reasons · which transitions notify the
   Owner · history grouping · shipment photos.
 
-## Next exact action — **H1.1, once approved**
+## Phase H1.1 ✅ — reservation and idempotency (backend `d3ea0c6`, mobile `84b5b84`)
 
-**Do not start without the user's go-ahead.** Proposed order:
+Migration **`0030_transfer_reservation_and_idempotency`**. Closes both
+stock-integrity defects the H0 audit proved live.
 
-1. **H1.1 — reservation + idempotency.** Client request id on create;
-   `Unit.status → reserved` at request; `StockItem.reservedQuantity`. Fixes both
-   live defects. **Touches Sell**, so it needs a backup and the same care as a
-   pricing migration.
-2. **H1.2 — permission split** (`transfer.request/approve/ship/receive/cancel`),
-   migration + backfill + drift test, following the `0016`–`0018` pattern.
-3. **H1.3 — lifecycle states** `pending_approval` / `rejected`, reasons.
-4. **H1.4 — quantity transfers** (destination StockItem, cost rule once decided).
-5. **H1.5 — notifications and audit.** 6. **H1.6 — mobile transfer UI.**
-7. **H1.7 — tests** (transfers has 6, covering a lookup table and a helper).
+**Reserve at request.** A request moves every unit `in_stock → reserved` in the
+same transaction as the transfer. Sell and Pricing already demanded `in_stock`,
+so a promised phone stopped being sellable and priceable with no change to
+either.
 
-**Deferred — do not start without the user:** G2B employee price proposals ·
-Excel import · suppliers · returns · loans · **consignment (must not reuse the
-transfer model)** · goals · expenses · subscriptions · WhatsApp · authentication ·
-technician functionality.
+**One active claim.** A compare-and-swap — `updateMany` with
+`status: 'in_stock'` in the WHERE. MySQL row-locks the UPDATE until commit, so a
+concurrent request blocks, re-reads a `reserved` row and matches nothing.
+Exactly one transaction can see the unit free. An application read could not
+promise that: true when checked, false when acted on.
+
+**Idempotency.** `clientUuid` mandatory, with a payload fingerprint under
+`UNIQUE (company_id, client_uuid)`. Replay returns the original; a different
+payload under the same key is 409; identifier order is normalised; duplicates in
+one request are **reported**, not silently deduplicated.
+
+**Quantity foundation.** `StockItem.reservedQuantity` + two CHECKs (non-negative,
+never above physical). `quantity` stays PHYSICAL and is never reduced to express
+unavailability — reserved goods are still owned and still valued. Sell consumes
+only `quantity − reservedQuantity`. **No quantity transfer lines yet** (H1.4).
+
+### The two defects the live races found
+
+| Found by running it | Fix |
+|---|---|
+| **Sell and a transfer request both returned 201** — Sell's unit write was blind, so a transfer reserved the phone between `assertSellable` and the write and the sale stamped it `sold` anyway. A phone both sold and promised, both callers told "success" | Sell now CLAIMS the unit with a compare-and-swap; loser gets 409 |
+| **Concurrent identical requests** — the loser reported a conflict for work that had succeeded, because only `P2002` was treated as a race and the reservation swap can lose first | Both paths look up the request id and return the winner's transfer |
+
+**Races: 32/32** against the running API and real MySQL — both races above,
+replay, reordering, cross-payload 409, missing key, cancel release, ship and
+receive retries, quantity availability, all three database invariants, and
+valuation unchanged by reservation.
+
+### Backup and deployment
+
+- **Backup:** `~/erp-backups/phonestore-20260808-035107.sql` — 55 tables, 4
+  triggers, 0 raw `_binary`, valid UTF-8. DEFINER-safe restore proven **before**
+  migrating: 55/55 tables, 4/4 triggers, `sum_total = 10051.00`, and units,
+  sales and stock_items ID checksums byte-identical to live.
+- **Legacy audit:** zero transfers, zero items, **zero duplicate active claims**,
+  zero reserved/in-transit units — so `0030` invented no reservation. *A
+  production database needs this audit rerun before deploying.*
+- **Deployment proved** on the restored pre-migration database (11 units, 7 sales,
+  `sum_total` preserved, every stock row reserved 0), on a clean database from
+  zero, on dev, and on rerun. Four triggers intact throughout. Reverse SQL is in
+  the `0030` commit message.
+
+### 🔴 Unresolved — the permission gap (H1.2)
+
+`unit.transfer` still guards request, ship, receive and cancel alike, and
+**all three roles still hold it**. A Store Employee assigned to both branches can
+still run a transfer end to end alone. H1.1 deliberately did not touch this;
+it is **recorded as an unresolved authorization gap, not approved behaviour**.
+
+Also deferred: cancellation after shipment still rewrites the unit's branch back
+to source without proof it physically returned (H1.3).
+
+## Next exact action — **H1.2, once authorised**
+
+Split `unit.transfer` into `transfer.request` / `transfer.approve` /
+`transfer.ship` / `transfer.receive` / `transfer.cancel`, with migration +
+backfill + drift test following the `0016`–`0018` pattern where the matrix lives
+in a migration and not only in the seed. Then H1.3 lifecycle states, H1.4
+quantity transfers, H1.5 notifications, H1.6 mobile UI, H1.7 tests.
+
+**Deferred — do not start without the user:** approval/rejection endpoints ·
+quantity transfer creation · partial receipt · transfer notifications · transfer
+mobile UI · G2B pricing proposals · returns · suppliers · **consignment (must not
+reuse the transfer model)** · loans · expenses · subscriptions · WhatsApp ·
+authentication · technician functionality.
 
 ## Completed milestones
 
@@ -606,6 +625,8 @@ technician functionality.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
+- **Phase H1.1 — reservation and idempotency: complete** (`0030`). Permission
+  split (H1.2) still open.
 - **Phase H0 — Transfers audit: complete (read-only).** Findings and workflow
   options in `docs/25`; blocked on the user's decisions.
 - **Phase G2A — Pricing Foundation: CP1–CP4.5 complete.** Mobile pricing UI
@@ -649,9 +670,13 @@ technician functionality.
   controls.** `unit.transfer` gates request, ship, receive and cancel alike, so
   the feature has no second pair of eyes anywhere — separation of duties has to
   be designed in, it does not emerge.
-- **Nothing is reserved until something says it is.** Transfers promise stock
-  without holding it, so the same phone can be sold, or promised twice, and the
-  conflict only appears later at shipment.
+- **Nothing is reserved until something says it is.** Transfers promised stock
+  without holding it, so the same phone could be sold or promised twice. Fixed in
+  H1.1 by reserving at request.
+- **A blind update is not a claim.** Sell overwrote a unit's status without
+  checking what it was, so a sale and a transfer could both "succeed" on the same
+  phone. Any write that takes exclusive ownership of a row must state the state it
+  expects — and only a real concurrent race showed it.
 - **A Git rollback does not roll back the database.** Restoring the dump is a
   separate, deliberate step.
 - **`prisma migrate deploy` never runs the seed**, so anything reference-like
