@@ -6,13 +6,51 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-07 — **Phase H0** (read-only audit) plus
-  the user's four workflow decisions, now recorded. **No implementation.**
-- **H1 is designed but NOT started.** It changes schema and permissions, so per
-  `CLAUDE.md` it waits for explicit approval.
-- Previous sessions: **CLAUDE-B** — G2A-CP4, CP4.5; **CLAUDE-A** — CP2, CP3
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- started_at_utc: **2026-08-07 (H1.1 takeover)**
+- Active phase and scope: **H1.1 — Transfer Reservation and Idempotency.**
+  Reserve at request, one active claim per unit, mandatory client UUID on create,
+  and `StockItem.reservedQuantity` as the availability foundation. **Not** the
+  permission split, approval endpoints, quantity transfer execution, notifications
+  or mobile transfer UI.
+- HEADs at takeover — backend `7adf598` · mobile `55f52b0` · docs `8efff8e`;
+  all clean and level. Migration `0029` (28). Baseline **46 suites / 597 tests**.
+  Triggers **4**. All matched the brief.
+- Next intended action: schema + migration `0030` (CP2).
+
+### H1.1-CP1 — backup and legacy audit
+
+- **Backup:** `~/erp-backups/phonestore-20260808-035107.sql` — `--hex-blob`,
+  `--single-transaction`, routines/triggers/events, no tablespaces. Credentials
+  never printed or placed on a command line.
+- **Verified:** 232 634 bytes · trailer `-- Dump completed on 2026-08-08 3:51:08`
+  · **0 raw `_binary`** / 1 770 hex literals · valid UTF-8 · **55 tables** ·
+  **4 triggers** · INSERTs present for sales, sale_items, stock_items, units,
+  products.
+- **Restore proven BEFORE migrating** through the DEFINER-safe path
+  (`scripts/sanitize-dump.js` → restore as migrator) into `prisma_h11_pre`:
+  **55/55 tables, 4/4 triggers**, `sum_total = 10051.00`, and all three binary-ID
+  checksums byte-identical to live — units `2a1dc9bf…`, sales `1e9d9c8c…`,
+  stock `681660e7…`.
+
+### H1.1 legacy transfer data — nothing to reconcile
+
+| Check | Count |
+|---|---|
+| Transfers (any status) | **0** |
+| Transfer items | **0** |
+| Open transfers (`ready_to_ship`/`in_transit`) | **0** |
+| **Duplicate active claims on one unit** | **0** |
+| Items with NULL or dangling `unit_id` | 0 |
+| Items with `product_id` set (quantity lines) | 0 |
+| Units currently `in_transit` | 0 |
+| Units currently `reserved` | 0 |
+
+The demo database has no transfer history at all, so the migration cannot
+silently reserve a conflicting historical claim and **no reconciliation rule is
+needed**. Recorded because a production database would need this audit rerun
+before deploying `0030`.
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
