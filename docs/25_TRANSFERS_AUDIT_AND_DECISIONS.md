@@ -5,10 +5,13 @@
 > from source and confirmed against the running API — not what any document says
 > it should do.
 >
-> **Status: §8 answered · H1.1 SHIPPED (2026-08-08, migration `0030`).**
-> The two stock-integrity defects in §4 are fixed and re-verified against real
-> MySQL. §4.1, §4.2 and the idempotency gap in §7 are closed; the permission gap
-> in §3 remains open and is H1.2.
+> **Status: §8 answered · H1.1 SHIPPED (`0030`) · H1.2 SHIPPED (`0031`, `0032`).**
+> Every defect this audit found is now closed. §4.1, §4.2 and the idempotency gap
+> in §7 were fixed in H1.1; **the permission gap in §3 is fixed in H1.2**, which
+> replaced the blanket `unit.transfer` with six stable keys and added the
+> approval lifecycle. The sections below are kept as the original audit — struck
+> findings are marked FIXED rather than rewritten, so the record of what was
+> actually wrong survives.
 
 ---
 
@@ -79,7 +82,11 @@ are still tenant-scoped, so no cross-company leak.
 ## 3. Permission findings — the headline
 
 **Every mutating transfer route is guarded by the single permission
-`unit.transfer`, and all three store roles hold it.**
+`unit.transfer`, and all three store roles hold it.** ✅ **FIXED in H1.2
+(`0031`).** `unit.transfer` is revoked from both store roles and guards no
+route; the six `transfer.*` keys replaced it. Verified live: an employee holds
+`request`/`ship`/`receive`/`cancel_own` and is refused `approve` and general
+`cancel`.
 
 Confirmed from the role matrix in the database:
 
@@ -104,6 +111,10 @@ moved: `403` = denied, `404` = guard passed.
 | Deactivated user | cannot log in — `401 Invalid credentials` | | | | |
 
 ### So: can a Store Employee run the whole lifecycle alone?
+
+> ✅ **No longer.** H1.2 added `pending_approval`, and an employee cannot
+> approve — proven live, including an employee assigned to **both** branches who
+> still cannot self-approve. What follows is the original finding.
 
 **Yes — within one branch pair, if assigned to both branches.** They can create,
 ship, receive, confirm and cancel. There is no second pair of eyes anywhere in
@@ -440,6 +451,89 @@ valuation being unaffected by reservation.
 - Cancellation after shipment still rewrites the unit's branch back to source
   without proof it physically returned. Recorded for H1.3.
 - Quantity transfer lines, partial receipt, approval states: H1.3/H1.4.
+
+## 10b. H1.2 as shipped — permissions and the approval lifecycle
+
+Migrations `0031` and `0032`. Serialized only; quantity transfer execution,
+partial receipt, proof photos and the mobile UI are still future work.
+
+### The lifecycle now
+
+```
+  request              approve                ship            receive
+  (transfer.request,  (transfer.approve,   (transfer.ship,  (transfer.receive,
+   source branch)      source branch)       source)          DESTINATION)
+        │                    │                   │                 │
+        ▼                    ▼                   ▼                 ▼
+ pending_approval ──► approved ──────────► in_transit ────────► received
+        │  │                │
+        │  └─reject────► rejected            nothing leaves in_transit
+        └─cancel──────► cancelled            except received
+```
+
+**`pending_approval` and `approved` both hold their units reserved**, so H1.1's
+guarantee still runs from the moment stock is promised. Only `rejected` and
+`cancelled` release it.
+
+**Nothing leaves `in_transit` except `received`.** Cancelling a shipment would
+mean deciding where the goods physically are, and rewriting the unit back to the
+source branch would be a guess. Return-to-source is deliberately future work.
+
+### The permission split
+
+| Key | Owner | Manager | Employee |
+|---|:--:|:--:|:--:|
+| `transfer.view` | ✅ | ✅ | ✅ |
+| `transfer.request` | ✅ | ✅ | ✅ |
+| `transfer.approve` | ✅ | ✅ | **—** |
+| `transfer.ship` | ✅ | ✅ | ✅ |
+| `transfer.receive` | ✅ | ✅ | ✅ |
+| `transfer.cancel` *(breadth)* | ✅ | ✅ | **—** |
+| `transfer.cancel_own` *(route)* | ✅ | ✅ | ✅ |
+| ~~`unit.transfer`~~ | inert | **revoked** | **revoked** |
+
+**The two cancel keys do different jobs**, and conflating them was a real bug
+found by live verification: `transfer.cancel_own` is the **route** key (may
+reach the endpoint), `transfer.cancel` is the **breadth** key (may cancel
+somebody else's). `PermissionsGuard` requires ALL listed permissions, so
+guarding on the broad key would lock employees out of withdrawing their own
+request, and guarding on both would lock managers out entirely — which is
+exactly what `0031` did until `0032` fixed it. The route takes the narrow key;
+breadth stays a service decision.
+
+**`unit.transfer` has zero production call sites.** The permission record is
+kept because historical audit rows reference it. It becomes safe to delete once
+no `role_permissions` row references it **and** no audit or reporting query
+reads the key — neither is true today.
+
+### Auto-approval
+
+A requester who already holds `transfer.approve` in the source branch creates an
+**approved** transfer directly, flagged `auto_approved`. Making a manager approve
+their own request would be ceremony, not control, and the flag stops the audit
+trail showing an approved transfer with no approver.
+
+### Concurrency
+
+Every transition carries `expectedVersion` and moves through one compare-and-swap
+helper. Proven live: approve-vs-reject and ship-vs-cancel each produce exactly
+one winner; a stale approval is 409.
+
+### Legacy remap
+
+`ready_to_ship` → `approved`. The only reading that invents no history: such a
+row was created and could ship, which is what `approved` now means. Nothing is
+marked received, and `approved_by` stays NULL with `auto_approved` false, so the
+trail never claims a decision nobody made. Development held zero transfers, so
+the remap was a no-op here.
+
+### Still deferred
+
+- **Notifications** — approval work is currently invisible: nobody is told a
+  request awaits them, or that theirs was approved or refused. Deferred to H1.5
+  rather than half-built here. **This is the most user-visible gap.**
+- Quantity transfer execution, partial receipt, discrepancy/return-to-source,
+  proof photos, mobile UI.
 
 ## 11. Proposed H1 order
 

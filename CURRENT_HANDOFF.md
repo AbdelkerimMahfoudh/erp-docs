@@ -8,12 +8,13 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-08 — **H1.1, Transfer Reservation and
-  Idempotency** (complete). Migration **`0030`**.
-- **H1.2 (permission split) NOT started.** `unit.transfer` still guards every
-  transition and all three roles hold it — an **unresolved authorization gap**,
-  recorded as such, not approved behaviour.
-- Previous sessions: **CLAUDE-B** — H0, G2A-CP4/CP4.5; **CLAUDE-A** — CP2, CP3
+- Last session: **CLAUDE-B**, 2026-08-08/09 — **H1.2, Transfer Permissions and
+  Serialized Approval Lifecycle** (complete). Migrations **`0031`** and
+  **`0032`**.
+- **The H0 authorization gap is CLOSED.** `unit.transfer` no longer guards any
+  route and is revoked from both store roles; an employee cannot approve, and
+  cannot cancel anyone else's request.
+- Previous: H1.1 (`0030`), H0 audit, G2A-CP1…CP4.5
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
 > explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
@@ -30,12 +31,14 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `d3ea0c6` | `d3ea0c6` | clean |
-| Mobile (`erp-mobile`) | master | `84b5b84` | `84b5b84` | clean |
+| Backend (`erp-backend`) | master | `d7f4653` | `d7f4653` | clean |
+| Mobile (`erp-mobile`) | master | `30440df` | `30440df` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-H1.1 commits — backend `e40af13` (migration 0030) · `b63e5c6` (reservation +
-idempotency) · `d3ea0c6` (the two race fixes) · mobile `84b5b84`.
+H1.2 commits — backend `0026790` (migration 0031: permission split + lifecycle) ·
+`04e1463` (approval lifecycle + versioned transitions) · `d7f4653` (migration
+0032: the cancel-route fix) · mobile `30440df` (status labels).
+H1.1 commits — backend `e40af13`, `b63e5c6`, `d3ea0c6` · mobile `84b5b84`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
 the id of the commit that introduces it. Read it with
@@ -46,12 +49,15 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (end of H1.1)
+## Verified baseline (end of H1.2)
 
-- **Backend tests: 47 suites / 607 tests passing**, 0 failing (H0 baseline
-  46/597; H1.1 added 10 reservation and DTO tests).
-- **Race suite: 32/32** against the running API and real MySQL — see the H1.1
-  section.
+- **Backend tests: 47 suites / 617 tests passing**, 0 failing (H1.1 baseline
+  47/607; H1.2 added 10 lifecycle, permission-split and drift tests).
+- **H1.1 race suite re-proved at H1.2 takeover: 32/32.** Re-run before changing
+  any lifecycle behaviour, so no H1.1 invariant regressed.
+- **H1.2 live verification: 40/40** against the running API and real MySQL with
+  five real sessions — Owner, Manager, Employee-in-both-branches, source-only and
+  destination-only.
   *Correction: commit `88e25bd`'s message says "9 added / 591" — the real
   figures are 7 added and 589 at that point. History was not rewritten for a
   count error.*
@@ -63,20 +69,19 @@ From either code repository the documentation repository is `../`.
 - **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
   `expo export --platform web` built **29 routes**, including `/pricing/unit`,
   `/pricing/history` and `/notifications`. Node pure suites: **11 + 5 + 6 + 7**.
-- **i18n:** EN and AR both **556 keys**, no missing, no extra, no duplicates;
+- **i18n:** EN and AR both **559 keys**, no missing, no extra, no duplicates;
   every literal `t()` key resolves; no `text-start`; no dead routes.
 - Backend TypeScript **clean** · `prisma validate` **valid** · `prisma generate`
   regenerated the client (3 500 references to the new models; both `tsc` and the
   suite compile against it). The `EPERM … query_engine-windows.dll` rename
   warning is the known WAMP file-lock from another running dev server, not a
   generation failure.
-- Migration status: *"Database schema is up to date!"* —
-  latest **`0030_transfer_reservation_and_idempotency`** — **29 migrations**.
+- Migration status: *"Database schema is up to date!"* — latest
+  **`0032_manager_cancel_route_permission`** — **31 migrations**.
 - **Trigger inventory (exact, live dev):** `audit_logs_block_update` BEFORE
   UPDATE · `audit_logs_block_delete` BEFORE DELETE · `price_change_events_block_update`
   BEFORE UPDATE · `price_change_events_block_delete` BEFORE DELETE. **4 total**,
-  all DEFINER `phonestore_migrator@localhost`. A clean database built from all 28
-  migrations now produces the same 4.
+  all DEFINER `phonestore_migrator@localhost`. Re-verified after `0031`/`0032`.
 - **No temporary databases remain** (`prisma_cp3_trig` and `prisma_cp3_pre`
   dropped). No temporary business fixtures remain.
 
@@ -584,19 +589,76 @@ it is **recorded as an unresolved authorization gap, not approved behaviour**.
 Also deferred: cancellation after shipment still rewrites the unit's branch back
 to source without proof it physically returned (H1.3).
 
-## Next exact action — **H1.2, once authorised**
+## H1.2 ✅ — permission split + serialized approval lifecycle
 
-Split `unit.transfer` into `transfer.request` / `transfer.approve` /
-`transfer.ship` / `transfer.receive` / `transfer.cancel`, with migration +
-backfill + drift test following the `0016`–`0018` pattern where the matrix lives
-in a migration and not only in the seed. Then H1.3 lifecycle states, H1.4
-quantity transfers, H1.5 notifications, H1.6 mobile UI, H1.7 tests.
+Full detail: [`docs/25` §10b](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md).
 
-**Deferred — do not start without the user:** approval/rejection endpoints ·
-quantity transfer creation · partial receipt · transfer notifications · transfer
-mobile UI · G2B pricing proposals · returns · suppliers · **consignment (must not
-reuse the transfer model)** · loans · expenses · subscriptions · WhatsApp ·
-authentication · technician functionality.
+**The H0 authorization gap is closed.** `unit.transfer` guarded request, ship,
+receive and cancel alike and all three roles held it. It now guards **nothing**
+(zero production call sites, verified by grep) and is revoked from both store
+roles. Six stable keys replaced it, and an employee holds neither `approve` nor
+general `cancel`.
+
+**Lifecycle:** `pending_approval → approved → in_transit → received`, with
+`rejected` and `cancelled` as terminal exits. Both pre-shipment states hold
+units **reserved**, so H1.1's guarantee still runs from the moment stock is
+promised. Nothing leaves `in_transit` except `received` — cancelling a shipment
+would mean guessing where the goods physically are.
+
+**Auto-approval:** a requester who already holds `transfer.approve` here creates
+an approved transfer, flagged `auto_approved` so the trail never shows an
+approved transfer with no approver.
+
+**Concurrency:** every transition carries `expectedVersion` through one
+compare-and-swap helper. Live: approve-vs-reject and ship-vs-cancel each have
+exactly one winner; a stale approval is 409.
+
+### Two defects found by verification, not by the suite
+
+1. **A manager could not cancel at all.** The cancel route is guarded on
+   `transfer.cancel_own`, `PermissionsGuard` requires ALL listed permissions, and
+   `0031` gave managers only `transfer.cancel`. Fixed by `0032`: the route takes
+   the **narrow** key (everyone who cancels holds it) and breadth stays a service
+   decision. Guarding on the broad key would have locked employees out instead.
+2. **A broken build was pushed.** Commit `0026790` changed the `TransferStatus`
+   enum but left the state machine and its spec on `ready_to_ship`, so `tsc`
+   failed. Repaired in the very next commit (`04e1463`) and recorded rather than
+   quietly amended.
+
+### Legacy remap rule (for a production database)
+
+`ready_to_ship` → `approved`: such a row was created and could ship, which is
+what `approved` now means. Nothing is marked received, and `approved_by` stays
+NULL with `auto_approved` false, so no decision is invented. Development held
+zero transfers, so the remap was a no-op here — **rerun the H1.1 legacy audit
+before deploying `0031` anywhere with real transfer history.**
+
+### 🔴 Deferred from H1.2 — approval work is currently invisible
+
+**No notifications were added.** Nobody is told that a request awaits their
+approval, that theirs was approved or refused, or that a transfer has shipped.
+The workflow is correct and enforced, but a pending request sits unseen until
+someone opens the list. Deferred to **H1.5** rather than half-built here; it is
+the most user-visible gap and should be the next transfer work after quantity.
+
+## Next exact action
+
+**H1.2 is complete. Nothing is authorised beyond it.** Candidates, in dependency
+order:
+
+1. **H1.3 — quantity transfers.** `StockItem.reservedQuantity` exists and is
+   enforced by CHECKs but is never written; transfers are serialized-only.
+   Needs the destination-cost rule decided (weighted average vs carry source
+   cost) — still open in `docs/21` §6b.
+2. **H1.4 — partial receipt** and discrepancy/return-to-source, which is also
+   what would let a shipped transfer be cancelled safely.
+3. **H1.5 — transfer notifications** (see above).
+4. **H1.6 — mobile transfer UI**, built last against a settled contract; status
+   labels and tones are already in place.
+
+**Deferred — do not start without the user:** G2B pricing proposals · Returns ·
+Suppliers · consignment (must not reuse the transfer model) · loans · expenses ·
+subscriptions · WhatsApp · authentication · technician functionality.
 
 ## Completed milestones
 

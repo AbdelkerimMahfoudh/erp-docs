@@ -1810,3 +1810,164 @@ rewrites the unit's branch to source without proof it physically returned (H1.3)
 
 **Commits:** backend `e40af13`, `b63e5c6`, `d3ea0c6`; mobile `84b5b84`; docs the
 commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-08/09 — CLAUDE-B — **Phase H1.2: transfer permissions and serialized approval lifecycle**
+
+Migrations **`0031`** and **`0032`**. Serialized only — quantity transfer
+execution, partial receipt, proof photos and mobile UI remain future work.
+
+### Takeover and H1.1 re-proof
+
+Everything matched the brief: backend `d3ea0c6`, mobile `84b5b84`, docs
+`01cfb1e`, migration `0030` (29), 47 suites / 607 tests, four triggers, clean and
+level, `READY_FOR_HANDOFF` / `NONE`.
+
+Before touching lifecycle behaviour I re-ran the H1.1 race suite against the
+running API: **32/32**. No H1.1 invariant had regressed, so nothing needed
+repair first.
+
+### Why the split and the lifecycle had to ship together
+
+Renaming permissions alone would either let employees ship unapproved requests,
+or strand every employee request with nobody able to act on it. The brief was
+right to combine them, and the point was proved twice during the work — see the
+two defects below.
+
+### The permission split
+
+Six stable keys replaced the blanket `unit.transfer`, which guarded request,
+ship, receive and cancel alike while all three roles held it. It now guards
+**nothing** — zero production call sites, verified by grep — and is revoked from
+both store roles. The permission record is kept because historical audit rows
+reference it; the migration documents when deleting it becomes safe.
+
+Owner holds all seven keys. Manager holds view/request/approve/ship/receive plus
+both cancel keys. Employee holds view/request/ship/receive/cancel_own and
+deliberately neither `approve` nor general `cancel`.
+
+### The lifecycle
+
+`pending_approval → approved → in_transit → received`, with `rejected` and
+`cancelled` as terminal exits. Both pre-shipment states hold their units
+**reserved**, so H1.1's guarantee still runs from the moment stock is promised
+rather than from shipment.
+
+Nothing leaves `in_transit` except `received`. Cancelling a shipment would mean
+deciding where the goods physically are, and rewriting the unit back to source
+would be a guess — return-to-source is future work, so the machine refuses rather
+than inventing an answer.
+
+A requester who already holds `transfer.approve` in the source branch creates an
+**approved** transfer directly, flagged `auto_approved`. Making a manager approve
+their own request would be ceremony, not control, and the flag stops the audit
+trail showing an approved transfer with no approver.
+
+Every transition carries `expectedVersion` through one compare-and-swap helper.
+Reject and cancel release reservations in the same transaction as the status
+change, scoped to the status they expect, so a retry cannot free a unit that has
+since been claimed elsewhere. Both demand a non-blank reason.
+
+`GET /transfers` and `/transfers/:id` now require `transfer.view` — they had **no
+permission at all**, so any signed-in user could browse every transfer in the
+company — and the list is scoped to the active branch's two ends.
+
+### Two defects found by verification, not by the unit suite
+
+**1. A manager could not cancel at all.** The cancel route is guarded on
+`transfer.cancel_own`; `PermissionsGuard` requires ALL listed permissions; and
+`0031` gave managers `transfer.cancel` but deliberately not `cancel_own`, on the
+reasoning that the broad key supersedes the narrow one. Live verification proved
+otherwise — the guard refused before the service could decide anything. Managers
+could approve and ship but never cancel: precisely the "strand the workflow"
+failure this phase exists to prevent.
+
+The two keys do different jobs, and `0031` conflated them. `transfer.cancel_own`
+is the **route** key (may reach the endpoint); `transfer.cancel` is the
+**breadth** key (may cancel somebody else's). Guarding the route on the broad key
+would lock employees out of withdrawing their own request; guarding on both locks
+managers out. `0032` grants the route key to managers, so the route takes the
+narrow key and breadth stays a service decision — which is what keeps the route
+permission alone from widening into general cancellation.
+
+**2. A broken build was pushed.** Commit `0026790` changed the `TransferStatus`
+enum but left `transfer-state-machine.ts` and its spec on `ready_to_ship`, so
+`tsc` failed on a pushed commit. Repaired in the very next commit (`04e1463`) and
+recorded here rather than quietly amended — the push happened, and hiding it
+would be worse than reporting it.
+
+### Drift test, strengthened
+
+The matrix comparison had to start subtracting revocations, or the revoked
+`unit.transfer` read as drift. Fixing that exposed two reader bugs that had been
+silently narrowing the test: the key regex rejected underscores (so
+`transfer.cancel_own` was invisible), and the final INSERT block swallowed the
+trailing DELETE, so a revoked key read as a grant — which would have hidden
+exactly the revocation H1.2 depends on. Four new assertions now pin the
+separation of duties in the SQL a deploy actually applies.
+
+### Legacy remap rule
+
+`ready_to_ship` → `approved`. The only reading that invents no history: such a
+row was created and could ship, which is what `approved` now means. Nothing is
+marked received, and `approved_by` stays NULL with `auto_approved` false, so the
+trail never claims a decision nobody made. Development held zero transfers, so
+the remap was a no-op here — **the H1.1 legacy audit must be rerun before `0031`
+is deployed anywhere holding real transfer history.**
+
+### Verification
+
+Backend **47 suites / 617 tests**, TypeScript clean, `prisma validate` valid,
+migration status up to date at **31 migrations**, **4 triggers** intact.
+
+Migrations proved on the database restored from the pre-migration backup (11
+units, 7 sales, `sum_total = 10051.00` preserved, `unit.transfer` gone from both
+store roles), on a clean database from zero, on dev, and on rerun. No seed
+involved at any point.
+
+**Live: 40/40** with five real sessions — Owner, Manager, Employee assigned to
+both branches, source-only and destination-only. Employee request starts pending
+and reserved; employee cannot approve, reject, or ship it unapproved; manager
+approves without re-reserving; a stale approval is 409; employee ships;
+source-only cannot receive; destination receives and the phone lands `in_stock`
+at the destination; manager-created transfers start approved and auto-approved;
+an employee in **both** branches still cannot self-approve; requester cancels
+their own pending request but not another's; reject and cancel both demand a
+reason and release the reservation; Owner approves remotely only with the source
+branch selected; approve-vs-reject and ship-vs-cancel each have exactly one
+winner; a shipped transfer cannot be cancelled; Sell and Pricing still refuse
+reserved stock.
+
+Mobile: TypeScript clean, `expo lint` clean, Node pure suites 11 + 5 + 6 + 7,
+EN/AR both 559 keys with no gaps. Transfer status labels and tones aligned with
+the new enum — no transfer screens were built.
+
+### Backup, fixtures and cleanup
+
+Backup `phonestore-20260808-043818.sql` (55 tables, 4 triggers, 0 raw `_binary`,
+valid UTF-8), restore proven through the DEFINER-safe path before migrating:
+55/55 tables, 4/4 triggers, `sum_total = 10051.00`, `units` checksum identical.
+
+Four temporary users (`h12mgr`, `h12emp`, `h12src`, `h12dst`) and their branch
+assignments and sessions were created for the authority matrix and removed
+afterwards. Test transfers, transfer items and their `StockTransfer` audit rows
+were removed via the migrator account — recorded here rather than left implicit.
+Temporary databases `prisma_h12_pre` and `prisma_h12_clean` dropped.
+
+Demo baseline afterwards: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · sale_items 14 · stock 4 at 19/20/20/15 all v0 ·
+transfers 0 · reserved 0 · no unit in an odd status · 4 triggers · 0 temporary
+databases. Identical to the H1.1 baseline.
+
+### 🔴 Deferred, and worth stating plainly
+
+**No notifications were added.** Nobody is told that a request awaits their
+approval, that theirs was approved or refused, or that a transfer has shipped.
+The workflow is correct and enforced, but a pending request sits unseen until
+someone opens the list. Deferred to H1.5 rather than half-built here — it is the
+most user-visible gap left in transfers.
+
+**Commits:** backend `0026790`, `04e1463`, `d7f4653`; mobile `30440df`; docs the
+commit carrying this entry. All three trees clean and level with `origin`.
+`READY_FOR_HANDOFF`, owner `NONE`. **H1.3 not started.**
