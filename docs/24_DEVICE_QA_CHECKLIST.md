@@ -140,6 +140,64 @@ counter.
 | 9.8 | Receive quantity stock for the first time | Price behaviour matches what the Owner expects — **flag anything surprising**, this is the open G2B question | |
 | 9.9 | Receive more of the same | The existing price is **not** overwritten | |
 
+## 9b. Transfers (H1.3) — **the workflow was never touched on a device**
+
+The backend behaviour is proven (76/76 live, five real sessions, real MySQL) and
+the screens compile, export and pass their pure tests. **Nothing below was
+exercised by a finger on glass.** Two people at two branches make this much
+faster to check than one.
+
+### Requesting
+
+| # | Step | Expected | Pass/Fail |
+|---|---|---|---|
+| 9b.1 | More → Transfers | The row is there, showing waiting/to send/on the way counts | |
+| 9b.2 | New transfer | Source is the branch you are in, stated not chosen | |
+| 9b.3 | Pick a destination | Only other branches offered | |
+| 9b.4 | **Scan a phone's IMEI off its screen** (`*#06#`) | Added, with the right product named | |
+| 9b.5 | Scan the same phone again | "Already on the list" — count does **not** go to 2 | |
+| 9b.6 | Scan an accessory / barcode item | Explains accessories are coming next; the scan is **not** silently ignored | |
+| 9b.7 | Type an IMEI by hand | Same result as scanning | |
+| 9b.8 | As an Employee, read the button | Says it will wait for approval | |
+| 9b.9 | As a Manager, read the button | Says it will be created already approved | |
+| 9b.10 | Press back with items added | Asks before losing them | |
+| 9b.11 | Turn airplane mode on and Send | Clear failure, no false success | |
+| 9b.12 | Turn it off and Send again | **One** transfer exists, not two — check the list | |
+
+### Approving and moving
+
+| # | Step | Expected | Pass/Fail |
+|---|---|---|---|
+| 9b.13 | Manager opens Notifications | "needs approval", naming both branches | |
+| 9b.14 | Tap it | Opens that exact transfer, not a list | |
+| 9b.15 | Approve | Confirms first; succeeds only after the server agrees | |
+| 9b.16 | Employee's Notifications | Told it was approved | |
+| 9b.17 | Ship, then Receive at the other branch | Each asks about the physical goods before committing | |
+| 9b.18 | After receiving, find the phone in Inventory | At the destination, in stock, sellable | |
+| 9b.19 | Try to sell it at the source | Not there any more | |
+| 9b.20 | Reject a request with no reason | Cannot proceed until a reason is given | |
+| 9b.21 | Two devices approve the same request at once | One wins; the other says someone acted first and refreshes | |
+| 9b.22 | Double-tap Approve fast | Fires once | |
+
+### Branch awareness
+
+| # | Step | Expected | Pass/Fail |
+|---|---|---|---|
+| 9b.23 | Open a transfer notification while in the **wrong** branch | Explains where the action belongs, offers "Switch to X" | |
+| 9b.24 | Do **not** press it | Branch never changes on its own | |
+| 9b.25 | Press it, then act | Works from the right branch | |
+
+### History and Arabic
+
+| # | Step | Expected | Pass/Fail |
+|---|---|---|---|
+| 9b.26 | Transfer list tabs | Waiting / approved / on the way / received / refused / cancelled all reachable | |
+| 9b.27 | Search a full IMEI of an old transfer | Found, even if it is far down the history | |
+| 9b.28 | Search a branch or product name | Found | |
+| 9b.29 | Scroll to the bottom | Loads more, then says the history has ended | |
+| 9b.30 | Switch to Arabic | Every transfer screen reads naturally, **right-to-left, correctly mirrored** | |
+| 9b.31 | Arabic notifications | Transfer messages are in Arabic, with branch names and the reference | |
+
 ## 10. Everyday robustness
 
 | # | Step | Expected | Pass/Fail |

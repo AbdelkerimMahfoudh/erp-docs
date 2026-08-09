@@ -589,9 +589,20 @@ pricing phase.
 
 ---
 
-## 6b. Transfers *(approved 2026-08-07, not yet implemented)*
+## 6b. Transfers *(approved 2026-08-07 — serialized transfers now SHIPPED)*
 
 Audit and full reasoning: [`25_TRANSFERS_AUDIT_AND_DECISIONS.md`](25_TRANSFERS_AUDIT_AND_DECISIONS.md).
+
+> **Status: serialized transfers are complete and usable end to end.**
+> H1.1 (`0030`) reservation and idempotency · H1.2 (`0031`, `0032`) the
+> permission split and approval lifecycle · H1.3 (`0033`) notifications and the
+> mobile workflow. **Quantity-tracked stock is still not transferable** — that
+> is H1.4, and the two open cost/price questions below must be answered first.
+>
+> One naming correction to the plan below: the approved state was called
+> `ready_to_ship`, but it shipped as **`approved`**, because the state means "a
+> person with the authority agreed", which is a decision rather than a
+> readiness. `ready_to_ship` was remapped to it by `0031`.
 
 **Transfers move one company's own stock between its own branches.** They are not
 inter-store consignment and the model must not be stretched to cover it.
@@ -626,7 +637,23 @@ authorised user is available**.
   already has. Today a retry creates a second transfer, and two open transfers can
   claim the same unit.
 
-### 🔴 Still open — decide during H1
+### ✅ Settled during H1.3
+
+- **Which transitions notify, and whom.** All seven, with recipients resolved
+  from the permission the next step needs rather than from role names, the actor
+  excluded, and people deduplicated. A **refusal goes only to the requester** —
+  broadcasting it helps nobody and embarrasses somebody. Notification text
+  carries branch names, the reference, an item count, the actor and any reason,
+  and **never cost, price or margin**, because it is read outside the request
+  that authorized it.
+- **Cancellation and rejection reasons** are mandatory at the API, stored on the
+  transfer, shown on the detail screen, and carried in the notification.
+- **History grouping.** Status tabs — waiting, approved, on the way, received,
+  refused, cancelled — over one server-paginated list, with server-side search
+  by reference, branch, product or IMEI. Completed and refused transfers stay
+  reachable rather than ageing off a fixed page.
+
+### 🔴 Still open — must be answered before H1.4
 
 - **Destination cost for quantity stock.** Moving 10 cables at 4.10 into a branch
   holding 5 at 5.00 needs a rule: weighted average, or carry the source cost. It
@@ -634,8 +661,9 @@ authorised user is available**.
 - **Destination price for quantity stock.** Recommend the CP3 rule: the
   destination keeps its own price, else the company default. It must **not**
   inherit the source's price.
-- Partial receipt · cancellation and rejection reasons · which transitions notify
-  the Owner · history grouping · shipment/receipt photos.
+- Partial receipt · discrepancy and return-to-source · shipment/receipt photos.
+  Until return-to-source exists, **nothing may cancel a shipped transfer** —
+  rewriting the unit's branch back would be a guess about where the goods are.
 
 ---
 

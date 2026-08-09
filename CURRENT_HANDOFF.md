@@ -8,9 +8,20 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-08/09 — **H1.2, Transfer Permissions and
-  Serialized Approval Lifecycle** (complete). Migrations **`0031`** and
-  **`0032`**.
+- Last session: **CLAUDE-B**, 2026-08-09 — **H1.3, Serialized Transfer
+  Notifications and the Complete Mobile Workflow** (complete). Migration
+  **`0033`**.
+- **Serialized transfers are now usable end to end.** Request → approve → ship →
+  receive, with notifications at every step and full mobile screens. Everything
+  the H0 audit found is closed.
+- Previous: H1.2 (`0031`, `0032`), H1.1 (`0030`), H0 audit, G2A-CP1…CP4.5
+
+### Takeover check (verified, not assumed)
+
+Backend `d7f4653` · mobile `30440df` · docs `1a15041`, all clean and level;
+**47 suites / 617 tests**, **31 migrations**, latest `0032`, schema up to date.
+Every expected value in the H1.3 brief matched reality, so nothing needed
+correcting before work began.
 - **The H0 authorization gap is CLOSED.** `unit.transfer` no longer guards any
   route and is revoked from both store roles; an employee cannot approve, and
   cannot cancel anyone else's request.
@@ -31,13 +42,15 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `d7f4653` | `d7f4653` | clean |
-| Mobile (`erp-mobile`) | master | `30440df` | `30440df` | clean |
+| Backend (`erp-backend`) | master | `45e9b55` | `45e9b55` | clean |
+| Mobile (`erp-mobile`) | master | `112e035` | `112e035` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
-H1.2 commits — backend `0026790` (migration 0031: permission split + lifecycle) ·
-`04e1463` (approval lifecycle + versioned transitions) · `d7f4653` (migration
-0032: the cancel-route fix) · mobile `30440df` (status labels).
+H1.3 commits — backend `82e9393` (CP1: the seven H1.2 requirements pinned) ·
+`9013d26` (CP2: migration 0033 + transfer notifications) · `fea136b` (CP3: list,
+counts and detail contract) · `45e9b55` (CP7: the two live-found defects) ·
+mobile `112e035` (CP4/5/6: the whole transfer UI).
+H1.2 commits — backend `0026790`, `04e1463`, `d7f4653` · mobile `30440df`.
 H1.1 commits — backend `e40af13`, `b63e5c6`, `d3ea0c6` · mobile `84b5b84`.
 
 **Note:** the documentation row is deliberately not a hash. A file cannot contain
@@ -49,7 +62,26 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (end of H1.2)
+## Verified baseline (end of H1.3)
+
+- **Backend tests: 50 suites / 688 tests passing**, 0 failing (H1.2 baseline
+  47/617; H1.3 added 71 across authority, notifications and the list contract).
+- **H1.3 live verification: 76/76** against the running API and real MySQL with
+  five real sessions — Owner, source Manager, source Employee, destination
+  Manager, and an Employee assigned to **both** branches.
+- Migration status: latest **`0033_notification_dedupe_and_payload`** —
+  **32 migrations**, *"Database schema is up to date!"*, **4 triggers** intact.
+- **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
+  `expo export --platform web` built **32 routes**, including `/transfers`,
+  `/transfers/[id]` and `/transfers/new`. Pure Node suites **11 + 5 + 7 + 6 +
+  11**. **EN and AR both 676 keys**, no missing, extra or duplicate.
+- **Demo baseline restored exactly** after verification: products 12 · units 11 ·
+  sales 7 · `sum_total = 10051.00` · sale_items 14 · stock 4 · reserved 0 ·
+  transfers 0 · notifications 41 · `units` checksum
+  `2a1dc9bf284afde32b402ad108d38a76` unchanged · no odd unit statuses · no
+  temporary databases.
+
+### Previous baseline (end of H1.2), kept for comparison
 
 - **Backend tests: 47 suites / 617 tests passing**, 0 failing (H1.1 baseline
   47/607; H1.2 added 10 lifecycle, permission-split and drift tests).
@@ -633,32 +665,101 @@ NULL with `auto_approved` false, so no decision is invented. Development held
 zero transfers, so the remap was a no-op here — **rerun the H1.1 legacy audit
 before deploying `0031` anywhere with real transfer history.**
 
-### 🔴 Deferred from H1.2 — approval work is currently invisible
+### ✅ CLOSED by H1.3 — the invisibility gap H1.2 deferred
 
-**No notifications were added.** Nobody is told that a request awaits their
-approval, that theirs was approved or refused, or that a transfer has shipped.
-The workflow is correct and enforced, but a pending request sits unseen until
-someone opens the list. Deferred to **H1.5** rather than half-built here; it is
-the most user-visible gap and should be the next transfer work after quantity.
+Every lifecycle transition now notifies the people it concerns, in the same
+transaction as the transition. A pending request no longer sits unseen.
+
+## H1.3 ✅ — transfer notifications and the mobile workflow
+
+Full detail: [`docs/25` §10c/§10d](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md).
+
+**Migration `0033`** adds two nullable columns and one unique index to
+`notifications`: `dedupe_key` with `UNIQUE (company_id, target_user_id,
+dedupe_key)`, so a duplicate is an INSERT the **database** rejects rather than
+one the application tries to avoid; and `payload JSON`, so the app can compose
+the message in Arabic instead of reading server-written English forever.
+Additive only — all 41 existing notifications work unchanged with both NULL.
+
+**Seven events notify**, with recipients resolved from **permissions in the
+relevant branch** (never role names), deduplicated, actor excluded. A refusal
+goes only to the requester. Every action link opens the exact transfer.
+
+**The list contract was rebuilt**: status filter, SQL search (reference, both
+branch names, product, IMEI/serial) and keyset paging on the UUIDv7 key, plus a
+bounded `/transfers/counts`. Detail returns, per action, whether it is allowed,
+**why not**, and the branch it must be performed from — which is what lets a
+notification opened in the wrong branch offer "Switch to X" rather than refuse.
+
+**Mobile now has the whole workflow**: entry point with counts, list with
+history tabs and search, detail with a timeline and branch-aware actions,
+scan-first create with duplicate/accessory refusals and a reused request id, and
+localised notifications.
+
+### CP1 — the seven H1.2 requirements, reconciled
+
+All seven already held; **no production behaviour needed fixing**. They had no
+standing test, and Manager/Owner auto-approval on create was never clearly
+evidenced — both fixed by 25 tests. The cancel-key compromise (managers hold
+`transfer.cancel_own` only to pass the route guard) is now documented in
+`docs/25` §10c as a known decision, not a puzzle.
+
+### Three defects found by running it, not by the suite
+
+1. **Recipient resolution never worked at all.** `holdersOf` filtered on
+   `role: { permissions: … }`, but `Role` declares **`rolePermissions`**. Real
+   Prisma rejected the query, so `POST /transfers` answered **400 for every
+   request** — the feature was dead on arrival. The suite stayed green because
+   the test double had been written to the same wrong assumption. The double
+   now throws on any unrecognised `role` filter key.
+2. **`?limit=` was a 400 for every client.** Query parameters arrive as strings
+   and the global pipe runs with `enableImplicitConversion: false`; service
+   tests pass a number and never touch the pipe. Fixed and pinned by DTO-level
+   tests that go *through* validation.
+3. **An existing broadcast defect, found while auditing** — see below.
+
+### 🔴 Open — untargeted notifications are company-wide
+
+`listForUser` scopes on `targetUserId = me OR targetUserId IS NULL` and **never
+reads `branch_id`**, so a notification with no target user reaches every user in
+the company whatever branch it names — and `markRead` marks the shared row, so
+one person reading a broadcast marks it read for everyone. The old
+`transfer.incoming`/`transfer.received` emits worked exactly that way, *after*
+the transaction. Transfers no longer use that path, but **`closing.completed`
+and any future untargeted type still do.** Fixing it means deciding what a
+broadcast means (branch-scoped visibility plus per-user read state) — a
+notifications phase, not a transfers one.
 
 ## Next exact action
 
-**H1.2 is complete. Nothing is authorised beyond it.** Candidates, in dependency
-order:
+**H1.3 is complete. Nothing is authorised beyond it.**
 
-1. **H1.3 — quantity transfers.** `StockItem.reservedQuantity` exists and is
-   enforced by CHECKs but is never written; transfers are serialized-only.
-   Needs the destination-cost rule decided (weighted average vs carry source
-   cost) — still open in `docs/21` §6b.
-2. **H1.4 — partial receipt** and discrepancy/return-to-source, which is also
-   what would let a shipped transfer be cancelled safely.
-3. **H1.5 — transfer notifications** (see above).
-4. **H1.6 — mobile transfer UI**, built last against a settled contract; status
-   labels and tones are already in place.
+The intended next phase is **H1.4 — quantity-tracked accessory transfers**:
+partial quantities, writing `StockItem.reservedQuantity` (the column and its
+CHECKs exist since `0030` but nothing ever writes it), weighted-average
+destination cost, and independent destination selling prices.
+
+**H1.4 is blocked on two product decisions** still open in
+[`docs/21` §6b](docs/21_PRODUCT_DECISIONS.md): the destination **cost** rule
+(weighted average vs carry source cost — it changes margin) and confirmation of
+the destination **price** rule (recommended: the destination keeps its own
+price, else the company default; never inherit the source's).
+
+Also still open, in dependency order: partial receipt and
+discrepancy/return-to-source (which is what would let a shipped transfer be
+cancelled safely) · proof photos · the broadcast-notification defect above.
 
 **Deferred — do not start without the user:** G2B pricing proposals · Returns ·
 Suppliers · consignment (must not reuse the transfer model) · loans · expenses ·
 subscriptions · WhatsApp · authentication · technician functionality.
+
+### Device pass still outstanding
+
+The transfer workflow has **never been touched on a device**. Camera scanning,
+haptics, sheet gestures, Arabic visual RTL and the whole action flow are
+unverified by anything but a browser and a test runner.
+[`docs/24` §9b](docs/24_DEVICE_QA_CHECKLIST.md) adds 31 transfer checks for the
+user's own pass.
 
 ## Completed milestones
 
@@ -687,8 +788,11 @@ subscriptions · WhatsApp · authentication · technician functionality.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
-- **Phase H1.1 — reservation and idempotency: complete** (`0030`). Permission
-  split (H1.2) still open.
+- **Phase H1.3 — transfer notifications and the mobile workflow: complete**
+  (`0033`). Serialized transfers are usable end to end, on the phone.
+- **Phase H1.2 — permission split and approval lifecycle: complete**
+  (`0031`, `0032`).
+- **Phase H1.1 — reservation and idempotency: complete** (`0030`).
 - **Phase H0 — Transfers audit: complete (read-only).** Findings and workflow
   options in `docs/25`; blocked on the user's decisions.
 - **Phase G2A — Pricing Foundation: CP1–CP4.5 complete.** Mobile pricing UI
@@ -705,6 +809,16 @@ subscriptions · WhatsApp · authentication · technician functionality.
   search returned nothing on real MySQL while the suite stayed green, because the
   unit double was more permissive than the database. This is why CP2's
   constraints were proven against real MySQL rather than mocked.
+- **A double written from the same assumption as the code proves only that you
+  are consistent.** H1.3's recipient query filtered on a relation name `Role`
+  does not have; real Prisma rejected it and `POST /transfers` was a 400 for
+  every request, while 92 tests stayed green — because the double accepted the
+  same wrong name. A double must be built from the schema, and should **throw**
+  on shapes the database would reject rather than quietly tolerate them.
+- **A service test never touches the validation pipe.** `?limit=` was a 400 for
+  every client because a query parameter arrives as a string and the global pipe
+  does not implicitly convert. Anything a client sends as text needs a test that
+  goes *through* validation, not around it.
 - **A guard that also resolves context changes behaviour for every route that
   skips the guard.** CP3's branch resolution lived in `PermissionsGuard`, so
   routes needing no permission silently had no branch. Only a real request

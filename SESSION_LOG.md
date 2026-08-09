@@ -1971,3 +1971,214 @@ most user-visible gap left in transfers.
 **Commits:** backend `0026790`, `04e1463`, `d7f4653`; mobile `30440df`; docs the
 commit carrying this entry. All three trees clean and level with `origin`.
 `READY_FOR_HANDOFF`, owner `NONE`. **H1.3 not started.**
+
+---
+
+## 2026-08-09 — CLAUDE-B — **Phase H1.3: serialized transfer notifications and the complete mobile workflow**
+
+Migration **`0033`**. Serialized only — quantity lines, partial shipment and
+receipt, proof photos, consignment and WhatsApp remain future work.
+
+### Takeover
+
+Everything matched the brief exactly: backend `d7f4653`, mobile `30440df`, docs
+`1a15041`, all clean and level; 47 suites / 617 tests, 31 migrations, latest
+`0032`, schema up to date. Nothing needed correcting before starting.
+
+### CP1 — the seven H1.2 requirements, reconciled
+
+H1.2 proved its behaviour live but left **no standing test**, so nothing would
+catch a regression, and the report never clearly evidenced Manager/Owner
+auto-approval on create. All seven were re-checked; **every one already held**,
+so no production behaviour changed. They are now pinned by 25 tests against the
+real service.
+
+Two things worth recording because they are easy to get wrong later.
+Auto-approval follows the permission held in the **active branch**, never a role
+name — the same manager requesting stock out of a branch where they lack
+`transfer.approve` produces a pending request. And a terminal transfer is
+refused by two different rules depending on who asks: the requester is stopped
+by ownership ("already been acted on"), a manager by the state machine ("cannot
+become 'cancelled'").
+
+The cancel-key compromise is now written down rather than rediscovered: managers
+hold `transfer.cancel_own` **only to pass the route guard**, because
+`PermissionsGuard` requires ALL listed permissions. Guarding the route on the
+broad key would lock employees out of withdrawing their own request; guarding on
+both locks managers out entirely, which is exactly what `0031` did until `0032`.
+A cleaner fix is ANY-of route semantics, but that would alter authorization on
+every route in the system — far outside a transfers phase.
+
+### CP2 — the notification audit, and what it found
+
+The existing system was reused: same model, same service, same API, same mobile
+screen. No second subsystem, and the recognition outbox was left alone.
+
+Auditing first turned up **a defect that predates this phase**. `listForUser`
+scopes on `targetUserId = me OR targetUserId IS NULL` and **never reads
+`branch_id`**, so a notification with no target user is a **company-wide
+broadcast** whatever branch it names. The old `transfer.incoming` and
+`transfer.received` emits were exactly that, and were sent *after* the
+transaction — so every user of every branch saw them, and a failed emit meant
+stock moved with nobody told. Both now target named people inside the
+transaction. **The general defect remains** for `closing.completed` and any
+future untargeted type, and is recorded rather than quietly half-fixed.
+
+`0033` adds two nullable columns and one unique index. `dedupe_key` with
+`UNIQUE (company_id, target_user_id, dedupe_key)` makes a duplicate an INSERT the
+database **rejects**, because an application-level "already sent?" read is true
+when checked and false when acted on. `payload JSON` stores the fields behind
+the message so the app can compose it in Arabic, with the stored English as the
+fallback — and carries no cost, price or margin, because a notification is read
+outside the request that authorized it.
+
+Seven events notify. Recipients come from **permissions in the relevant
+branch** — the same question the guard asks — then deduplicated, with the actor
+removed. A refusal goes only to the requester: broadcasting it helps nobody and
+embarrasses somebody.
+
+### CP3 — the list, counts and detail contract
+
+`GET /transfers` was `take: 100`, no filter, no search, raw Prisma rows, so a
+busy shop lost its older history and the app would have had to filter locally —
+which answers "not found" for something that exists. It now takes a status
+filter, an SQL search across the reference, both branch names, the product and
+the IMEI/serial, and a keyset cursor on the UUIDv7 key.
+
+`GET /transfers/counts` returns the three badge numbers in one grouped query,
+declared **before** `:id` or Nest routes it as a transfer whose id is "counts".
+
+`GET /transfers/:id` reports, per action, whether it is allowed, **why not**, and
+the branch it must be performed from. Reason order is status → permission →
+branch: a finished transfer must not send anyone to another branch, and someone
+lacking authority must not be invited to switch branches to find that out.
+Detail is readable from any branch the caller is assigned to, deliberately, so a
+notification can open the transfer it is about from the other end.
+
+`requestedAt` comes from the UUIDv7 key. There is no `created_at`, and `sent_at`
+carries `DEFAULT now()` **and** is rewritten on shipment — a pending transfer's
+`sent_at` is a creation time wearing a shipping label. It now reads null until
+the transfer actually ships.
+
+### CP4/5/6 — the phone
+
+Shipped as one commit rather than three, on purpose: splitting it would have
+pushed a list screen whose rows link to routes that do not exist yet, and a dead
+link is not a green checkpoint.
+
+The mobile permission catalogue still listed the retired `unit.transfer` and knew
+**none** of the six replacements, so every transfer permission was an unknown
+key. Fixed, and the Transfers entry is gated on `transfer.view`.
+
+Actions come from the server's per-action answer rather than the client
+re-deriving them — two sources of truth is how a button appears that will 403.
+An action refused for status is not rendered at all; permission and ownership
+refusals appear as a sentence, so nobody wonders where the button went. The
+wrong-branch case is explained once, with an explicit "Switch to X"; the app
+never switches branches on its own.
+
+Create is scan-first with manual entry always available. Duplicates are reported
+rather than silently collapsed, and a scanned accessory is refused with an
+explanation that quantity stock is coming next — never dropped on the floor. The
+`clientUuid` is minted once per attempt and held in a ref, and deliberately not
+regenerated on failure, so a retry after a timeout resolves to the original
+transfer instead of moving stock twice.
+
+`ApiError` gained an optional `body`: the per-identifier `problems` list was
+parsed and thrown away, which is the difference between "some units cannot be
+transferred" and knowing which phone to go and look at.
+
+### Three defects found by running it
+
+**1. Recipient resolution never worked at all.** `holdersOf` filtered on
+`role: { permissions: … }`, but `Role` declares **`rolePermissions`**. Real
+Prisma rejected the query outright, so `POST /transfers` answered **400 for
+every request** — the whole feature was dead on arrival. The unit suite was
+green throughout, because the test double had been written to the same wrong
+assumption: it agreed with my code instead of with the schema. This is the G1
+specification-search lesson one level up. The double now **throws** on any
+`role` filter key other than `key`/`rolePermissions`.
+
+**2. `?limit=` was a 400 for every client.** A query parameter arrives as a
+string and the global pipe runs with `enableImplicitConversion: false`, so
+`@IsInt()` alone rejected every value a client could send. Service-level tests
+pass a real number and never touch the pipe. Fixed with the same explicit
+transform the catalog uses, and pinned by DTO tests that go *through* validation.
+
+**3. The pre-existing broadcast defect** described under CP2.
+
+A fourth thing cost time and is worth recording: the API left listening on port
+3010 from the previous session was running **old code**, and `/transfers/counts`
+returned 401 rather than 404 because the old `@Get(':id')` matched "counts" and
+its guard answered first. A 401 is not proof that a route exists.
+
+### Verification
+
+Backend **50 suites / 688 tests**, TypeScript clean, **32 migrations**, schema up
+to date, **4 triggers** intact.
+
+Migration proofs: restore verified DEFINER-safe **before** migrating (55/55
+tables, 4/4 triggers, `sum_total = 10051.00`, `units` checksum identical to
+live); `0033` applied to the restored database with **no seed**, to a clean
+database from zero, to dev, and on rerun; the documented reverse SQL was
+**executed** and left all 41 notifications and every business row intact.
+Temporary databases `prisma_h13_pre` and `prisma_h13_clean` dropped.
+
+**Live: 76/76** against the running API and real MySQL with five real sessions —
+Owner, source Manager, source Employee, destination Manager, and an Employee
+assigned to **both** branches. Recipients per event were computed **from the
+database** rather than hardcoded, after a first run showed my fixed list was
+asserting the fixture instead of the rule: the demo company's own users
+legitimately hold those permissions too.
+
+It covers: reservation at request; exactly the source approvers told and the
+requester not; the action opening the exact transfer; no cost anywhere in a
+message; reserved stock refused by both Sell and Pricing; employee cannot
+approve, cannot ship unapproved, and an employee in **both** branches still
+cannot self-approve from either; Owner refused from the destination; approval
+not re-reserving; a stale approval 409; shipment and receipt with the unit
+landing in stock at the destination; receipt removing the source price override;
+refusal and cancellation releasing the stock and demanding a reason; manager
+auto-approval recording its approver; replay returning the original transfer and
+creating no further notifications; **the database itself refusing a duplicate
+notification**; approve-vs-reject, ship-vs-cancel and Sell-vs-Transfer each
+having exactly one winner; paging with no repeat, status filters, search by
+IMEI, product and branch; counts; detail actions per role, status and branch;
+and the wrong-branch case naming the branch to switch to.
+
+Mobile: TypeScript clean, `expo lint` clean, **expo-doctor 18/18**, web export
+**32 routes** including all three transfer routes, EN/AR both **676 keys** with
+no gaps or duplicates, pure Node suites 11 + 5 + 7 + 6 + 11.
+
+### Fixtures and cleanup
+
+The live script created its own temporary product, ten units and four users
+(`h13mgr`, `h13emp`, `h13dst`, `h13both`) so demo stock was never involved, and
+removed all of them. Three `price.changed` notifications produced by the
+verification's temporary product were removed afterwards as well, via the
+migrator — recorded here rather than left implicit, since they pointed at a
+product that no longer exists.
+
+Demo baseline afterwards: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · sale_items 14 · stock 4 · reserved 0 · transfers 0 ·
+notifications 41 · `units` checksum `2a1dc9bf284afde32b402ad108d38a76` · no odd
+unit statuses · 4 triggers · 0 temporary databases. Identical to before.
+
+Backup `phonestore-20260809-192629.sql` — 55 tables, 4 triggers, 0 raw
+`_binary`, 1 960 hex literals, valid UTF-8, correct trailer.
+
+### 🔴 Not verified, and not claimed
+
+**The transfer workflow was never touched on a device.** Camera scanning,
+haptics, sheet gestures, Arabic **visual** RTL and the whole action flow are
+unverified by anything but a browser and a test runner. `docs/24` §9b adds 31
+transfer checks for the user's own pass.
+
+**Untargeted notifications remain company-wide**, and a broadcast's read state is
+still shared between users. Transfers no longer depend on that path;
+`closing.completed` still does.
+
+**Commits:** backend `82e9393`, `9013d26`, `fea136b`, `45e9b55`; mobile
+`112e035`; docs the commit carrying this entry. All three trees clean and level
+with `origin`. `READY_FOR_HANDOFF`, owner `NONE`. **H1.4 not started, and
+blocked on the destination cost/price decisions in `docs/21` §6b.**

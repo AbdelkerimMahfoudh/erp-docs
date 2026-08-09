@@ -535,6 +535,168 @@ the remap was a no-op here.
 - Quantity transfer execution, partial receipt, discrepancy/return-to-source,
   proof photos, mobile UI.
 
+## 10c. H1.3 CP1 — the seven H1.2 requirements, reconciled
+
+H1.2 proved its behaviour live, with real sessions against real MySQL, but left
+**no standing test** for any of it — so nothing in the suite would catch a
+regression, and the report never clearly evidenced Manager/Owner auto-approval
+on create. CP1 re-checked all seven requirements against the code and pinned
+each one in `transfer-authority.spec.ts` (**25 tests**).
+
+**No production behaviour needed fixing.** All seven already held:
+
+| # | Requirement | Verdict |
+|---|---|---|
+| 1 | Employee request starts `pending_approval` | holds — reserved, `auto_approved` false, no approver recorded |
+| 2 | Manager/Owner request starts `approved` | **holds** — now evidenced: `approved_by` set, `approved_at` set, `auto_approved` true |
+| 3 | Employee cancels only their own **pending** request | holds — refused for somebody else's, and refused once approved |
+| 4 | Manager/Owner cancels any eligible `pending_approval` or `approved` transfer in the source branch | holds |
+| 5 | Nothing cancels `in_transit`, `received`, `rejected` or `cancelled` | holds |
+| 6 | An employee in **both** branches still cannot approve or reject | holds |
+| 7 | Approve and cancel use version compare-and-swap | holds — stale attempts 409 and release nothing |
+
+Two details worth recording, because they are easy to get wrong later:
+
+- **Auto-approval is decided by the permission held in the ACTIVE branch**, never
+  by a role name. The same manager requesting stock out of a branch where they
+  lack `transfer.approve` produces a `pending_approval` request. This is pinned
+  by a test.
+- **A terminal transfer is refused by two different rules**, and which one speaks
+  depends on who asks. The requester is stopped by ownership ("already been acted
+  on") because it is no longer pending; a manager gets past that and is stopped
+  by the state machine ("cannot become 'cancelled'"). Both are refusals and
+  neither is a state change, but the messages differ by role.
+
+### The cancel-key compromise — recorded, deliberately not redesigned
+
+`PermissionsGuard` requires **ALL** listed permissions on a route. That single
+fact forces the current arrangement:
+
+| Key | Job | Held by |
+|---|---|---|
+| `transfer.cancel_own` | the **route** key — may reach `POST :id/cancel` at all | Employee, Manager, Owner |
+| `transfer.cancel` | the **breadth** key — may cancel somebody *else's* transfer | Manager, Owner |
+
+So managers hold `transfer.cancel_own` **only to pass the route guard**; it grants
+them nothing they did not already have. Breadth is decided inside the service,
+not by the guard.
+
+The alternatives are both worse: guarding the route on `transfer.cancel` locks
+employees out of withdrawing their own request, and guarding on both locks
+managers out entirely — which is exactly what `0031` did until `0032` fixed it.
+
+**This is a known compromise, not a defect.** A cleaner fix is an ANY-of
+semantics for route permissions, but changing the global guard would alter
+authorization on every route in the system, which is far outside a transfers
+phase. Recorded here so the next person meets it as a decision rather than a
+puzzle. **Do not "tidy" a manager's `cancel_own` grant away** — cancellation
+would break for managers, and the suite pins it (`role-matrix-drift.spec.ts`).
+
+## 10d. H1.3 as shipped — notifications and the mobile workflow
+
+Migration **`0033`**. Serialized only. Quantity lines, partial shipment/receipt,
+proof photos, consignment and WhatsApp remain out of scope.
+
+### The notification audit, and what it found
+
+The existing system was reused — same `Notification` model, same
+`NotificationsService`, same `/v1/notifications` API, same mobile screen. No
+second subsystem, and the recognition outbox was not touched.
+
+Auditing it first turned up **a real defect that predates this phase**:
+
+> `listForUser` scopes to `targetUserId = me OR targetUserId IS NULL`, and
+> **`branch_id` is never read**. A notification with no target user is therefore
+> a **company-wide broadcast**, whatever branch it names. The old
+> `transfer.incoming` and `transfer.received` notifications were emitted exactly
+> that way, so **every user of every branch saw them**. They were also emitted
+> *after* the transaction, so a failed emit meant stock moved with nobody told.
+
+Both transfer paths now target named people inside the transaction, which closes
+it for transfers by construction. **The general defect remains** for any other
+untargeted notification — see the open item below.
+
+### Migration `0033` — two nullable columns and one unique index
+
+| Column | Why |
+|---|---|
+| `dedupe_key VARCHAR(120)` | An application-level "already sent?" read is true when checked and false when acted on. `UNIQUE (company_id, target_user_id, dedupe_key)` makes the **database** reject a duplicate instead. Key shape: `transfer:<hex>:<event>`. NULLs do not collide in MySQL, so every existing notification is unaffected. |
+| `payload JSON` | `title`/`body` are English text written by the server, so an Arabic shop would read English forever. Storing the **fields** lets the app compose the sentence in the reader's language, with the stored text as the fallback. Carries branch names, the reference, an item **count**, the actor and any reason — deliberately no cost, price or margin. |
+
+Additive only. All 41 existing notifications keep working with both columns
+NULL. Reverse SQL is in the migration header and was **executed** on a restored
+copy: columns and index gone, every row and every business total intact.
+
+### Who is told what
+
+Recipients are resolved from **permissions in the relevant branch** — the same
+question the guard asks — never from role names, then deduplicated, with the
+actor removed.
+
+| Event | Recipients |
+|---|---|
+| `requested` | source-branch holders of `transfer.approve` |
+| `created_approved` | destination holders of `transfer.receive` |
+| `approved` | the requester · source `transfer.ship` · destination `transfer.receive` |
+| `rejected` | **the requester only** — a broadcast refusal helps nobody |
+| `shipped` | destination holders of `transfer.receive` |
+| `received` | the requester · source holders of `transfer.approve` |
+| `cancelled` | the requester · source approvers · destination receivers |
+
+Every notification's action resolves to `/transfers/<id>` — the exact transfer,
+never a list.
+
+### The list, counts and detail contract
+
+`GET /transfers` was `take: 100`, no filter, no search, raw Prisma rows. It now
+takes a status filter, a search term and a keyset cursor on the UUIDv7 primary
+key, scoped to the active branch's two ends. **Search runs in SQL** across the
+reference, both branch names, the product and the IMEI/serial.
+
+`GET /transfers/counts` returns the three badge numbers in one grouped query.
+It is declared **before** `:id`, or Nest routes it as a transfer whose id is
+"counts".
+
+`GET /transfers/:id` returns identity, branches, people, timestamps, items and —
+per action — whether it is allowed, **why not**, and the branch it must be
+performed from. Reason order is status → permission → branch, deliberately: a
+finished transfer must not send anyone to another branch, and someone lacking
+authority must not be invited to switch branches to find that out.
+
+Detail is readable from **any branch the caller is assigned to**, so a
+notification can open the transfer it is about while the app points at the other
+end; the action's `branchName` is what lets the screen offer "Switch to X".
+
+`requestedAt` is derived from the UUIDv7 key. There is no `created_at`, and
+`sent_at` cannot stand in — it carries `DEFAULT now()` **and** is rewritten on
+shipment, so a pending transfer's `sent_at` is a creation time wearing a
+shipping label. It now reads `null` until the transfer actually ships.
+
+### Two defects only the live run could find
+
+1. **Recipient resolution never worked.** `holdersOf` filtered on
+   `role: { permissions: … }`, but `Role` declares **`rolePermissions`**. Real
+   Prisma rejected the query outright, so `POST /transfers` answered 400 for
+   every request. The unit suite was green throughout, because the test double
+   had been written to the same wrong assumption — it agreed with the code
+   instead of with the schema. The double now **throws** on any `role` filter key
+   other than `key`/`rolePermissions`.
+2. **`?limit=` was a 400 for every client.** A query parameter arrives as a
+   string and the global pipe runs with `enableImplicitConversion: false`, so
+   `@IsInt()` alone rejected every value. Service-level tests pass a number and
+   never touch the pipe. Fixed with the same explicit `@Transform` the catalog
+   uses, and pinned by DTO-level tests.
+
+### 🔴 Open, recorded rather than fixed
+
+**Untargeted notifications are still company-wide, and a broadcast's read state
+is shared.** `listForUser` ignores `branch_id`, and `markRead` sets `is_read` on
+the shared row, so one person reading a broadcast marks it read for everyone.
+Transfers no longer rely on that path, but `closing.completed` and any future
+untargeted type still do. Fixing it means deciding what a broadcast means —
+branch-scoped visibility, plus per-user read state — which is a notifications
+phase, not a transfers one.
+
 ## 11. Proposed H1 order
 
 1. **H1.1 — reservation + idempotency.** Fixes §4.1, §4.2 and §7. A
