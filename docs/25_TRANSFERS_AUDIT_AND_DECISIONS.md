@@ -724,3 +724,154 @@ own stock between its own branches; consignment involves a separately owned
 store, payment and settlement. The current model cannot express it — `companyId`
 is on every row and the tenant client narrows every query — and it must not be
 stretched to try. Cross-company transfer already fails closed (404); that stays.
+
+---
+
+## 12. H1.4-CP1 — the quantity-stock truth, audited before any SQL
+
+Read-only. No behaviour changed in this checkpoint. Everything below was checked
+against the running API, the real schema and the live dev database rather than
+inferred from the model file.
+
+### 12a. Baseline re-proved before touching anything
+
+The serialized workflow was re-run end to end against a **freshly started**
+backend on port 3010 (no server left over from another session) with five real
+sessions and its own temporary product, units and users: **29/29 checks passed.**
+
+Reservation at request · reserved stock refused by both Sell and Pricing ·
+employee `pending_approval` · manager and owner `approved` with `autoApproved`
+recorded · approval reserving nothing a second time and adding no item ·
+reject and cancel each releasing the reservation · shipment holding the goods
+`in_transit` and still unsellable · receipt restoring `in_stock` at the
+destination · the source unit-price override surviving shipment and being
+**deleted** by receipt · wrong-branch ship `403` · unknown transfer `404` ·
+replay returning the original transfer · the same key with a different payload
+`409` · notification replay creating no duplicate.
+
+**Four of those checks failed on the first run and none was a regression** — the
+script had called a pricing route that does not exist (`PUT /pricing/unit`
+rather than `PUT /pricing/units/:identifier/price`) and had reused units that an
+earlier step in the same script had already reserved. Recorded because a
+verification script is as capable of lying as the code it checks.
+
+### 12b. Exact types, checked in `information_schema`
+
+| Column | Type | Null | Default |
+|---|---|---|---|
+| `stock_items.quantity` | `int` | **NO** | `0` |
+| `stock_items.reserved_quantity` | `int` | **NO** | `0` |
+| `stock_items.cost` | `decimal(14,2)` | **NO** | — |
+| `stock_items.price` | `decimal(14,2)` | **NO** | — |
+| `stock_items.version` | `int` | **NO** | `0` |
+| `transfer_items.unit_id` | `binary(16)` | YES | — |
+| `transfer_items.product_id` | `binary(16)` | YES | — |
+| `transfer_items.quantity` | `int` | **NO** | `1` |
+| `products.default_price` | `decimal(14,2)` | **YES** | — |
+
+Existing CHECKs: `transfer_items_quantity_pos_chk (quantity > 0)` ·
+`stock_items_quantity_nonneg_chk` · `chk_stock_reserved_nonneg` ·
+`chk_stock_reserved_le_quantity`. `stock_items` is UNIQUE on
+`(company_id, product_id, branch_id)`. **`transfer_items` has no unique index at
+all** — only four non-unique indexes.
+
+### 12c. Every consumer of the quantity fields
+
+| Consumer | Reads | Behaviour |
+|---|---|---|
+| `SalesService.create` | `quantity`, `reservedQuantity`, `cost`, `price` | Sellable = `quantity − reservedQuantity`; COGS from `cost`; price via `PricingService` |
+| `InventoryService.upsertStock` | — | `quantity: { increment }`, **cost untouched** |
+| `PurchasingService.commit` | — | `quantity: { increment }`, **cost untouched** |
+| `InventoryService.list/detail` | all four | Returns physical, reserved and `availableQuantity` |
+| `PricingService` / `resolveQuantity` | `price`, `version` | `stock_item` price wins whenever the row exists |
+| `RollupService.recomputeInventoryValuation` | `quantity`, `cost`, `price` | `si.quantity * si.cost`, per branch, `quantity > 0` |
+| `DashboardService.lowStock` | `quantity` | **Physical**, not available |
+| `CatalogService` | `quantity` | Presence and totals |
+
+### 12d. The five questions, answered
+
+**1. Can `TransferItem.productId` / `quantity` be activated, or must they be
+migrated?** **Activated.** They are dead but correctly shaped: `product_id` is
+already nullable with an FK to `products`, and `quantity` is already `NOT NULL
+DEFAULT 1` with a `> 0` CHECK. The live database holds **0 transfers and 0
+transfer items**, so no legacy row can violate a new constraint here. *A
+production database must have this audit re-run before the migration is applied.*
+
+**2. Can one transfer carry both serialized and quantity lines?** **Yes, and
+nothing in the schema objects.** Both discriminating columns are nullable on the
+same table, so the mix is a row-level property. It needs a CHECK to stop a row
+being both, because today nothing prevents `unit_id` and `product_id` being set
+together.
+
+**3. Can `StockItem.cost` or `price` be null?** **No — both are `NOT NULL`.**
+Two consequences. Cost is always present, so §4.1's "never invent a cost" is
+satisfiable by construction rather than by a runtime guard *(the guard is still
+written, because a `NOT NULL` column is a promise about the schema, not about a
+future migration)*. Price, however, means **an unpriced quantity row cannot be
+represented**, which §4.3 case 2 requires — see 12e.
+
+**4. Would company valuation fall while goods are shipped but not received?**
+**Yes — and it already does today, for serialized transfers.**
+`recomputeInventoryValuation` is keyed on `(company, branch)` and counts units
+`WHERE status = 'in_stock'` and stock rows `WHERE quantity > 0`. A shipped unit
+is `in_transit`, so it leaves the source total; its `branch_id` only changes on
+receipt, so it never joins the destination total. **Between ship and receive it
+is worth nothing to any report.** H1.3 shipped that hole; quantity lines would
+widen it. §8 is therefore a fix to existing behaviour, not only new work.
+
+**5. Does receiving already use weighted-average cost, and can it be reused?**
+**No, and there is nothing to reuse.** Both intake paths —
+`InventoryService.upsertStock` and `PurchasingService.commit` — do
+`update: { quantity: { increment } }` and **never touch `cost`**. The first
+receive into a branch sets the cost and every later receipt inherits it forever.
+H1.4 will contain the project's first weighted-average implementation.
+
+### 12e. Contradictions found, and what was done about them
+
+**🔴 A — purchase intake does not average cost, and that is a real defect.**
+Buying 50 cables at 4.10 and then 50 more at 8.00 leaves the branch cost at
+4.10, so COGS is understated and margin overstated on everything sold
+afterwards. This is **pre-existing, out of H1.4's scope, and not caused by
+transfers**. It is recorded here rather than fixed, because changing purchase
+costing is a financial change that needs its own approval and its own
+verification. **After H1.4, cost will be averaged when goods arrive by transfer
+and not when they arrive by purchase** — an inconsistency the shop can see, and
+one that should be closed deliberately rather than silently.
+
+**🟡 B — `stock_items.price` is `NOT NULL`, so "unpriced" cannot be stored.**
+§4.3 case 2 ends in "otherwise unpriced", which today is unrepresentable. The
+smallest safe additive correction is to make the column nullable and let a NULL
+price fall through the existing ladder to `product_default` and then `unpriced`
+— a state `PriceSource` already models. Blocking receipt to satisfy a column
+would hold goods hostage to a price nobody has set, and writing `0` would invent
+one. Carried into CP2.
+
+**🟡 C — §4.3's destination `BranchVariantPrice` rung is currently unreachable.**
+`resolveQuantity` never reads `branch_variant_prices`, deliberately, and the
+table holds **0 rows**. The rung is implemented as specified because it is
+approved and harmless, but it can only ever fire once something starts writing
+branch variant prices for quantity products. Stated so a later reader does not
+mistake dead code for a bug.
+
+**None of these blocks H1.4.** B and C are handled by §4.3's own instruction to
+make the smallest safe correction; A is a finding about a different feature.
+
+### 12f. Decisions this pins for the implementation
+
+- **Quantity line identity is `product_id`**, resolved against the transfer's
+  own `from_branch_id`. `stock_items` is UNIQUE on
+  `(company_id, product_id, branch_id)`, so that pair names exactly one source
+  row and no ambiguity is possible. A separate `stock_item_id` column would be a
+  second source of truth for the same fact.
+- **Duplicate quantity lines are prevented by the database**, with
+  `UNIQUE (transfer_id, product_id)`. MySQL lets NULLs repeat under a unique
+  index, so serialized rows — which have `product_id IS NULL` — are unaffected.
+  This is the same partial-uniqueness pattern already used for the OTP active
+  key and the notification dedupe key.
+- **A serialized line keeps `quantity = 1`.** The XOR CHECK is written in terms
+  of which id is present, so the existing `DEFAULT 1` stays meaningful and no
+  existing row needs rewriting.
+- **The shipment cost snapshot cannot be a CHECK.** "Absent before shipment,
+  present after" depends on the parent transfer's status, and MySQL CHECK
+  constraints cannot reference another table. It is a service invariant with
+  tests, and this document says so rather than implying the database enforces it.

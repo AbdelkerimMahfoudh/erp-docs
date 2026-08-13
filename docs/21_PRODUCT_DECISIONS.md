@@ -653,14 +653,58 @@ authorised user is available**.
   by reference, branch, product or IMEI. Completed and refused transfers stay
   reachable rather than ageing off a fixed page.
 
-### 🔴 Still open — must be answered before H1.4
+### ✅ ANSWERED (2026-08-13) — the two rules H1.4 was blocked on
 
-- **Destination cost for quantity stock.** Moving 10 cables at 4.10 into a branch
-  holding 5 at 5.00 needs a rule: weighted average, or carry the source cost. It
-  changes margin, so it is a product decision.
-- **Destination price for quantity stock.** Recommend the CP3 rule: the
-  destination keeps its own price, else the company default. It must **not**
-  inherit the source's price.
+**Destination cost — weighted average.** On receipt the destination cost becomes
+
+```text
+(destination physical quantity × destination cost + received quantity × shipment cost snapshot)
+÷ (destination physical quantity + received quantity)
+```
+
+using **physical** destination quantity, not available. Existing destination
+reservations stay reservations. With no destination row, or a physical quantity
+of zero, the received cost simply becomes the destination cost. Full precision
+is kept in the database and rounding happens only for display.
+
+The cost that is averaged in is **snapshotted from the source at shipment, not
+at request** — the goods are only really gone once they leave, and a cost that
+changed while a request sat waiting for approval should not be the one that
+travels. **Zero is never used for an unknown cost**: shipment fails with an
+actionable error instead of inventing one.
+
+**Destination selling price — branch-private, never inherited.** Selling price
+does **not** follow the goods. On receipt:
+
+1. an existing destination `StockItem` **keeps its own price, unchanged**;
+2. a new row resolves its price from the destination `BranchVariantPrice`, then
+   `Product.defaultPrice`, otherwise **unpriced**;
+3. the source `StockItem.price` is never copied, and is never shown to the
+   destination as a hint.
+
+This is the CP3 rule made explicit for quantity stock: a price is an act of
+authority in one branch, so carrying it into another would apply a decision
+nobody there made.
+
+**Total company inventory value is invariant across the whole movement.**
+Request and approval change nothing. Shipment moves value out of the source
+branch and into an explicit **in-transit** bucket of exactly the same size.
+Receipt moves it out of in-transit and into the destination. Reports must
+distinguish stock physically held from stock in transit, and must not double
+count. Profit and sale history are untouched.
+
+> Audit backing these rules, including the three contradictions it found in the
+> existing financial code, is in
+> [`docs/25` §12](25_TRANSFERS_AUDIT_AND_DECISIONS.md).
+
+### 🔴 Still open
+
+- **Purchase intake does not average cost** (`docs/25` §12e-A). Buying the same
+  accessory again at a different price leaves the branch cost at whatever the
+  first receipt set, so margin is overstated afterwards. Pre-existing, unrelated
+  to transfers, and **deliberately not fixed inside H1.4** — changing purchase
+  costing needs its own approval. After H1.4 cost is averaged on transfer
+  receipt but still not on purchase receipt.
 - Partial receipt · discrepancy and return-to-source · shipment/receipt photos.
   Until return-to-source exists, **nothing may cancel a shipped transfer** —
   rewriting the unit's branch back would be a guess about where the goods are.

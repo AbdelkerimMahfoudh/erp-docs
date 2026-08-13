@@ -2182,3 +2182,28 @@ still shared between users. Transfers no longer depend on that path;
 `112e035`; docs the commit carrying this entry. All three trees clean and level
 with `origin`. `READY_FOR_HANDOFF`, owner `NONE`. **H1.4 not started, and
 blocked on the destination cost/price decisions in `docs/21` §6b.**
+
+---
+
+## 2026-08-13 — CLAUDE-A — **Explicit account switch, then Phase H1.4 (quantity-tracked accessory transfers)**
+
+**Account switch.** The user explicitly moved ownership from `NONE` to
+**`CLAUDE-A`**. Nothing recorded by CLAUDE-B was relabelled or reinterpreted:
+H1.1, H1.2 and H1.3 remain CLAUDE-B's work, exactly as their entries state. This
+entry records only that the next session runs as CLAUDE-A.
+
+**Takeover verification — checked against reality, not assumed.** Backend
+`45e9b55` · mobile `112e035` · docs `f8fee9b` · latest migration `0033` · all
+three working trees clean and level with `origin/master` · `READY_FOR_HANDOFF`
+with owner `NONE`. Every value in the H1.4 brief matched.
+
+**One layout note, not a discrepancy.** The brief refers to
+`docs/CURRENT_HANDOFF.md` and `docs/SESSION_LOG.md`; both files actually live at
+the **repository root** beside `CLAUDE.md`, which is where `CLAUDE.md` itself
+says they are. Same files, different path.
+
+**Authorised scope:** partial quantities chosen when the request is created.
+Shipment and receipt stay all-or-nothing per transfer. Not started: partial
+shipment, partial receipt, discrepancies, return-to-source, proof photos,
+consignment, loan book, WhatsApp, technician features, notification-broadcast
+redesign.
