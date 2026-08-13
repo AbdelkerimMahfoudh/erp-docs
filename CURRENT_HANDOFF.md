@@ -8,7 +8,24 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-13 — **H1.4.1, purchase-cost and
+- Last session: **CLAUDE-B**, 2026-08-13 — **H1.4.2, verified historical cost
+  repair** (complete). **Database-only: no code, no migration, no commits to
+  backend or mobile.**
+- **Both drifted rows are corrected**, but only after the complete
+  chronological ledger reproduced quantity, reservations and identity exactly.
+- `started_at_utc`: **2026-08-13 (H1.4.2 takeover)**
+- Current authorised task: **Phase H1.4.2 — verified historical cost repair.**
+  Correct the two audited demo quantity-stock rows **only if** complete
+  inventory lineage proves the values deterministically. Out of scope: Returns,
+  purchase approvals, supplier payments, expenses, reconciliation, consignment,
+  loans, WhatsApp, technician work, and any generic production backfill.
+- Takeover verification for H1.4.2 (discovered from Git, not assumed): backend
+  `e964c71` · mobile `3c016e3` · docs `d8f1300` · **56 suites / 778 tests** ·
+  **33 migrations** · mobile TypeScript and lint clean · all three trees clean
+  and level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`.
+- Next intended action: correct the **self-healing claim** (it was wrong), then
+  reconstruct the full chronological ledger for both candidate rows.
+- Previous phase: **CLAUDE-B**, 2026-08-13 — **H1.4.1, purchase-cost and
   inventory-valuation hardening** (complete). **No migration was needed.**
 - **Quantity stock now has ONE cost rule.** Purchase receiving, quick "Add
   Stock" and transfer receipt all re-average through a single atomic statement.
@@ -104,6 +121,78 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
+## H1.4.2 ✅ — verified historical cost repair
+
+Lineage proof and full record:
+[`docs/26` §11](docs/26_QUANTITY_COST_AND_VALUATION_AUDIT.md). Approved rule:
+[`docs/21` §6c](docs/21_PRODUCT_DECISIONS.md).
+
+**Database-only.** No code changed, no migration was created, no generic
+backfill exists, and neither code repository has a new commit.
+
+### The reconstruction changed one of the answers
+
+H1.4.1 reported the Apple cable's true cost as **4.25** by averaging its two
+purchase prices. The **chronological** ledger gives **4.27**: eight units were
+sold between the deliveries, so only 42 were on hand to average against, not 50.
+Averaging purchase prices alone would have written a number that was never true.
+
+| Product | Physical / reserved | Old → new | Valuation |
+|---|---|---|---|
+| Apple USB-C Cable | 52 / 0 | **4.10 → 4.27** | +8.84 |
+| Anker PowerCore 10000 | 15 / 0 | **8.50 → 8.67** | +2.55 |
+
+Company held value **4 140.70 → 4 152.09 (+11.39)**.
+
+### Why it was safe to write
+
+Every event class was checked, not assumed: purchases, sales (8 units, none
+voided), returns (0), transfer lines (**0**), import batches (**0** company-
+wide), quick-Add-Stock/adjustment/import audit rows (**none**),
+`price_change_events` (**none**), and `stock_items.version = 0` on both rows.
+Reconstruction reproduced physical quantity, reserved quantity and branch
+identity **exactly** — the gate for touching anything.
+
+The write was a compare-and-swap on row id **and** old cost **and** physical
+quantity **and** reserved quantity, updating only `cost`, with the audit insert
+in the same transaction. The new value was computed twice independently
+(arbitrary-precision `Decimal` and MySQL `DECIMAL(14,2)`) and both had to agree.
+
+Whole-table checksums before and after: **only `stock_items` and `audit_logs`
+changed**; the other 23 tables are byte-identical.
+
+### A correction to H1.4.1's own claim
+
+H1.4.1 said these rows "will re-average correctly on the next receipt". **That
+was wrong.** The new average takes the stored cost as its opening value, so the
+error dilutes but never clears while physical quantity remains. Only reaching
+zero quantity, or an explicit repair, ends it. Corrected in `docs/26` §9 with
+the arithmetic.
+
+### ⚠️ A self-inflicted incident, recorded not hidden
+
+A verification probe ran an `UPDATE` on `audit_logs` to prove the append-only
+trigger blocks it. The trigger deliberately **exempts the migrator (DBA)
+account** — the one the script used — so the update succeeded and overwrote the
+`reason` on both correction rows. No cost or quantity was affected. The exact
+text was restored and **audit row 849 records the incident**. The probe now
+reads the trigger definition instead of firing it.
+
+**Standing lesson: a probe must never be the damage it is looking for.**
+
+### Verified
+
+- Post-repair verification **26/26** through the running API and real MySQL.
+- **A price of 4.20 — which the stale 4.10 would have permitted — is now
+  refused as below cost**, with no cost figure revealed.
+- Historic sale lines still carry 4.10, the cost that was true when they sold;
+  sales 7 / `10051.00` unchanged; notifications **41 before and after**.
+- Valuation rollup refreshed through `RollupService` to exactly the live figure.
+- Backend **56 suites / 778 tests**, TypeScript clean, 33 migrations.
+- H1.4.1 purchasing/valuation/transfer live regression re-run **42/42**.
+- Backup `~/erp-backups/phonestore-20260813-205223.sql`, DEFINER-safe restore
+  proven **before** mutating; temporary database `prisma_h142_pre` dropped.
+
 ## H1.4.1 ✅ — purchase cost and authoritative valuation
 
 Full audit, proofs and open questions:
@@ -122,8 +211,8 @@ exactly the ones re-ordered at a different price:
 
 | Product | Stored | Should be |
 |---|---|---|
-| Apple USB-C Cable (52) | 4.10 | **4.25** |
-| Anker PowerCore (15) | 8.50 | **8.6667** |
+| Apple USB-C Cable (52) | 4.10 | **4.27** |
+| Anker PowerCore (15) | 8.50 | **8.67** |
 
 The error always flatters the margin, and compounds with every re-order.
 
@@ -163,10 +252,12 @@ Dead-stock listings and the health score still read the rollup deliberately —
 they rank per product, where lag changes an ordering, not a total. Making the
 rollup refresh durable is recorded as a background-jobs phase, not attempted.
 
-### 🔴 Open — needs the user
+### ✅ Closed by H1.4.2 — the historical drift
 
-**The two drifted rows were NOT corrected.** They will re-average on the next
-receipt, but the existing drift does not heal itself. The correction is
+**The two drifted rows were NOT corrected.** They do **not** re-average
+themselves: the new average takes the stored cost as its opening value, so the
+error dilutes but never clears while physical quantity remains (corrected in
+H1.4.2). The correction is
 deterministic; the values are stale rather than provably invalid, so a backfill
 needs explicit approval.
 

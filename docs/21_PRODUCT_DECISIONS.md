@@ -754,12 +754,41 @@ so `held + in-transit` reconciles at the instant it is served.
 Dead-stock listings and the health score keep reading the persisted rollup:
 they rank per product, where a moment's lag changes an ordering, not a total.
 
-### 🔴 Open — historical drift, awaiting the user
+### ✅ Historical drift — CORRECTED (H1.4.2, user-authorised)
+
+Both rows were repaired, **database-only: no code, no migration, no generic
+backfill**. Full lineage proof in
+[`docs/26` §11](26_QUANTITY_COST_AND_VALUATION_AUDIT.md).
+
+| Product | Physical | Old cost | Corrected | Valuation |
+|---|---|---|---|---|
+| Apple USB-C Cable | 52 | 4.10 | **4.27** | +8.84 |
+| Anker PowerCore 10000 | 15 | 8.50 | **8.67** | +2.55 |
+
+Company held value 4 140.70 → **4 152.09** (+11.39).
+
+**A correction is only permitted where the complete chronological ledger
+reproduces the actual physical quantity, reserved quantity and branch identity
+exactly.** Averaging historical purchase prices is NOT sufficient and produced a
+wrong answer here: eight cables were sold between the two deliveries, so the
+true cost is 4.27 rather than the 4.25 a purchase-price average gives.
+
+The write was a compare-and-swap on row id, old cost, physical quantity and
+reserved quantity together, updating **only** cost, with a durable
+`stock.cost_corrected` audit record in the same transaction. Quantities,
+reservations, selling prices, purchase lines, supplier payable, sale history and
+stored margins were all left untouched — verified by whole-table checksums, of
+which only `stock_items` and `audit_logs` changed.
+
+### 🔴 Superseded — the original open item
 
 Two development rows still carry the cost of their **first** receipt: the Apple
-USB-C Cable at 4.10 (should be 4.25) and the Anker PowerCore at 8.50 (should be
-8.6667). They will re-average correctly on the next receipt, but the existing
-drift does not heal itself. The correction is deterministic; the stored values
+USB-C Cable at 4.10 (should be **4.27**) and the Anker PowerCore at 8.50 (should
+be **8.67**). **They do not re-average themselves** — the new average takes the
+stored cost as its opening value, so the error dilutes but never clears while
+any physical quantity remains (corrected in H1.4.2; see
+[`docs/26` §9](26_QUANTITY_COST_AND_VALUATION_AUDIT.md)). The correction is
+deterministic; the stored values
 are stale rather than invalid, so **a backfill needs explicit approval** and was
 deliberately not performed.
 

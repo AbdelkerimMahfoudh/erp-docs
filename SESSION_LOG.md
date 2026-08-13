@@ -2559,3 +2559,140 @@ invalid, so under the phase rule a backfill needs explicit approval.
 **Commits:** backend `236fc9b`, `8d5f996`, `e964c71` · mobile none · docs
 `11f1540` and the commit carrying this entry. All three trees clean and level
 with `origin`. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-13 — CLAUDE-B — **Phase H1.4.2: verified historical cost repair**
+
+Account unchanged: still **CLAUDE-B**, no switch, no relabelling.
+
+**Database-only.** No code changed, no migration was created, no generic
+backfill utility was built, and neither code repository has a new commit.
+
+### First, a correction to my own H1.4.1 claim
+
+H1.4.1 said in three places that the drifted rows "will re-average correctly on
+the next receipt". **That was wrong**, and the formula says so plainly: the new
+weighted average takes the **stored** cost as its opening value, so a stale
+number is an *input* to every future receipt. The error is carried forward,
+scaled by `quantity_before / (quantity_before + received)`. It dilutes; it never
+clears. Starting from the cable's −0.15: +50 @ 5.00 leaves −0.0765, another +50
+leaves −0.0513, +100 @ 6.00 leaves −0.0310. Only physical quantity reaching zero
+— or an explicit repair — ends it, and every margin computed meanwhile is
+overstated. Corrected in `docs/26` §9, `docs/21` §6c and the handoff.
+
+### The lineage changed one of the answers
+
+This is why the brief insisted on a chronological ledger rather than an average
+of purchase prices, and it was right.
+
+```
+ 2026-07-30 17:08  purchase   +50 @ 4.10   → 50   avg 4.1000  (opening)
+ 2026-07-30 17:09  sale        −5          → 45   avg 4.1000
+ 2026-07-30 19:31  sale        −1          → 44   avg 4.1000
+ 2026-07-30 19:32  sale        −1          → 43   avg 4.1000
+ 2026-07-30 21:42  sale        −1          → 42   avg 4.1000
+ 2026-07-30 22:13  purchase   +10 @ 5.00   → 52   avg 4.2731
+```
+
+Eight cables were sold **between** the two deliveries, so only 42 were on hand
+to average against — not 50. The true cost is **4.27**, not the **4.25** I
+reported in H1.4.1 from averaging purchase prices. The Anker power bank had no
+intervening sales, so its ledger agrees with the simple average at **8.67**.
+
+### Proving the lineage was complete
+
+Every event class was checked rather than assumed: purchases, sales (8 units,
+none voided), returns (0), transfer lines for these products (**0**), import
+batches ever run (**0** company-wide), audit rows indicating quick "Add Stock",
+adjustment, recount or import (**none**), `price_change_events` (**none**), and
+`stock_items.version = 0` on both rows — so no pricing-service edit had ever
+touched them either.
+
+Reconstruction then had to reproduce reality exactly, and did: Apple
+50 − 8 + 10 = **52** actual 52; Anker 6+2+2+3+2 = **15** actual 15; reserved 0
+on both with no open transfer anywhere; same company and branch.
+
+### The repair
+
+Backup `~/erp-backups/phonestore-20260813-205223.sql` (296 223 bytes, 55 tables,
+4 triggers, 0 raw `_binary`, valid UTF-8), with the DEFINER-safe restore proven
+into `prisma_h142_pre` **before** anything was mutated — 55/55 tables, 4/4
+triggers, `sum_total = 10051.00`, `units` checksum identical. Temporary database
+dropped afterwards.
+
+| Product | Physical / reserved | Old → new | Valuation |
+|---|---|---|---|
+| Apple USB-C Cable | 52 / 0 | 4.10 → **4.27** | +8.84 |
+| Anker PowerCore 10000 | 15 / 0 | 8.50 → **8.67** | +2.55 |
+
+Company held value 4 140.70 → **4 152.09 (+11.39)**.
+
+The new value was computed **twice independently** — arbitrary-precision
+`Decimal` and a MySQL `CAST(... AS DECIMAL(14,2))` — and both had to agree
+before the write. The update was a compare-and-swap on row id **and** old cost
+**and** physical quantity **and** reserved quantity, changing only `cost`, with
+the audit insert in the same transaction.
+
+That atomicity was not theoretical. The first attempt failed because `before`
+and `after` are reserved words in MySQL 8 and my audit INSERT did not quote
+them; the transaction rolled back and whole-table checksums confirmed **every
+table byte-identical** afterwards. Only after fixing the quoting did anything
+commit.
+
+Checksums before and after the successful run: **only `stock_items` and
+`audit_logs` changed.** The other 23 tables — sales, sale items, payments,
+purchases, purchase lines, suppliers, branch prices, products, units, transfer
+items, every rollup, closings, digests and notifications — are byte-identical.
+
+### ⚠️ An incident I caused, recorded rather than hidden
+
+One verification check attempted an `UPDATE` on `audit_logs` to prove the
+append-only trigger refuses it. The trigger deliberately **exempts the
+`phonestore_migrator` (DBA) account** so maintenance is possible — and that is
+the account my script uses. The update therefore succeeded and overwrote the
+`reason` on both correction rows with the literal text `tampered`.
+
+No cost, quantity, reservation or any other column was affected. I restored the
+exact original text and inserted **audit row 849** recording the incident and
+its cause, rather than repairing it quietly. The probe was rewritten to *read*
+the trigger definition instead of firing it.
+
+**The lesson, plainly: a probe must never be the damage it is looking for.**
+
+### Verification after the repair — 26/26
+
+Corrected costs present; quantities, reservations, selling prices and pricing
+`version` unchanged; `/analytics/inventory-value` equal to the live
+source-of-truth sum; `totalStockValue = held + in-transit`; dashboard and
+health-score responding; the persisted rollup refreshed through `RollupService`
+to exactly the live figure; inventory showing the corrected averages.
+
+The check that matters most for the shop: **a price of 4.20 — which the stale
+4.10 would have permitted — is now refused as below cost**, and the refusal
+reveals no cost figure.
+
+History untouched: the four historic sale lines still carry **4.10**, which was
+genuinely the true average when they were sold; sales 7 / `10051.00` unchanged;
+daily rollup COGS and gross profit unchanged; notifications **41 before and
+after**, because this is demo-data maintenance and not shop news.
+
+Backend **56 suites / 778 tests**, TypeScript clean, 33 migrations, schema up to
+date. The H1.4.1 purchasing/valuation/transfer live regression re-run at
+**42/42**. Its temporary users, supplier, products and the 25 notifications that
+run produced were removed; the notification table is back to 41.
+
+### Housekeeping
+
+No diagnostic utility was built: §7 permits one but says not to if it enlarges
+the phase, and two verified corrections did not need a tool. No schema migration
+was created to record the repair — the `AuditAction` enum has no bespoke member,
+so the explicit action `stock.cost_corrected` travels in the reason and payload.
+
+Demo baseline afterwards: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · sale_items 14 · stock 4 (now 4.27 / 8.67 / 5 / 5) ·
+reserved 0 · transfers 0 · notifications 41 · 0 temporary databases.
+
+**Commits:** backend none · mobile none · docs the commit carrying this entry.
+All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
+`NONE`.

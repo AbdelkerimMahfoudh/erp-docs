@@ -161,7 +161,7 @@ weighted average of the purchase lines *is* what the stored cost should be.
 
 | Product | Stock qty | Stored cost | Purchase history | Should be | Drift |
 |---|---|---|---|---|---|
-| **Apple USB-C Cable** | 52 | **4.10** | 50 @ 4.10, then 10 @ 5.00 | **4.25** | **−0.15** |
+| **Apple USB-C Cable** | 52 | **4.10** | 50 @ 4.10, then 10 @ 5.00 | ~~4.25~~ **4.27** | **−0.17** |
 | **Anker PowerCore 10000** | 15 | **8.50** | 10 @ 8.50, then 5 @ 9.00 | **8.6667** | **−0.1667** |
 | Belkin Cable RU | 90 | 5.00 | 100 @ 5.00 | 5.00 | 0 |
 | Belkin Cable V | 90 | 5.00 | 100 @ 5.00 | 5.00 | 0 |
@@ -170,7 +170,13 @@ The pattern is exact: **drift appears only where a second receipt arrived at a
 different price.** The two single-price products are correct, which is precisely
 what the defect predicts.
 
-Understated inventory value today: **7.80 + 2.50 = 10.30 MRU** — trivial in the
+> **Superseded by H1.4.2 (§11).** The "should be" column above averages the
+> purchase prices only. The true figure comes from the CHRONOLOGICAL ledger, and
+> for the Apple cable they differ: eight units were sold between the two
+> deliveries, so only 42 were on hand to average against and the correct cost is
+> **4.27**, not 4.25. The Anker figure is unaffected because no sale intervened.
+
+Understated inventory value today: **8.84 + 2.55 = 11.39 MRU** — trivial in the
 demo, and unbounded in a real shop, because the error compounds with every
 re-order at a new price and never self-corrects.
 
@@ -374,12 +380,38 @@ that is a background-jobs phase.
 
 | Product | Stored | Reconstructs to |
 |---|---|---|
-| Apple USB-C Cable (52) | **4.10** | 4.25 |
-| Anker PowerCore (15) | **8.50** | 8.6667 |
+| Apple USB-C Cable (52) | **4.10** | 4.27 *(ledger; see §11)* |
+| Anker PowerCore (15) | **8.50** | 8.67 |
 
-From now on they will re-average correctly on the next receipt, but the existing
-drift does not heal itself. Correcting it is deterministic (§6b) and remains
-**recommended but unapproved** — the values are stale, not provably invalid.
+Correcting it is deterministic (§6b) and remains **recommended but unapproved** —
+the values are stale, not provably invalid.
+
+> ### ⚠️ Correction (H1.4.2): a stale average does NOT self-heal
+>
+> H1.4.1 said in several places that these rows "will re-average correctly on
+> the next receipt". **That is wrong**, and the formula says so: the new average
+> takes the **stored** cost as its opening value.
+>
+> ```text
+> new = (quantity_before × cost_before + received × incoming) / (quantity_before + received)
+>                          ↑ the stale number is an INPUT
+> ```
+>
+> The error is therefore carried forward, scaled by
+> `quantity_before / (quantity_before + received)`. It **dilutes**; it never
+> clears. Starting from the Apple cable's −0.15:
+>
+> | Next receipt | Stored → | True → | Remaining error |
+> |---|---|---|---|
+> | +50 @ 5.00 | 4.5412 | 4.6176 | −0.0765 |
+> | +50 @ 5.00 | 4.6921 | 4.7434 | −0.0513 |
+> | +100 @ 6.00 | 5.2111 | 5.2421 | −0.0310 |
+> | +200 @ 6.00 | 5.5602 | 5.5774 | −0.0173 |
+>
+> The only events that genuinely clear it are **physical quantity reaching
+> zero** — after which the next receipt establishes a fresh cost — or an
+> explicit verified correction. Every margin computed in the meantime is
+> overstated by the remaining error.
 
 ### Verified
 
@@ -406,3 +438,130 @@ before any selling price", which is the incoming cost, and no API type moved.
 Showing the resulting average in the success state was considered and **not**
 added — the response does not carry it, and adding an API field for decoration
 is not what this phase is for.
+
+---
+
+## 11. H1.4.2 — the verified historical repair
+
+Both drifted rows were corrected. **Database-only: no code changed, no migration
+was created**, and no generic backfill exists.
+
+### The reconstruction changed one of the answers
+
+H1.4.1 reported the Apple cable's true cost as **4.25**, from averaging its two
+purchase prices. Reconstructing the **chronological ledger** — every inbound and
+outbound event in the order it happened — gives **4.27**, because eight units
+were sold *before* the second delivery arrived:
+
+```text
+ 2026-07-30 17:08  purchase   +50 @ 4.10   → 50   avg 4.1000   (opening)
+ 2026-07-30 17:09  sale        −5          → 45   avg 4.1000
+ 2026-07-30 19:31  sale        −1          → 44   avg 4.1000
+ 2026-07-30 19:32  sale        −1          → 43   avg 4.1000
+ 2026-07-30 21:42  sale        −1          → 42   avg 4.1000
+ 2026-07-30 22:13  purchase   +10 @ 5.00   → 52   avg 4.2731
+```
+
+Only **42** units were on hand to average against, not 50. Averaging the
+purchase prices alone would have written a number that was never true — which is
+exactly why the phase brief forbids it.
+
+The Anker power bank had no intervening sales, so its ledger agrees with the
+simple average at **8.6667 → 8.67**.
+
+### Lineage completeness — what makes this deterministic
+
+Every event class was checked, not assumed:
+
+| Evidence | Apple cable | Anker |
+|---|---|---|
+| Purchases | 2 lines (50 @ 4.10, 10 @ 5.00) | 5 lines (6+2+2 @ 8.50, 3+2 @ 9.00) |
+| Sales | 4 lines, 8 units, none voided | none |
+| Returns | 0 | 0 |
+| Transfer lines (any status) | **0** | **0** |
+| Import batches ever run | **0 company-wide** | **0** |
+| Quick "Add Stock" / adjustment / import audit rows | **none** | **none** |
+| `price_change_events` | **none** | **none** |
+| `stock_items.version` | **0** — no pricing-service edit ever touched it | **0** |
+
+**Reconciliation, the gate for touching anything:**
+
+| | reconstructed | actual |
+|---|---|---|
+| Apple physical quantity | 50 − 8 + 10 = **52** | **52** ✅ |
+| Anker physical quantity | 6+2+2+3+2 = **15** | **15** ✅ |
+| Reserved (both) | 0 — no event class writes it, and no transfer exists | **0** ✅ |
+| Company / branch | Demo Phone Store / Main Store | same ✅ |
+
+### What was written
+
+| | Apple USB-C Cable | Anker PowerCore |
+|---|---|---|
+| Stock row | `019fb400304b74669a52f8b6a03296e0` | `019fc77f46ab7c43b3c46b290cf7e19d` |
+| Physical / reserved | 52 / 0 | 15 / 0 |
+| Old cost → new cost | **4.10 → 4.27** | **8.50 → 8.67** |
+| Valuation change | **+8.84** | **+2.55** |
+| Selling price | 19 (untouched) | 15 (untouched) |
+
+**Total company valuation change: +11.39**, from 4 140.70 to **4 152.09**.
+
+The new value was computed **twice, independently** — once with arbitrary-
+precision `Decimal` and once by MySQL casting to `DECIMAL(14,2)` — and both were
+required to agree before the write.
+
+Each update was a compare-and-swap on row id **and** old cost **and** physical
+quantity **and** reserved quantity, with the audit insert in the same
+transaction. Anything other than exactly one matched row rolls back. That was
+not theoretical: the first attempt failed on an unquoted reserved word in the
+audit insert, and whole-table checksums confirmed **every table byte-identical**
+afterwards.
+
+### Backup and proof
+
+Backup `~/erp-backups/phonestore-20260813-205223.sql` — 296 223 bytes, 55
+tables, 4 triggers, 0 raw `_binary`, 2 488 hex literals, valid UTF-8, correct
+trailer. DEFINER-safe restore proven **before** mutating, into
+`prisma_h142_pre`: 55/55 tables, 4/4 triggers, `sum_total = 10051.00`, `units`
+checksum identical. Temporary database dropped afterwards.
+
+### Audit records
+
+Two durable rows (ids 847, 848), `entity_type = StockItem`, `action = update`,
+reason beginning **`stock.cost_corrected`**, carrying old and new cost, the
+product, the branch, the reconstruction inputs, the valuation change, the
+maintenance actor and a pointer back to §6b of this document. The `AuditAction`
+enum has no bespoke member and §7 forbids a migration merely to record the
+repair, so the explicit action name travels in the reason and the payload.
+
+**No notification was created.** The count is 41 before and after: this is demo
+data maintenance, not shop news.
+
+### ⚠️ A self-inflicted incident, recorded rather than hidden
+
+One verification check attempted an `UPDATE` on `audit_logs` to prove the
+append-only trigger blocks it. The trigger deliberately **exempts the
+`phonestore_migrator` (DBA) account** so maintenance is possible — and that is
+the account the script used. The update therefore succeeded and overwrote the
+`reason` on both correction rows with the literal text `tampered`.
+
+No cost, quantity or other column was affected. The exact original reason was
+restored, and **audit row 849 records the incident** with its cause. The probe
+was rewritten to *read* the trigger definition instead of firing it.
+
+**The lesson, plainly: a probe must never be the damage it is looking for.**
+
+### Verification after the repair — 26/26
+
+Corrected costs present; quantities, reservations, selling prices and pricing
+`version` all unchanged; `/analytics/inventory-value` equal to the live
+source-of-truth sum; `totalStockValue = held + in-transit`; dashboard and
+health-score responding; the persisted rollup refreshed through `RollupService`
+to exactly the live figure; inventory showing the corrected averages; **a price
+of 4.20 — which the stale 4.10 would have allowed — now refused as below cost,
+with no cost figure revealed**; historic sale lines still carrying 4.10, the
+cost that was genuinely true when they were sold; sales 7 / `10051.00`
+unchanged; notifications 41; and the append-only trigger present and raising
+`SQLSTATE 45000` for the application account.
+
+Backend **56 suites / 778 tests**, TypeScript clean, 33 migrations, and the
+H1.4.1 purchasing/valuation/transfer live regression re-run at **42/42**.
