@@ -214,3 +214,60 @@ faster to check than one.
 
 ```
 ```
+
+## 9c. Accessory transfers (H1.4) — **also never touched on a device**
+
+Everything in §9b still applies and is still unverified. These are the checks
+H1.4 adds. Nothing below has been performed: the whole phase was verified by a
+type checker, a test runner, a web export and API-level scripts.
+
+### Scanning and choosing an accessory
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Scan the **barcode on an accessory box** in Transfers → New | The exact product and variant appear, added to the draft with quantity 1 |
+| 2 | Scan the same box again | The existing line counts up to 2 — **not** a second line, and a toast says so |
+| 3 | Scan a barcode shared by more than one variant | The picker opens with the choices. **Nothing is guessed** |
+| 4 | Scan an accessory the branch has none of | Refused, naming the product, with nothing added |
+| 5 | Search by name instead of scanning | Matching accessories list with physical, reserved and available |
+| 6 | Search for something the branch does not stock | "Nothing here matches that." |
+
+### Quantity entry
+
+| # | Check | Expected |
+|---|---|---|
+| 7 | Tap `+` past the available amount | Stops at available; the `+` becomes unusable |
+| 8 | Type a number larger than available | Clamps to available rather than accepting it |
+| 9 | Type letters into the quantity field | Ignored; no `NaN`, no crash |
+| 10 | Take a line down to 0 | The line is removed |
+| 11 | Read the three numbers on a line | Physical, reserved and available are each **named**, not a bare figure |
+| 12 | Request an amount when another transfer already holds some | Available is lower than physical, and the wording explains why |
+
+### Mixed transfer, end to end
+
+| # | Check | Expected |
+|---|---|---|
+| 13 | Add 2 phones and 10 chargers to one draft | Summary reads "2 phones · 10 accessories" |
+| 14 | Submit as an **employee** | "Awaiting approval" said **before** the button is pressed |
+| 15 | Submit as a **manager** | "Created as approved" said before the button is pressed |
+| 16 | Approve → Ship → Receive at the destination | Each step succeeds from the branch it belongs to |
+| 17 | Receive with the phones scanned | Phones arrive `in_stock`; the chargers arrive without needing a scan |
+| 18 | Check the destination's accessory count afterwards | Increased by exactly the amount sent |
+| 19 | Try an action from the **wrong branch** | Refused with an offer to switch to the named branch |
+| 20 | Open a transfer notification from the other branch | Lands on the exact transfer, offering the switch |
+
+### Arabic
+
+| # | Check | Expected |
+|---|---|---|
+| 21 | The draft in Arabic | Labels, counts and the summary read naturally; numerals are legible |
+| 22 | **The quantity stepper in RTL** | `−` and `+` keep their positions; pressing `+` still increases. *(Deliberately not mirrored — the layout is a spatial habit people carry across languages)* |
+| 23 | The three-number line in Arabic | Wraps without truncation on a small screen |
+| 24 | The transfer list in Arabic | "2 هاتف · 10 إكسسوار" reads correctly, not as English grammar transliterated |
+
+### What only a device can answer
+
+Camera focus on a small barcode on a crumpled box · haptics on add, merge and
+refusal · the stepper under a thumb rather than a mouse · keyboard avoidance
+with the quantity field near the bottom · sheet gestures · Arabic **visual**
+mirroring of the whole screen.

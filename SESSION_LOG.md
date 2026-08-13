@@ -2207,3 +2207,185 @@ Shipment and receipt stay all-or-nothing per transfer. Not started: partial
 shipment, partial receipt, discrepancies, return-to-source, proof photos,
 consignment, loan book, WhatsApp, technician features, notification-broadcast
 redesign.
+
+---
+
+## 2026-08-13 — CLAUDE-A — **Phase H1.4: quantity-tracked accessory transfers (`0034`)**
+
+*(Continues the account-switch entry above. Same session.)*
+
+### What shipped
+
+Accessories move between branches alongside phones, in the same request.
+Partial quantities are chosen when the request is made; **shipment and receipt
+stay all-or-nothing per transfer.** Partial shipment, partial receipt,
+discrepancy handling, return-to-source, proof photos, consignment, WhatsApp,
+returns, customer credit and technician work were **not started**.
+
+### CP1 — the audit, before any SQL (docs `254c16e`)
+
+The serialized baseline was re-proved **29/29** against a freshly started
+backend on port 3010 — not a server left running by an earlier session. Four
+checks failed on the first run and **none was a regression**: the script called
+a pricing route that does not exist and reused units it had already reserved. A
+verification script is as capable of lying as the code it checks.
+
+The audit answered all five questions from real schema and live data, and found
+three things worth saying out loud:
+
+- **Purchase intake never averages cost.** Both intake paths increment quantity
+  and leave `cost` at whatever the first receipt set, so buying the same
+  accessory again at a different price overstates margin on everything sold
+  afterwards. Pre-existing, out of scope, recorded rather than quietly fixed.
+- **`stock_items.price` is `NOT NULL`**, so an unpriced quantity row could not
+  be represented at all — which the approved destination-price rule needs.
+- **Shipped goods already vanished from valuation.** A serialized unit in
+  transit is not `in_stock` and its `branch_id` does not change until receipt,
+  so H1.3 had already opened that hole.
+
+### CP2 — migration `0034` (backend `3ae972b`, docs `17ca780`)
+
+Backup `~/erp-backups/phonestore-20260813-173135.sql` taken first — 262 269
+bytes, 0 raw `_binary`, 2 104 hex literals, 55 tables, 4 triggers, valid UTF-8 —
+with the DEFINER-safe restore **proven before migrating**: 55/55 tables, 4/4
+triggers with byte-identical bodies, and three binary-key checksums matching
+live exactly.
+
+A transfer line is now structurally one kind or the other. **Two changes were
+not planned.** MySQL error 3823 refuses a CHECK on a column whose foreign key
+carries a referential action, so both optional FKs had to leave Prisma's default
+`ON DELETE SET NULL` — which this session had already watched orphan a transfer
+line during cleanup, so `RESTRICT` was independently right. And
+`stock_items.price` became nullable, because the alternatives were to invent a
+price or refuse goods that had physically arrived.
+
+Four deployment proofs passed (restored pre-migration database with **no seed**,
+clean database, dev, rerun), the reverse SQL was executed and its two
+destructive steps named, and the constraints were exercised **13/13 against real
+MySQL** — one of which had to be re-run because the first attempt was blocked by
+a *different* foreign key and therefore proved nothing. Both scratch databases
+dropped.
+
+### CP3 — atomic reservation (backend `46cbbe6`)
+
+`lines`, discriminated on `kind`. Reservation is one conditional UPDATE per line
+with the rule in the WHERE clause; a read followed by an update cannot promise
+anything, because the row is free when you look and taken when you write.
+Duplicates are refused before availability is consulted, which closes a real
+hole: two lines of 6 against 10 available each pass alone and together promise
+12.
+
+*Correction: that commit's message says "51 → 53 suites"; the real figures are
+51 → 52. History was not rewritten for a count error, matching how the
+equivalent slip was handled at H1.2.*
+
+### CP4 — shipment, in-transit value, receipt (backend `754e5e3`)
+
+Cost is read at shipment, not at request, and written onto the line. Receipt
+averages it in **inside the UPDATE**, against the row's own committed values —
+reading it into the application and writing it back would lose one of two
+concurrent receipts. Selling price does not travel: an existing destination row
+keeps its price, a new one resolves from the destination's own sources, and
+otherwise arrives unpriced.
+
+### CP5 — contracts, and two defects only running it could find (backend `9c0ee24`, `c6e1930`)
+
+The list said "1 item" for ten chargers because it counted rows. It now reports
+unit count, quantity-line count and total quantity, and search reaches
+accessories by product, variant and barcode.
+
+Then the live run found two things, **both older than this phase**:
+
+1. **The global exception filter discarded every structured detail**, keeping
+   only `message` and `code`. Transfers have attached `problems` since H1.1 and
+   `mobile/lib/transfers.ts` has read `body.problems` since H1.3 — it always got
+   `undefined`, so the user only ever saw the generic sentence. **No test
+   noticed, because every one of them asserted the status code.**
+2. **Nothing refreshed inventory valuation after a transfer.** Only
+   `sale.recorded` ever did, so since H1.3 the source branch went on reporting
+   stock it no longer had. H1.4's in-transit figure made it visible rather than
+   causing it.
+
+A **flaky pre-existing catalog test** was fixed on the way: it searched
+`JSON.stringify(entry)` for bare numbers, which also searched the `entityId`
+buffer of a random UUIDv7 — `"160"` contains `"60"` — failing about one run in
+three for reasons unrelated to what it tested.
+
+The transfers test double now **throws** on raw SQL instead of pretending.
+Re-implementing a conditional UPDATE in JavaScript would test the
+re-implementation, which is exactly how H1.3's recipient query stayed green
+while real Prisma rejected it.
+
+### CP6 — the mobile draft (mobile `3c016e3`)
+
+Phones and accessories in one draft, behaving differently on purpose: a phone
+scanned twice is a reported mistake, an accessory scanned twice counts up — which
+is also the only shape the database accepts. Accessories are found by barcode or
+search, reusing the inventory contract that already reports physical, reserved
+and available. A barcode matching more than one variant opens the picker rather
+than guessing. Quantity is a stepper **and** a number field, because typing beats
+tapping plus forty times. No cost, margin or price appears anywhere in the flow.
+
+### CP7 — concurrency, against real MySQL
+
+**18/18, every check genuinely simultaneous.** Two requests for the last stock ·
+Sell versus Transfer · two mixed requests competing for one scarce line, where
+the loser reserved nothing at all · duplicate ship · ship versus cancel ·
+duplicate receive · concurrent replay of one request id · and the database
+invariants intact throughout.
+
+**The essential one passed:** two *different* transfers of the same product,
+received into the same destination row at the same instant, produced quantity
+**30** and cost exactly **8.00** — `(10 × 4 + 20 × 10) ÷ 30` — with no lost
+update.
+
+- **Files changed:** backend — `prisma/schema.prisma`,
+  `prisma/migrations/0034_quantity_transfer_lines/`, `src/transfers/*`
+  (`transfer-lines.ts`, `quantity-reservation.ts` new), `src/analytics/*`
+  (`in-transit-value.ts` new, `rollup.service.ts`, `rollup.listener.ts`,
+  `analytics.service.ts`), `src/common/filters/all-exceptions.filter.ts`,
+  `src/common/events/spine-event-bus.ts`,
+  `src/common/interceptors/financial-fields.ts`, `src/sales/sales.service.ts`,
+  `src/pricing/pricing.service.ts`, `src/inventory/inventory.service.ts`.
+  Mobile — `lib/transfer-draft.ts`, `lib/transfer-summary.ts` (new),
+  `lib/transfers.ts`, `app/transfers/{new,index,[id]}.tsx`, `types/api.ts`,
+  `lib/i18n/{en,ar}.ts`. Docs — `21`, `24`, `25`, handoff, this log.
+- **Database migrations:** `0034_quantity_transfer_lines`.
+- **Tests:** **54 suites / 748 tests** (from 50/688). Backend `tsc` clean,
+  `prisma validate` valid, 33 migrations, 4 triggers. Mobile `tsc` clean, `expo
+  lint` clean, expo-doctor 18/18, web export 32 routes, EN/AR both **695 keys**,
+  24 pure Node tests.
+- **Live verification:** serialized baseline **29/29** re-proved on the final
+  build · quantity **44/44** · concurrency **18/18**.
+- **Fixtures and cleanup:** every script created and removed its own products,
+  stock, users and transfers. The Sell-versus-Transfer race records a **real
+  sale**, removed with its lines and payments rather than left to inflate the
+  baseline. Notifications created today were removed via the migrator; the 41
+  older rows are the recorded baseline and were untouched. **The transfer
+  invoice-number sequence advanced and was not rewound.**
+  Demo data afterwards: products 12 · units 11 · sales 7 · `sum_total =
+  10051.00` · sale_items 14 · stock 4 · reserved 0 · transfers 0 ·
+  notifications 41 · `units` checksum `2a1dc9bf284afde32b402ad108d38a76` ·
+  0 temporary databases.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was touched on a physical device.** Camera scanning of an accessory
+barcode, haptics, the stepper under a thumb, keyboard avoidance, sheet gestures
+and Arabic **visual** RTL are unverified. `docs/24` §9c adds 24 checks.
+
+**The valuation invariant is eventual, not instantaneous.** The rollup refreshes
+after commit — as it always has for sales — so held + in-transit reconciles once
+the refresh lands. Making it synchronous is the materially larger redesign the
+brief says to stop and report before attempting.
+
+**`BranchVariantPrice` for quantity products is implemented but unreachable**:
+nothing writes such a row, and the table holds zero.
+
+**Purchase intake still does not average cost.** After H1.4 cost is averaged on
+transfer receipt and not on purchase receipt.
+
+**Commits:** backend `3ae972b`, `46cbbe6`, `754e5e3`, `9c0ee24`, `c6e1930` ·
+mobile `3c016e3` · docs `254c16e`, `17ca780`, and the commit carrying this
+entry. All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
+`NONE`.

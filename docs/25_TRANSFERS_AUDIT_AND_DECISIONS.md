@@ -1014,3 +1014,183 @@ units checksum `2a1dc9bf284afde32b402ad108d38a76`.
 
 **Both temporary databases were dropped** (`prisma_h14_pre`, `prisma_h14_clean`)
 and the sanitised dump copy deleted; the original backup is untouched.
+
+---
+
+## 14. H1.4 as shipped — quantity-tracked accessory transfers
+
+Partial quantities chosen when the request is made. **Shipment and receipt stay
+all-or-nothing per transfer** — partial shipment, partial receipt, discrepancy
+handling and return-to-source are untouched and remain future work.
+
+### 14a. The words, defined once
+
+| Term | Means | Where it lives |
+|---|---|---|
+| **Physical** | What the branch owns and can count on the shelf | `stock_items.quantity` |
+| **Reserved** | Promised to an open transfer, still owned, not sellable | `stock_items.reserved_quantity` |
+| **Available** | `physical − reserved` — what may be sold or promised | derived, never stored |
+| **In transit** | Shipped, not yet received. Owned by the company, held by no branch | derived from the movement |
+
+Physical is **never** reduced to express unavailability. Reserved goods are
+still company property and still count in valuation; only shipment takes
+something off the shelf.
+
+### 14b. Cost
+
+Snapshotted from the source **at shipment**, onto `transfer_items.shipped_unit_cost`.
+Not at request: a request can wait days for approval while the branch receives
+more of the same thing at a different price, and what travels is the cost of the
+goods that actually left. **Zero is never used for an unknown cost** — shipment
+refuses with an actionable error instead.
+
+On receipt, into an existing destination row:
+
+```text
+new cost = (physical × cost + received × snapshot) ÷ (physical + received)
+```
+
+computed **inside the UPDATE**, from the row's own committed values. With no
+destination row, or a physical quantity of zero, the snapshot simply becomes the
+destination cost. Full `DECIMAL(14,2)` precision is kept; **that is the
+database's precision, so a repeated average rounds at two decimals** — the
+worked example `(5 × 5 + 10 × 10) ÷ 15 = 8.3333` stores as `8.33`.
+
+### 14c. Price
+
+Branch-private, and it does **not** travel. An existing destination row keeps
+its own price untouched. A new row resolves from the destination's
+`BranchVariantPrice`, then `Product.defaultPrice`, otherwise **unpriced**. The
+source's price is never copied and never shown to the destination.
+
+*`stock_items.price` became nullable in `0034` to make "unpriced" expressible —
+see §13b. Selling an unpriced item asks the cashier for a price rather than
+quietly charging one nobody set.*
+
+> ⚠️ The `BranchVariantPrice` rung is implemented as approved but is currently
+> **unreachable in practice**: nothing writes a branch variant price for a
+> quantity product, and the table holds zero rows. It becomes live the day
+> something does.
+
+### 14d. Concurrency
+
+Every quantity operation is **one conditional SQL statement** whose WHERE clause
+carries the rule:
+
+| Operation | Condition |
+|---|---|
+| reserve | `quantity - reserved_quantity >= wanted` |
+| release | `reserved_quantity >= amount` |
+| ship | `reserved_quantity >= amount AND quantity >= amount` |
+| receive | weighted average computed in the UPDATE itself |
+
+Prisma cannot express a comparison between two columns of one row, so these are
+raw statements with `company_id` written out — raw SQL does not pass through the
+tenant extension. MySQL holds the row lock for the duration of the UPDATE, so a
+competitor blocks, re-evaluates against the committed result, and matches
+nothing. A read followed by an update could not promise this: the row is free
+when you look and taken when you write.
+
+A failed line throws, rolling the transaction back, so **a mixed request whose
+last line cannot be met leaves no phone reserved and no transfer created.**
+
+### 14e. Valuation
+
+```text
+company stock value = branch-held + in-transit
+```
+
+In-transit value is computed from the movement itself — the unit's own cost for
+a serialized line, `quantity × shipped_unit_cost` for a quantity line — and
+credited to the **source** branch, reported as its own figure so "held" still
+means held. Only outbound is added to a total, or every movement would count
+twice. It is cost-derived, so it is stripped by the same `cost.view` gating as
+cost; the **counts** stay visible, because knowing ten chargers are on the way
+is operational rather than financial.
+
+**Eventual, not instantaneous.** `inventory_valuation` is a rollup refreshed
+after commit — as it always has been for sales — so the invariant holds once the
+refresh lands, typically within a second. Making it synchronous would be the
+materially larger redesign §8 says to stop and report before attempting.
+
+### 14f. Tests and live verification
+
+- **Backend: 54 suites / 748 tests** (H1.3 baseline 50/688).
+- **Serialized baseline re-proved 29/29** against the final build, so nothing in
+  H1.1–H1.3 was weakened by adding quantity lines.
+- **Quantity end to end: 44/44** live — reservation, Sell seeing less, approval
+  not re-reserving, detail shape and counts, cancel and reject releasing,
+  over-request refused with physical/reserved/available/requested, duplicate
+  lines refused, a phone refused as a quantity line, replay and 409, weighted
+  average into an existing row, all four destination-price outcomes, mixed
+  atomicity, the shipment snapshot, the valuation invariant, cost gating, search,
+  and a retried receive adding stock exactly once.
+- **Concurrency: 18/18** against real MySQL, every check genuinely simultaneous.
+  Two requests for the last stock · Sell versus Transfer · two mixed requests
+  competing for one scarce line, where the loser reserved nothing at all ·
+  duplicate ship · ship versus cancel · duplicate receive · concurrent replay of
+  one request id · and the database invariants intact throughout.
+
+**The essential one passed:** two *different* transfers of the same product
+received into the same destination row at the same instant produced quantity
+**30** and cost exactly **8.00** — `(10 × 4 + 20 × 10) ÷ 30` — with no lost
+update. A read-modify-write would have lost one of them.
+
+- **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
+  `expo export --platform web` built **32 routes** including all three transfer
+  routes · **EN and AR both 695 keys**, no missing, extra or duplicate ·
+  **24 pure Node tests** over the draft rules.
+
+### 14g. Three defects the live run found, none of them new
+
+1. **The global error filter discarded every structured detail.** It kept only
+   `message` and `code`. Transfers have attached `problems` since H1.1 — which
+   phone, and why not — and `mobile/lib/transfers.ts` has read `body.problems`
+   since H1.3 to list refusals item by item. It always got `undefined`, so the
+   user only ever saw the generic sentence. **No test noticed, because every one
+   of them asserted the status code.** Fixed with an explicit allowlist, not a
+   spread; pinned by `error-detail.spec.ts`.
+2. **Nothing refreshed valuation after a transfer.** Only `sale.recorded` ever
+   triggered a recompute, so from the moment H1.3 shipped serialized transfers
+   the source branch went on reporting stock it no longer had. H1.4's in-transit
+   figure made it visible rather than causing it. Both branches now refresh via
+   a `stock.moved` event, emitted after commit.
+3. **A flaky catalog test.** It searched `JSON.stringify(entry)` for bare
+   numbers, which also searched the `entityId` buffer of a random UUIDv7 —
+   `"160"` contains `"60"` — so it failed about one run in three for reasons
+   unrelated to what it tested.
+
+### 14h. Fixtures and cleanup
+
+Every live script created its own products, stock, users and transfers, and
+removed them. The Sell-versus-Transfer race records a **real sale**, which was
+removed with its lines and payments rather than left to inflate the demo
+baseline.
+
+Demo data afterwards, identical to the H1.3 record: products 12 · units 11 ·
+sales 7 · `sum_total = 10051.00` · sale_items 14 · stock 4 · reserved 0 ·
+transfers 0 · notifications 41 · `units` checksum
+`2a1dc9bf284afde32b402ad108d38a76` · 4 triggers · **0 temporary databases** ·
+0 null-priced stock rows · 0 probe products.
+
+**Deliberately removed and recorded rather than left implicit:** notifications
+created by the live runs (dated today; the 41 older rows are the recorded
+baseline and were untouched), via the migrator account. **The transfer
+invoice-number sequence advanced and was not rewound.**
+
+### 14i. Still not done, and not claimed
+
+- **Nothing was verified on a physical device.** Camera scanning of an accessory
+  barcode, haptics, the stepper under a thumb, sheet gestures and Arabic
+  **visual** RTL are unverified by anything but a browser, a type checker and a
+  test runner. `docs/24` §9c adds the H1.4 checks.
+- **Partial shipment and partial receipt do not exist.** A transfer ships whole
+  or not at all, and receives whole or not at all.
+- **Discrepancies and return-to-source remain future work**, so a shipped
+  transfer still cannot be cancelled.
+- **Purchase intake still does not average cost** (§12e-A). After H1.4, cost is
+  averaged when goods arrive by transfer and **not** when they arrive by
+  purchase. That inconsistency is real, visible to the shop, and deliberately
+  left for its own approved change.
+- **Untargeted notifications remain company-wide** (H1.3's open item);
+  `closing.completed` still uses that path.

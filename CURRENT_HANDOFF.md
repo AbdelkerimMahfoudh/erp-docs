@@ -6,8 +6,8 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE** (last worked by CLAUDE-A)
 - `started_at_utc`: **2026-08-13 09:10 UTC** — explicit account switch requested
   by the user; ownership passed from `NONE` to `CLAUDE-A`. **No earlier
   CLAUDE-B attribution was relabelled or reinterpreted.**
@@ -21,13 +21,16 @@
   mobile `112e035` · docs `f8fee9b` · latest migration `0033` · all three trees
   clean and level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`.
   Every expected value in the H1.4 brief matched reality.
-- Last session: **CLAUDE-B**, 2026-08-09 — **H1.3, Serialized Transfer
-  Notifications and the Complete Mobile Workflow** (complete). Migration
-  **`0033`**.
-- **Serialized transfers are now usable end to end.** Request → approve → ship →
-  receive, with notifications at every step and full mobile screens. Everything
-  the H0 audit found is closed.
-- Previous: H1.2 (`0031`, `0032`), H1.1 (`0030`), H0 audit, G2A-CP1…CP4.5
+- Last session: **CLAUDE-A**, 2026-08-13 — **H1.4, quantity-tracked accessory
+  transfers** (complete). Migration **`0034`**.
+- **Accessories now transfer alongside phones, in the same request.** Partial
+  quantities chosen at request time, reserved atomically, shipped with a cost
+  snapshot, and received into the destination at a weighted-average cost with
+  the destination's own selling price left alone.
+- **Shipment and receipt remain all-or-nothing per transfer.** Partial shipment,
+  partial receipt, discrepancies and return-to-source are untouched.
+- Previous: H1.3 (`0033`), H1.2 (`0031`, `0032`), H1.1 (`0030`), H0 audit,
+  G2A-CP1…CP4.5
 
 ### Takeover check (verified, not assumed)
 
@@ -55,9 +58,19 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `45e9b55` | `45e9b55` | clean |
-| Mobile (`erp-mobile`) | master | `112e035` | `112e035` | clean |
+| Backend (`erp-backend`) | master | `c6e1930` | `c6e1930` | clean |
+| Mobile (`erp-mobile`) | master | `3c016e3` | `3c016e3` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
+
+H1.4 commits — backend `3ae972b` (CP2: migration 0034) · `46cbbe6` (CP3:
+atomic reservation + discriminated request) · `754e5e3` (CP4: shipment,
+in-transit value, weighted average) · `9c0ee24` (CP5: contracts, search,
+counts) · `c6e1930` (the two live-found defects) · mobile `3c016e3` (the whole
+quantity draft, list and detail) · docs `254c16e` (CP1 audit), `17ca780` (CP2
+proofs).
+*Correction: commit `46cbbe6`'s message says "51 → 53 suites"; the real figures
+are 51 → 52. History was not rewritten for a count error, matching how the
+equivalent slip was handled at H1.2.*
 
 H1.3 commits — backend `82e9393` (CP1: the seven H1.2 requirements pinned) ·
 `9013d26` (CP2: migration 0033 + transfer notifications) · `fea136b` (CP3: list,
@@ -75,7 +88,39 @@ the id of the commit that introduces it. Read it with
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
 
-## Verified baseline (end of H1.3)
+## Verified baseline (end of H1.4)
+
+- **Backend tests: 54 suites / 748 tests passing**, 0 failing (H1.3 baseline
+  50/688; H1.4 added 60 across the migration contract, line rules, in-transit
+  valuation and error detail).
+- **Serialized baseline re-proved 29/29** against the FINAL build, so nothing in
+  H1.1–H1.3 was weakened by adding quantity lines.
+- **H1.4 quantity verification: 44/44** live against the running API and real
+  MySQL — reservation, Sell seeing less, detail counts and shape, cancel and
+  reject releasing, over-request refused with physical/reserved/available/
+  requested, duplicate lines refused, replay and 409, weighted average, all four
+  destination-price outcomes, mixed atomicity, the shipment snapshot, the
+  valuation invariant, cost gating, search, and a retried receive adding stock
+  exactly once.
+- **H1.4 concurrency: 18/18** against real MySQL, every check genuinely
+  simultaneous — including **the essential one**: two different transfers of one
+  product received into the same destination row at the same instant produced
+  quantity **30** and cost exactly **8.00**, with no lost weighted-average
+  update.
+- Migration status: latest **`0034_quantity_transfer_lines`** — **33
+  migrations**, *"Database schema is up to date!"*, **4 triggers** intact.
+- Backend TypeScript **clean** · `prisma validate` **valid**.
+- **Mobile:** TypeScript clean · `expo lint` clean · **expo-doctor 18/18** ·
+  `expo export --platform web` built **32 routes**, including all three transfer
+  routes. **EN and AR both 695 keys**, no missing, extra or duplicate. **24 pure
+  Node tests** over the draft rules.
+- **Demo baseline restored exactly**: products 12 · units 11 · sales 7 ·
+  `sum_total = 10051.00` · sale_items 14 · stock 4 · reserved 0 · transfers 0 ·
+  notifications 41 · `units` checksum `2a1dc9bf284afde32b402ad108d38a76` ·
+  0 temporary databases · 0 null-priced stock rows · 0 probe products.
+  *The transfer invoice-number sequence advanced and was not rewound.*
+
+### Previous baseline (end of H1.3), kept for comparison
 
 - **Backend tests: 50 suites / 688 tests passing**, 0 failing (H1.2 baseline
   47/617; H1.3 added 71 across authority, notifications and the list contract).
@@ -743,24 +788,64 @@ and any future untargeted type still do.** Fixing it means deciding what a
 broadcast means (branch-scoped visibility plus per-user read state) — a
 notifications phase, not a transfers one.
 
+## H1.4 ✅ — quantity-tracked accessory transfers (`0034`)
+
+Full detail: [`docs/25` §12–§14](docs/25_TRANSFERS_AUDIT_AND_DECISIONS.md).
+
+**The two decisions H1.4 was blocked on are answered** in
+[`docs/21` §6b](docs/21_PRODUCT_DECISIONS.md): destination cost is a **weighted
+average** of physical quantity against the shipment cost snapshot; destination
+selling price is **branch-private and never inherited**.
+
+**Migration `0034`** makes a transfer line structurally one kind or the other —
+a CHECK refuses "both" and "neither", a `UNIQUE (transfer_id, product_id)`
+refuses a repeated accessory while serialized rows slip past on NULL, and a
+nullable `shipped_unit_cost` carries the cost the goods left with. Two changes
+were not planned: MySQL error 3823 forced both optional foreign keys from
+`SET NULL` to `RESTRICT` (a CHECK cannot sit on a column whose FK has a
+referential action — and `SET NULL` was independently wrong, since deleting a
+unit silently orphaned a transfer line), and `stock_items.price` became nullable
+so an **unpriced** arriving row is representable at all.
+
+**Reservation is one conditional UPDATE per line**, with the rule in the WHERE
+clause. Prisma cannot compare two columns of one row, so these are raw
+statements with `company_id` written out. A failed line rolls the transaction
+back, so a mixed request whose last line cannot be met reserves **nothing**.
+
+**Valuation no longer loses shipped stock.** `company = branch-held +
+in-transit`, with in-transit computed from the movement, credited to the source
+branch, reported separately so "held" still means held, and gated with cost.
+
+### Three defects the live run found — none of them new
+
+1. **The global error filter discarded all structured detail.** Transfers have
+   attached `problems` since H1.1 and the app has read `body.problems` since
+   H1.3; it always got `undefined`, so users only ever saw the generic sentence.
+   Every test asserted the status code, so nothing noticed.
+2. **Nothing refreshed valuation after a transfer** — only sales did — so since
+   H1.3 a source branch reported stock it no longer had.
+3. **A flaky catalog test** that searched a random UUID's bytes for bare numbers.
+
+### 🔴 Open, recorded rather than fixed
+
+**Purchase intake does not average cost.** Both intake paths increment quantity
+and leave `cost` at whatever the first receipt set, so margin is overstated on
+anything bought again at a different price. Pre-existing and unrelated to
+transfers. **After H1.4 cost is averaged on transfer receipt but still not on
+purchase receipt** — a visible inconsistency that needs its own approved change.
+
 ## Next exact action
 
-**H1.3 is complete. Nothing is authorised beyond it.**
+**H1.4 is complete. Nothing is authorised beyond it.**
 
-The intended next phase is **H1.4 — quantity-tracked accessory transfers**:
-partial quantities, writing `StockItem.reservedQuantity` (the column and its
-CHECKs exist since `0030` but nothing ever writes it), weighted-average
-destination cost, and independent destination selling prices.
+In dependency order, the open transfer work is: **partial shipment and partial
+receipt**, then **discrepancy handling and return-to-source** (which is what
+would let a shipped transfer be cancelled safely), then **proof photos**.
 
-**H1.4 is blocked on two product decisions** still open in
-[`docs/21` §6b](docs/21_PRODUCT_DECISIONS.md): the destination **cost** rule
-(weighted average vs carry source cost — it changes margin) and confirmation of
-the destination **price** rule (recommended: the destination keeps its own
-price, else the company default; never inherit the source's).
-
-Also still open, in dependency order: partial receipt and
-discrepancy/return-to-source (which is what would let a shipped transfer be
-cancelled safely) · proof photos · the broadcast-notification defect above.
+Separately open, and independent of transfers: **purchase-intake cost averaging**
+(above) · the **broadcast-notification defect** from H1.3 · the
+**`BranchVariantPrice` rung for quantity products**, implemented but unreachable
+until something writes such a row.
 
 **Deferred — do not start without the user:** G2B pricing proposals · Returns ·
 Suppliers · consignment (must not reuse the transfer model) · loans · expenses ·
@@ -768,11 +853,12 @@ subscriptions · WhatsApp · authentication · technician functionality.
 
 ### Device pass still outstanding
 
-The transfer workflow has **never been touched on a device**. Camera scanning,
-haptics, sheet gestures, Arabic visual RTL and the whole action flow are
-unverified by anything but a browser and a test runner.
-[`docs/24` §9b](docs/24_DEVICE_QA_CHECKLIST.md) adds 31 transfer checks for the
-user's own pass.
+The transfer workflow has **never been touched on a device**, and H1.4 did not
+change that. Camera scanning of an accessory barcode, haptics, the quantity
+stepper under a thumb, sheet gestures and Arabic **visual** RTL are unverified by
+anything but a browser, a type checker and a test runner.
+[`docs/24` §9b](docs/24_DEVICE_QA_CHECKLIST.md) holds the 31 serialized checks
+and **§9c adds 24 more for accessories**, for the user's own pass.
 
 ## Completed milestones
 
@@ -801,6 +887,9 @@ user's own pass.
   `PATCH`, archive/restore, the real-MySQL JSON specification-search fix, legacy
   `GET /products/all` removed; mobile catalog list, detail, **one shared
   `ProductForm`** for create and edit, scanner, category management, EN/AR
+- **Phase H1.4 — quantity-tracked accessory transfers: complete** (`0034`).
+  Partial quantities, atomic reservation, weighted-average destination cost,
+  independent destination pricing, and in-transit valuation.
 - **Phase H1.3 — transfer notifications and the mobile workflow: complete**
   (`0033`). Serialized transfers are usable end to end, on the phone.
 - **Phase H1.2 — permission split and approval lifecycle: complete**
@@ -817,6 +906,23 @@ user's own pass.
   transfer invalidation and Sell integration (`0028`, `0029`).
 
 ## Standing lessons
+
+- **A filter that reshapes every error can silently delete a feature.** The
+  global exception filter kept only `message` and `code`, so per-item refusals
+  attached since H1.1 never reached the app that had been reading them since
+  H1.3. Every test asserted the status code, so the suite was perfectly green
+  about a user-facing behaviour that did not exist.
+- **Derived figures need a trigger, and nobody notices a missing one.** Only
+  sales refreshed inventory valuation, so every transfer since H1.3 left the
+  source branch reporting stock it no longer had. Nothing failed; the number was
+  just wrong.
+- **A test that matches bare numbers against a serialized object is testing
+  luck.** A catalog assertion searched a random UUID's bytes for "60" and failed
+  about one run in three.
+- **Making a column nullable is a change to every reader, and the compiler can
+  only see some of them.** `Number(null)` is `0` and compiles fine: it would
+  have sold unpriced goods free and emptied a product's expected revenue out of
+  the valuation total.
 
 - **A mocked filter can hide a database-behaviour defect.** G1's specification
   search returned nothing on real MySQL while the suite stayed green, because the
