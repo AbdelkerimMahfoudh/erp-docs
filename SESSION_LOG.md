@@ -2389,3 +2389,26 @@ transfer receipt and not on purchase receipt.
 mobile `3c016e3` · docs `254c16e`, `17ca780`, and the commit carrying this
 entry. All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
 `NONE`.
+
+---
+
+## 2026-08-13 — **Explicit account switch: CLAUDE-A → CLAUDE-B**
+
+The user requested an explicit account switch. The project was
+`READY_FOR_HANDOFF` / owner `NONE` at the end of **H1.4** (quantity-tracked
+accessory transfers); ownership now passes to **`CLAUDE-B`**.
+
+**No earlier attribution was relabelled or reinterpreted.** H1.4 was CLAUDE-A's
+work and remains recorded as CLAUDE-A's. Every previous CLAUDE-A and CLAUDE-B
+entry stands exactly as written, including the 2026-08-05/06 correction note
+already appended to this log.
+
+Takeover verified rather than assumed: backend `c6e1930` · mobile `3c016e3` ·
+docs `6426841` · latest migration `0034` (33 total) · **54 suites / 748 tests**
+passing · mobile TypeScript and `expo lint` clean · all three trees clean and
+level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`. Every expected
+value in the H1.4.1 brief matched reality, so nothing needed correcting before
+work began.
+
+Authorised task: **Phase H1.4.1 — purchase-cost and inventory-valuation
+hardening.**

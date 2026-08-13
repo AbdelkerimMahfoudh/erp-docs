@@ -6,21 +6,27 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
-- `started_at_utc`: **2026-08-13 09:10 UTC** — explicit account switch requested
-  by the user; ownership passed from `NONE` to `CLAUDE-A`. **No earlier
-  CLAUDE-B attribution was relabelled or reinterpreted.**
-- Current authorised task: **Phase H1.4 — quantity-tracked accessory
-  transfers.** Partial quantities selected at request time; shipment and receipt
-  stay **all-or-nothing per transfer**. Explicitly out of scope: partial
-  shipment, partial receipt, discrepancy handling, return-to-source, proof
-  photos, consignment, WhatsApp, returns, customer credit, technician features,
-  notification-broadcast redesign.
-- Takeover verification (2026-08-13, checked not assumed): backend `45e9b55` ·
-  mobile `112e035` · docs `f8fee9b` · latest migration `0033` · all three trees
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-13 (H1.4.1 takeover)** — explicit account switch
+  requested by the user; ownership passed from `NONE` to **`CLAUDE-B`**.
+  **No earlier CLAUDE-A or CLAUDE-B attribution was relabelled or
+  reinterpreted.** H1.4 was CLAUDE-A's work and stays recorded as such.
+- Current authorised task: **Phase H1.4.1 — purchase-cost and
+  inventory-valuation hardening.** One financially correct, concurrency-safe
+  cost rule for every quantity-stock inflow, and proof that valuation and
+  closing cannot silently read stale or inconsistent values. Explicitly out of
+  scope: Returns, purchase approvals, supplier payments, quantity discrepancies,
+  branch-price UI, consignment, loans, WhatsApp, technician work, partial
+  shipment/receipt.
+- Takeover verification for H1.4.1 (checked, not assumed): backend `c6e1930` ·
+  mobile `3c016e3` · docs `6426841` · latest migration `0034` (33 total) ·
+  **54 suites / 748 tests** · mobile TypeScript and lint clean · all three trees
   clean and level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`.
-  Every expected value in the H1.4 brief matched reality.
+  Every expected value in the H1.4.1 brief matched reality.
+- Next intended action: **CP1** — audit every quantity-cost mutation path and
+  every consumer of `StockItem.cost`, plus the historical-data audit, before
+  any code changes.
 - Last session: **CLAUDE-A**, 2026-08-13 — **H1.4, quantity-tracked accessory
   transfers** (complete). Migration **`0034`**.
 - **Accessories now transfer alongside phones, in the same request.** Partial
