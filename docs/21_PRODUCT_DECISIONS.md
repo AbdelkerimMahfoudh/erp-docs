@@ -711,6 +711,60 @@ count. Profit and sale history are untouched.
 
 ---
 
+## 6c. Quantity-stock cost — APPROVED and SHIPPED (H1.4.1)
+
+Full audit and proofs: [`26_QUANTITY_COST_AND_VALUATION_AUDIT.md`](26_QUANTITY_COST_AND_VALUATION_AUDIT.md).
+
+**Quantity-tracked stock is valued at a weighted average cost.** One rule for
+every way it enters a branch — purchase receiving, quick "Add Stock", and
+transfer receipt:
+
+```text
+new average = (physical quantity × current cost + received × incoming cost)
+              / (physical quantity + received)
+```
+
+| Decision | Approved answer |
+|---|---|
+| Which quantity weights the average | **Physical**, not available. Stock promised to a transfer is still owned and was still bought at a price |
+| Reservations | **Untouched** by receiving — what is here changes, what is promised does not |
+| First stock in a branch | The incoming cost becomes the average |
+| Zero physical stock | The incoming cost becomes the average (no special case: the formula gives it) |
+| Precision | `DECIMAL(14,2)`, the money precision of the whole schema. Division happens in SQL; nothing is rounded in application code first |
+| Supplier payable and purchase history | Keep the **actual** cost paid. Averaging never touches them |
+| Past sales and stored margins | **Never recalculated.** A sale's cost is the snapshot taken when it happened |
+| New sales | Use the current average through the existing snapshot model |
+| Serialized items (phones) | **No averaging, ever.** Each unit keeps its own actual cost |
+| A missing price | The row is **unpriced** (`NULL`), never `0` — zero means "free", which nobody chose |
+
+### Why cost never touches the selling price
+
+Receiving at a new cost does not reprice the shelf. `StockItem.price`,
+`BranchVariantPrice`, `Product.defaultPrice`, `UnitPriceOverride` and historic
+`SaleItem.price` are all untouched by an inflow. A branch's price is its own
+decision and does not travel with the goods.
+
+### Inventory valuation — what is authoritative
+
+**Closing and finalized records never read the eventual rollup.** Daily closing
+awaits its own recompute and reads `sale_items` — the immutable per-line cost
+snapshots. `/analytics/inventory-value` computes held value live from source,
+so `held + in-transit` reconciles at the instant it is served.
+
+Dead-stock listings and the health score keep reading the persisted rollup:
+they rank per product, where a moment's lag changes an ordering, not a total.
+
+### 🔴 Open — historical drift, awaiting the user
+
+Two development rows still carry the cost of their **first** receipt: the Apple
+USB-C Cable at 4.10 (should be 4.25) and the Anker PowerCore at 8.50 (should be
+8.6667). They will re-average correctly on the next receipt, but the existing
+drift does not heal itself. The correction is deterministic; the stored values
+are stale rather than invalid, so **a backfill needs explicit approval** and was
+deliberately not performed.
+
+---
+
 ## 7. Goals · 8. Money & reconciliation · 9. Returns
 
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the

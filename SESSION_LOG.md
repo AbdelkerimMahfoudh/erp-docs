@@ -2412,3 +2412,150 @@ work began.
 
 Authorised task: **Phase H1.4.1 — purchase-cost and inventory-valuation
 hardening.**
+
+---
+
+## 2026-08-13 — CLAUDE-B — **Phase H1.4.1: purchase-cost and inventory-valuation hardening**
+
+**No migration.** The schema was never the problem.
+
+### The defect, measured before touching anything
+
+H1.4 averaged cost correctly on transfer receipt and recorded, in its own
+handoff, that purchase intake did not. Tracing every path that creates or
+increases a `StockItem` found **two** production paths with the same omission —
+purchase receiving and the quick "Add Stock" endpoint — both writing
+`update: { quantity: { increment } }` and never touching `cost`.
+
+Neither is a concurrency bug; `upsert` with an increment is atomic. The defect
+is purely financial, and it always errs in the direction that makes the shop
+look more profitable than it is.
+
+The database showed it plainly. Two of four quantity products had drifted, and
+both were exactly the ones re-ordered at a different price: the Apple cable
+bought 50 @ 4.10 then 10 @ 5.00 still cost 4.10 instead of 4.25, and the Anker
+power bank bought 10 @ 8.50 then 5 @ 9.00 still cost 8.50 instead of 8.6667.
+The two single-price products were correct — which is what the defect predicts.
+
+The historical stop condition did **not** fire: `stock_items.cost` is `NOT NULL`
+at the database level, so positive quantity with a null cost is structurally
+impossible. Zero invalid quantities, zero over-reserved rows, three CHECKs
+intact.
+
+### An error in my own audit, corrected rather than left
+
+The CP1 commit claimed a purchase "emits no event, so it never refreshes
+valuation at all". That was wrong — I grepped the event bus and missed the
+direct `enqueueBranchRefresh` call. All three inflows do enqueue a refresh. The
+correction is written into `docs/26` §7 rather than force-pushed away, matching
+how earlier count errors were handled.
+
+### What shipped
+
+One rule for every inflow, in `inventory/stock-cost.ts`: a single
+`INSERT … ON DUPLICATE KEY UPDATE` where the average is computed inside the
+statement. That closes two races at once — a second receipt averages against the
+first's committed result, and the absent-row case is arbitrated by the unique key
+instead of by an earlier read that both callers could pass. `cost` is assigned
+before `quantity` because MySQL evaluates left to right; averaging after the
+increment would under-weight the incoming goods.
+
+Physical quantity weights the average — stock promised to a transfer is still
+owned and was still bought at a price. Reservations and the selling price are
+absent from the UPDATE entirely. A missing price now leaves the row **unpriced**
+rather than `0`, which read as "sells for free".
+
+Transfer receipt was already correct and now expresses itself through the same
+function, so the rule exists once instead of three times. Its
+`receiveIntoExisting` was deleted rather than left as a second way to do it.
+
+### Three defects only running it could find
+
+**1. My own fix introduced a deadlock, and lost a purchase.**
+`INSERT … ON DUPLICATE KEY UPDATE` takes insert-intention gap locks the old
+read-then-write did not. Two simultaneous purchases of the same product
+deadlocked; MySQL rolled one back entirely, leaving 150 units where 200 had been
+bought. Fixed with deterministic lock ordering plus a discriminating retry — a
+lock conflict is re-run because the rollback was total, while unique violations
+and domain conflicts rethrow untouched so a clear refusal never becomes a slow
+one. Transfer receipt got the same protection, since this phase changed its lock
+profile too.
+
+**2. A simultaneous identical replay returned a misleading 409**, telling the
+caller "a duplicate identifier was detected" for a delivery that had in fact
+succeeded. It now resolves to the winning purchase, as transfers have since H1.1.
+
+**3. `GET /inventory` exposed every branch's stock and average cost.** The route
+carries no `@RequirePermissions`, so `PermissionsGuard` exits early and never
+validates branch assignment — while the active branch comes from the
+`X-Branch-Id` header. Changing one header returned another branch's costs. This
+is precisely the G2A-CP3 defect recurring on a route nobody re-examined, and it
+is what the brief meant by preserving branch isolation. The check is now one
+shared helper used by inventory and pricing alike.
+
+### Valuation: the redesign the brief allowed me to stop for was not needed
+
+H1.4 flagged the invariant as eventual and warned that fixing it might be a
+materially larger redesign. Tracing it showed the problem was narrower.
+
+**No finalized financial record depends on the eventual rollup.** Daily closing
+awaits its own recompute and reads `sale_items` — immutable per-line cost
+snapshots — and never reads `InventoryValuation`. Only one endpoint was wrong:
+`/analytics/inventory-value` added a **stale** held figure to a **live**
+in-transit figure while calling the sum "the number that must not move when
+stock is merely travelling". Both halves now come from source, through the same
+query that rebuilds the rollup, so the two cannot drift apart.
+
+Dead-stock listings and the health score deliberately still read the rollup:
+they rank per product, where a moment's lag changes an ordering rather than a
+reported total. Making the refresh durable is recorded as a background-jobs
+phase, not silently expanded into.
+
+### Verification
+
+Backend **56 suites / 778 tests** (from 54/748), TypeScript clean,
+`prisma validate` valid, **33 migrations** with none added, 4 triggers intact.
+
+**Live 42/42** against real MySQL, on an API this session started itself — never
+one left behind. Three earlier runs had to be discarded because a stale server
+survived a kill and served old code; the final run confirms "API listening" in
+its own fresh log before a single check runs.
+
+Several of my first assertions were wrong and were corrected rather than
+accommodated: three chained the expected average from the wrong base (the engine
+was right every time), one used non-Luhn IMEIs so no unit was ever created, one
+used the pre-H1.4 transfer line shape, and one asserted an employee lacks
+`cost.view` when the role matrix grants it.
+
+Races, genuinely simultaneous: purchase vs purchase into an existing row
+producing the exact combined average; two purchases into a row that did not
+exist yet creating exactly one row with both quantities; purchase vs transfer
+receipt into one destination; purchase vs selling the last available quantity;
+and a simultaneous replay applying once with both callers told about the same
+purchase.
+
+Mobile needed no change — no API type moved, and Receive already asks for the
+incoming unit cost. Showing the resulting average was considered and rejected:
+the response does not carry it, and adding a field for decoration is not what
+this phase is for.
+
+### Fixtures and cleanup
+
+The live script created its own supplier, eight products, stock and two users,
+and removed all of them. The 174 `stock.received` broadcasts and transfer
+notifications it produced were removed afterwards, returning the table to
+exactly 41. Demo baseline afterwards: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · sale_items 14 · stock 4 · reserved 0 · transfers 0 ·
+`units` checksum `2a1dc9bf284afde32b402ad108d38a76` · 4 triggers · 0 temporary
+databases.
+
+### 🔴 Left for the user, deliberately
+
+**The two drifted rows were not corrected.** From now on they re-average
+correctly on the next receipt, but the existing drift does not heal itself. The
+correction is deterministic; the stored values are stale rather than provably
+invalid, so under the phase rule a backfill needs explicit approval.
+
+**Commits:** backend `236fc9b`, `8d5f996`, `e964c71` · mobile none · docs
+`11f1540` and the commit carrying this entry. All three trees clean and level
+with `origin`. `READY_FOR_HANDOFF`, owner `NONE`.

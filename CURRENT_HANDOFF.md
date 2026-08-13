@@ -6,8 +6,18 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last session: **CLAUDE-B**, 2026-08-13 — **H1.4.1, purchase-cost and
+  inventory-valuation hardening** (complete). **No migration was needed.**
+- **Quantity stock now has ONE cost rule.** Purchase receiving, quick "Add
+  Stock" and transfer receipt all re-average through a single atomic statement.
+  Before this, the two purchase-side paths incremented quantity and kept the
+  FIRST receipt's cost forever.
+- **The reported stock total is computed, not remembered.**
+  `/analytics/inventory-value` derives held value live, so held + in-transit
+  reconciles at the instant it is served.
+- Previous owner label, kept intact: **CLAUDE-A** for H1.4.
 - `started_at_utc`: **2026-08-13 (H1.4.1 takeover)** — explicit account switch
   requested by the user; ownership passed from `NONE` to **`CLAUDE-B`**.
   **No earlier CLAUDE-A or CLAUDE-B attribution was relabelled or
@@ -64,7 +74,7 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `c6e1930` | `c6e1930` | clean |
+| Backend (`erp-backend`) | master | `e964c71` | `e964c71` | clean |
 | Mobile (`erp-mobile`) | master | `3c016e3` | `3c016e3` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
@@ -93,6 +103,94 @@ the id of the commit that introduces it. Read it with
 (`C:\wamp64\www\PhoneStoreERP`). `backend/` and `mobile/` are nested inside its
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
+
+## H1.4.1 ✅ — purchase cost and authoritative valuation
+
+Full audit, proofs and open questions:
+[`docs/26`](docs/26_QUANTITY_COST_AND_VALUATION_AUDIT.md). Approved rule:
+[`docs/21` §6c](docs/21_PRODUCT_DECISIONS.md).
+
+**No schema change.** Nothing about the schema was wrong — `cost` is already
+`NOT NULL`, the CHECKs hold, `price` has been nullable since `0034`. The defect
+was in three code paths, so no migration was created.
+
+### The defect, measured
+
+Two production paths incremented quantity and left `cost` at whatever the first
+ever receipt paid. Two of four demo products had already drifted, and both were
+exactly the ones re-ordered at a different price:
+
+| Product | Stored | Should be |
+|---|---|---|
+| Apple USB-C Cable (52) | 4.10 | **4.25** |
+| Anker PowerCore (15) | 8.50 | **8.6667** |
+
+The error always flatters the margin, and compounds with every re-order.
+
+### What shipped
+
+`inventory/stock-cost.ts` is the single rule, one
+`INSERT … ON DUPLICATE KEY UPDATE`: the average is computed inside the statement
+from the row's own committed values, so a second receipt averages against the
+first's result. The absent-row and existing-row cases are the same operation,
+arbitrated by the unique key rather than by an earlier read. `cost` is assigned
+**before** `quantity` (MySQL evaluates left to right). Physical quantity weights
+the average; reservations and the selling price are untouched.
+
+### Three defects only running it could find
+
+1. **The atomic statement introduced a deadlock and lost a purchase** — 150
+   units where 200 were bought. Fixed by deterministic lock ordering plus a
+   discriminating retry (`common/db/deadlock-retry.ts`): lock conflicts re-run,
+   unique violations and domain conflicts rethrow untouched.
+2. **A simultaneous identical replay returned a misleading 409** for a delivery
+   that had succeeded. It now resolves to the winning purchase.
+3. 🔒 **`GET /inventory` exposed every branch's stock and average cost.** No
+   `@RequirePermissions`, so the guard exits early and never checks branch
+   assignment while the branch comes from a header. The G2A-CP3 defect recurring
+   on a route nobody re-examined. The assignment check is now one shared helper
+   used by inventory and pricing.
+
+### Valuation — the redesign was NOT needed
+
+H1.4 flagged the invariant as "eventual" and warned a fix might be a large
+redesign. Tracing it showed otherwise: **no finalized financial record depends
+on the eventual rollup.** Closing awaits its own recompute and reads
+`sale_items` snapshots; it never reads `InventoryValuation`. Only one endpoint
+mixed a stale half with a live half, and it now computes both from source.
+
+Dead-stock listings and the health score still read the rollup deliberately —
+they rank per product, where lag changes an ordering, not a total. Making the
+rollup refresh durable is recorded as a background-jobs phase, not attempted.
+
+### 🔴 Open — needs the user
+
+**The two drifted rows were NOT corrected.** They will re-average on the next
+receipt, but the existing drift does not heal itself. The correction is
+deterministic; the values are stale rather than provably invalid, so a backfill
+needs explicit approval.
+
+Also unchanged and recorded: quick "Add Stock" still has no idempotency key
+(single manual action, not a delivery), and untargeted notifications remain
+company-wide (H1.3's finding).
+
+### Verified
+
+- Backend **56 suites / 778 tests**, TypeScript clean, `prisma validate` valid,
+  **33 migrations** (none added), 4 triggers intact.
+- **Live 42/42** against the running API and real MySQL, on a server started by
+  this session — never one left behind by another.
+- **Races, genuinely simultaneous:** purchase vs purchase into an existing row
+  (exact combined average), two purchases into an absent row (one row, both
+  quantities), purchase vs transfer receipt into one destination, purchase vs
+  selling the last available quantity, simultaneous replay applying once.
+- **Mobile untouched** — no API type moved. Receive already asks for the
+  incoming unit cost ("What it cost you — per unit, before any selling price").
+  TypeScript and lint clean.
+- Demo baseline restored exactly: products 12 · units 11 · sales 7 ·
+  `sum_total = 10051.00` · stock 4 · transfers 0 · notifications back to 41 ·
+  `units` checksum `2a1dc9bf284afde32b402ad108d38a76` · 0 temporary databases ·
+  no `h141` fixtures left.
 
 ## Verified baseline (end of H1.4)
 

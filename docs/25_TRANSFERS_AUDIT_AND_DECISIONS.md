@@ -1194,3 +1194,32 @@ invoice-number sequence advanced and was not rewound.**
   left for its own approved change.
 - **Untargeted notifications remain company-wide** (H1.3's open item);
   `closing.completed` still uses that path.
+
+---
+
+## 14. H1.4.1 — transfer receipt now shares the one cost rule
+
+H1.4 averaged cost correctly on transfer receipt while purchase receiving did
+not, so the same question had two answers depending on how stock arrived.
+H1.4.1 made it one: `receiveQuantityAtCost` in `inventory/stock-cost.ts` is now
+used by transfer receipt, purchase receiving and quick "Add Stock" alike.
+
+For transfers specifically:
+
+- `receiveIntoExisting` is **gone**, not left as a second way to do it. Its
+  "destination stock changed while receiving" conflict went with it — the
+  single `INSERT … ON DUPLICATE KEY UPDATE` makes that state unreachable, since
+  the row being absent and the row existing are now the same operation rather
+  than a branch chosen by an earlier read.
+- The destination's price decision is unchanged: its own branch variant price,
+  else the catalogue default, else **unpriced**. Resolved before the write and
+  used only if the row is created.
+- Receipt is now wrapped in the lock-conflict retry, because this phase changed
+  its lock profile. Two receipts landing on one destination row at the same
+  instant can deadlock on the unique key; InnoDB rolls the victim back
+  completely, and the version compare-and-swap keeps the retry from applying
+  anything twice.
+
+Re-proved live after the change: purchase racing transfer receipt into one
+destination row keeps both quantities and produces the exact combined weighted
+average, and the held/in-transit invariant holds across shipment and receipt.
