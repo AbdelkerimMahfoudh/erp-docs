@@ -875,3 +875,142 @@ make the smallest safe correction; A is a finding about a different feature.
   present after" depends on the parent transfer's status, and MySQL CHECK
   constraints cannot reference another table. It is a service invariant with
   tests, and this document says so rather than implying the database enforces it.
+
+---
+
+## 13. H1.4-CP2 — schema, migration `0034`, and the proofs
+
+### 13a. Backup, taken and verified BEFORE anything was altered
+
+`~/erp-backups/phonestore-20260813-173135.sql` — `--hex-blob`,
+`--single-transaction`, routines + triggers + events, no tablespaces.
+**262 269 bytes · trailer `-- Dump completed on 2026-08-13 17:31:36` · 0 raw
+`_binary` literals · 2 104 hex literals · 55 `CREATE TABLE` · 4 triggers · UTF-8
+round-trip byte-identical.** No credential was printed or placed on a command
+line.
+
+**Restore proven before migrating**, through the documented DEFINER-safe path
+(`scripts/sanitize-dump.js`, 4 definers stripped → restore as the migrator) into
+`prisma_h14_pre`: **55/55 tables, 4/4 triggers with byte-identical bodies**, and
+three independent binary-key checksums matching live exactly —
+units `2a1dc9bf284afde32b402ad108d38a76`,
+stock_items `681660e728243c70f1cc67f59b792dbe`,
+sales `1e9d9c8cc20104d1a7f9182891bfd19b` — with
+products/units/sales/sale_items/stock and `SUM(total) = 10051.00` all identical.
+
+### 13b. What `0034` changes
+
+| # | Change | Why |
+|---|---|---|
+| 1 | `transfer_items.shipped_unit_cost DECIMAL(14,2) NULL` | The cost the goods left with. NULL until shipment |
+| 2 | `unit_id` and `product_id` FKs → `ON DELETE RESTRICT ON UPDATE RESTRICT` | See below — this one was forced, and it was also right |
+| 3 | `transfer_items_line_kind_chk` | A line is serialized **or** quantity, never both and never neither |
+| 4 | `transfer_items_snapshot_kind_chk` | A snapshot belongs only to a quantity line, and is never negative |
+| 5 | `UNIQUE (transfer_id, product_id)` | Duplicate quantity lines refused by the database |
+| 6 | `stock_items.price` → nullable | An unpriced quantity row becomes representable |
+
+**The foreign-key change was not planned, and the database is what found it.**
+The first deploy failed with MySQL **error 3823**: a CHECK constraint may not
+reference a column whose foreign key carries a referential action. Both optional
+relations carried Prisma's default `ON DELETE SET NULL`, so the line-kind CHECK
+could not be created at all.
+
+That default was independently wrong here, and this session had already seen it
+happen: deleting a unit during fixture cleanup silently NULLed `unit_id` and
+left a transfer line pointing at nothing — a movement record that has forgotten
+what it moved, and under the new CHECK an invalid row. `RESTRICT` is the honest
+rule for financial history: a product or unit a transfer moved may not be erased
+from under it. Products are soft-deleted and units are not deleted in
+production, so no legitimate workflow is blocked.
+
+**Why `stock_items.price` became nullable.** §4.3 requires a received quantity
+row to end at *unpriced* when the destination has no branch price and the
+product has no default. A `NOT NULL` column left only two answers, and both are
+worse than the truth: invent a price, or refuse goods that have physically
+arrived. NULL now means unpriced and falls through the ladder the resolver
+already models. **It is never read as zero** — see 13e.
+
+### 13c. Deployment proofs — all four passed
+
+| Proof | Result |
+|---|---|
+| **Restored pre-migration database** (`prisma_h14_pre`, **seed never ran**) | `0034` applied alone · 12 products / 11 units / 7 sales / 14 sale_items / 4 stock preserved · `SUM(total)=10051.00` · units and stock checksums **byte-identical** · 55 tables · 4 triggers |
+| **Clean database from zero** (`prisma_h14_clean`) | 55 tables · 4 triggers · **33 migrations** · 3 CHECKs on `transfer_items` |
+| **Existing dev database** | applied; *"Database schema is up to date!"*, 33 migrations, units checksum unchanged, **0 null prices** (no backfill) |
+| **Rerun** | idempotent on both — *"No pending migrations to apply."* |
+
+### 13d. The constraints exercised against real MySQL — 13/13
+
+Run as SQL against `prisma_h14_pre`, because a mocked constraint only tests the
+mock:
+
+| # | Attempt | Result |
+|---|---|---|
+| 1 | serialized line (unit, qty 1) | accepted |
+| 2 | serialized line with qty 5 | **rejected** `3819 line_kind_chk` |
+| 3 | line with BOTH unit and product | **rejected** `3819 line_kind_chk` |
+| 4 | line with NEITHER | **rejected** `3819 line_kind_chk` |
+| 5 | quantity line (product, qty 10) | accepted |
+| 6 | duplicate quantity line, same product | **rejected** `1062` on the unique key |
+| 7 | a second serialized line on the same transfer | accepted — NULLs repeat under the index, as designed |
+| 8 | cost snapshot on a serialized line | **rejected** `3819 snapshot_kind_chk` |
+| 9 | negative cost snapshot | **rejected** `3819 snapshot_kind_chk` |
+| 10 | cost snapshot on a quantity line | accepted |
+| 11 | delete a unit a transfer line names | **rejected** `1451` on `transfer_items_unit_id_fkey`, and it deletes cleanly once the line is removed |
+| 12 | `price = NULL` on a stock row | accepted |
+| 13 | `reserved_quantity = quantity + 1` | **rejected** `3819 chk_stock_reserved_le_quantity` — `0030` intact |
+
+*Check 11 was run twice. The first attempt was blocked by a **different** FK
+(`sale_items`), which proves nothing about `transfer_items`; it was redone
+against a unit with no sale history so the rejection names the intended
+constraint. An inconclusive proof that looks like a pass is worse than a
+failure.*
+
+### 13e. Reverse SQL — documented in the migration and executed
+
+The full reversal was run against `prisma_h14_pre` and returned the schema to
+the `0033` shape: snapshot column gone · `transfer_items` back to its single
+original CHECK · no unique index · `price` `NOT NULL` again · both FKs back to
+`SET NULL` · 11 units / 7 sales / `SUM(total)=10051.00` intact.
+
+**Two of its steps are destructive, and the migration says so rather than
+implying a clean undo.** Quantity transfer lines cannot exist in the `0033`
+schema at all, so reversing means deciding what happens to them — deleting them
+abandons the movement they describe, and their reservations must be released
+first or `reserved_quantity` is left overstating what is promised. Restoring
+`NOT NULL` needs a value for every unpriced row, and `0` is written only because
+the reversed column cannot hold the truth.
+
+### 13f. The null-price fallout, fixed where types could not see it
+
+Making a column nullable is a change every reader has to survive. TypeScript
+caught three; **two more it could not, because `Number(null)` is `0` and
+perfectly legal**:
+
+- **Sell** built its price input with `Number(stock.price)`, which for an
+  unpriced row would have offered the item **free**. It now passes `null` and
+  lets the ladder answer — and passes the real `Product.defaultPrice`, which it
+  had hard-coded to `null` back when a stock row always had a price so the
+  fallback was unreachable. With neither, `SalesPolicy.resolvePrice` refuses
+  with "A price is required", which is the honest outcome.
+- **Inventory valuation** computed `si.quantity * si.price`, and one NULL price
+  would have turned an entire product's expected revenue NULL and silently
+  removed it from the total. Now `COALESCE(si.price, p.default_price, 0)`.
+  **Inventory *value* is unaffected** — it is driven by cost, and the goods are
+  owned whether or not anyone has priced them.
+
+`PricingService.row()` now treats a NULL-priced row as no row at all, so the
+existing precedence produces `product_default` and then `unpriced` with no new
+branch in the ladder.
+
+### 13g. Verification at this checkpoint
+
+Backend **51 suites / 704 tests** passing (16 added by
+`quantity-migration.spec.ts`) · `tsc` clean · `prisma validate` valid ·
+`migrate status` up to date with **33 migrations** · **4 triggers** intact ·
+demo baseline unchanged: products 12 · units 11 · sales 7 ·
+`sum_total = 10051.00` · stock 4 · transfers 0 · notifications 41 · reserved 0 ·
+units checksum `2a1dc9bf284afde32b402ad108d38a76`.
+
+**Both temporary databases were dropped** (`prisma_h14_pre`, `prisma_h14_clean`)
+and the sanitised dump copy deleted; the original backup is untouched.
