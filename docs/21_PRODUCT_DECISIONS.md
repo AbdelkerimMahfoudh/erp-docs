@@ -796,6 +796,14 @@ deliberately not performed.
 
 ## 7. Goals · 8. Money & reconciliation · 9. Returns
 
+> **I0 audit (2026-08-14):** the Returns rules below are **approved but almost
+> entirely unimplemented**, and the endpoint that exists contradicts several of
+> them — it finalises in one call, rewrites the original sale, restocks a
+> defective phone as sellable by default, accepts a client-supplied refund
+> amount, and never checks the return window. Traced in full in
+> [`docs/27`](27_RETURNS_AUDIT_AND_DECISIONS.md). **No decision here was
+> changed; six open questions are listed in `docs/27` §12.**
+
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the
 two things several of these decisions were waiting on:
 

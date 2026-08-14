@@ -2696,3 +2696,151 @@ reserved 0 · transfers 0 · notifications 41 · 0 temporary databases.
 **Commits:** backend none · mobile none · docs the commit carrying this entry.
 All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
 `NONE`.
+
+---
+
+## 2026-08-14 — CLAUDE-B — **Phase I0: Returns truth audit and implementation plan**
+
+Account unchanged: still **CLAUDE-B**, no switch, no relabelling.
+
+**READ-ONLY.** No schema migrated, no return behaviour changed, no permission
+granted or revoked, no sale created or returned, no mobile screen added, no
+financial fixture created. Backend and mobile have no new commit; the only
+changes are documentation.
+
+Deliverable: `docs/27_RETURNS_AUDIT_AND_DECISIONS.md`.
+
+### Takeover
+
+Every value in the brief matched: backend `e964c71`, mobile `3c016e3`, docs
+`bef8719`, 33 migrations, 56 suites / 778 tests, stock costs 4.27 / 5.00 / 5.00
+/ 8.67, notifications 41, sales 7 / 10 051.00, all three trees clean and level,
+`READY_FOR_HANDOFF` / `NONE`. Nothing needed correcting.
+
+### The headline: Returns already exist, and contradict the approved rules
+
+`POST /sales/:id/returns` finalises a return in **one call**. It voids the sale
+line, rewrites the original sale's `total`, `totalCost` and `margin`, restocks
+the phone as ordinary sellable stock **by default**, and accepts **any
+`refundAmount` the client sends**. There is no request, review, approval,
+responsibility, evidence, return-window check, idempotency, versioning or
+concurrency protection. Of the eighteen approved rules, one is satisfied
+(automatic refund timestamp), two partially, and the rest not at all.
+
+The reported concern was accurate and also understated. Three findings matter
+most:
+
+**1. History is rewritten in place.** The original sale row is mutated. Rollups
+exclude voided lines (`AND si.voided = 0`) while `DailyClosing` is written
+`isLocked: true` and never recomputed — so a return dated today retroactively
+lowers the revenue and COGS of the day the sale happened, but only at the next
+recompute of that branch-day. `returnUnit` emits no event and refreshes nothing,
+so the drift surfaces later, at an unrelated moment, and the locked closing then
+disagrees with the rollup it came from with nothing recording why. This breaks
+approved rule 18 directly.
+
+**2. The refund amount is client-supplied.** `refundAmount` is optional with
+only `@Min(0)` and is never compared to what the customer paid — a caller may
+refund more than the line was sold for.
+
+**3. A defective phone becomes sellable immediately.** `restock` defaults to
+`true`, so the default path puts the returned phone straight back to `in_stock`.
+Marking it faulty requires opting in.
+
+### The return window is decorative
+
+`company_settings.return_window_hours` exists, is Owner-editable with version
+CAS, is bounded to one year, and is **enforced nowhere** — zero references in
+`src/sales/`. The schema comment says so outright. The demo shop is configured
+`0` ("no returns") and the endpoint works anyway. No per-sale deadline, no
+per-sale override, no deadline on the receipt.
+
+Recommended: an immutable, server-calculated `return_deadline_at` snapshotted
+onto the sale at completion, so changing company settings later cannot alter an
+earlier customer's rights, and the client never computes eligibility.
+
+### Permissions
+
+`sale.return` today means *finalise a return*. `store_employee` was already
+correctly audited out of it in `0018`, and `prisma/seed-data/permissions.ts`
+even records the reason and names the missing piece — "needs a future
+`return.request`". This audit confirms that reasoning rather than revisiting it.
+
+The legacy `sales_employee` role still grants `sale.return` in both the
+TypeScript matrix and the live database. **No live user is assigned to a legacy
+role** — every assignment is `owner` or `store_employee` — so it is dormant
+rather than exposed, but it should be revoked with the split.
+
+An eight-permission split is proposed, all branch-scoped, with the H1.2
+guard lesson carried forward verbatim: `PermissionsGuard` requires ALL listed
+permissions, so a route needing "review OR approve" must be guarded on the
+narrow key and decide breadth in the service.
+
+### Two dependencies the milestone did not anticipate
+
+**There is no sale-history screen, no sale-detail screen and no sale search.**
+`GET /sales` is `take: 100`, newest first, with no filters or pagination, and
+mobile has no sales list at all. An employee cannot find the original sale in
+the app — which every return flow starts from. That work must be sequenced
+before the return workflow, not discovered during it.
+
+**`GET /sales` and `GET /sales/:id` carry no `@RequirePermissions` and no branch
+validation.** The guard exits early, so the branch in the header is never
+checked — the same defect class fixed for `/inventory` in H1.4.1 with
+`assertAssignedToBranch`. Pre-existing and not caused by Returns, but Returns
+reads sales heavily, so it is raised as an in-scope question.
+
+### Two approved rules found in `docs/21` §9 that change the plan
+
+Re-reading the approved decisions after the code audit surfaced two rules worth
+separating out.
+
+*"Returned phone becomes Faulty awaiting inspection, not sellable"* is already
+approved — so the custody recommendation is the existing decision being
+honoured, not a new one. The only open question is whether to add a distinct
+`return_hold` status or overload `faulty`.
+
+*"Profit stays provisional during the return window"* is the largest unexamined
+consequence in the milestone, and the approved decision itself flagged it:
+"this affects the existing rollup design". Today profit is final the moment a
+sale commits and days close locked, so a day can be closed before its sales are
+final. Three options are laid out; reversal-on-return-date is recommended for
+the first release with a "net of later returns" report as follow-up — but this
+is a product decision about what profit *means* to the Owner and must be
+answered explicitly rather than settled by implementation convenience.
+
+### Recommended lifecycle and sequence
+
+`requested → under_review → approved → refunded`, with `rejected` and
+`cancelled` as exits; customer-caused damage reachable only with an Owner
+exception; an expired deadline overridable only by an Owner initially. Approval
+settles the money; a separate confirmation records that money actually moved.
+The phone rests in an unsellable hold until explicitly cleared for resale.
+
+Thirteen-step sequence proposed, with deadline snapshot, schema and the
+permission split landing before any workflow, and sale search inserted as step
+4 where the dependency bites.
+
+### Open decisions
+
+Six questions carried to the user, each with operational and accounting
+consequences: custody during investigation · returned-phone custody state ·
+refund-due versus refund-confirmed · **screen-protector and accessory
+accounting (deliberately left open — netting it silently would misstate the
+refund)** · expired-window authority · quantity-accessory scope. Plus the
+provisional-profit question and whether the sales-read defect is in scope.
+
+### Verification
+
+Backend **56 suites / 778 tests**, TypeScript clean, `prisma validate` valid,
+33 migrations, "Database schema is up to date". Mobile TypeScript clean,
+`expo lint` clean. Database untouched and re-verified after the audit: stock
+costs 4.27 / 5.00 / 5.00 / 8.67, notifications 41, sales 7 / 10 051.00.
+
+No API server was needed — every finding came from the code, the schema and
+read-only queries, so none of the authorization probes the brief permits were
+required.
+
+**Commits:** backend none · mobile none · docs the commit carrying this entry.
+All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
+`NONE`. **Returns implementation is blocked on the decisions above.**

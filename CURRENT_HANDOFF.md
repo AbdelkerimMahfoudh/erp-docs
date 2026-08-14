@@ -8,7 +8,24 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-13 — **H1.4.2, verified historical cost
+- Last session: **CLAUDE-B**, 2026-08-14 — **I0, Returns truth audit and
+  implementation plan** (complete). **READ-ONLY: no code, no migration, no
+  commits to backend or mobile.**
+- **Returns must not be implemented until the open decisions in `docs/27` §12
+  and §12b are answered.**
+- `started_at_utc`: **2026-08-14 (I0 takeover)**
+- Current authorised task: **Phase I0 — Returns truth audit and implementation
+  plan.** **READ-ONLY.** No schema change, no behaviour change, no return
+  created, no permission granted, no mobile screen. Deliverable is
+  `docs/27_RETURNS_AUDIT_AND_DECISIONS.md` plus the decisions the user must make.
+- Takeover verification for I0 (checked, not assumed): backend `e964c71` ·
+  mobile `3c016e3` · docs `bef8719` · **33 migrations** · **56 suites / 778
+  tests** · stock costs **4.27, 5.00, 5.00, 8.67** · notifications **41** ·
+  sales **7 / 10 051.00** · all three trees clean and level ·
+  `READY_FOR_HANDOFF` / owner `NONE`. Every expected value matched.
+- Next intended action: trace every return route, service method, data-model
+  gap, return-window rule and custody state before proposing anything.
+- Previous phase: **CLAUDE-B**, 2026-08-13 — **H1.4.2, verified historical cost
   repair** (complete). **Database-only: no code, no migration, no commits to
   backend or mobile.**
 - **Both drifted rows are corrected**, but only after the complete
@@ -120,6 +137,83 @@ the id of the commit that introduces it. Read it with
 (`C:\wamp64\www\PhoneStoreERP`). `backend/` and `mobile/` are nested inside its
 working tree but are separate repositories, excluded via the root `.gitignore`.
 From either code repository the documentation repository is `../`.
+
+## I0 ✅ — Returns truth audit (READ-ONLY)
+
+Full audit and decisions: [`docs/27`](docs/27_RETURNS_AUDIT_AND_DECISIONS.md).
+
+**Nothing was implemented.** No migration, no behaviour change, no permission
+granted or revoked, no sale created or returned, no mobile screen, no fixture.
+Backend and mobile have no new commit.
+
+### Returns already exist, and contradict almost every approved rule
+
+`POST /sales/:id/returns` finalises a return in **one call**: it voids the sale
+line, **rewrites the original sale's `total`, `totalCost` and `margin`**,
+restocks the phone as ordinary sellable stock **by default**, and accepts **any
+`refundAmount` the client sends**. There is no request, review, approval,
+responsibility, evidence, window check, idempotency or concurrency protection.
+
+The three findings that matter most:
+
+1. **History is rewritten in place.** Rollups exclude voided lines and
+   `DailyClosing` is locked and never recomputed — so a return silently lowers
+   the revenue of the day the sale happened, but only at the next unrelated
+   recompute. The locked closing then disagrees with its own source.
+2. **The refund amount is client-supplied** and never compared to what was
+   paid. A caller may refund more than the line sold for.
+3. **A defective phone becomes sellable immediately** — `restock` defaults to
+   true, so the next customer can buy it.
+
+### The return window is decorative
+
+`company_settings.return_window_hours` exists, is Owner-editable, and is
+**enforced nowhere** — zero references in `src/sales/`. The demo shop is set to
+`0` ("no returns") and the endpoint works anyway. No per-sale deadline exists.
+Recommended: an immutable server-calculated `return_deadline_at` snapshotted on
+the sale, so changing settings later cannot alter an earlier customer's rights.
+
+### Permissions
+
+`sale.return` today means *finalise*. `store_employee` was already correctly
+audited out of it in `0018`, and `permissions.ts` even names the fix needed
+("needs a future `return.request`") — this audit confirms that reasoning. The
+legacy `sales_employee` role still grants it in both the matrix and the
+database; **no live user is on a legacy role**, so it is dormant, not exposed.
+
+### Two dependencies the milestone did not anticipate
+
+- **There is no sale-history or sale-detail screen, and no sale search.**
+  `GET /sales` is `take: 100`, newest first, no filters. You cannot find the
+  original sale in the app at all. That work must be sequenced *before* the
+  return flow.
+- **`GET /sales` and `GET /sales/:id` carry no permission and no branch
+  validation** — the same defect fixed for `/inventory` in H1.4.1. Pre-existing,
+  not caused by Returns, but Returns builds directly on these reads.
+
+### Also surfaced from `docs/21` §9
+
+Two approved rules that change the plan: the returned phone should become
+*"Faulty awaiting inspection", not sellable* (so the custody recommendation is
+the existing decision being honoured, not a new one); and **"profit stays
+provisional during the return window"**, which today's design cannot express —
+profit is final at commit and days are closed locked. Three options are laid out
+in `docs/27` §12b; this needs an explicit answer about what "profit" means.
+
+### Six decisions needed before any implementation
+
+Custody during investigation · returned-phone custody state (`return_hold` vs
+reusing `faulty`) · refund-due vs refund-confirmed split · **screen-protector
+and accessory accounting (open, no recommendation safe to assume)** ·
+expired-window authority · quantity-accessory scope. Plus the provisional-profit
+question above and whether the sales-read defect is in scope.
+
+### Verified
+
+Backend **56 suites / 778 tests**, TypeScript clean, `prisma validate` valid, 33
+migrations, schema up to date. Mobile TypeScript and `expo lint` clean. Database
+untouched: stock costs 4.27 / 5.00 / 5.00 / 8.67, notifications 41, sales
+7 / 10 051.00.
 
 ## H1.4.2 ✅ — verified historical cost repair
 
