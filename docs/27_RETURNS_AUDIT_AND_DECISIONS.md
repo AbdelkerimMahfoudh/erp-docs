@@ -969,3 +969,88 @@ meaning.
   **`50f6e146fb9e7c5822fa65c37cb45edc`**.
 - The sanitised copy was deleted; the original dump is the backup.
 
+
+### 16.9 CP2.1 — the 58-versus-57 table discrepancy, reconciled
+
+CP2 reported 58 tables on the restored pre-I2 database after `0036` and 57 on
+the clean all-migrations database. A one-table difference between "what a
+restore looks like" and "what a fresh deployment looks like" is exactly the kind
+of thing that must be explained before application code depends on the schema,
+so both were rebuilt and their table-name **sets** compared rather than their
+counts.
+
+**Result: one table differs, and it is `_prisma_migrations`.**
+
+```
+restored: 58   clean: 57
+only in RESTORED:  _prisma_migrations
+only in CLEAN:     (none)
+```
+
+Every business table is identical. Against the Prisma schema, which declares
+**57** mapped models:
+
+| Comparison | Result |
+|---|---|
+| in schema, not in clean | none |
+| in clean, not in schema | none |
+| in schema, not in restored | none |
+| in restored, not in schema | `_prisma_migrations` |
+
+**Category: a counting/tooling artifact of how the clean database was built.**
+Not legacy residue, not an omitted migration, not `db push` drift:
+
+- `_prisma_migrations` is **Prisma's own migration-history bookkeeping table**.
+  It is created and maintained by `prisma migrate`, is not a model, and is
+  deliberately absent from `schema.prisma`.
+- The restored copy has it because it came from a dump of dev, which Prisma
+  manages. Dev currently holds **36** rows there, one per applied migration.
+- The clean database lacked it **only because it was built by feeding the
+  migration SQL files to the `mysql` client**, which never creates it. That
+  route was chosen in CP2 because `prisma migrate deploy` cannot target an
+  overridden `DATABASE_URL` on this machine (see the note below).
+
+**A real clean deployment is therefore correct and has 58 tables**, because a
+real deployment runs `prisma migrate deploy`, which creates `_prisma_migrations`
+before applying anything. The 57 was an artifact of the proof method, never of
+the migration.
+
+**Why runtime code cannot depend on the differing table.** Nothing in the
+application may read or write `_prisma_migrations`: it is Prisma CLI state, its
+shape is owned by the tool and can change between Prisma versions, it is absent
+from the generated client, and it is absent entirely from a database built by
+any route other than the Prisma CLI. Anything needing to know "which migration
+is applied" belongs to deployment tooling, not to a service.
+
+**The legacy `returns` table was NOT dropped to equalise counts.** It is present
+in both databases and in the schema as `model Return`, holds zero rows, and
+stays deprecated in place per §16.3.
+
+No corrective migration is required, so none was written. Adding a migration to
+"fix" a difference that does not exist in a real deployment would have been a
+schema change made to satisfy a miscount.
+
+#### Preserved finding — Prisma's schema engine and alternate databases
+
+`prisma migrate deploy` / `migrate status` fail with **``Unknown authentication
+plugin `sha256_password'``** whenever `DATABASE_URL` is overridden to any
+database other than `phonestore`, while:
+
+- the **query engine** connects to the very same database with the very same
+  credentials and reads data successfully;
+- the `mysql` client connects to it fine;
+- `phonestore_migrator` holds `ALL PRIVILEGES ON prisma\_%`, so privileges are
+  not the cause (a database named outside that pattern is a *different*,
+  correctly-reported `ERROR 1044 Access denied`).
+
+It is a schema-engine/driver quirk, not a credentials, privileges or migration
+problem, and it did not block any required proof: the restored, clean and
+rerun proofs were applied with the `mysql` client, and the dev proof used the
+real `prisma migrate deploy` path, which works because it uses `.env` unchanged.
+Recorded here so the next session does not rediscover it; deliberately not
+investigated further, since it costs session time and blocks nothing.
+
+**One practical consequence worth knowing:** a temporary database used with the
+`mysql` client must be named `prisma_…` to fall under the migrator's grant.
+`i2_restored` failed with `ERROR 1044` for exactly that reason.
+
