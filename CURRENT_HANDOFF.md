@@ -11,109 +11,65 @@
 - `started_at_utc`: **2026-08-14 (I1 takeover)**
 - Current authorised task: **Phase I1 — secure sales history and return-policy
   foundation.** Disable the unsafe legacy return endpoint · `sale.view` and
-  `return.policy.override` · secure paginated sale list, search and detail ·
-  return-policy snapshot on every new sale · audited sale-time override ·
-  mobile sale history/detail + receipt disclosure. **The ReturnRequest
-  lifecycle is NOT in scope** (that is I2).
+  `return.policy.override` · secure paginated sale list, server-side search and
+  detail · return-policy snapshot on every new sale · audited sale-time
+  override · mobile sale history/detail + receipt disclosure. **The
+  ReturnRequest lifecycle is NOT in scope** (that is I2).
 - Takeover verification for I1 (checked, not assumed): backend `e964c71` ·
   mobile `3c016e3` · docs `46a98fd` · **33 migrations** · **56 suites / 778
   tests** · sales **7 / 10 051.00** · stock costs **4.27, 5.00, 5.00, 8.67** ·
   notifications **41** · all three trees clean and level · `READY_FOR_HANDOFF`
   / owner `NONE`. Every expected value matched.
-- Next intended action: **CP1** — move the seven I0 decisions from open to
-  approved in `docs/27` and `docs/21`.
-- Previous phase: **CLAUDE-B**, 2026-08-14 — **I0, Returns truth audit**
-  (complete, read-only).
-- **Returns must not be implemented until the open decisions in `docs/27` §12
-  and §12b are answered.**
-- `started_at_utc`: **2026-08-14 (I0 takeover)**
-- Current authorised task: **Phase I0 — Returns truth audit and implementation
-  plan.** **READ-ONLY.** No schema change, no behaviour change, no return
-  created, no permission granted, no mobile screen. Deliverable is
-  `docs/27_RETURNS_AUDIT_AND_DECISIONS.md` plus the decisions the user must make.
-- Takeover verification for I0 (checked, not assumed): backend `e964c71` ·
-  mobile `3c016e3` · docs `bef8719` · **33 migrations** · **56 suites / 778
-  tests** · stock costs **4.27, 5.00, 5.00, 8.67** · notifications **41** ·
-  sales **7 / 10 051.00** · all three trees clean and level ·
-  `READY_FOR_HANDOFF` / owner `NONE`. Every expected value matched.
-- Next intended action: trace every return route, service method, data-model
-  gap, return-window rule and custody state before proposing anything.
-- Previous phase: **CLAUDE-B**, 2026-08-13 — **H1.4.2, verified historical cost
-  repair** (complete). **Database-only: no code, no migration, no commits to
-  backend or mobile.**
-- **Both drifted rows are corrected**, but only after the complete
-  chronological ledger reproduced quantity, reservations and identity exactly.
-- `started_at_utc`: **2026-08-13 (H1.4.2 takeover)**
-- Current authorised task: **Phase H1.4.2 — verified historical cost repair.**
-  Correct the two audited demo quantity-stock rows **only if** complete
-  inventory lineage proves the values deterministically. Out of scope: Returns,
-  purchase approvals, supplier payments, expenses, reconciliation, consignment,
-  loans, WhatsApp, technician work, and any generic production backfill.
-- Takeover verification for H1.4.2 (discovered from Git, not assumed): backend
-  `e964c71` · mobile `3c016e3` · docs `d8f1300` · **56 suites / 778 tests** ·
-  **33 migrations** · mobile TypeScript and lint clean · all three trees clean
-  and level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`.
-- Next intended action: correct the **self-healing claim** (it was wrong), then
-  reconstruct the full chronological ledger for both candidate rows.
-- Previous phase: **CLAUDE-B**, 2026-08-13 — **H1.4.1, purchase-cost and
-  inventory-valuation hardening** (complete). **No migration was needed.**
-- **Quantity stock now has ONE cost rule.** Purchase receiving, quick "Add
-  Stock" and transfer receipt all re-average through a single atomic statement.
-  Before this, the two purchase-side paths incremented quantity and kept the
-  FIRST receipt's cost forever.
-- **The reported stock total is computed, not remembered.**
-  `/analytics/inventory-value` derives held value live, so held + in-transit
-  reconciles at the instant it is served.
-- Previous owner label, kept intact: **CLAUDE-A** for H1.4.
-- `started_at_utc`: **2026-08-13 (H1.4.1 takeover)** — explicit account switch
-  requested by the user; ownership passed from `NONE` to **`CLAUDE-B`**.
-  **No earlier CLAUDE-A or CLAUDE-B attribution was relabelled or
-  reinterpreted.** H1.4 was CLAUDE-A's work and stays recorded as such.
-- Current authorised task: **Phase H1.4.1 — purchase-cost and
-  inventory-valuation hardening.** One financially correct, concurrency-safe
-  cost rule for every quantity-stock inflow, and proof that valuation and
-  closing cannot silently read stale or inconsistent values. Explicitly out of
-  scope: Returns, purchase approvals, supplier payments, quantity discrepancies,
-  branch-price UI, consignment, loans, WhatsApp, technician work, partial
-  shipment/receipt.
-- Takeover verification for H1.4.1 (checked, not assumed): backend `c6e1930` ·
-  mobile `3c016e3` · docs `6426841` · latest migration `0034` (33 total) ·
-  **54 suites / 748 tests** · mobile TypeScript and lint clean · all three trees
-  clean and level with `origin/master` · `READY_FOR_HANDOFF` / owner `NONE`.
-  Every expected value in the H1.4.1 brief matched reality.
-- Next intended action: **CP1** — audit every quantity-cost mutation path and
-  every consumer of `StockItem.cost`, plus the historical-data audit, before
-  any code changes.
-- Last session: **CLAUDE-A**, 2026-08-13 — **H1.4, quantity-tracked accessory
-  transfers** (complete). Migration **`0034`**.
-- **Accessories now transfer alongside phones, in the same request.** Partial
-  quantities chosen at request time, reserved atomically, shipped with a cost
-  snapshot, and received into the destination at a weighted-average cost with
-  the destination's own selling price left alone.
-- **Shipment and receipt remain all-or-nothing per transfer.** Partial shipment,
-  partial receipt, discrepancies and return-to-source are untouched.
-- Previous: H1.3 (`0033`), H1.2 (`0031`, `0032`), H1.1 (`0030`), H0 audit,
-  G2A-CP1…CP4.5
 
-### Takeover check (verified, not assumed)
+### I1 progress
 
-Backend `d7f4653` · mobile `30440df` · docs `1a15041`, all clean and level;
-**47 suites / 617 tests**, **31 migrations**, latest `0032`, schema up to date.
-Every expected value in the H1.3 brief matched reality, so nothing needed
-correcting before work began.
-- **The H0 authorization gap is CLOSED.** `unit.transfer` no longer guards any
-  route and is revoked from both store roles; an employee cannot approve, and
-  cannot cancel anyone else's request.
-- Previous: H1.1 (`0030`), H0 audit, G2A-CP1…CP4.5
+- **CP1 ✅** — the eight I0 decisions moved from open to approved
+  (`docs/27` §14, `docs/21`). Docs `7a6822e`.
+- **CP2 ✅** — backup, permissions, schema and deployment proofs. Backend
+  `1dfccb5`, `cf6d5fb`, `a6c3a25`.
+  - Backup `~/erp-backups/phonestore-20260814-032153.sql` — 303 955 bytes,
+    55 tables, 4 triggers, 0 raw `_binary`, verified by restore.
+  - Migration **`0035`** proven four ways: on a DEFINER-safe restore of that
+    backup (`prisma_i1_pre`), on a clean database (`prisma_i1_clean`), on dev,
+    and on a rerun (no-op). Reverse SQL **executed**, not merely written —
+    its first draft failed with error 3959, and the tested order is what the
+    migration header records. Both temporary databases were dropped and the
+    sanitized dump copy removed.
+  - Legacy-sale audit before the backfill: company window **0**, newest sale
+    **263 h** old → no existing sale sits inside a promised period, so 0/NULL
+    is the literal truth rather than a convenient default.
+  - `POST /sales/:id/returns` now answers **410 `legacy_return_disabled`**;
+    `returnUnit` and `ReturnSaleDto` are **deleted**, not commented out.
+  - Verification at the checkpoint: **58 suites / 809 tests**, `tsc` clean,
+    `prisma validate` clean, `migrate status` up to date, tree clean and level.
+- **CP3 → CP7** — pending. Next is CP3.
+- Next intended action: **CP3** — secure `GET /sales` (require `sale.view`,
+  `assertAssignedToBranch`, keyset pagination, **server-side** search) and add
+  `GET /sales/:id` detail with the snapshotted policy and server-calculated
+  eligibility, failing closed for cross-company, wrong-branch and unknown ids.
+
+### Phase lineage (detail lives in `SESSION_LOG.md`)
+
+- **I0** — CLAUDE-B, 2026-08-14 — Returns truth audit (read-only, complete).
+  The existing return endpoint contradicts nearly every approved rule;
+  `docs/27` is the audit and §14 the approved decisions.
+- **H1.4.2** — CLAUDE-B, 2026-08-13 — verified historical cost repair. Two
+  drifted rows corrected, but **only** after the complete chronological ledger
+  reproduced quantity, reservations and identity exactly. Database-only.
+- **H1.4.1** — CLAUDE-B, 2026-08-13 — one cost rule for every quantity-stock
+  inflow, and a reported stock total that is **computed, not remembered**.
+- **H1.4** — CLAUDE-A — quantity-tracked accessory transfers (`0034`).
+- **H1.3** (`0033`), **H1.2** (`0031`, `0032`), **H1.1** (`0030`), **H0** audit,
+  **G2A**-CP1…CP4.5.
 
 > **Account labels.** The user set this session's account to **`CLAUDE-B`**
-> explicitly; CP2 and CP3 ran as `CLAUDE-A`. Separately, several older entries
-> (G1 backend, G1 mobile, G2A-CP1) recorded themselves as `CLAUDE-B` when the
-> work was actually `CLAUDE-A` — **only those ownership labels were wrong**; the
-> work, commits, audits and verification in them are correct and unaffected.
-> Nothing was rewritten: `SESSION_LOG.md` is append-only, so that correction is
-> appended there and no commit was amended. Read any `CLAUDE-B` attribution
-> dated **2026-08-05/06** as `CLAUDE-A`.
+> explicitly. Separately, several older entries (G1 backend, G1 mobile,
+> G2A-CP1) recorded themselves as `CLAUDE-B` when the work was actually
+> `CLAUDE-A` — **only those ownership labels were wrong**; the work, commits,
+> audits and verification in them are correct and unaffected. Nothing was
+> rewritten: `SESSION_LOG.md` is append-only, so that correction is appended
+> there and no commit was amended. Read any `CLAUDE-B` attribution dated
+> **2026-08-05/06** as `CLAUDE-A`.
 
 ## Repository state
 
@@ -121,7 +77,7 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `e964c71` | `e964c71` | clean |
+| Backend (`erp-backend`) | master | `a6c3a25` | `a6c3a25` | clean |
 | Mobile (`erp-mobile`) | master | `3c016e3` | `3c016e3` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
@@ -1138,19 +1094,39 @@ purchase receipt** — a visible inconsistency that needs its own approved chang
 
 ## Next exact action
 
-**H1.4 is complete. Nothing is authorised beyond it.**
+**Phase I1 is in progress. CP1 and CP2 are complete; CP3 is next.**
 
-In dependency order, the open transfer work is: **partial shipment and partial
-receipt**, then **discrepancy handling and return-to-source** (which is what
-would let a shipped transfer be cancelled safely), then **proof photos**.
+**CP3 — secure sales reads.** `GET /sales` must require `sale.view`, resolve and
+verify the active branch with `assertAssignedToBranch`, paginate by keyset on the
+primary key, and search **on the server** — invoice, IMEI, serial, product,
+variant, employee, payment method, date range and status. Client-side filtering
+of an already-loaded page is explicitly not acceptable: it would silently hide
+matches that live on the pages nobody scrolled to. `GET /sales/:id` returns
+totals, lines, identifiers and payment records, cost and margin **only** when the
+caller holds `cost.view`, plus the sale's snapshotted policy and the eligibility
+the server calculates from its own clock. Cross-company, wrong-branch and unknown
+ids must all fail closed and must be indistinguishable from each other.
 
-Separately open, and independent of transfers: **purchase-intake cost averaging**
-(above) · the **broadcast-notification defect** from H1.3 · the
+Then **CP4** (wire `snapshotPolicy` / `resolveWindowForSale` into `createSale`,
+plus the receipt contract and PDF disclosure in EN and AR), **CP5** (mobile
+`/sales` and `/sales/[id]`), **CP6** (Sell-screen policy control — read-only for
+an employee, override with a reason for manager and owner, showing the calculated
+deadline), and **CP7** (live verification, `docs/21`, `docs/27`, `docs/24`,
+`SESSION_LOG.md`, handoff).
+
+**Not in I1:** the ReturnRequest lifecycle, approval, restocking decisions,
+refunds and idempotent return execution. That is **I2**, and it depends on this
+foundation.
+
+Open work unrelated to Returns, in dependency order: **partial shipment and
+partial receipt**, then **discrepancy handling and return-to-source** (which is
+what would let a shipped transfer be cancelled safely), then **proof photos**.
+Separately open: the **broadcast-notification defect** from H1.3 · the
 **`BranchVariantPrice` rung for quantity products**, implemented but unreachable
 until something writes such a row.
 
-**Deferred — do not start without the user:** G2B pricing proposals · Returns ·
-Suppliers · consignment (must not reuse the transfer model) · loans · expenses ·
+**Deferred — do not start without the user:** G2B pricing proposals · Suppliers ·
+consignment (must not reuse the transfer model) · loans · expenses ·
 subscriptions · WhatsApp · authentication · technician functionality.
 
 ### Device pass still outstanding
