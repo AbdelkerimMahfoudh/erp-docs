@@ -6,70 +6,100 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B** (unchanged — no account switch)
-- `started_at_utc`: **2026-08-14 (I1 takeover)**
-- Current authorised task: **Phase I1 — secure sales history and return-policy
-  foundation.** Disable the unsafe legacy return endpoint · `sale.view` and
-  `return.policy.override` · secure paginated sale list, server-side search and
-  detail · return-policy snapshot on every new sale · audited sale-time
-  override · mobile sale history/detail + receipt disclosure. **The
-  ReturnRequest lifecycle is NOT in scope** (that is I2).
-- Takeover verification for I1 (checked, not assumed): backend `e964c71` ·
-  mobile `3c016e3` · docs `46a98fd` · **33 migrations** · **56 suites / 778
-  tests** · sales **7 / 10 051.00** · stock costs **4.27, 5.00, 5.00, 8.67** ·
-  notifications **41** · all three trees clean and level · `READY_FOR_HANDOFF`
-  / owner `NONE`. Every expected value matched.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B** (no account switch occurred during I1)
+- Completed phase: **I1 — secure sales history and return-policy foundation.**
+  Complete, verified over real HTTP, and handed off. **I2 was not started.**
+- `finished_at_utc`: **2026-08-14**
 
-### I1 progress
+### I1 — what landed
 
-- **CP1 ✅** — the eight I0 decisions moved from open to approved
-  (`docs/27` §14, `docs/21`). Docs `7a6822e`.
-- **CP2 ✅** — backup, permissions, schema and deployment proofs. Backend
-  `1dfccb5`, `cf6d5fb`, `a6c3a25`.
-  - Backup `~/erp-backups/phonestore-20260814-032153.sql` — 303 955 bytes,
-    55 tables, 4 triggers, 0 raw `_binary`, verified by restore.
-  - Migration **`0035`** proven four ways: on a DEFINER-safe restore of that
-    backup (`prisma_i1_pre`), on a clean database (`prisma_i1_clean`), on dev,
-    and on a rerun (no-op). Reverse SQL **executed**, not merely written —
-    its first draft failed with error 3959, and the tested order is what the
-    migration header records. Both temporary databases were dropped and the
-    sanitized dump copy removed.
-  - Legacy-sale audit before the backfill: company window **0**, newest sale
-    **263 h** old → no existing sale sits inside a promised period, so 0/NULL
-    is the literal truth rather than a convenient default.
-  - `POST /sales/:id/returns` now answers **410 `legacy_return_disabled`**;
-    `returnUnit` and `ReturnSaleDto` are **deleted**, not commented out.
-  - Verification at the checkpoint: **58 suites / 809 tests**, `tsc` clean,
-    `prisma validate` clean, `migrate status` up to date, tree clean and level.
-- **CP3 → CP7** — pending. Next is CP3.
-- Next intended action: **CP3** — secure `GET /sales` (require `sale.view`,
-  `assertAssignedToBranch`, keyset pagination, **server-side** search) and add
-  `GET /sales/:id` detail with the snapshotted policy and server-calculated
-  eligibility, failing closed for cross-company, wrong-branch and unknown ids.
+| Checkpoint | Result |
+|---|---|
+| **CP1** | The eight I0 decisions moved from open to approved (`docs/27` §14). |
+| **CP2** | Migration `0035` · `sale.view` + `return.policy.override` · legacy return endpoint deleted and answering 410 · `return-policy.ts`. |
+| **CP3** | `GET /sales` and `GET /sales/:id` secured, keyset-paged and searched entirely in SQL. |
+| **CP4** | The policy snapshotted on every new sale, audited when overridden, and stated on the receipt. |
+| **CP5** | Mobile `/sales` and `/sales/[id]`. |
+| **CP6** | The Sell-screen policy control. |
+| **CP7** | 78 live HTTP checks, one defect found and fixed, docs and handoff. |
+
+### Verification at handoff
+
+- Backend **62 suites / 869 tests**, `tsc` clean, `prisma validate` valid,
+  **34 migrations**, "Database schema is up to date".
+- Mobile `tsc` clean, `expo lint` clean, `expo export --platform web` succeeds
+  with both `/sales` and `/sales/[id]` present. `lib/return-policy.test.ts`
+  passes (13 assertions).
+- **78 live HTTP checks, all passing**, against a verification backend on port
+  3099 that this session started and stopped. The user's own backend (3010) and
+  Expo server were never touched.
+- Database identical to the pre-I1 baseline: sales **7 / 10 051.00** · stock
+  costs **4.27, 5.00, 5.00, 8.67** · notifications **41** · audit **281 rows**
+  · users **6** · companies **1** · no orphaned assignment or session.
+
+### Authentication data — stated plainly
+
+- **The real demo Owner's password was NOT changed.** Its row still shows
+  `updated_at` of 2026-08-13, before this session.
+- The only authentication failure was the **abandoned** reset attempt, stopped
+  on the user's instruction before any write. That script was deleted.
+- Live verification instead used **five temporary probe users** (Owner, Store
+  Manager, Store Employee, warehouse-only Manager, cross-company Owner) on
+  existing role rows, plus one temporary company, branch and role. All were
+  removed in the same run. **Zero audit rows** were created, so nothing
+  append-only had to be preserved.
+- One random password was generated in memory, hashed with the application's own
+  Argon2id configuration, and **never printed, logged, written to a file,
+  committed, or sent in chat**. Setup, checks and cleanup ran as one process for
+  exactly that reason, from a script outside every repository.
+
+### Open items for the next session — none blocking
+
+1. **`OWNER_SEED_PASSWORD` in `backend/.env` does not authenticate the `owner`
+   user.** `prisma/seed.ts` upserts with `update: {}`, so the stored hash is the
+   first seed's and the `.env` value has diverged. This cost most of a session
+   to discover. Worth fixing deliberately — decide whether the seed should
+   reconcile a dev password, and document it — rather than leaving the trap.
+2. **Cost gating has no live negative case.** Every store role including
+   `store_employee` holds `cost.view`, so the interceptor never actually strips
+   a field on the sales endpoints. Covered by unit tests only. Whether an
+   employee should see profit is a **product** question for `docs/03`; it was
+   deliberately not settled by editing a role matrix during verification.
+3. **`mobile/lib/transfer-draft.test.ts` cannot run.** Commit `3c016e3`
+   (H1.4-CP6) renamed `addToDraft` into `addUnitToDraft`/`addStockToDraft` and
+   never updated its own test, so those assertions have guarded nothing since.
+   Belongs to the transfer work, not to I1.
+4. **The device pass for I1 is outstanding** — `docs/24` §9d holds 27 checks
+   nobody has run on a phone.
+
+### Next phase — I2, NOT started and not authorised here
+
+The ReturnRequest lifecycle: custody, approval, restocking disposition, refunds,
+idempotent execution, the Owner expired-deadline exception, accessory
+dispositions, and the "provisional profit" display. Decisions 1–8 in
+[`docs/27` §14](docs/27_RETURNS_AUDIT_AND_DECISIONS.md) govern all of it, and
+§15.7 lists exactly what I1 leaves it.
+
+> **Account labels.** Several older entries (G1 backend, G1 mobile, G2A-CP1)
+> recorded themselves as `CLAUDE-B` when the work was actually `CLAUDE-A` —
+> **only those ownership labels were wrong**; the work, commits, audits and
+> verification in them are correct. Nothing was rewritten: `SESSION_LOG.md` is
+> append-only, so the correction is appended there and no commit was amended.
+> Read any `CLAUDE-B` attribution dated **2026-08-05/06** as `CLAUDE-A`.
 
 ### Phase lineage (detail lives in `SESSION_LOG.md`)
 
-- **I0** — CLAUDE-B, 2026-08-14 — Returns truth audit (read-only, complete).
-  The existing return endpoint contradicts nearly every approved rule;
-  `docs/27` is the audit and §14 the approved decisions.
-- **H1.4.2** — CLAUDE-B, 2026-08-13 — verified historical cost repair. Two
-  drifted rows corrected, but **only** after the complete chronological ledger
-  reproduced quantity, reservations and identity exactly. Database-only.
-- **H1.4.1** — CLAUDE-B, 2026-08-13 — one cost rule for every quantity-stock
-  inflow, and a reported stock total that is **computed, not remembered**.
+- **I1** — CLAUDE-B, 2026-08-14 — secure sales history and the return-policy
+  foundation. Migration `0035`.
+- **I0** — CLAUDE-B, 2026-08-14 — Returns truth audit (read-only).
+- **H1.4.2** — CLAUDE-B, 2026-08-13 — verified historical cost repair.
+- **H1.4.1** — CLAUDE-B, 2026-08-13 — one cost rule for every quantity inflow.
 - **H1.4** — CLAUDE-A — quantity-tracked accessory transfers (`0034`).
 - **H1.3** (`0033`), **H1.2** (`0031`, `0032`), **H1.1** (`0030`), **H0** audit,
   **G2A**-CP1…CP4.5.
 
-> **Account labels.** The user set this session's account to **`CLAUDE-B`**
-> explicitly. Separately, several older entries (G1 backend, G1 mobile,
-> G2A-CP1) recorded themselves as `CLAUDE-B` when the work was actually
-> `CLAUDE-A` — **only those ownership labels were wrong**; the work, commits,
-> audits and verification in them are correct and unaffected. Nothing was
-> rewritten: `SESSION_LOG.md` is append-only, so that correction is appended
-> there and no commit was amended. Read any `CLAUDE-B` attribution dated
-> **2026-08-05/06** as `CLAUDE-A`.
 
 ## Repository state
 
@@ -77,8 +107,8 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `a6c3a25` | `a6c3a25` | clean |
-| Mobile (`erp-mobile`) | master | `3c016e3` | `3c016e3` | clean |
+| Backend (`erp-backend`) | master | `309a399` | `309a399` | clean |
+| Mobile (`erp-mobile`) | master | `d4ee658` | `d4ee658` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
 H1.4 commits — backend `3ae972b` (CP2: migration 0034) · `46cbbe6` (CP3:
@@ -1094,49 +1124,43 @@ purchase receipt** — a visible inconsistency that needs its own approved chang
 
 ## Next exact action
 
-**Phase I1 is in progress. CP1 and CP2 are complete; CP3 is next.**
+**I1 is complete, verified over HTTP, and handed off. Nothing is authorised
+beyond it.** Do not start I2 without the user.
 
-**CP3 — secure sales reads.** `GET /sales` must require `sale.view`, resolve and
-verify the active branch with `assertAssignedToBranch`, paginate by keyset on the
-primary key, and search **on the server** — invoice, IMEI, serial, product,
-variant, employee, payment method, date range and status. Client-side filtering
-of an already-loaded page is explicitly not acceptable: it would silently hide
-matches that live on the pages nobody scrolled to. `GET /sales/:id` returns
-totals, lines, identifiers and payment records, cost and margin **only** when the
-caller holds `cost.view`, plus the sale's snapshotted policy and the eligibility
-the server calculates from its own clock. Cross-company, wrong-branch and unknown
-ids must all fail closed and must be indistinguishable from each other.
+**When I2 is authorised**, its first action is the ReturnRequest schema and
+lifecycle, governed by decisions 1–8 in
+[`docs/27` §14](docs/27_RETURNS_AUDIT_AND_DECISIONS.md), with §15.7 listing what
+I1 already provides — a sale that can be found and read safely, a snapshotted
+policy the endpoint must **recompute against rather than trust from a screen**,
+and `evaluateEligibility`, which already answers "is this still open?".
 
-Then **CP4** (wire `snapshotPolicy` / `resolveWindowForSale` into `createSale`,
-plus the receipt contract and PDF disclosure in EN and AR), **CP5** (mobile
-`/sales` and `/sales/[id]`), **CP6** (Sell-screen policy control — read-only for
-an employee, override with a reason for manager and owner, showing the calculated
-deadline), and **CP7** (live verification, `docs/21`, `docs/27`, `docs/24`,
-`SESSION_LOG.md`, handoff).
+**Before any I2 schema work:** a fresh verified backup per `docs/22`, migration
+status inspected, and the backup identifier recorded here. The I1 backup was
+`~/erp-backups/phonestore-20260814-032153.sql` and is now stale.
 
-**Not in I1:** the ReturnRequest lifecycle, approval, restocking decisions,
-refunds and idempotent return execution. That is **I2**, and it depends on this
-foundation.
+**Smaller open work, none blocking** (detail in Session control above): the
+stale `OWNER_SEED_PASSWORD`, cost gating having no live negative case, the
+unrunnable `transfer-draft` test, and the outstanding device passes.
 
 Open work unrelated to Returns, in dependency order: **partial shipment and
-partial receipt**, then **discrepancy handling and return-to-source** (which is
-what would let a shipped transfer be cancelled safely), then **proof photos**.
-Separately open: the **broadcast-notification defect** from H1.3 · the
-**`BranchVariantPrice` rung for quantity products**, implemented but unreachable
-until something writes such a row.
+partial receipt**, then **discrepancy handling and return-to-source**, then
+**proof photos**. Separately open: the **broadcast-notification defect** from
+H1.3 · the **`BranchVariantPrice` rung for quantity products**, implemented but
+unreachable until something writes such a row.
 
 **Deferred — do not start without the user:** G2B pricing proposals · Suppliers ·
 consignment (must not reuse the transfer model) · loans · expenses ·
 subscriptions · WhatsApp · authentication · technician functionality.
 
-### Device pass still outstanding
+### Device passes still outstanding
 
-The transfer workflow has **never been touched on a device**, and H1.4 did not
-change that. Camera scanning of an accessory barcode, haptics, the quantity
-stepper under a thumb, sheet gestures and Arabic **visual** RTL are unverified by
-anything but a browser, a type checker and a test runner.
-[`docs/24` §9b](docs/24_DEVICE_QA_CHECKLIST.md) holds the 31 serialized checks
-and **§9c adds 24 more for accessories**, for the user's own pass.
+Neither the transfer workflow nor the I1 sales surfaces have been touched on a
+device. [`docs/24` §9b](docs/24_DEVICE_QA_CHECKLIST.md) holds 31 serialized
+transfer checks, **§9c** adds 24 for accessories, and **§9d** adds 27 for sale
+history, the policy control and the receipt — including the one that matters
+most: set the phone's clock forward two days and confirm the receipt deadline is
+still the server's.
+
 
 ## Completed milestones
 

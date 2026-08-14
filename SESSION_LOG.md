@@ -2844,3 +2844,221 @@ required.
 **Commits:** backend none · mobile none · docs the commit carrying this entry.
 All three trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner
 `NONE`. **Returns implementation is blocked on the decisions above.**
+
+---
+
+## 2026-08-14 — CLAUDE-B — Phase I1: secure sales history and the return-policy foundation
+
+Migration **`0035`**. Backend `1dfccb5`, `cf6d5fb`, `a6c3a25`, `a446d4c`,
+`fe3f13b`, `7203cbd` · mobile `bd96c03`, `0d20b4f`, `d4ee658` · docs `7a6822e`,
+`029ecd4`, and the commit carrying this entry.
+
+The phase the ReturnRequest lifecycle depends on. **No return can be created,
+approved or refunded yet** — that is I2, and nothing here pretends otherwise.
+
+### The unsafe endpoint is deleted, not merely closed
+
+`POST /sales/:id/returns` answers **410 `legacy_return_disabled`** and performs
+no database write of any kind. The five dangers I0 catalogued are unreachable
+because the code that did them no longer exists: `returnUnit` and
+`ReturnSaleDto` are deleted. Leaving it behind a permission would have left it
+reachable by anyone holding that permission.
+
+The test proves "writes nothing" by construction rather than by counting mock
+calls: the controller is built with `{}` as its service, so any contact with the
+service would throw a TypeError instead of the expected GoneException.
+
+### Every sale now carries the policy it was sold under
+
+Four columns, two CHECK constraints, and a rule stated once: `company_settings`
+is what the shop offers **today**, so computing eligibility from it would let an
+Owner shortening the window tomorrow cancel a right already promised, and
+lengthening it grant one nobody offered. The sale carries its own window and its
+own server-computed deadline, written once and never updated. `NULL` deadline
+means "no returns" — a past date standing in for it would make an expired sale
+and a no-returns sale indistinguishable, and a screen has to say different
+things about them.
+
+Existing rows got 0/NULL because that was audited to be the literal truth: the
+company window is 0 and the newest of the seven sales was 263 hours old, so no
+customer was inside a promised period. The migration header requires any other
+environment to rerun that audit before deploying.
+
+### The rules, as pure functions
+
+`return-policy.ts` holds snapshotting, sale-time authority and eligibility, so
+I2's endpoint reuses them rather than restating them. The one worth recording:
+**a positive window may be removed entirely or extended, but not shortened to
+another positive value.** Trimming 48 hours to 2 sells a worse promise under the
+same banner; 0 is an explicit decision the customer is told about at the till.
+Re-stating the shop default is *not* an override, so an ordinary sale needs
+neither permission nor reason — but asking for something different without
+`return.policy.override` is **refused, not quietly downgraded**, because an
+employee must never be told a sale succeeded under a policy it does not have.
+
+The 0..8760 bounds now come from `settings.constants` instead of a second copy.
+That file's own header says why: a rule enforced in several places drifts, and a
+maximum that drifts is not enforced.
+
+### The sales-read defect is closed
+
+`GET /sales` and `GET /sales/:id` required **no permission at all**, and the list
+fell back to `{}` with no branch header — so any signed-in user could read every
+sale in the company, cost and margin included, by sending no header. `take: 100`
+with no paging silently amputated the history of any shop past its first weeks.
+
+Both routes now require `sale.view` (branch-scoped, so a wrong or missing branch
+header is a 403 before the service runs), page by keyset on the UUIDv7 primary
+key, and apply **every** filter in SQL. An unknown status or method is a 400
+rather than an ignored filter: dropping it silently widens the query and shows
+everything under a heading claiming otherwise. The detail read fails closed three
+ways that answer identically — another company, another branch, unknown id —
+because a different message would confirm that an invoice exists elsewhere.
+
+### What the customer is told
+
+The receipt states the window in words and the exact deadline, and stopped
+dating itself from the phone's clock. Mobile gained `/sales` and `/sales/[id]`
+with the return status on every row. The Sell screen shows the policy in the
+payment sheet above Complete — read-only for an employee, changeable by a
+manager with a reason, and Complete is blocked until that reason exists.
+
+### Three defects found while building, and what they taught
+
+1. **A source-reading assertion matched its own documentation.** The test for
+   "nothing restocks a returned unit" searched the service text for `restock`
+   and found the comment explaining what had been removed. Fixed by stripping
+   comments before asserting — an assertion about code must read code.
+2. **The same test then matched a Prisma `select`.** `voided: true` in a *read*
+   tripped an assertion written for a *write*. Restated as "no sale line is
+   ever updated or deleted", which is both true and stronger — an assertion that
+   fails on a read is one somebody eventually weakens to make it pass.
+3. **The receipt was timestamped by the phone.** Found while wiring the policy
+   through: the deadline is measured from the sale, so both must come from the
+   same clock, and it must not be the one in the customer's hand.
+
+### An audit-action decision, recorded deliberately
+
+The sale-time policy override writes its own audit row, separate from the
+below-cost override — different decisions, possibly different people, and one
+row could answer "why was this sale different?" in only one of the two senses.
+It reuses the existing `override` action with `field: 'returnPolicy'` rather
+than adding an `AuditAction` enum member, which would have been a schema change
+for a label and outside what this phase was authorised to migrate. If I2 adds
+enough distinct return events to justify it, that is the point to reconsider.
+
+### A pre-existing break, found and flagged rather than folded in
+
+`mobile/lib/transfer-draft.test.ts` cannot run: commit `3c016e3` (H1.4-CP6)
+renamed `addToDraft` into `addUnitToDraft` / `addStockToDraft` and never updated
+its own test, so that regression guard has been importing a non-existent export
+since then. **Not fixed here** — it belongs to the transfer work, not to I1 —
+but it is real, and it means those transfer-draft assertions have been running
+nowhere for the whole of H1.4.
+
+### Verification
+
+Backend **62 suites / 869 tests**, TypeScript clean, `prisma validate` valid,
+**34 migrations**, "Database schema is up to date". Mobile TypeScript clean,
+`expo lint` clean, `expo export --platform web` succeeds with both `/sales` and
+`/sales/[id]` present. Mobile pure-function tests pass (13 new assertions for
+the policy wording), except the pre-existing `transfer-draft` break above.
+
+Migration `0035` was proven four ways before it touched dev: on a DEFINER-safe
+restore of a fresh verified backup (`prisma_i1_pre`), on a clean database
+(`prisma_i1_clean`), on dev, and on a rerun. Its reverse SQL was **executed**,
+not merely written down — the first draft failed with error 3959 because MySQL
+will not drop a column a CHECK still references, which is exactly why reverse
+SQL has to be run. Both temporary databases were dropped and the sanitized dump
+copy removed. Backup: `~/erp-backups/phonestore-20260814-032153.sql`, 303 955
+bytes, 55 tables, 4 triggers, 0 raw `_binary`.
+
+### Live HTTP verification — done, and it found a defect
+
+**78 checks over real HTTP, all passing**, against a verification backend this
+session started on port 3099. The user's own backend (3010) and Expo server were
+left running and untouched.
+
+**The defect the suite missed.** `GET /sales/:id` with a malformed id returned
+**500**. `uuidToBin` throws a plain Error on anything that is not a UUID, and
+Nest turned that into a server error. That broke the thing the detail read is
+built around: another company's sale, another branch's sale and an unknown id
+all answer ONE indistinguishable 404, and a 500 announced "that id was
+structurally invalid" — precisely the distinction the identical-404 rule exists
+to withhold. Fixed with the `isUuid` guard `devices.service` already uses, plus
+a regression test over five shapes asserting the message is byte-identical to
+the unknown-id case. Backend `309a399`.
+
+That is the **third** time this project has shipped something the entire suite
+approved and one live request rejected, after `role: { permissions }` and
+`?limit=`. The suite proves the logic; only real HTTP proves the edges.
+
+**How the probes were authenticated, and why.** The demo Owner's password is
+unknown and was deliberately **not changed**. Instead the run created five
+temporary users — Owner, Store Manager, Store Employee, a warehouse-only
+Manager, and a cross-company Owner — on **existing role rows**, plus one
+temporary company, branch and role so cross-company isolation could be proven
+from the other side of the fence. One random 32-byte password was generated in
+memory, hashed with the application's own Argon2id configuration, never printed,
+never written to any file, and never passed between processes: setup, checks and
+cleanup were one process for exactly that reason. The script lived in the OS
+temp directory, outside every repository.
+
+**A store code has to be canonical.** The first cross-company login failed 401
+because the probe company's `public_store_id` was derived from the probe tag.
+`normalizeStoreCode` accepts exactly ten uppercase hex characters and returns
+null otherwise, which resolves to "no company" — deliberately indistinguishable
+from a wrong password. Generated it the way `generateStoreCode` does. Nothing
+was wrong with the application; the probe was.
+
+**What was proven live:** the list and detail endpoints · `?limit=` conversion
+(3 accepted, 99 and `abc` refused) · keyset paging across three pages with zero
+overlap and every sale exactly once · invoice, IMEI, serial and partial-identifier
+search · whole-day date ranges, with backwards and unparseable ranges refused ·
+unknown status and method refused · a warehouse manager seeing zero sales rather
+than the company · a forged branch header refused 403 · no branch header refused
+rather than defaulting to the company · no token 401 · another company seeing
+nothing and getting an identical 404 · the policy snapshot matching the stored
+row, reporting `no_return_policy` rather than "expired" for these legacy sales ·
+and `sale.view` across all three store roles.
+
+**Cost gating, against the real matrix.** Every store role — including
+`store_employee` — currently holds `cost.view` in this database, so all three
+correctly received cost and margin. The assertions were written against the
+matrix as queried rather than as assumed, which is the only reason they are
+meaningful. **This means the strip has no live negative case**: no role that can
+read sales lacks `cost.view`, so the gating interceptor never actually removes a
+field on these endpoints today. It is covered by unit tests only. Whether an
+employee should see profit is a product question for `docs/03`, not something to
+settle by editing a role matrix during verification.
+
+**The legacy return endpoint, re-proven live.** POST with
+`{refundAmount: 999999, restock: true}` answered **410** with
+`legacy_return_disabled`, and full before/after fingerprints showed **no**
+change to sales, sale items, units, stock, payments, returns, closings,
+notifications, or the audit log. An employee received the same 410, not a
+permission error.
+
+**Cleanup and integrity.** All five probe users, their assignments and their five
+sessions were removed, along with the temporary company, branch and role. **Zero
+audit rows were created** by the entire run — login writes none, only the device
+endpoints do — so nothing append-only had to be preserved or, worse, edited.
+Verified afterwards: 0 probe users, 0 probe companies, 0 orphaned assignments or
+sessions, 6 users and 1 company as before, audit still 281 rows, sales 7 /
+10 051.00, stock costs 4.27 / 5.00 / 5.00 / 8.67, notifications 41 — every
+figure identical to the pre-I1 baseline.
+
+**Authentication data, stated plainly.** The real demo Owner's password was
+**not** changed; its row shows `updated_at` of 2026-08-13, before this session.
+The only authentication failure was the abandoned attempt to reset it, which was
+stopped on the user's instruction before any write. `OWNER_SEED_PASSWORD` in
+`.env` remains stale — the seed upserts with `update: {}`, so it has diverged
+from the stored hash. That is a real trap for the next session and is recorded
+as open work, not fixed here. No temporary credential entered any repository, any
+commit, or any transcript.
+
+**The verification server was stopped.** Port 3099 is released; the user's 3010
+backend and Expo server were never touched.
+
+**Commits:** backend `309a399` · mobile `d4ee658` · docs the commit carrying
+this entry. All three trees clean and level with `origin`.

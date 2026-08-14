@@ -814,6 +814,39 @@ deliberately not performed.
 > sale; closing stays locked and immutable; the reversal is dated its own
 > approval day. It does NOT delay recognition or make closing mutable.
 
+> **I1 built the foundation (2026-08-14, migration `0035`).** Three of the
+> Returns decisions above are now **implemented**, and one long-standing defect
+> is closed. Detail in [`docs/27` §15](27_RETURNS_AUDIT_AND_DECISIONS.md).
+>
+> - **Per-sale override and server-calculated deadline: DONE.** Every sale
+>   carries `return_window_hours` and `return_deadline_at`, snapshotted at
+>   completion from the server's own clock and never updated. The shop changing
+>   its policy tomorrow cannot reach a sale made today — in either direction.
+>   Two CHECK constraints make "no returns" and "has a deadline" unable to
+>   disagree.
+> - **Who may change it: DONE.** `return.policy.override` (Manager and Owner).
+>   Re-stating the shop default is not an override; a real change is refused
+>   without the permission rather than quietly downgraded, demands a reason, and
+>   is audited. A positive window may be removed or extended but **not shortened
+>   to another positive value** — trimming 48 hours to 2 sells a worse promise
+>   under the same banner, while 0 is explicit and stated at the till.
+> - **Reading sales is a permission: DONE.** `sale.view`, branch-scoped, held by
+>   every store role — deliberately not `report.view`, since seeing what the
+>   branch sold is counter work and profit dashboards are not. Cost and margin
+>   stay gated by `cost.view` independently.
+> - **The unsafe endpoint is deleted.** `POST /sales/:id/returns` answers 410
+>   and writes nothing; `returnUnit` and its DTO no longer exist. `sale.return`
+>   remains in the catalogue only so older sessions map to a known key — it
+>   guards no route, and nothing may be gated on it.
+> - **Sale history and search: DONE.** Permissioned, branch-scoped, keyset-paged
+>   and searched entirely in SQL, with sale detail showing the snapshotted
+>   policy and the server's eligibility verdict.
+>
+> **Still not built (I2):** ReturnRequest, custody, approval, restocking
+> disposition, refunds, idempotent execution, the Owner expired-deadline
+> exception, accessory dispositions, and the "provisional profit" display.
+
+
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the
 two things several of these decisions were waiting on:
 

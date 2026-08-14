@@ -596,3 +596,193 @@ sequencing is engineering, not product:
 - Sale search and sale detail (§9) are **in scope for I1**, because a return
   cannot start without finding the sale.
 - The ReturnRequest lifecycle itself is **I2**.
+
+## 15. I1 — what was built, and what it means for I2
+
+Phase I1 built the foundation the ReturnRequest lifecycle needs. **No return can
+be created, approved or refunded yet.** That is I2.
+
+### 15.1 The unsafe endpoint is gone, not merely closed
+
+`POST /sales/:id/returns` answers **410 Gone** with `legacy_return_disabled` and
+performs no database write of any kind. The five dangers §2 catalogued are
+unreachable because the code that did them no longer exists: `returnUnit` and
+`ReturnSaleDto` are **deleted**, not commented out or hidden behind a flag.
+
+410 rather than 404 so a stale client learns *why* it stopped working instead of
+guessing at a bad URL. The route is deliberately **not** guarded on
+`sale.return` any more — a permission gating nothing but a refusal would imply
+the behaviour still exists somewhere.
+
+`sale.return` survives in the permission catalogue only so an older session's
+permission set still maps to a known key. It guards no route. Nothing should be
+gated on it, in either repository.
+
+### 15.2 Every sale now carries its own return policy
+
+Migration **`0035`** adds four columns to `sales`:
+
+| Column | Meaning |
+|---|---|
+| `return_window_hours` | What was promised, in hours. `0` = no returns. |
+| `return_deadline_at` | `sold_at + window`, computed by the SERVER. `NULL` when the window is 0. |
+| `return_policy_overridden_by` | Set only when a Manager or Owner changed it at sale time. |
+| `return_policy_override_reason` | Why. |
+
+Two CHECK constraints make an inconsistent pair unwritable by any future code
+path: the window is 0..8760, and *window = 0 if and only if there is no
+deadline*. "No deadline" and "deadline already passed" are different facts and
+must not share a representation — a screen has to say different things about
+them, and a past date standing in for "no returns" would make an expired sale
+and a no-returns sale indistinguishable.
+
+**Why snapshotted rather than looked up:** `company_settings.return_window_hours`
+is what the shop offers *today*. Computing eligibility from it would let an
+Owner shortening the window tomorrow retroactively cancel a right already
+promised, and lengthening it silently grant one nobody offered. The customer's
+rights are fixed at the moment of sale, so the sale carries them. Written once,
+never updated.
+
+**Why existing sales got 0/NULL:** audited before the migration was written —
+the company window is `0` and the newest of the seven existing sales was 263
+hours old, so no existing sale sat inside any previously promised period. 0/NULL
+states the literal truth rather than a convenient default. The migration says so
+in its header and requires any other environment to rerun that audit before
+deploying.
+
+### 15.3 The rules, as one place
+
+`backend/src/sales/return-policy.ts` holds three decisions as pure functions, so
+I2's return endpoint reuses them unchanged rather than restating them:
+
+- **`snapshotPolicy`** — the deadline is derived from the server's own sale
+  timestamp, so the two can never disagree.
+- **`resolveWindowForSale`** — who may change the policy at sale time.
+  Re-stating the default is *not* an override (an ordinary sale needs no reason
+  and no permission). Asking for something different without
+  `return.policy.override` is **refused, not quietly downgraded**: an employee
+  must never be told a sale succeeded under a policy it does not have. A real
+  change demands a reason. **A positive window may be removed entirely or
+  extended, but not shortened to another positive value** — trimming 48 hours
+  to 2 sells a worse promise under the same banner, while `0` is an explicit
+  decision the customer is told about at the till.
+- **`evaluateEligibility`** — computed from the server clock and the sale's own
+  snapshot, returning ONE reason a screen can turn into a sentence:
+  `no_return_policy · within_window · window_expired · already_returned ·
+  quantity_not_supported · sale_reversed`.
+
+The 0..8760 bounds come from `settings.constants`, not a second copy: a sale
+must never be able to carry a window the Owner could not have saved.
+
+### 15.4 Reading sales is now a permission
+
+`sale.view` and `return.policy.override` are added by `0035` (not by the seed —
+`migrate deploy` never runs it, the D2.1 lesson). Both are **branch-scoped**:
+absent from `COMPANY_PERMISSIONS`, so `getEffectivePermissions` refuses a branch
+the caller is not assigned to, and keeps only company-wide keys when there is no
+branch header — which cannot include either of these.
+
+| Role | `sale.view` | `return.policy.override` |
+|---|---|---|
+| Owner | ✅ | ✅ |
+| Store manager | ✅ | ✅ |
+| Store employee | ✅ | ❌ |
+
+`sale.view` is deliberately **not** `report.view`: seeing what the branch sold
+is ordinary counter work, and profit dashboards are not. Cost and margin remain
+gated independently by `cost.view` through the global gating interceptor — the
+sales reads do not re-implement that strip, and the routes do not also demand
+`cost.view`, which (since the guard requires ALL listed keys) would have locked
+the whole screen for an employee instead of hiding two numbers on it.
+
+### 15.5 The sales-read defect (§2.8) is closed
+
+`GET /sales` and `GET /sales/:id` required **no permission at all**, and the
+list fell back to `{}` when no branch header was present — so any signed-in user
+could read every sale in the company, cost and margin included, by sending no
+header. `take: 100` with no paging quietly amputated the history of any shop
+past its first weeks.
+
+Now: both routes require `sale.view`; the list refuses to run without an active
+branch; paging is keyset on the UUIDv7 primary key (a total order, so a sale
+completed mid-scroll cannot shift the page under the reader); and **every filter
+is applied in SQL** — invoice, employee, customer, IMEI, serial, product,
+variant, barcode, pay status, payment method and a sold-at range. An unknown
+status or method is a 400 rather than an ignored filter, because silently
+dropping it widens the query and shows everything under a heading claiming
+otherwise.
+
+The detail read fails closed three ways that answer **identically**: another
+company's sale is invisible (the tenant extension scopes the unique lookup),
+another branch's sale is refused, and an unknown id is not found. A different
+message for any of them would confirm that an invoice exists elsewhere in the
+company.
+
+### 15.6 What the customer is told
+
+The receipt states the policy the sale was sold under — the window in words a
+person repeats back ("2 days", not "48 hours") and the exact deadline, because a
+window alone leaves the customer doing arithmetic from a time they may not
+remember. The receipt also stopped dating itself from the phone's clock:
+`soldAt` now comes from the server, so the moment printed and the deadline
+measured from it come from the same machine.
+
+Mobile gained `/sales` and `/sales/[id]`, with the return status on **every row**
+— "can this still be brought back?" is the question the history gets opened for.
+The device never recomputes eligibility; it renders the server's answer.
+
+The Sell screen shows the policy in the payment sheet, immediately above
+Complete. An employee sees it read-only rather than not at all; a manager or
+owner may change it, and Complete is blocked until a changed policy has a
+reason, so the refusal happens before the customer's money moves.
+
+### 15.6b Proven over HTTP, not only by tests
+
+**78 live checks, all passing**, against a verification backend on port 3099
+using five temporary probe identities — Owner, Store Manager, Store Employee, a
+warehouse-only Manager and a cross-company Owner — created on existing role rows
+and removed in the same run. The demo Owner's password was not changed.
+
+Proven live: both endpoints · `?limit=` conversion · keyset paging across three
+pages with zero overlap and every sale exactly once · invoice, IMEI, serial and
+partial-identifier search · whole-day date ranges · a warehouse manager seeing
+zero sales rather than the company · a forged branch header refused · a missing
+branch header refused rather than defaulting to the company · another company
+seeing nothing and receiving an identical 404 · the policy snapshot matching the
+stored row and reporting `no_return_policy` rather than "expired" · and the
+disabled legacy return answering 410 while moving no sale, sale item, unit,
+stock, payment, return, closing, notification or audit row.
+
+**One defect was found that 868 tests had approved.** `GET /sales/:id` with a
+malformed id returned **500**, because `uuidToBin` throws on a non-UUID. That
+broke the fail-closed rule above: a 500 announces "structurally invalid" where a
+real-but-not-yours id says "not found", which is exactly the distinction the
+identical-404 answer exists to withhold. A malformed id is the fourth way in and
+now answers like the other three. Fixed in backend `309a399` with a regression
+test over five shapes.
+
+**A gap worth naming: cost gating has no live negative case.** Every store role
+— including `store_employee` — currently holds `cost.view`, so all three roles
+correctly received cost and margin, and the gating interceptor never actually
+strips a field on these endpoints today. The strip itself is covered by unit
+tests. Whether an employee should see profit is a **product** question for
+`docs/03`, and deliberately was not settled by editing a role matrix during
+verification.
+
+### 15.7 What I2 inherits
+
+- A sale it can look up, search, and read safely.
+- A policy snapshot it must **recompute against**, never trust from a screen.
+- `evaluateEligibility`, which already answers "is this still open?" — I2 adds
+  what happens next.
+- An audit convention: the sale-time policy override records under the existing
+  `override` action with `field: 'returnPolicy'`, distinguishing it from the
+  below-cost override that shares the action. If I2 adds enough distinct return
+  events to justify it, that is the point to consider an `AuditAction` migration
+  — deliberately not done here, where it would have been a schema change for a
+  label.
+
+**Still not built, by design:** ReturnRequest, custody, approval, restocking
+disposition, refunds, idempotent execution, the Owner expired-deadline
+exception, and accessory dispositions. Decisions 1–8 in §14 govern all of them.
+

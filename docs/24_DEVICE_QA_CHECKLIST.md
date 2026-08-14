@@ -271,3 +271,81 @@ Camera focus on a small barcode on a crumpled box · haptics on add, merge and
 refusal · the stepper under a thumb rather than a mouse · keyboard avoidance
 with the quantity field near the bottom · sheet gestures · Arabic **visual**
 mirroring of the whole screen.
+
+## 9d. Sale history and the return policy (I1) — **never touched on a device**
+
+Verified by a type checker, a test runner and a web export only. Nothing below
+has been seen on a real phone, in a real shop, by a real employee.
+
+The two questions worth most here: does an employee at the counter understand
+what the policy control is telling them, and can a customer read the policy on
+the receipt they are actually handed.
+
+### Sale history
+
+1. Open **More → Sales**. The list appears with the branch name in the title.
+2. Pull to refresh. Nothing duplicates, nothing disappears.
+3. Scroll to the end. More pages load; the last page says the history ended.
+4. Scroll a long list, then have someone complete a sale on another device.
+   Scroll further: **no row repeats and none is skipped** (the keyset promise).
+5. Search an **invoice number**. The right sale appears.
+6. Search an **IMEI** of something sold. The sale appears — including if it is
+   far down the history, which is the whole point of searching on the server.
+7. Search a **product name**, a **customer name**, and the **employee's name**.
+8. Search something that exists at **another branch only**. Nothing is found,
+   and the empty state suggests what to try rather than implying it is gone.
+9. Filter **On credit**. Only credit sales. Combine it with a search.
+10. Every row states its return status **in words**, not colour alone.
+11. A paid sale shows **no** "Paid" badge; a part-paid one does.
+12. A sale of 1 phone and 10 cables says **11 items in 2 lines**, not "2 items".
+
+### Sale detail
+
+13. Tap a row. The total is the focal number; the return status is near the top.
+14. Identifiers are readable and **left-to-right even in Arabic**, and long-press
+    copies one.
+15. As an **employee** (no `cost.view`): no cost, no profit anywhere on the
+    screen — not greyed out, simply absent.
+16. As the **Owner**: cost and profit are present.
+17. Open a sale, then switch to a branch that does not own it. The screen says
+    the sale was not found and suggests switching branch — **not** "forbidden",
+    and not a technical error.
+
+### The policy at the till
+
+18. As an **employee**: the payment sheet shows the shop policy, read-only, with
+    a sentence saying only a manager can change it. It does not look broken or
+    disabled-without-reason.
+19. As a **manager**: the choices include removing the window and lengthening
+    it, and **do not** include a shorter positive window.
+20. Change it. A reason field appears and **Complete is blocked** until it has
+    text. The blocked reason is stated, not silent.
+21. Complete the sale. Open it in the history: the policy shows the changed
+    window, who changed it and why.
+22. Start another sale immediately. The policy is back to the shop default —
+    nothing carried over.
+23. Set the phone's clock forward two days, then complete a sale. **The deadline
+    on the receipt must still be correct** — it is the server's, not the
+    device's. (Set the clock back afterwards.)
+
+### The receipt
+
+24. Share a receipt on a sale with a window. The policy line names the window in
+    words *and* the exact deadline.
+25. Share one with no window. It says the sale is final, not "0 hours".
+26. Read the Arabic receipt: the policy line reads naturally, the deadline is
+    legible, and the layout does not break right-to-left.
+27. Send a receipt over WhatsApp, as a customer would receive it. The policy line
+    survives the PDF and is readable on a small screen.
+
+### What only a device can answer
+
+- Is the policy control noticed at all in the payment sheet, or does the eye go
+  straight to Complete?
+- Does a first-week employee read "Returnable · until Sunday 14:20" and say it
+  to the customer, or ignore it?
+- Is the reason field a help or an obstacle when a manager is in a hurry with a
+  queue waiting?
+- On a small screen, does the payment sheet still fit with the policy control in
+  it, or does Complete get pushed below the fold?
+
