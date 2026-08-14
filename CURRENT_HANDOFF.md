@@ -42,6 +42,57 @@
   authorised now; the schema in I2.2 is presented for approval when the audit
   says what is safe.
 
+### I2 progress
+
+- **CP1 ✅** — takeover, audit, backup and restore proof. Docs `403fd61` and the
+  commit carrying this.
+  - **Backup:** `~/erp-backups/phonestore-i2-20260814-185656.sql` — 305 824
+    bytes, 55 tables, 4 triggers, 0 raw `_binary`, trailer present.
+  - **Restore proven** on the disposable database **`prisma_i2_pre`** via
+    `scripts/sanitize-dump.js` (4 definers stripped), restored as the migrator:
+    55 tables, 4 triggers, sales 7 / 10 051.00, units 11, audit 281, returns 0.
+    Binary ids verified by checksum — `units` = `2a1dc9bf284afde32b402ad108d38a76`,
+    the same value migration `0035` recorded in I1.
+  - **`prisma_i2_pre` is deliberately still present**, to serve as the
+    restored-database target for the CP2 migration proof. **It must be dropped
+    at the end of CP2.**
+  - The sanitised copy was deleted; the original dump is the backup.
+  - **No stop condition was triggered.** The audit is `docs/27` §16.
+- **CP2 → CP6** — pending.
+- Next intended action: **present the I2.2 schema and lifecycle for approval**
+  before writing a migration — `CLAUDE.md` requires the plan, files and risks to
+  be stated and approved before a large change, and new tables plus an
+  accounting integration is unambiguously large.
+
+### The audit's four load-bearing findings (detail in `docs/27` §16)
+
+1. **The dated reversal fits without redesigning accounting.** `DailyRollup` is
+   *derived* — recomputed from source per branch-day — so a returns component
+   keyed on the approval date is additive. `DailyClosing` is an immutable locked
+   snapshot nothing recomputes. The original sale rows are never written, so the
+   sale's own day recomputes byte-identically. *(This is exactly what the deleted
+   legacy endpoint got wrong: it set `voided = true`, and the rollup filters on
+   `si.voided = 0`, so a return silently rewrote a past — possibly closed — day.)*
+   **The one rule not to get wrong:** approval on an already-closed business day
+   must 409, never reopen or rewrite the closing.
+2. **The unit states already exist.** `returned` and `faulty` are in the enum,
+   and `sold → returned → faulty` is already legal, so custody needs **no enum
+   migration**. A returned or faulty unit is already un-sellable, un-priceable
+   and un-transferable, because all three gates independently require
+   `in_stock`. **One gap:** `returned → sold` is not legal and rejection needs
+   it — a one-line, data-driven addition, reachable only via rejection with
+   recorded hand-back.
+3. **The legacy `returns` table is empty (0 rows) and must not be reused.** Its
+   shape encodes the exact defect being fixed — a client-supplied
+   `refundAmount` and `restock` defaulting to true. Deprecated in place: not
+   reused, not dropped in I2 (dropping is destructive and buys nothing while it
+   holds no rows).
+4. **Accessory linkage cannot be inferred.** Accessory lines are identifiable per
+   *sale*, never per *phone* — three demo sales carry two phones and one
+   accessory line, and nothing ever recorded which phone it belonged to. So
+   retained-accessory charges are explicit, audited adjustment lines entered at
+   review, never inferred.
+
 ### I1 — complete (previous phase, CLAUDE-B, 2026-08-14)
 
 

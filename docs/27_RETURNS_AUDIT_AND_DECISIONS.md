@@ -786,3 +786,186 @@ verification.
 disposition, refunds, idempotent execution, the Owner expired-deadline
 exception, and accessory dispositions. Decisions 1–8 in §14 govern all of them.
 
+
+---
+
+## 16. I2.0 — the audit before the workflow (2026-08-14, CLAUDE-B)
+
+Read before designing anything. The conclusion first, because it decides whether
+I2 can proceed at all:
+
+> **The immutable dated reversal CAN be represented without redesigning closing
+> or accounting, and without rewriting a single historical row.** The reasons are
+> in §16.5. No stop condition was triggered.
+
+### 16.1 What already exists that I2 must reuse, not reinvent
+
+Every primitive this phase needs is already present, proven in production paths,
+and tested. Building a second one of any of these would be the mistake.
+
+| Need | What exists | Where |
+|---|---|---|
+| Idempotent create | `clientUuid` + `clientRequestHash` (payload fingerprint) + `@@unique([companyId, clientUuid])` | `StockTransfer`, `Purchase`, `Sale` |
+| "Same key, different payload" → 409 | the fingerprint comparison | `StockTransfer` |
+| Exactly-one-winner transitions | `version Int @default(0)` + `updateMany({ where: { id, companyId, version }, data: { version: { increment: 1 } } })`, `count === 0` → 409 `refresh_required` | `transfers.service.ts` |
+| Audit | `AuditService.recordTx(tx, …)` — same transaction, append-only, DB triggers reject UPDATE/DELETE | `common/audit` |
+| Notifications | `NotificationsService.emit`, written inside the transaction | `notifications/` |
+| Branch + permission gating | `@RequirePermissions`, branch-scoped by absence from `COMPANY_PERMISSIONS`, `assertAssignedToBranch` for unguarded reads | `rbac/` |
+| Cost/margin gating | global `CostGatingInterceptor` + `FINANCIAL_FIELDS` | `common/interceptors` |
+| Keyset pagination + SQL search | the I1 sales reads are the reference implementation | `sales.service.ts` |
+| Ids | UUIDv7 `BINARY(16)`, `newUuidV7Bin` | `common/utils/uuid.util` |
+
+### 16.2 The Unit lifecycle already has the states this needs
+
+`UnitStatus` is `in_stock · reserved · sold · returned · faulty · in_transit ·
+transferred_out`. **`returned` and `faulty` already exist** — no enum migration
+is required for custody.
+
+The machine (`inventory/unit-state-machine.ts`) allows:
+
+```
+sold      → returned            ✅ custody intake
+returned  → faulty              ✅ approval, into return hold
+returned  → in_stock            ✅ (exists; NOT used by I2 — approval must never
+                                    make a returned phone sellable)
+faulty    → in_stock            ✅ (a later inspection milestone, not I2)
+```
+
+**One gap.** Rejection has to hand the phone back and restore it to `sold`, and
+`returned → sold` is **not** currently a legal transition. That is a
+one-line, data-driven addition to `TRANSITIONS`, not a redesign — and it needs
+its own test, because "returned → sold" must be reachable ONLY via rejection
+with recorded hand-back, never as a general-purpose escape from return hold.
+
+**A returned or faulty unit is already inert.** All three sellability gates
+independently require `in_stock`:
+
+- `SalesPolicyService.assertSellable` → cannot be sold
+- `PricingService.assertUnitPriceable` → cannot be priced
+- `transfers.service` eligibility + the `status: 'in_stock'` compare-and-swap in
+  the reservation → cannot be transferred or reserved
+
+So the custody states are safe by construction. I2 must add tests that pin this
+rather than new guards.
+
+**But its asset value disappears.** `held-value.ts` counts units
+`WHERE u.status = 'in_stock'`, so a `faulty` unit contributes nothing to
+inventory value. For I2 this is *not* a regression — the phone left inventory at
+sale time and its value is already out of stock value — but it does mean
+faulty/return-held stock is currently invisible as an asset. Reporting it
+separately is an additive change, and §16.5 keeps it out of `totalStockValue` so
+the "must not move when stock is merely travelling" guarantee is untouched.
+
+### 16.3 The legacy `returns` table — empty, dead, and not to be reused
+
+`Return` still exists in the schema with exactly the fields the I0 audit
+condemned: a client-supplied `refundAmount` and a `restock Boolean @default(true)`
+that would put a defective phone back on the shelf.
+
+- **0 rows.** Nothing to migrate, nothing to reconcile.
+- Its only remaining references are the `returns` relation used for the I1
+  `hasReturn` eligibility check, and one audit-history query in
+  `inventory.service.ts` that includes `entityType: 'Return'`.
+
+**Decision: do not reuse it and do not drop it in I2.** Reusing a table whose
+shape encodes the exact defect being fixed would reintroduce the defect's
+vocabulary. Dropping it is destructive, needs its own backup-and-decision cycle,
+and buys nothing while it holds no rows. It is marked deprecated here; the I1
+`hasReturn` check moves to the new request table, and removal becomes a small,
+isolated task for a later phase.
+
+### 16.4 Linked accessories cannot be attributed automatically — and must not pretend to be
+
+Accessory lines are identifiable **per sale** (a `SaleItem` with `productId` set
+is a quantity line) but not **per phone**. Measured on the demo data:
+
+| Invoice | Serialized lines | Accessory lines |
+|---|---|---|
+| 00001 / 00002 / 00003 | 2 | 1 |
+| 00004 / 00005 | 0 | 1 |
+| 00006 | 1 | 1 |
+| 00007 | 1 | 0 |
+
+Three sales carry **two phones and one accessory line**. Nothing in the data says
+which phone the screen protector belonged to, because nothing ever recorded it.
+
+**Therefore I2 does not infer accessory linkage.** A Manager or Owner enters each
+retained-accessory or screen-protector charge as an explicit adjustment line
+during review, fully audited, exactly as decision 4 requires. Inferring it would
+be inventing a fact — and on a two-phone sale it would be wrong half the time.
+
+### 16.5 The dated reversal fits — here is precisely why
+
+This was the stop condition worth checking hardest.
+
+**`DailyRollup` is derived, not remembered.** `RollupService.recomputeDaily`
+recomputes a branch-day from `sale_items ⋈ sales` filtered on `s.sold_at`, then
+upserts. Adding a returns component computed from the new reversal table, keyed
+on the **approval date**, is therefore additive: it changes what a day's rollup
+reports without touching one sale row.
+
+**`DailyClosing` is an immutable locked snapshot.** It stores `totalSales` /
+`totalProfit` at close time, `isLocked` defaults true, and nothing recomputes it.
+A reversal dated later cannot reach backwards into it.
+
+**The sale's own day is provably unchanged.** The original `Sale`, `SaleItem`,
+`Payment` rows are never written by the return flow — no `voided`, no total
+rewrite. So recomputing the sale's day yields byte-identical figures. *(This is
+exactly what the deleted legacy endpoint got wrong: it set `voided = true`, and
+because the rollup filters `si.voided = 0`, a return silently rewrote a past
+day's revenue and profit — including days already closed.)*
+
+**The one real hazard, and its answer.** If a return is approved on a day that
+is **already closed** for that branch, the locked snapshot would permanently
+disagree with a recomputed rollup for the same day. The workflow must refuse:
+approval on a closed business day returns an actionable **409**, and nothing
+reopens or rewrites a closing automatically. This is the single accounting rule
+I2 must not get wrong.
+
+**What this costs:** additive columns on `daily_rollups` for the returns
+component (so a day reports its reversals separately rather than netting them
+invisibly into revenue), and a new immutable reversal table. No change to
+`DailyClosing`, `DailyDigest`, `DigestLine`, or any existing calculation's
+meaning.
+
+### 16.6 What the I1 foundation already provides
+
+- `sales.return_window_hours` / `return_deadline_at` — the policy the sale was
+  sold under, snapshotted, never updated.
+- `return-policy.ts` — `evaluateEligibility` already answers *is this still
+  open?* from the server clock, returning `no_return_policy · within_window ·
+  window_expired · already_returned · quantity_not_supported · sale_reversed`.
+  **I2 must recompute against this, never trust an eligibility a screen sends.**
+- `sales.return_policy_overridden_by` / `_reason` — who changed the promise at
+  sale time, and why.
+- The 410 `legacy_return_disabled` route, proven mutation-free over HTTP.
+- Mobile `/sales` and `/sales/[id]`, which is where "Request return" belongs.
+
+### 16.7 Consequences for the I2 design
+
+1. Two new tables — a return **request** (lifecycle, custody, responsibility,
+   idempotency, version) and an append-only **reversal** (the money snapshot) —
+   plus adjustment lines. No new notification, audit, money-ledger or role
+   mechanism.
+2. `returned → sold` added to the unit state machine, reachable only via
+   rejection with recorded hand-back.
+3. Additive returns columns on `daily_rollups`; `DailyClosing` untouched.
+4. Approval refused with 409 when its own business day is already closed.
+5. Gross refund comes from the immutable `SaleItem` snapshot; adjustments are
+   explicit, server-summed; net = gross − adjustments.
+6. The legacy `returns` table is deprecated in place, not reused and not dropped.
+
+### 16.8 Backup and restore proof for I2
+
+- Backup: `~/erp-backups/phonestore-i2-20260814-185656.sql` — **305 824 bytes**,
+  55 tables, 4 triggers, **0 raw `_binary`**, trailer `-- Dump completed`.
+- Restore proven on the disposable database `prisma_i2_pre` via
+  `scripts/sanitize-dump.js` (4 definers stripped on 4 lines), restoring as the
+  migrator: **55 tables, 4 triggers, sales 7 / 10 051.00, units 11, audit 281,
+  returns 0**.
+- Binary ids verified, not assumed: `units` id checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`**, identical to the value recorded in
+  migration `0035` during I1; `sale_items` price/cost checksum
+  **`50f6e146fb9e7c5822fa65c37cb45edc`**.
+- The sanitised copy was deleted; the original dump is the backup.
+
