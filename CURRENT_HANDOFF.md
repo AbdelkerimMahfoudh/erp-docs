@@ -6,14 +6,44 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B** (no account switch occurred during I1)
-- Completed phase: **I1 — secure sales history and return-policy foundation.**
-  Complete, verified over real HTTP, and handed off. **I2 was not started.**
-- `finished_at_utc`: **2026-08-14**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-14 (I2 takeover)**
+- Current authorised task: **Phase I2 — return request, custody, investigation,
+  approval and refund obligation.** Replace the disabled legacy one-call return
+  with a request/review workflow: request creation by an employee, physical
+  custody intake, investigation and responsibility, Manager/Owner approval or
+  rejection, Owner-only exceptions, an immutable dated reversal, and a refund
+  **obligation** — never a payment.
+- **Explicitly NOT in I2:** actual refund payout confirmation · receiving-account
+  selection · refund receipt/PDF · supplier reimbursement · customer-credit
+  settlement · technician inspection · independent quantity-product returns ·
+  WhatsApp · photo evidence · owner-password or seed-password changes ·
+  role/cost-visibility policy changes · UI redesign beyond Returns.
+- Takeover verification for I2 (checked, not assumed): backend `309a399` ·
+  mobile `d4ee658` · docs `9799771` · **62 suites / 869 tests** ·
+  **34 migrations**, "Database schema is up to date" · all three trees clean and
+  level with `origin` · `READY_FOR_HANDOFF` / owner `NONE`. Every expected
+  value matched.
+- **Brief path corrections (recorded so the next session is not misled):** the
+  coordination files are `CURRENT_HANDOFF.md` and `SESSION_LOG.md` at the
+  **repository root**, not under `docs/`; and there is no
+  `docs/24_SECURITY_AND_VERIFICATION.md` — `docs/24` is
+  `24_DEVICE_QA_CHECKLIST.md`. State was correct; only the paths differed.
+- **CLAUDE-A may be running a read-only UX review from an isolated snapshot.**
+  This session owns the live repositories and does not read, depend on, or
+  modify anything of CLAUDE-A's.
+- Next intended action: **I2-CP1** — audit current truth (models, the 410
+  endpoint and its consumers, unit states, closing/accounting, linked
+  accessories, the I1 policy snapshot), record it in `docs/27`, take a fresh
+  verified backup and prove the DEFINER-safe restore path.
+- **Gate before any schema work:** `CLAUDE.md` requires the plan, the files, and
+  the risks to be stated and approved before a large change. The I2.0 audit is
+  authorised now; the schema in I2.2 is presented for approval when the audit
+  says what is safe.
 
-### I1 — what landed
+### I1 — complete (previous phase, CLAUDE-B, 2026-08-14)
+
 
 | Checkpoint | Result |
 |---|---|
