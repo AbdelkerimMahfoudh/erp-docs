@@ -1,6 +1,9 @@
 # 27 — Returns: audit, findings and decisions (I0)
 
-> ## AUDIT ONLY — NOTHING WAS IMPLEMENTED
+> ## AUDIT ONLY (I0) — NOTHING WAS IMPLEMENTED IN THIS AUDIT
+>
+> **All eight decisions were APPROVED on 2026-08-14 — see §14.** Phase I1 then
+> built the secure foundation (§15); the ReturnRequest lifecycle is I2.
 >
 > No schema was migrated, no return behaviour was changed, no permission was
 > granted or revoked, no sale was created or returned, no mobile screen was
@@ -541,3 +544,55 @@ be answered explicitly rather than settled by implementation convenience.
 - The app **records** money movement; it never moves it.
 - Warranty and technician/SAV workflows stay deferred — but `return_hold` exists
   precisely so a defective phone can wait for them safely.
+---
+
+## 14. APPROVED — the eight decisions (2026-08-14)
+
+The user approved every I0 recommendation. These are now **decided**, not
+proposed, and supersede the open questions in §12 and §12b.
+
+| # | Decision | Approved answer |
+|---|---|---|
+| 1 | Custody during investigation | **The phone must be physically presented and scanned before approval.** Custody may be recorded at request time, but approval cannot happen without the device in hand. |
+| 2 | Returned phone after approval | Becomes **unsellable** — `faulty` / return-hold custody. It never re-enters `in_stock` automatically. |
+| 3 | Refund lifecycle | Approval creates **`refund_due`**. Payment confirmation is a **separate** act, separately recorded. |
+| 4 | Screen protector and retained accessories | **Explicit return adjustment lines**, so gross refund and net cash both stay visible. Never netted silently. |
+| 5 | Expired-deadline override | **Owner only**, initially. Manager delegation may follow once the flow is proven. |
+| 6 | Scope of the first implementation | **Serialized-phone returns.** Accessories are *linked dispositions* on a phone return, not independent returns. |
+| 7 | Historical integrity | The **original sale and closing remain immutable**. An approved return posts a **dated reversal**. |
+| 8 | Profit and the return window | Profit is **recognised at sale**, **displayed as subject to return** during the window, and **reversed on the approval date**. |
+
+### 14.1 What "provisional profit" means — and does not mean
+
+Decision 8 was the one open question that could have been mis-implemented into
+a large accounting change. It is deliberately narrow:
+
+**It IS:** a *display and operational warning*. While a sale is inside its
+return window, surfaces that show profit may mark it as subject to return, so
+an Owner reading today's figure knows part of it could still come back.
+
+**It is NOT:**
+
+- ❌ It does **not** delay revenue recognition. Revenue, COGS and margin are
+  recognised when the sale commits, exactly as today.
+- ❌ It does **not** make closing mutable. `DailyClosing` stays locked, and a
+  day may be closed while sales inside it are still returnable.
+- ❌ It does **not** retroactively adjust the sale's own day. A later approved
+  return posts a **separate reversal dated the approval date**.
+- ❌ It does **not** touch the original sale, its invoice, its lines, its cost
+  snapshots, its margin snapshot, or any locked closing record. All remain
+  immutable, permanently.
+
+This is standard accounting treatment — recognise, then adjust with a dated
+reversal — and it means no change to the closing flow that already works.
+
+### 14.2 What this leaves open
+
+Nothing blocking. Decisions 1–8 answer every question I0 raised. The remaining
+sequencing is engineering, not product:
+
+- The pre-existing sales-read defect (§2.8) is **in scope for I1** and closed
+  there.
+- Sale search and sale detail (§9) are **in scope for I1**, because a return
+  cannot start without finding the sale.
+- The ReturnRequest lifecycle itself is **I2**.

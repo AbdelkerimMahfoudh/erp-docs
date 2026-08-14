@@ -6,11 +6,24 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last session: **CLAUDE-B**, 2026-08-14 — **I0, Returns truth audit and
-  implementation plan** (complete). **READ-ONLY: no code, no migration, no
-  commits to backend or mobile.**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B** (unchanged — no account switch)
+- `started_at_utc`: **2026-08-14 (I1 takeover)**
+- Current authorised task: **Phase I1 — secure sales history and return-policy
+  foundation.** Disable the unsafe legacy return endpoint · `sale.view` and
+  `return.policy.override` · secure paginated sale list, search and detail ·
+  return-policy snapshot on every new sale · audited sale-time override ·
+  mobile sale history/detail + receipt disclosure. **The ReturnRequest
+  lifecycle is NOT in scope** (that is I2).
+- Takeover verification for I1 (checked, not assumed): backend `e964c71` ·
+  mobile `3c016e3` · docs `46a98fd` · **33 migrations** · **56 suites / 778
+  tests** · sales **7 / 10 051.00** · stock costs **4.27, 5.00, 5.00, 8.67** ·
+  notifications **41** · all three trees clean and level · `READY_FOR_HANDOFF`
+  / owner `NONE`. Every expected value matched.
+- Next intended action: **CP1** — move the seven I0 decisions from open to
+  approved in `docs/27` and `docs/21`.
+- Previous phase: **CLAUDE-B**, 2026-08-14 — **I0, Returns truth audit**
+  (complete, read-only).
 - **Returns must not be implemented until the open decisions in `docs/27` §12
   and §12b are answered.**
 - `started_at_utc`: **2026-08-14 (I0 takeover)**
