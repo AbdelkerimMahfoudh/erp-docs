@@ -6,10 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-15**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-15** — resumed from own checkpoint; UX1–UX4 stand
+  as committed and are **not** being redone.
+- Authorised task: **finish Milestone A** — UX checkpoints 5–9 (Sell, Inventory,
+  Supplier and Return-detail pilots, then localise the remaining hardcoded
+  screens and return the full mobile baseline to green). The failing
+  `transfer-draft.test.ts` is no longer allowed to stand as "pre-existing".
+- Resumption verification (checked, every value matched): docs `347a2e4` ·
+  backend `393f6fb` · mobile `3bfc7fb` · all three clean and level · migration
+  `0039` applied, schema up to date · mobile `tsc` clean · EN/AR **1059** keys
+  each · UX checkpoints 1–4 committed.
+- Next intended action: repair `lib/transfer-draft.test.ts`, then the Sell pilot.
 
 ### UX redesign milestone — checkpoints 1–4 of 9 complete
 
