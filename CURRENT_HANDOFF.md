@@ -6,8 +6,16 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- Current authorised task: **Phase J — Supplier Operations and Payables.** J0 audit
+  first, then J1 supplier foundation, payable ledger and the report/confirm
+  payment workflow. **Analytics polish is explicitly NOT authorised yet** —
+  supplier liabilities must be accurate before a dashboard reports them.
+- Takeover verification (checked, not assumed): backend `74c6757` · mobile
+  `90517c7` · docs `0b2a496` · **68 suites / 1017 tests** · **37 migrations**
+  through `0038` · schema up to date · `prisma validate` valid · all three trees
+  clean and level. Every expected value matched.
 - `started_at_utc`: **2026-08-15** — clean takeover from a `READY_FOR_HANDOFF`/NONE
   state returned by **CLAUDE-B**, whose I3 CP1–CP4.5 work stands as recorded and
   is **not** being redone or relabelled.
