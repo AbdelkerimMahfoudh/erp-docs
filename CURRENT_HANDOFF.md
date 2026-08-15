@@ -6,12 +6,24 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-15**
-- Phase: **I2 — the reviewed return workflow. CP1–CP4 complete and verified.
-  CP5 and CP6 NOT started.**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-15 (CP5/CP6 takeover)**
+- Current authorised task: **I2-CP5 (mobile Returns workflow) and I2-CP6 (full
+  end-to-end verification), completing Phase I2.** CP4.1's approved accounting
+  treatment is settled and is NOT reopened.
+- Takeover verification (checked, not assumed): backend `404bee9` · mobile
+  `d4ee658` · docs `3b6244b` · **66 suites / 956 tests** · schema up to date ·
+  `prisma validate` valid · all three trees clean and level ·
+  `READY_FOR_HANDOFF` / owner `NONE`.
+- **One discrepancy found, and it was a documentation error of mine.** The
+  previous handoff said "37 migrations". There are **36**, numbered 0001–0037
+  with **`0005` unused** — a pre-existing gap in numbering, not a missing
+  migration. Prisma reports "36 migrations found" and the database records 36
+  applied. I introduced the wrong figure in CP4.1 by misreading a clean-build
+  loop message. Corrected everywhere below.
+- Next intended action: audit the nine Returns endpoints against their real
+  serialized HTTP responses, then build the mobile workflow.
 
 ### ⚠️ I2 is PARTLY complete — read this before planning
 
@@ -73,7 +85,7 @@ is held and not sellable. Do not build payout confirmation (that is I3).
 ### Verification at handoff
 
 - Backend **66 suites / 956 tests**, `tsc` clean, `prisma validate` valid,
-  **37 migrations**, "Database schema is up to date".
+  **36 migrations**, "Database schema is up to date".
 - **62 of 63 live HTTP checks** passed against real MySQL. The one failure was
   the harness comparing a MySQL `DATE` through `String()` against an ISO slice;
   the recorded approval date was correct and was confirmed independently from

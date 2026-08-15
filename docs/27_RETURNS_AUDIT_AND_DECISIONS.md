@@ -1236,7 +1236,7 @@ Additive and rerun-safe (guarded `information_schema` probes through prepared
 statements, as `0036`). Backup
 `~/erp-backups/phonestore-i2cp41-20260815-030708.sql` — 330 019 bytes, 58 tables,
 6 triggers, 0 raw `_binary`. Proven on a restored copy, a rerun of it, a clean
-build of all 37 migrations, and dev; reverse SQL executed; `prisma_p41` and
+build of all 36 migrations (0001–0037, 0005 unused), and dev; reverse SQL executed; `prisma_p41` and
 `prisma_c41` dropped; sanitised copy removed. Dev unchanged: sales 7 / 10 051.00,
 units checksum `2a1dc9bf284afde32b402ad108d38a76`.
 

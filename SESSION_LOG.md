@@ -3269,7 +3269,7 @@ through prepared statements as `0036` is. Backup
 `~/erp-backups/phonestore-i2cp41-20260815-030708.sql` (330 019 bytes, 58 tables,
 6 triggers, 0 raw `_binary`) taken and restore-proven first. Applied to a
 restored copy, rerun on it (645 columns before and after — unchanged), a clean
-build of all 37 migrations, and dev. Reverse SQL executed. `prisma_p41` and
+build of all 36 migrations (0001–0037, 0005 unused), and dev. Reverse SQL executed. `prisma_p41` and
 `prisma_c41` dropped; sanitised copy removed. Dev unchanged: sales 7 /
 10 051.00, units checksum `2a1dc9bf284afde32b402ad108d38a76`.
 
