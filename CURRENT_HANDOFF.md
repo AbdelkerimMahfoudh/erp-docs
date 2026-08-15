@@ -9,85 +9,99 @@
 - Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-B**
 - `started_at_utc`: **2026-08-15**
-- Authorised task: **Milestone A (done), B, then C.** Do **not** begin D.
+- Authorised task: **A (done), B (done), C.** Do **not** begin D.
 
-### Milestone B — CP2 of 4 complete
+### Milestone B — COMPLETE
 
-| Step | State | Commit |
-|---|---|---|
-| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | ✅ | backend `eb0278c` |
-| **B-CP2** service, controller, derivation exclusion, rollup/closing, tests | ✅ | backend `3044a09` |
-| **B-CP3** mobile correction workflow | ❌ **NEXT** |  |
-| **B-CP4** live HTTP/MySQL lifecycle, docs, receipt disclosure | ❌ |  |
+| Step | Commit |
+|---|---|
+| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | backend `eb0278c` |
+| **B-CP2** service, derivation exclusion, rollup/closing, 45 tests | backend `3044a09` |
+| **B-CP3** correction exposed on both payments · mobile workflow | backend `dc858a0` · mobile `da173fe` |
+| **B-CP4** migration `0041`, live lifecycle **41/41** | backend `fe11142` |
 
-**The design, in one paragraph.** Both liabilities are derived from rows whose
-status is `confirmed`, so a correction writes nothing back to the payment it
-corrects. It restores the liability because four derivation queries now exclude
-any target carrying an approved correction. The per-day rollup and the
-confirmed-refund period totals are deliberately **not** filtered — the original
-payment happened on its day and that day stands; the compensating movement
-lands on the correction day. Filtering both would remove the money twice.
+**The production blocker is closed.** A confirmed refund payout and a confirmed
+supplier settlement can now be corrected — through an append-only compensating
+record, never by editing the original.
 
-### API, as built
+**The live test earned its place: it found two defects a green 1115-test suite
+did not.**
 
-```
-POST /v1/corrections              financial.correction.request   moves no money
-GET  /v1/corrections              financial.correction.request   newest first
-GET  /v1/corrections/:id          financial.correction.request
-POST /v1/corrections/:id/approve  financial.correction.approve   money comes back
-POST /v1/corrections/:id/reject   financial.correction.approve
-```
+1. **The rollup was never recomputed.** An approved correction restored the
+   liability and never reached the day's figures, so expected cash still
+   reported a shortage for money that had come back.
+2. **A replacement payout was impossible.** `0038` made
+   `return_request_id` UNIQUE. Migration `0041` moves that onto a generated
+   column holding the return id only while the payout is live, so a corrected
+   payout can be replaced while "one LIVE payout per return" stays a **database**
+   guarantee.
 
-Request body: `targetKind` (`refund_payout` | `supplier_settlement`),
-`targetId`, `reason` (mandatory), `supportingReference?`, `clientUuid`.
-**No amount field** — it is copied from the target, so a wrong figure has no
-way in. Approve/reject take `expectedVersion`; stale is 409
-`refresh_required`. A locked day is 409 `day_already_closed` — the same code
-the refund and settlement confirmations use.
+`0041` adds `refund_payouts.corrected_by_id` — a back-reference and nothing
+more. No financial field is rewritten, and the accounting spec asserts exactly
+that: the write must contain `correctedById` and none of seven financial
+fields, so the distinction cannot erode.
 
-### Next exact action — B-CP3 (mobile)
+### Milestone C — CP1 of ~4
 
-1. `mobile/types/api.ts` — add `FinancialCorrection` mirroring the service's
-   `shape()`: `id, targetKind, targetId, status, reason, supportingReference,
-   amount, method, accountLabel, requestedBy, requestedAt, decidedBy, decidedAt,
-   correctionDate, version`.
-2. `mobile/lib/corrections.ts` — query hooks + `correctionConflictKind`
-   following `lib/returns.ts`'s `refundConflictKind` exactly.
-3. Entry points, both gated on `financial.correction.request`:
-   - `app/returns/[id].tsx` — in the confirmed-refund section
-     (`RefundConfirmedSection`).
-   - `app/suppliers/[id].tsx` — on a confirmed settlement row.
-4. A request sheet (reason mandatory, optional reference) and an Owner
-   approve/reject screen with **high-friction confirmation** listing target,
-   amount, method, requester and reason.
-5. Corrected state on both screens, and the replacement-payment path: after a
-   correction the existing report flow works again unchanged.
-6. EN/AR parity. **An Employee sees no correction action at all.**
+| Step | State |
+|---|---|
+| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile `4b37d12` |
+| **C-CP2** TAC audit + reuse the existing recognition system | ❌ **NEXT** |
+| **C-CP3** three scanner modes + receiving prefill | ❌ |
+| **C-CP4** dual-SIM persistence, live checks, `docs/24` device script | ❌ |
 
-Then **B-CP4**: live lifecycle over HTTP with the three spent probes, and the
-receipt disclosure — a corrected payout's receipt stays retrievable and must
-say a correction exists; **never rewrite an issued receipt payload**.
+**Dependency decision, and its limit.**
+`@infinitered/react-native-mlkit-text-recognition` **5.0.1** is installed. MIT,
+an Expo module, on-device ML Kit — no cloud, no image leaves the phone —
+Android and iOS, published 2025-11-25. **Expo Doctor 18/18, web export 40
+routes, `tsc` and lint all clean with it installed.**
+
+**It has never been executed.** It cannot run in Expo Go, and no development
+build can be produced in this environment. Doctor passing is a compatibility
+check, not a working camera. **Do not claim OCR works until a dev build runs on
+a physical device.**
+
+### Next exact action — C-CP2
+
+1. **Audit the existing recognition system before building anything.**
+   `POST /scan` already learns code→product evidence (see
+   `src/scan/` and the `recognitionKey` on `ScanResult`). **Reuse it. Do
+   not create a competing evidence system** — the brief is explicit.
+2. Decide where a TAC fits that model: a TAC is 8 digits identifying a
+   manufacturer/model, and one model may have several. Rules that must hold:
+   - TAC suggests manufacturer/model **only** — never storage, colour,
+     condition, cost or price;
+   - unknown TAC asks an Owner/Manager to choose or create a product;
+   - an Employee may propose evidence but never globally approve it;
+   - exact deterministic evidence must not be weakened by a lower learned score;
+   - no third-party IMEI lookup API, ever.
+3. `mobile/lib/imei.ts` already exports `tacOf()`.
+
+Then C-CP3 (three scanner modes — barcode, read-from-screen, manual; **manual
+must always work**) and C-CP4 (dual-SIM persistence: `units.imei_secondary`
+already exists and `InventoryUnitRow` already carries it, so **verify before
+writing any migration**).
 
 ### Verification at this checkpoint
 
-- Backend **72 suites / 1115 tests** (was 70/1070; +45 correction checks),
-  `tsc` clean, `prisma validate` valid, **39 migrations** through `0040`,
-  schema up to date.
-- Both raw SQL exclusion fragments **executed against real MySQL** — they are
-  `Prisma.raw`, so a syntax error would only surface at runtime.
-- Migration `0040` proven on a restored copy, a rerun and dev; seven
-  constraints exercised, including the double-correction guard. Scratch
-  databases `prisma_b0` and `prisma_b1` dropped.
-- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
-  61 tables, 7 triggers, 0 raw `_binary`, restore proven **before** migrating.
-- **No live HTTP run for B yet.** No fixtures on dev, no probe used, no port
-  opened, no user process touched.
-
-### Milestone C — not started
-
-For its audit: `InventoryUnitRow` already carries `imeiSecondary`, so the
-dual-SIM identifier may be representable **without** schema work — verify
-before writing a migration.
+- Backend **72 suites / 1119 tests**, `tsc` clean, `prisma validate` valid,
+  **41 migrations** through `0041`, schema up to date.
+- Mobile `tsc`, `expo lint`, **Expo Doctor 18/18**, web export **40 routes**,
+  **8 pure suites green**, EN/AR both **1183**, zero raw hex.
+- **Live: 41 checks, 0 failures** on port 3099 against real MySQL, using the
+  three spent probes.
+- **Demo returned to baseline exactly**: corrections 0 · payouts 0 · returns 0 ·
+  sales **7 / 10 051.00** · units checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`** · `in_stock=3 sold=8` ·
+  notifications 41. **Audit grew 485 → 506 and was preserved.**
+- Fixture cleanup needed the migrator connection: the append-only trigger
+  correctly refused the app user, and the partial unique correctly refused
+  clearing a supersession marker while a replacement payout was still live.
+  Both refusals were the design working.
+- Backups `phonestore-b0-20260815-174119.sql` (restore proven before
+  migrating). Scratch databases `prisma_b0`, `prisma_b1`, `prisma_b2` all
+  dropped. Port 3099 released. Probes back to deactivated spent state.
+- **No device pass.** Nothing visual or native is claimed as device-verified.
 
 ### Milestone A — COMPLETE (9 of 9)
 

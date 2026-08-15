@@ -4002,3 +4002,81 @@ error would surface only at runtime, never at compile time.
 
 **Not done: B-CP3 (mobile) and B-CP4 (live lifecycle, receipt disclosure), then
 Milestone C.** No live HTTP run for B yet, no fixtures on dev, no probe used.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Milestone B complete, Milestone C CP1
+
+**Repositories:** backend `3044a09` → `fe11142`; mobile `9789856` → `4b37d12`;
+docs `129aa97` → this entry.
+
+**Milestone B is done. The production blocker is closed:** a confirmed refund
+payout and a confirmed supplier settlement can be corrected, through an
+append-only compensating record and never by editing the original.
+
+**The live lifecycle test found two defects that 1115 passing tests did not**,
+which is the entire argument for running it.
+
+The first: the rollup was never recomputed after an approval. The correction row
+was written perfectly and every unit assertion about it held — but the
+compensating movement reached nothing, so the liability came back while the till
+still reported a shortage for money that had already returned.
+
+The second was more interesting. A replacement payout was impossible, because
+`0038` had made `return_request_id` unique on the reasoning that a return is
+settled once or not at all. That was right when written and is still right in
+spirit; what changed is that a corrected payout is no longer *live*. Migration
+`0041` moves the constraint onto a generated column holding the return id only
+while the payout stands, so any number of corrected payouts may exist while at
+most one live one can. The invariant stays a database guarantee instead of being
+demoted to an application check.
+
+That needed one new column, `corrected_by_id` — a back-reference and nothing
+more. No financial field is rewritten, and the accounting spec now pins exactly
+that: the write must contain `correctedById` and none of seven named financial
+fields, so "a link, not an edit" cannot quietly erode into a general licence to
+update the payout.
+
+The migration itself had to add plain foreign-key indexes *before* dropping the
+uniques they sat on; MySQL refuses otherwise, and the first attempt failed
+halfway — on a restored copy, which is where it should fail.
+
+Two cleanup refusals were worth noting because both were the design working: the
+append-only trigger refused the application user's delete, and the partial unique
+refused to let a supersession marker be cleared while a replacement payout was
+still live.
+
+**Milestone C CP1.** The dependency gate passes as far as this environment can
+verify: `@infinitered/react-native-mlkit-text-recognition` 5.0.1 — MIT, an Expo
+module, on-device ML Kit with no cloud and no image leaving the phone, Android
+and iOS. Expo Doctor 18/18, web export and `tsc` clean with it installed.
+
+**It has never been executed, and the handoff says so.** It cannot run in Expo
+Go and no development build can be produced here. Doctor passing is a
+compatibility check, not a working camera.
+
+The parser carries the safety argument and is pure, so every rule is testable
+without a camera. One rule outranks the rest: never silently accept a guessed
+digit. OCR confusions are systematic, and a plausible wrong IMEI is far worse
+than a failed read — a failed read costs seconds, a wrong IMEI is a phone that
+cannot be found, sold, returned or warranty-matched for the rest of its life. So
+a substitution is offered only when the result still satisfies Luhn, and even
+then every character change is listed for a human to agree to.
+
+Dual-SIM: two IMEIs on one screen are one phone with two identifiers. Three or
+more is reported ambiguous rather than resolved, because guessing which two
+matter would invent data.
+
+Writing the tests found a bug in the parser: the label lookup scanned backwards
+from the first digit-like character and found the "I" in "IMEI" itself, since I
+is one of the characters OCR confuses for a digit.
+
+**Verification.** Backend 72 suites / 1119 tests, 41 migrations, schema up to
+date. Mobile 8 pure suites, Doctor 18/18, 40 routes, EN/AR 1183, zero raw hex.
+Live 41/41. Demo returned to baseline exactly — sales 7 / 10 051.00, units
+checksum `2a1dc9bf284afde32b402ad108d38a76`, `in_stock=3 sold=8`. Audit grew
+485 → 506 and was preserved. All scratch databases dropped, port 3099 released,
+probes back to deactivated spent state.
+
+**Not done: Milestone C CP2 to CP4** — the TAC audit and reuse, the three
+scanner modes, and dual-SIM persistence.
