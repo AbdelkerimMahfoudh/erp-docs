@@ -6,26 +6,98 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15 (I3 takeover)**
-- Current authorised task: **Phase I3 — refund payout reporting, confirmation,
-  reconciliation and receipt sharing.** The app records what the store says
-  happened; it never moves money and integrates no payment provider.
-- Takeover verification (checked, not assumed): backend `404bee9` · mobile
-  `c7dfadc` · docs `f45bfa1` · **66 suites / 956 tests** · **36 migrations**
-  through `0037` with `0005` unused · schema up to date · mobile CP5 routes
-  present · I2 live 74/74 · all trees clean and level · `READY_FOR_HANDOFF` /
-  owner `NONE`. **No discrepancies.**
-- **I3-CP1 ✅** — audit and backup.
-  - Backup `~/erp-backups/phonestore-i3-20260815-041546.sql` — 329 152 bytes,
-    58 tables, 6 triggers, 0 raw `_binary`; restore proven into `prisma_i3`
-    (58 tables, sales 7 / 10 051.00, units checksum unchanged).
-  - **`prisma_i3` is retained for the CP2 migration proof and must be dropped
-    after it.**
-  - Audit: `docs/27` §17. **No stop condition triggered.**
-- Next intended action: migration `0038` — `RefundPayout` plus the two
-  permissions, with restored/clean/dev/rerun proofs.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- `finished_at_utc`: **2026-08-15**
+
+### ⚠️ I3 is PARTLY complete — read this first
+
+| Checkpoint | State |
+|---|---|
+| **CP1** audit, backup, restore proof | ✅ docs `1e8ba6f` |
+| **CP2** migration `0038`, permissions, drift tests | ✅ backend `79e1e0e` |
+| **CP3** report / correct / confirm / receipt contract + reconciliation | ✅ backend `1687322` |
+| **CP4** *(reconciliation reporting surfaces beyond closing)* | ⚠️ **partial** — see below |
+| **CP5** mobile report/confirm UI | ❌ **NOT STARTED** |
+| **CP6** PDF refund receipt sharing | ❌ **NOT STARTED** |
+| **CP7** adversarial + live verification | ❌ **NOT STARTED** |
+
+**The backend refund workflow is complete and unit-tested. No mobile screen
+consumes it, and no live HTTP run has exercised it.** Nothing is half-built: the
+mobile repository is untouched at `c7dfadc`, and there is no partial migration.
+
+**What CP4 already has:** the confirmation-day rollup components
+(`refunds_paid_total`, `refunds_paid_cash`, `refunds_paid_count`), the closing
+snapshot, and `expectedCash` corrected to subtract confirmed cash refunds.
+**What it does not have:** an analytics endpoint exposing "approved / due /
+reported / confirmed" as a reconciliation view, and outstanding-liability
+reporting.
+
+### Next exact action
+
+**Build CP5** — the mobile report/confirm UI on the existing Return detail
+screen — then CP6 (PDF) and CP7 (live verification). The endpoints are stable:
+
+```
+POST  /v1/returns/:id/refund/report    refund.report    a CLAIM, not the record
+PATCH /v1/returns/:id/refund           refund.confirm   correct method/account/ref/note
+POST  /v1/returns/:id/refund/confirm   refund.confirm   THE record; books cash today
+GET   /v1/returns/:id/refund/receipt   return.view      only once confirmed
+```
+
+`GET /v1/returns/:id` now returns a `payout` object (`null` when nobody has
+reported yet — which is different from reported-and-unconfirmed, and the screen
+must not blur the two). Writes take `expectedVersion`; a stale one is a 409.
+
+**Mobile wording rules, non-negotiable:** a reported payout must never be green
+or worded as settled; the confirmed state may be green; the phone remains
+`faulty` and not for sale either way.
+
+### Verification at handoff
+
+- Backend **67 suites / 992 tests**, `tsc` clean, `prisma validate` valid,
+  **37 migrations** (0001–0038, `0005` unused), schema up to date.
+- Migration `0038` proven on a restored copy, a rerun, a clean build of all 37,
+  and dev; reverse SQL executed; `prisma_i3` and `prisma_i3c` dropped.
+- Backup `~/erp-backups/phonestore-i3-20260815-041546.sql` — 329 152 bytes,
+  58 tables, 6 triggers, 0 raw `_binary`, restore proven.
+- Demo data untouched: sales **7 / 10 051.00**, units checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`**.
+- **No live HTTP verification was run for I3.** The CP3 backend is proven by
+  unit tests only — and this project's history is that the suite passes while
+  the first real request fails. CP7 must not be skipped.
+
+### The I3 design, in one place
+
+- `RefundPayout` — one per approved return, lifecycle
+  `reported_pending_confirmation → confirmed`. **`Payment` is untouched**: its
+  `sale_id` is required and its only consumer counts it as cash received, so a
+  refund there would look like sales income (`docs/27` §17).
+- `ReceivingAccount` reused as the channel label, snapshotted at confirmation.
+- Amount locked to the immutable net refund due; no partial payout; a zero
+  refund is refused as having nothing to settle.
+- **Confirmation creates no second profit effect.** Profit reversed at approval;
+  confirmation moves cash only. The confirmation-day rollup has no profit column
+  at all, deliberately.
+- `expectedCash` = cash in − confirmed cash refunds out, so a paid refund is not
+  reported as a till shortage.
+- Locked confirmation day → 409, never a reopened closing.
+
+### Open items carried forward
+
+1. **I3 CP4-partial, CP5, CP6, CP7** — the work above.
+2. **Device passes** — `docs/24` §9b/§9c/§9d/§9e outstanding; I3 will add its own
+   (PDF generation, share sheet, confirmation wording).
+3. **Technical debt:** every `PrismaClientValidationError` is reported as
+   "Invalid query parameters" whatever the cause.
+4. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+5. **Cost gating has no live negative case** — every store role holds
+   `cost.view`; a product question for `docs/03`.
+6. **`mobile/lib/transfer-draft.test.ts` cannot run** (renamed export since
+   `3c016e3`).
+7. **Three spent probe identities** (`i2p9b1b04_*_spent`) exist and must be
+   REUSED for live verification rather than adding more — see the I2 notes.
 
 ### I2 — what shipped
 
@@ -105,7 +177,7 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `404bee9` | `404bee9` | clean |
+| Backend (`erp-backend`) | master | `1687322` | `1687322` | clean |
 | Mobile (`erp-mobile`) | master | `c7dfadc` | `c7dfadc` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 

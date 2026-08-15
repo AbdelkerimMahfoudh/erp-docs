@@ -3392,3 +3392,110 @@ inspection, independent quantity returns, and the device pass in `docs/24` §9e.
 
 **Commits:** backend `404bee9` · mobile `c7dfadc` · docs the commit carrying
 this entry.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Phase I3 (CP1–CP3): refund settlement, backend only
+
+Migration **`0038`**. Backend `79e1e0e`, `1687322` · docs `1e8ba6f` and the
+commit carrying this entry. **Mobile untouched (`c7dfadc`).**
+
+**I3 is NOT complete.** CP1–CP3 are done, verified and pushed. **CP4 is partial,
+and CP5 (mobile), CP6 (PDF) and CP7 (live verification) were not started.**
+
+### Takeover
+
+Every claim verified and matched: backend `404bee9`, mobile `c7dfadc`, docs
+`f45bfa1`, 66 suites / 956 tests, 36 migrations through `0037` with `0005`
+unused, schema up to date, mobile CP5 routes present, I2 live 74/74, three clean
+trees, `READY_FOR_HANDOFF` under owner `NONE`. **No discrepancies** — the first
+takeover this session where nothing needed correcting.
+
+### The audit decided the shape (CP1)
+
+**An outgoing refund cannot reuse `Payment`, and must not.** Two independent
+reasons: `payments.sale_id` is required, so a refund would attach itself to a
+sale it merely reverses and make that sale's payment history untrue; and its
+only consumer computes `expectedCash` as the sum of cash payments, so a refund
+row would be counted as money the shop **received**. A negative amount would be
+worse — silently flipping the sign of a column every other reader assumes is
+positive.
+
+**`ReceivingAccount` is safely reusable.** It holds a provider, a label and an
+active flag — no balance, no credentials, no direction — and answers "through
+which channel?", which is the same question either way. Its own comment already
+anticipated money movement being recorded against it. A second account system
+would duplicate the Owner's configuration, and two lists of the same accounts
+drift the moment one is edited.
+
+### Schema (CP2)
+
+`RefundPayout`, one per approved return, with UNIQUE on both the request and the
+reversal, `clientUuid` idempotency, a CHECK that the reported amount equals the
+amount due, and a CHECK tying the confirmation fields to the confirmed status in
+both directions.
+
+Only DELETE is blocked by trigger, not UPDATE. A payout is legitimately
+corrected while it awaits confirmation; deleting a settlement is never a
+correction, it is the disappearance of a record that money left the till.
+
+Proven on a restored copy, a rerun, a clean build of all 37 migrations and dev,
+with the reverse SQL executed and demo checksums unchanged. Both temporary
+databases dropped.
+
+### Report, correct, confirm (CP3)
+
+The report is a **claim**; the confirmation is the **record**. Employees report,
+Owner and Store Manager confirm — the separation is the control, because if the
+person who says money left the till could also certify it, the second step would
+be decoration.
+
+The amount is never the client's: it must equal the immutable net refund due,
+compared in cents, with no partial payout. A refund of **zero** is refused
+outright — adjustments can legitimately consume the whole refund, but then
+nothing is handed over and a payment record would assert something that never
+happened.
+
+**Confirmation creates no second profit effect.** Profit was reversed at
+approval; confirmation moves cash only, and the confirmation-day rollup query
+has no profit column at all. Taking it twice is the double-count this phase
+exists to avoid.
+
+`expectedCash` now subtracts confirmed cash refunds. Before this, a day with a
+confirmed cash refund would have reported a shortage that was not one — the
+money was handed back on purpose.
+
+A replay of a successful confirmation returns the confirmed result rather than
+refusing: somebody who lost the response must not be told they failed.
+
+### Two assertions of mine that were wrong
+
+One sliced the service file to end-of-file and caught `moveUnitForCustody`'s own
+**definition** in the internals section — an assertion that fails on a
+declaration is one somebody eventually weakens rather than reads. Scoped to the
+refund methods. The other referenced `refundedCash` above its declaration in
+`closing.service`; it now reads the figure from the rollup directly.
+
+### Verification
+
+Backend **67 suites / 992 tests**, `tsc` clean, `prisma validate` valid, **37
+migrations**, schema up to date. Demo data untouched: sales 7 / 10 051.00, units
+checksum `2a1dc9bf284afde32b402ad108d38a76`.
+
+**No live HTTP verification was run for I3.** The backend is proven by unit
+tests only — and this project's history is that the suite passes while the first
+real request fails (`role: { permissions }`, `?limit=`, the 500 on a malformed
+sale id, the notifier's non-existent `data` field). **CP7 must not be skipped.**
+
+### Not done, and the exact next action
+
+CP4 has its rollup components, closing snapshot and corrected `expectedCash`,
+but no reconciliation view exposing approved / due / reported / confirmed, and
+no outstanding-liability reporting. CP5, CP6 and CP7 are untouched.
+
+Next session: build the mobile report/confirm UI on the existing Return detail
+screen, then the PDF receipt, then the live lifecycle. Reuse the three
+`i2p9b1b04_*_spent` probes rather than creating more.
+
+**Commits:** backend `1687322` · mobile `c7dfadc` (unchanged) · docs the commit
+carrying this entry.
