@@ -471,3 +471,41 @@ and API-level scripts.
 Native share sheet behaviour · the PDF's real appearance and page breaks ·
 haptics on report and confirm · bottom-sheet gestures · keyboard avoidance ·
 Arabic **visual** mirroring · behaviour on a genuinely flaky connection.
+
+
+## 9g. Suppliers and payables (J1) — **never touched on a device**
+
+Nothing below has been performed. J1 was verified by a type checker, a test
+runner, a web export and API-level scripts.
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Open Suppliers as an **Employee** | Names and phones; **no** money column anywhere |
+| 2 | Open a supplier as an Employee | "not shown to your role", not a zero balance |
+| 3 | Open the same supplier as an Owner | Total bought, paid, still owed, and every delivery |
+| 4 | Search by part of a name, then by phone | Both find it |
+| 5 | Switch to Inactive, then All | Filters behave; an inactive supplier is labelled in words |
+| 6 | Add a supplier that already exists | Explains it in place and suggests searching |
+| 7 | Tap "Record a payment" | Outstanding shown; amount empty |
+| 8 | Type more than is owed | Blocked with the amount owed named |
+| 9 | Type a partial amount | The allocation appears, oldest delivery first, **before** sending |
+| 10 | Submit | A dialog says a manager or owner must still confirm |
+| 11 | Turn airplane mode on mid-submit, then retry | **One** payment, not two |
+| 12 | The pending state as an Employee | Read-only, with a note that a manager must confirm |
+| 13 | The same as a Manager | Confirm offered |
+| 14 | Confirm | Dialog lists supplier, amount, method, reporter and report time |
+| 15 | Confirm with the connection dropped | Does **not** show as confirmed |
+| 16 | Confirm one somebody already confirmed | Told it was already done |
+| 17 | Confirm on a closed day | Refused, explaining the day is closed |
+| 18 | After confirming | Still-owed falls by exactly that amount; the delivery reads partly or fully paid |
+| 19 | Deactivate a supplier, then open Receive | It is not in the picker |
+| 20 | Open an old delivery from that supplier | Still shows the supplier it was bought from |
+| 21 | Reactivate | It returns to the picker |
+| 22 | The whole flow in Arabic | Labels, amounts and the allocation read naturally |
+| 23 | The keyboard over the amount field | The submit button is not hidden behind it |
+
+### What only a device can answer
+
+Haptics on record and confirm · bottom-sheet gestures with a keyboard open ·
+Arabic **visual** mirroring · behaviour on a genuinely flaky connection · the
+allocation list on a small screen.

@@ -1159,3 +1159,53 @@ anything. It records what a person says happened at the counter.
 
 > Detail, and the 55 live checks behind it, in
 > [`docs/27` §20](27_RETURNS_AUDIT_AND_DECISIONS.md).
+
+
+---
+
+## 6g. Supplier payables — J1, SHIPPED
+
+### ✅ APPROVED — the app records payments, it does not move money
+
+No provider is called, no balance is looked up, no credential is held. A
+supplier payment is what a person says happened at the counter, and the shop's
+own purchases are what it is measured against.
+
+### ✅ APPROVED — a purchase creates the debt, only confirmation settles it
+
+Three moments, kept apart for the same reason refunds keep theirs apart:
+
+1. **Purchase** creates the payable.
+2. **Report** records that somebody handed money over. No cash movement, no
+   change to what is owed. An **Employee** may do it.
+3. **Confirmation** settles the liability exactly once and books the cash
+   movement on the confirmation day. Only an **Owner or Manager** may do it, and
+   it has **no profit effect** — inventory cost reaches profit through COGS when
+   the goods sell.
+
+### ✅ APPROVED — the debt is derived, never a stored counter
+
+Outstanding = purchase totals − confirmed allocations. Purchase totals are never
+rewritten to express payment; `amountPaid` and `status` are projections.
+`Supplier.balance` survives as a cache with a drift check.
+
+### ✅ APPROVED — money is allocated explicitly, and overpayment is refused
+
+A payment names which deliveries it settles. Oldest-first is a suggestion the
+person sees before sending, never a silent server decision. Partial payments are
+allowed; overpayment is refused, including when two managers confirm at once.
+
+### ✅ APPROVED — suppliers are deactivated, never deleted
+
+An inactive supplier vanishes from new receiving and stays in every history.
+Nothing referenced may be hard-deleted.
+
+### 🔴 REQUIRED, NOT BUILT — controlled correction after confirmation
+
+Neither a confirmed supplier payment nor a confirmed refund can be reversed.
+That is deliberate for now, but a real mistake currently has no route back.
+**A reviewed correction workflow is required before either is considered
+finished.**
+
+> Detail, and the 52 live checks behind it, in
+> [`docs/28` §5](28_SUPPLIERS_PAYABLES_AUDIT.md).

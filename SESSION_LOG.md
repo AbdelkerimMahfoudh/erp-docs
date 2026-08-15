@@ -3632,3 +3632,126 @@ haptics, native share, the PDF's appearance, bottom-sheet gestures and Arabic
 **Commits:** mobile `90517c7` · backend `74c6757` · docs, the commit carrying
 this entry. All three trees clean and level with `origin`. `READY_FOR_HANDOFF`,
 owner `NONE`.
+
+
+---
+
+## 2026-08-15 — CLAUDE-A — **Phase J: supplier operations and payables (`0039`)**
+
+**Takeover.** Clean, from `READY_FOR_HANDOFF`/NONE. Verified before touching
+anything: backend `74c6757`, mobile `90517c7`, docs `0b2a496`, **68 suites /
+1017 tests**, 37 migrations through `0038`, schema up to date, all three trees
+clean and level. Every expected value matched.
+
+### J0 — the audit, before any SQL (docs `e0ea5cf`)
+
+`SupplierPayment` already existed and was almost unused: one code path writes
+it, for the down payment taken at receiving, with the method hardcoded to cash.
+No lifecycle, no version, no client uuid, no account, no confirmer. **A supplier
+paid after the goods arrived could not be recorded at all.**
+
+`Supplier.balance` was a stored counter incremented in one place and never
+recomputed; `Purchase.status` was decided once at creation and never updated.
+Both were authoritative only until something happened to them.
+
+`GET /suppliers` was unguarded and returned every supplier's balance to anyone
+signed in — against the rule that the ledger belongs to Owner and Manager.
+
+Reusing Sale `Payment` would make a supplier payment look like sales income,
+the same trap I3 documented. The I3 report/confirm **shape** generalises and was
+copied deliberately; the **table** does not, because a refund is one per return
+with a locked amount while a supplier payment is many, partial and allocated.
+
+Live data was consistent — 3 suppliers, 9 purchases all unpaid, 11 185
+outstanding, every stored balance matching the derived figure — so J1 started
+from a clean state.
+
+### J1-A — migration `0039` (backend `f459a76`)
+
+Two tables and two permissions. The money rules are database rules, exercised
+**11/11** against real MySQL, including two that had to be redone because the
+first attempt was blocked by a different foreign key and therefore proved
+nothing.
+
+Two things the plan did not anticipate: MySQL error 3823 forced the
+receiving-account foreign key to `RESTRICT` on both actions (without it the
+method/account CHECK cannot exist at all), and the `permissions` table has a
+`label` column rather than `description` — the first deploy failed on it.
+
+### J1-B — the ledger and the payment workflow (backend `3cbe846`, `393f6fb`)
+
+Outstanding is derived every time. Purchase totals are never rewritten;
+`amountPaid` and `status` are projections of the allocations. The list stops
+handing every supplier's debt to everyone — it stays open, because receiving has
+to pick a supplier, but the money is **absent** for anyone without permission.
+
+Allocation is always explicit; oldest-first is a suggestion that is returned and
+shown. Overpayment is refused three ways, the last inside the confirmation
+transaction against committed rows, which is what stops two managers overpaying
+the same debt.
+
+The closing gained the other thing that leaves the till: before this, a day the
+shop paid a supplier in cash reported a shortage that was not one.
+
+**Two existing assertions needed correcting, both reading prose as code** — one
+flagged a comment saying "not an expense" as treating a refund as an expense,
+and one of my own caught the legitimate persistence of the new columns.
+
+### J1-C — the mobile screens (mobile `a5e7316`)
+
+`/suppliers`, `/suppliers/[id]`, `/suppliers/new`. Same wording discipline as
+refunds: owed is a warning, reported is still not paid, only confirmed is a
+success. The payment sheet shows **which deliveries** the money settles before
+anything is sent.
+
+**A breaking change TypeScript could not catch:** the list became paged and
+`app/receive.tsx` still typed it as a bare array. `api.get<T>` is an assertion,
+so the build stayed green while the picker would have shown nothing. Found by
+reading the call site.
+
+### J1-D — live verification
+
+**52/52** against a separate backend on **port 3112** and real MySQL, reusing
+the three spent probes.
+
+**One real defect, found by running it:** `GET /suppliers/not-a-uuid` returned
+**500**. `uuidToBin` throws a plain Error and the global filter maps it to a
+server error; the returns module already guards with `isUuid` and suppliers did
+not. Fixed in `393f6fb`.
+
+- **Files changed:** backend — `prisma/schema.prisma`,
+  `prisma/migrations/0039_supplier_settlement/`, `src/suppliers/*`
+  (`payable.ts`, `payable.spec.ts`, `settlement-migration.spec.ts`,
+  `dto/supplier.dto.ts` new), `src/closing/{closing.service,closing.module}.ts`,
+  `src/returns/refund-reconciliation.spec.ts`. Mobile — `lib/suppliers.ts` (new),
+  `components/suppliers/SupplierPaymentSheet.tsx` (new), `app/suppliers/*` (new),
+  `app/receive.tsx`, `types/api.ts`, `lib/{permissions,query-keys}.ts`,
+  `lib/i18n/{en,ar}.ts`. Docs — `21`, `24`, `28` (new), handoff, this log.
+- **Migrations:** `0039_supplier_settlement`.
+- **Tests:** backend **70 suites / 1070 tests**; mobile `tsc` and `expo lint`
+  clean, EN/AR both **1025 keys**, web export **40 routes**, pure suites 15 + 24.
+- **Fixtures and cleanup:** every settlement, allocation and probe supplier
+  removed; purchase projections and cached balances restored; probes deactivated
+  and spent; users remains **9**; both scratch databases dropped; port 3112
+  released. **Audit grew 459 → 483 — 24 append-only rows, preserved and
+  reported.** Demo data identical: sales 7 / 10 051.00, units checksum
+  `2a1dc9bf284afde32b402ad108d38a76`, `in_stock=3 sold=8`, notifications 41.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device or in a visible browser.** `docs/24` §9g
+lists 23 checks.
+
+**No post-confirmation correction exists** for a supplier payment or an I3
+refund. Deliberate, but a genuine mistake has no route back — now the most
+significant open gap in the financial workflows.
+
+Also open: stock can still enter without a payable through `upsertStock`; a
+payable is tax-inclusive while inventory cost is not (agreeing only because tax
+is always zero); and supplier liability is company-wide with no per-branch
+total.
+
+**Commits:** backend `f459a76`, `3cbe846`, `393f6fb` · mobile `a5e7316` ·
+docs `e0ea5cf` and the commit carrying this entry. All three trees clean and
+level with `origin`. `READY_FOR_HANDOFF`, owner `NONE`. **Analytics polish not
+started.**

@@ -243,3 +243,137 @@ would mean a prop that turns off half of it.
   unreviewed reversal is how money leaves twice — but it means a genuine mistake
   currently has no route back. **Recorded as a required future controlled
   correction workflow**, alongside the same gap for I3 refunds.
+
+
+---
+
+## 5. J1 as shipped — supplier operations and payables
+
+### 5.1 Schema (`0039`)
+
+| Table | Purpose |
+|---|---|
+| `supplier_settlements` | One payment, `reported` → `confirmed`. Amount, method, frozen account label, version, client uuid + fingerprint, reporter, confirmer, **confirmation date** |
+| `supplier_settlement_allocations` | Which purchases it settles, and by how much. UNIQUE `(settlement, purchase)` |
+| `daily_closings` | + `supplier_paid_total`, `supplier_paid_cash`, both defaulted to 0 |
+
+**Its own model, not a generalised `RefundPayout`.** A refund is one per return
+with a locked amount and no allocation; a supplier payment is many, partial and
+split across purchases. One table for both would make the amount rule
+conditional on a type column.
+
+Database rules, not application hopes: a payment is positive · a cash payment
+must not name an account and an account payment must · a confirmed row carries
+who, when and which business day or none of them · one request id per company ·
+one allocation per purchase per settlement.
+
+### 5.2 Permissions
+
+| Role | `supplier.manage` | `supplier.payment.report` | `supplier.payment.confirm` |
+|---|---|---|---|
+| Owner | ✅ | ✅ | ✅ |
+| Store Manager | ✅ | ✅ | ✅ |
+| Store Employee | ❌ | ✅ | ❌ |
+
+An Employee hands the money over and reports it; only a Manager or Owner
+vouches for it. Proved live: an Employee confirming gets **403**.
+
+### 5.3 Liability, and the three timings
+
+**Outstanding is derived**, every time, from purchase totals minus confirmed
+allocations. `Supplier.balance` is kept in step as a cache and a drift check
+compares them — nothing decides from it.
+
+- **Purchase** creates the payable.
+- **Report** is a workflow event: no cash, no change to what is owed.
+- **Confirmation** settles the liability exactly once, books the cash movement
+  on the confirmation day, and has **no profit effect at all** — inventory cost
+  reaches profit through COGS when the goods sell.
+
+Purchase totals are **never rewritten**. `amountPaid` and `status` are
+recomputed as a projection of the allocations.
+
+### 5.4 Allocation, and overpayment
+
+Always explicit. Oldest-first is offered as a **suggestion**, returned to the
+caller and shown before anything is sent — money that lands somewhere nobody
+looked at is money nobody can explain later.
+
+Overpayment is refused three ways: per line against what that purchase owes, in
+total against the amount handed over, and again **inside the confirmation
+transaction against committed rows**. The last one is what stops two managers
+confirming at once from overpaying the same debt.
+
+### 5.5 Reconciliation
+
+Expected cash = cash taken − confirmed cash refunds − **confirmed cash supplier
+payments**. Before J1 the last term did not exist, so a day the shop paid a
+supplier in cash reported a shortage that was not a shortage. Only the cash part
+is subtracted; an account transfer never touched the drawer. Neither figure
+appears in gross profit, expenses or net profit.
+
+### 5.6 Deactivation
+
+`deletedAt` got its endpoints. An inactive supplier disappears from the Receive
+picker and from new payments, and stays everywhere history is shown. **No
+supplier is ever hard-deleted** — proved live: MySQL refuses to delete one a
+settlement or a purchase names.
+
+### 5.7 Mobile
+
+`/suppliers` (searchable, filterable, paged) · `/suppliers/[id]` (ledger,
+pending payments, payment history, deactivate/reactivate) · `/suppliers/new`.
+
+The money is **absent, not zero**, for anyone without permission, and the detail
+says so in words rather than rendering a misleading 0.
+
+### 5.8 Verification — 52 live checks, 0 failures
+
+Against a **separate backend on port 3112** and real MySQL, reusing the three
+spent probes. Duplicate supplier 409 · Employee refused supplier creation ·
+search by name and phone · money gating for list and detail · payable derived
+per purchase · oldest-first suggestion · Employee reports · report changes
+nothing owed · replay · changed-payload 409 · Employee confirmation 403 ·
+Manager correction with a frozen label and an unchanged amount · stale
+correction 409 · rename/deactivate neither rewrites nor strands · confirmation
+settles once · partial leaves the exact balance · purchase total never rewritten
+· duplicate confirmation refused · overpayment refused · allocation mismatch
+refused · exact final payment clears it · two partials sum to the total · paying
+a settled purchase refused · no profit effect and no supplier column in the
+profit rollup · deactivate/reactivate with history intact · inactive supplier
+takes no payment · unknown 404 · malformed id 404 · cross-branch refused ·
+paging repeats no row · **the cached balance still agrees with the derived
+figure**.
+
+### 5.9 One real defect found by running it
+
+`GET /suppliers/not-a-uuid` returned **500**. `uuidToBin` throws a plain Error
+and the global filter maps it to a server error; the returns module already
+guards with `isUuid` for this exact reason and suppliers did not. An id that
+cannot name anything is a 404 — a 500 says the server broke and sends somebody
+looking for a fault that is not there.
+
+Two other things the plan did not anticipate, both recorded in the J1-A commit:
+MySQL error 3823 forced the receiving-account foreign key to `RESTRICT` on both
+actions, and the `permissions` table has a `label` column rather than
+`description`.
+
+**One breaking change TypeScript could not catch.** The supplier list became
+paged, and `app/receive.tsx` still typed it as a bare array — `api.get<T>` is an
+assertion, not a check, so the build stayed green while the Receive picker would
+have shown nothing. Found by reading the call site rather than by a tool.
+
+### 5.10 Still not done, and not claimed
+
+- **Nothing was exercised on a device or in a visible browser.** `docs/24` §9g
+  lists what a device pass must cover.
+- **No post-confirmation correction exists** for a supplier payment, exactly as
+  for an I3 refund. Deliberate — an unreviewed reversal is how money leaves
+  twice — but a genuine mistake has no route back today. **This is now the most
+  significant open gap in the financial workflows.**
+- **Stock can still enter without a payable** through `upsertStock` and
+  quick-add (§4).
+- **A payable is tax-inclusive while inventory cost is not**, which only agrees
+  today because tax is always zero.
+- Supplier liability is **company-wide**; the ledger shows each purchase's
+  branch, but there is no per-branch payable total.

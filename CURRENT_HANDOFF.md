@@ -6,9 +6,9 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- Current authorised task: **Phase J — Supplier Operations and Payables.** J0 audit
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Last authorised task (COMPLETE): **Phase J — Supplier Operations and Payables.** J0 audit
   first, then J1 supplier foundation, payable ledger and the report/confirm
   payment workflow. **Analytics polish is explicitly NOT authorised yet** —
   supplier liabilities must be accurate before a dashboard reports them.
@@ -19,7 +19,7 @@
 - `started_at_utc`: **2026-08-15** — clean takeover from a `READY_FOR_HANDOFF`/NONE
   state returned by **CLAUDE-B**, whose I3 CP1–CP4.5 work stands as recorded and
   is **not** being redone or relabelled.
-- Last authorised task (COMPLETE): **I3 CP5, CP6 and CP7** — the mobile refund report /
+- Previous authorised task (COMPLETE): **I3 CP5, CP6 and CP7** — the mobile refund report /
   confirm workflow, the confirmed-refund PDF receipt, and full adversarial plus
   live verification. Nothing beyond I3 is authorised.
 - Takeover verification (checked, not assumed): backend `71dcbeb` · mobile
@@ -27,6 +27,68 @@
   through `0038` · schema up to date · `prisma validate` valid · all three trees
   clean and level with `origin/master`. Every expected value matched.
 - Previous account: **CLAUDE-B** (I3 CP1–CP4.5, live smoke 51/51).
+
+
+### Phase J — Supplier Operations and Payables: COMPLETE
+
+| Checkpoint | State |
+|---|---|
+| **J0** supplier and payable truth audit | ✅ docs `e0ea5cf` — no blocking contradiction |
+| **J1-A** migration `0039`, permissions, drift tests | ✅ backend `f459a76` |
+| **J1-B** supplier ledger, payment workflow, closing | ✅ backend `3cbe846`, `393f6fb` |
+| **J1-C** mobile supplier screens | ✅ mobile `a5e7316` |
+| **J1-D** live verification, cleanup, docs | ✅ **52/52 live** |
+
+**A supplier can now be paid, and what the shop owes them is finally derived
+from immutable rows rather than a counter nobody recomputed.** An Employee
+reports the payment, a Manager or Owner confirms it, and only then does cash
+move and the liability settle — with no profit effect.
+
+**Analytics polish was deliberately NOT started**, per the instruction: supplier
+liabilities had to be accurate first.
+
+### Verification at handoff (end of J1)
+
+- Backend **70 suites / 1070 tests**, `tsc` clean, `prisma validate` valid,
+  **38 migrations** (0001–0039, `0005` unused), schema up to date, **7 triggers**.
+- Mobile `tsc` clean, `expo lint` clean, **EN and AR both 1025 keys**, web export
+  **40 routes** including `/suppliers`, `/suppliers/[id]` and `/suppliers/new`,
+  pure Node suites **15 + 24**.
+- **Live: 52 checks, 0 failures**, over HTTP on **port 3112** against real MySQL,
+  reusing the three spent probes. No new identity: users remains **9**.
+- **One real defect found and fixed:** a malformed supplier id answered **500**
+  instead of 404 — `uuidToBin` throws and suppliers lacked the `isUuid` guard
+  the returns module already had.
+- **One breaking change TypeScript could not catch:** the supplier list became
+  paged and `app/receive.tsx` still typed it as an array. `api.get<T>` is an
+  assertion, not a check, so the build stayed green while the Receive picker
+  would have shown nothing.
+- Backup `~/erp-backups/phonestore-j1-20260815-061500.sql` — 388 741 bytes,
+  59 tables, 7 triggers, 0 raw `_binary`, valid UTF-8; DEFINER-safe restore
+  proven **before** migrating (59/59 tables, 7/7 trigger bodies identical, units
+  and suppliers checksums matching live). Four deployment proofs, reverse SQL
+  executed, constraints exercised **11/11** against real MySQL, both scratch
+  databases dropped.
+- **Demo data identical to baseline:** suppliers 3 · purchases 9 (all `unpaid`,
+  balances back to 3 890 / 2 350 / 4 945) · settlements 0 · sales **7 /
+  10 051.00** · units 11 · checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`** · `in_stock=3 sold=8` ·
+  notifications **41** · users **9**.
+- **Audit grew 459 → 483: 24 append-only rows**, preserved and reported.
+- Port 3112 started by this session and released. The user's processes on 8081,
+  3010 and 80 were never touched.
+
+### Next exact action
+
+**Phase J is complete. Analytics polish is now unblocked and is the recommended
+next milestone** — refund liability, supplier liability, expected cash and the
+three separate timings all exist as server figures and have no proper home yet.
+The closing screen also still carries hardcoded English from its prototype days.
+
+**Before that, or alongside it, the most significant open gap:** neither a
+confirmed refund nor a confirmed supplier payment can be corrected. A reviewed
+correction workflow is required before either is considered finished
+(`docs/21` §6g).
 
 ### I3 — COMPLETE. Backend, mobile and live verification all done.
 
@@ -61,20 +123,12 @@ model and gets scoped correctly. Same data, one query instead of two.
 **This is the fifth time in this project that the full suite passed while the
 first real HTTP request failed.** Do not treat a green suite as verification.
 
-### Next exact action
+### I3's next-action note, superseded
 
-**I3 is complete. Nothing beyond it is authorised.**
+I3 recommended Analytics polish next. Phase J was authorised first, because
+supplier liabilities had to be accurate before a dashboard reported them. That
+is now done — see the J block above.
 
-The recommended next milestone is **Analytics polish** — the refund summary
-(`GET /v1/returns/refunds/summary`) is consumed only by a card on the closing
-screen today, and outstanding liability, awaiting-confirmation and settled
-refunds deserve a proper place beside the other financial figures. That screen
-is also where the pre-existing hardcoded English on `app/closing.tsx` should be
-localised; I3 did not widen its scope to do it.
-
-Also waiting, in dependency order: supplier reimbursement · customer-credit
-settlement · technician inspection · the **cost-recovery decision** for phones
-held as `faulty` · independent quantity-product returns.
 
 ### Verification at handoff
 
