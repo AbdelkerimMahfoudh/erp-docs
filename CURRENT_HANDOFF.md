@@ -6,26 +6,134 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15**
-- Authorised task: **UX/UI Redesign Foundation and Pilot milestone (UX0–UX7).**
-  An evidence-based interface audit, then token/typography refinement, shared
-  component refinement, navigation and role-landing work, and **five pilot
-  screens only** — Home, Sell, Inventory, Supplier, Return detail.
-  **No backend feature work and no schema migration is authorised.** A narrow
-  fix is permitted only if a real API-contract defect blocks a pilot screen.
-  **The milestone stops after the pilots**; the remaining screens are migrated
-  only after the user tests and approves the direction.
-- Takeover verification (checked, not assumed, every value matched):
-  backend `393f6fb` · mobile `a5e7316` · docs `750fb27` · **70 suites /
-  1070 tests** · **38 migrations** through `0039` · schema up to date ·
-  mobile `tsc` clean · **EN and AR both 1025 keys** · all three trees clean
-  and level with `origin/master` · previous state `READY_FOR_HANDOFF`/NONE.
-  Supplier live verification **52/52** stands as recorded by CLAUDE-A.
-- Previous account: **CLAUDE-A** (Phase J supplier operations and payables).
-- Next intended action: **UX0** — audit every route before changing any
-  component, and commit the audit before implementation.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- `finished_at_utc`: **2026-08-15**
+
+### UX redesign milestone — checkpoints 1–4 of 9 complete
+
+The full audit and the shared system are done. **Four of the five pilot screens
+were not started**, deliberately left unstarted rather than half-built.
+
+| Checkpoint | State |
+|---|---|
+| 1 · Audit and visual direction | ✅ docs `205b34a` |
+| 2 · Tokens and typography | ✅ mobile `7f7cce2` |
+| 3 · Shared components and gallery | ✅ mobile `c3d2202` |
+| 4 · Navigation and role landing (**Pilot 1**) | ✅ mobile `21f8250`, `3bfc7fb` |
+| 5 · Sell pilot | ❌ **NOT STARTED** |
+| 6 · Inventory pilot | ❌ **NOT STARTED** |
+| 7 · Supplier pilot | ❌ **NOT STARTED** |
+| 8 · Return-detail pilot | ❌ **NOT STARTED** |
+| 9 · Verification and handoff | ◐ static only — **no device pass** |
+
+**No backend change was made.** No API-contract defect blocked the work, so the
+brief's narrow-fix allowance went unused. Backend stands at `393f6fb`,
+70 suites / 1070 tests, migration `0039`, schema up to date — untouched.
+
+### What the audit found (`docs/29`)
+
+The design system was never the problem; **adoption stopped halfway**. Two
+findings outranked everything aesthetic, and neither is visual:
+
+1. **Six user-facing screens had zero i18n imports** — Home, More, branch
+   selection, daily closing, analytics, and the screen you land on after
+   scanning a phone were hardcoded English. The "EN and AR both 1025 keys"
+   check is *structurally blind* to this: the strings were never keyed, so
+   nothing is missing from either file. **A key-count check is not an i18n
+   check.**
+2. **The entire Phase J supplier payables workflow was unreachable.** Three
+   routes exported; nothing linked to them. It worked only via a typed deep
+   link.
+
+Both are now fixed for Home. **Five screens remain untranslated** —
+`more`, `select-branch`, `closing`, `analytics`, `unit/[identifier]`.
+
+### Next exact action
+
+**Checkpoint 5 — the Sell pilot.** Already on the design system, so this is
+hierarchy work, not re-plumbing: scan-first emphasis, cart readability,
+below-cost warning through the new `InlineNotice`, and the checkout action in
+`Screen`'s existing sticky footer (**do not build a second action-bar
+system — `Screen` already owns `footer`**).
+
+Then Inventory, Supplier, and Return detail. Return detail is where
+`WorkflowTimeline` replaces the hand-rolled lifecycle; until then acceptance
+criterion A10 is proven in the component and the gallery, **not in a screen**.
+
+**Then stop.** The brief's completion boundary holds: the user tests and
+approves the direction before any further screen is migrated. The full
+migration order is recorded in `docs/29` §9.
+
+### Verification at handoff
+
+- Mobile `tsc` clean · `expo lint` clean (0 errors, 0 warnings) · web export
+  **40 routes** · **EN and AR both 1059 keys** (was 1025; +34 all paired).
+- Pure mobile suites: **5 of 6 pass**. `lib/transfer-draft.test.ts` still
+  fails on the renamed `addToDraft` export — **pre-existing**, last touched in
+  `112e035`, already open item 6 below. Not caused by this milestone.
+- **Zero raw hex** in `app/` and `components/` (was 2, both in primitives).
+- **No device pass was run.** Everything visual is verified by build output and
+  code inspection only. `docs/24` §9h is the script, and it is honest about
+  what a web export structurally cannot answer — Hermes ICU numeral shaping,
+  whether `tabular-nums` is honoured by the platform font, safe-area insets on
+  a notched phone, haptics, sunlight legibility.
+- Backend untouched, so its suite was not re-run beyond takeover verification.
+- No database change, no migration, no fixtures created, no probe used, no port
+  opened, no user process touched.
+
+### What changed, in one place
+
+- **Tokens** — money variants with `tabular-nums`; `icon` and `density`
+  scales; `elevation.xs`; an accent focus ring. `disabledOpacity` raised
+  0.4 → 0.55 after finding a real defect: `SegmentedControl` dimmed its track
+  *and* used `text.disabled`, compounding to ~1.3:1 — a label that was absent
+  rather than merely quiet. **The rule is now: dim the container or use the
+  disabled colour, never both.**
+- **New primitives** — `MoneyValue`, `InlineNotice`, `PermissionNotice`,
+  `OfflineBanner`, `WorkflowTimeline`. `ListRow` gained a `warning`
+  value tone; `StatTile` now accepts a node so money tiles keep tabular
+  figures.
+- **Offline** — `lib/connectivity.ts`, fed by `api-client`. Deliberately
+  **not** a connectivity library: a shop's problem is wifi that is up while the
+  internet is dead, and a radio indicator reports "online" in exactly that case,
+  which is worse than nothing because staff would trust it. A `fetch`
+  rejection is the signal; any response, even 4xx, proves reachability. Mounted
+  once at the app root. **This is the read-only half of offline support** —
+  write queueing is Milestone J and is not pretended at.
+- **Home** — rebuilt. Gated section by section instead of wholesale, so the
+  Home tab is no longer hidden from employees. Pending work leads. Health reads
+  as a sentence. Withheld profit renders restricted, never `0`.
+
+### Open items carried forward
+
+1. **UX checkpoints 5–8** (four pilot screens), then user approval, then the
+   `docs/29` §9 migration order.
+2. **Five screens still hardcoded English** — see above. Highest-value
+   remaining usability fix in the app.
+3. **A lint rule is missing.** Nothing structurally prevents a new screen
+   shipping untranslated, using `className` on native, or being unreachable
+   from navigation. All three of the audit's top findings were the same
+   omission wearing different clothes.
+4. **Device passes** — `docs/24` §9b–§9h all outstanding.
+5. **Technical debt:** every `PrismaClientValidationError` reports as
+   "Invalid query parameters" whatever the cause; it has hidden a real bug twice.
+6. **`mobile/lib/transfer-draft.test.ts` cannot run** (renamed export).
+7. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+8. **Cost gating has no live negative case** — every store role holds
+   `cost.view`; a product question for `docs/03`.
+9. **Three spent probe identities** (`i2p9b1b04_*_spent`) exist and must be
+   REUSED rather than adding more.
+
+### PRODUCTION BLOCKER — not part of this milestone
+
+**A confirmed refund payout and a confirmed supplier settlement cannot be
+corrected.** Both are immutable by design and nothing financial is
+hard-deleted — but no compensating reversal path exists either, so a
+confirmation made in error has no in-app remedy. This must be solved before
+real money runs through the system. Recorded in `docs/29` §10; deliberately
+kept out of a UX milestone.
 
 ### Phase J — Supplier Operations and Payables: COMPLETE
 

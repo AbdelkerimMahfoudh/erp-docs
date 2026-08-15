@@ -3755,3 +3755,87 @@ total.
 docs `e0ea5cf` and the commit carrying this entry. All three trees clean and
 level with `origin`. `READY_FOR_HANDOFF`, owner `NONE`. **Analytics polish not
 started.**
+
+---
+
+## 2026-08-15 — CLAUDE-B — UX redesign foundation, checkpoints 1–4 of 9
+
+**Repositories:** mobile `a5e7316` → `3bfc7fb`; docs `750fb27` → this entry.
+Backend untouched at `393f6fb`.
+
+**Takeover.** Every expected value matched with no discrepancies: backend
+`393f6fb`, mobile `a5e7316`, docs `750fb27`, 70 suites / 1070 tests, migration
+`0039` applied, schema up to date, 40 exported routes, EN/AR 1025 keys, all
+three trees clean and level, `READY_FOR_HANDOFF`/NONE.
+
+**The audit (`docs/29`) changed what this milestone was.** The brief anticipated
+a design problem. There wasn't one: `lib/design/` and `components/ui/` are
+sound, and the whole tree contained exactly two raw hex literals, both inside
+primitives. What had happened was that a migration onto that system started,
+stalled, and was never finished — and the unmigrated remainder was not a random
+tail. It held the role landing screen, the More menu, the branch picker, daily
+closing, analytics, and the screen you reach by scanning a phone. Two shims say
+so in their own words; both were still present.
+
+Two findings outranked everything aesthetic, and neither was visual.
+
+**Six user-facing screens had zero i18n imports.** An Arabic-speaking employee
+met English at the branch picker, the home screen, the entire More menu, daily
+closing, and after every scan. The project's "EN and AR both 1025 keys" check
+is *structurally blind* to this — the strings were never keyed, so nothing was
+missing from either file. A key-count check is not an i18n check, and this one
+would never have caught it.
+
+**The entire Phase J supplier payables workflow was unreachable by tapping.**
+Three routes exported; nothing linked to them. The report/confirm payment
+workflow shipped complete and worked only if someone typed a deep link.
+
+Both were found by measuring the source, not by looking at screenshots.
+
+**What shipped.** Tokens gained money variants with tabular figures, icon and
+density scales, and an accent focus ring. Refining them surfaced a real
+accessibility defect: `SegmentedControl` dimmed its track to 0.4 *and* drew its
+label in `text.disabled`, compounding to roughly 1.3:1 — not low-contrast but
+absent. `disabledOpacity` is now 0.55 and the rule is written where it will be
+read: dim the container or use the disabled colour, never both.
+
+Five primitives were added — `MoneyValue`, `InlineNotice`, `PermissionNotice`,
+`OfflineBanner`, `WorkflowTimeline` — and no second Button, Card or action-bar
+system: `Screen` already owned the sticky footer. `MoneyValue` fixes something
+worse than inconsistency: a withheld cost and a genuine zero were rendered by
+whatever each call site felt like, and showing `0.00` to someone without
+`cost.view` is a lie about the shop's money.
+
+The offline banner deliberately avoids a connectivity library. A shop's problem
+is almost never a missing radio; it is wifi that is up while the internet is
+dead. A radio indicator reports "online" in exactly that case — worse than
+showing nothing, because staff would trust it. The signal is a real `fetch`
+rejection, which `lib/errors.ts` already classified as offline, and any
+response including a 4xx proves the server was reached.
+
+Home was rebuilt. It used to require `report.view` and redirect everyone else,
+which meant two of three roles had no landing screen at all. It is now gated
+section by section, pending work leads, store health reads as a sentence rather
+than `92 · GREEN`, and Suppliers is reachable by tapping for the first time.
+Also removed the duplicate More row where "Branch" and "Switch branch" called
+the same handler.
+
+**Not done, and not started rather than half-built: four of the five pilots** —
+Sell, Inventory, Supplier and Return detail. `WorkflowTimeline` exists and is
+demonstrated in the gallery, so the due/reported/confirmed distinction is proven
+in the component but **not yet in a screen**. Five screens remain hardcoded
+English.
+
+**Verification.** Mobile `tsc` and `expo lint` clean, 40 routes still export,
+EN/AR both 1059 keys, zero raw hex in `app/` and `components/`. Pure suites 5 of
+6 — `transfer-draft.test.ts` still fails on the renamed `addToDraft` export,
+pre-existing since `112e035` and already a carried-forward open item.
+
+**No device pass was run, and nothing visual is claimed as device-verified.**
+`docs/24` §9h is the script, and it states plainly which items a web export
+structurally cannot answer: Hermes ICU numeral shaping, whether `tabular-nums`
+is honoured by the platform font, safe-area insets on a notched phone, haptics,
+and legibility in sunlight.
+
+No backend change, no migration, no fixtures, no probes, no ports, no user
+process touched.

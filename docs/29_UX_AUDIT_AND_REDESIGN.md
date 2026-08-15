@@ -330,3 +330,68 @@ immutable once confirmed, by design, and nothing financial is hard-deleted — b
 no reversal path exists either. A confirmation made in error has no in-app
 remedy today. This must be solved before real money runs through the system; it
 is deliberately **not** mixed into a UX milestone.
+
+---
+
+## 11. What shipped in this milestone
+
+Checkpoints 1–5 of nine. Recorded honestly: the milestone is **partly
+complete**, and the four remaining pilot screens were not started rather than
+half-built.
+
+| Checkpoint | State | Commit |
+|---|---|---|
+| 1 · Audit and visual direction | ✅ | docs `205b34a` |
+| 2 · Tokens and typography | ✅ | mobile `7f7cce2` |
+| 3 · Shared components and gallery | ✅ | mobile `c3d2202` |
+| 4 · Navigation and role landing | ✅ | mobile `21f8250`, `3bfc7fb` |
+| 5 · **Sell pilot** | ❌ not started | — |
+| 6 · **Inventory pilot** | ❌ not started | — |
+| 7 · **Supplier pilot** | ❌ not started | — |
+| 8 · **Return-detail pilot** | ❌ not started | — |
+| 9 · Verification and handoff | ◐ partial — no device pass | — |
+
+### Acceptance criteria met
+
+| # | Status |
+|---|---|
+| A1 Arabic parity on pilot screens | ✅ Home fully translated; EN/AR both 1059 |
+| A2 Suppliers reachable in ≤ 2 taps | ✅ Home → Suppliers |
+| A3 `lib/theme` importers on pilots | ✅ Home no longer imports it (11 importers remain elsewhere) |
+| A4 `className` on pilot screens | ✅ zero on Home |
+| A5 Health in words | ✅ |
+| A6 Loading ≠ failure | ✅ skeleton, error card with retry |
+| A7 Offline indication | ✅ built and mounted — **device-unverified** |
+| A8 Manager pending work surfaced | ✅ transfers, returns, refunds |
+| A9 One `MoneyValue` | ✅ on Home; not yet applied app-wide |
+| A10 Due/reported/confirmed distinct | ◐ `WorkflowTimeline` built and in the gallery, **not yet used by Return detail** |
+
+### The three severity-1 findings
+
+- **S1 (untranslated screens)** — fixed for Home. Five remain: `more`,
+  `select-branch`, `closing`, `analytics`, `unit/[identifier]`.
+- **S2 (Suppliers unreachable)** — fixed.
+- **S3 (landing screen)** — fixed, including the redirect that left two of
+  three roles without a landing screen at all.
+
+Also fixed: **S5** (duplicate More row) and the disabled-contrast defect found
+while refining tokens — a control that dimmed its container *and* used the
+disabled text colour rendered its label at roughly 1.3:1.
+
+### Deliberately not done
+
+**No backend change was made.** No API-contract defect blocked the work, so the
+narrow-fix allowance was not used.
+
+The remaining four pilots are unstarted. `WorkflowTimeline` exists and is
+demonstrated in the gallery, but Return detail still renders its own lifecycle —
+so acceptance criterion A10 is proven in the component, not yet in the screen.
+
+### Next exact action
+
+**Checkpoint 5 — the Sell pilot.** It is already on the design system, so the
+work is hierarchy, not re-plumbing: scan-first emphasis, cart readability,
+below-cost warning via `InlineNotice`, and the checkout action in `Screen`'s
+existing sticky footer. Then Inventory, Supplier, and Return detail — where
+`WorkflowTimeline` finally replaces the hand-rolled lifecycle and A10 can be
+claimed for real.

@@ -509,3 +509,77 @@ runner, a web export and API-level scripts.
 Haptics on record and confirm · bottom-sheet gestures with a keyboard open ·
 Arabic **visual** mirroring · behaviour on a genuinely flaky connection · the
 allocation list on a small screen.
+
+---
+
+## 9h. The redesigned interface (UX pilot) — **never touched on a device**
+
+The UX pilot changed the design system's foundations and rebuilt the role
+landing screen. Everything below was verified by `tsc`, `expo lint`, a web
+export and code inspection. **None of it has been seen on a physical phone**,
+and several items below are things a web export structurally cannot answer.
+
+**Setup:** an Android phone, portrait, one run in English and one in Arabic.
+Sign in as each of Owner, Manager and Employee.
+
+### The landing screen, per role
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Sign in as an **Employee** | A Home tab exists and opens — it used to be hidden entirely |
+| 2 | Look at the Employee's Home | Sell / Receive / Inventory, and no money figures anywhere |
+| 3 | Sign in as a **Manager** with work waiting | "Waiting on you" is the first thing below the title |
+| 4 | Tap each waiting row | Lands on the right list, not a 403 |
+| 5 | As **Owner**, read the health card | A sentence, not "92 · GREEN" |
+| 6 | An Owner without `cost.view` (if one exists) | Profit tiles read as restricted, **never** as 0 |
+| 7 | Tap Suppliers on Home | Opens the supplier list — this was unreachable before the pilot |
+| 8 | Pull to refresh | Every section refreshes together |
+
+### Money and figures
+
+| # | Do this | Expect |
+|---|---|---|
+| 9 | Compare a column of prices (Home → stock, then a list) | Digits line up vertically; no ragged column |
+| 10 | A very large total (millions) | Not truncated, not shrunk to unreadable |
+| 11 | A screen where cost is hidden | An em dash, never `0.00` |
+
+### Offline — **the most important thing on this list**
+
+| # | Do this | Expect |
+|---|---|---|
+| 12 | Turn airplane mode on with the app open, then act | A red strip appears at the top and **stays** |
+| 13 | Read the strip | Says nothing you confirm will be saved |
+| 14 | Check it does not hide the header | It pushes content down, not over it |
+| 15 | Check the top inset on a notched phone | Text clear of the status bar and the clock |
+| 16 | Turn airplane mode off, make any request | The strip disappears by itself |
+| 17 | Connect to wifi with **no internet** (a captive portal) | The strip still appears — this is the case a radio-based indicator gets wrong, and the whole reason it is not used |
+
+### Arabic and RTL
+
+| # | Do this | Expect |
+|---|---|---|
+| 18 | The whole landing screen in Arabic | Every string translated — no English left |
+| 19 | The row layout in Arabic | Mirrored |
+| 20 | Money in Arabic | Latin digits, and the figure itself does **not** mirror |
+| 21 | The longest Arabic labels | Wrap onto a second line rather than truncating |
+| 22 | The offline strip in Arabic | Wraps rather than pushing the icon off-screen |
+
+### The component gallery (`/dev/gallery`)
+
+| # | Do this | Expect |
+|---|---|---|
+| 23 | Money section | Three sample figures line up exactly |
+| 24 | Inline notices | Each tone has a **different icon**, not one shape in five colours |
+| 25 | The long-Arabic notice | Wraps cleanly |
+| 26 | Workflow timeline | Done / current / pending differ in **shape** — squint and they should still be distinguishable |
+| 27 | Timeline in Arabic | The rail mirrors; markers stay aligned with wrapped text |
+| 28 | A disabled segmented control | The label is **readable**, not a ghost — this was the 1.3:1 defect |
+| 29 | Every tappable thing | Nothing smaller than a thumb |
+
+### What only a device can answer
+
+Arabic font rendering, line-height and numeral shaping under Hermes ICU ·
+whether `tabular-nums` is actually honoured by the platform font (the web export
+proves nothing here) · the safe-area inset of the offline strip on a notched
+phone · haptics · scroll performance of the landing screen on a low-end device ·
+whether the strip's red is legible in direct sunlight.
