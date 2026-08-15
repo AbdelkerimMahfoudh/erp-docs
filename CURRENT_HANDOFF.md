@@ -41,46 +41,53 @@ more. No financial field is rewritten, and the accounting spec asserts exactly
 that: the write must contain `correctedById` and none of seven financial
 fields, so the distinction cannot erode.
 
-### Milestone C — CP1 of ~4
+### Milestone C — CP2 of ~4
 
 | Step | State |
 |---|---|
-| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile `4b37d12` |
-| **C-CP2** TAC audit + reuse the existing recognition system | ❌ **NEXT** |
-| **C-CP3** three scanner modes + receiving prefill | ❌ |
-| **C-CP4** dual-SIM persistence, live checks, `docs/24` device script | ❌ |
+| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile  |
+| **C-CP2** TAC audit —  | ✅ docs ,  |
+| **C-CP3** three scanner modes + receiving prefill | ❌ **NEXT** |
+| **C-CP4** TAC overlay, dual-SIM persistence, device script | ⛔ **partly BLOCKED** |
 
-**Dependency decision, and its limit.**
-`@infinitered/react-native-mlkit-text-recognition` **5.0.1** is installed. MIT,
-an Expo module, on-device ML Kit — no cloud, no image leaves the phone —
-Android and iOS, published 2025-11-25. **Expo Doctor 18/18, web export 40
-routes, `tsc` and lint all clean with it installed.**
+**The audit's conclusion: reuse, do not rebuild.**
+ ()
+already validates Luhn, takes the TAC, consults the global catalogue, matches
+the company's own products, and suggests brand/model only. **Six of the seven
+TAC rules in the brief are already satisfied by code that shipped long ago.**
 
-**It has never been executed.** It cannot run in Expo Go, and no development
-build can be produced in this environment. Doctor passing is a compatibility
-check, not a working camera. **Do not claim OCR works until a dev build runs on
-a physical device.**
+### ⛔ BLOCKER for C-CP4 — verified, not theoretical
 
-### Next exact action — C-CP2
+**The same IMEI can be one unit's primary and another unit's secondary.**
+ and  are independent
+indexes, and nothing joins them. Proven against real MySQL on a restored copy:
+all three duplicate insertions were ALLOWED.
 
-1. **Audit the existing recognition system before building anything.**
-   `POST /scan` already learns code→product evidence (see
-   `src/scan/` and the `recognitionKey` on `ScanResult`). **Reuse it. Do
-   not create a competing evidence system** — the brief is explicit.
-2. Decide where a TAC fits that model: a TAC is 8 digits identifying a
-   manufacturer/model, and one model may have several. Rules that must hold:
-   - TAC suggests manufacturer/model **only** — never storage, colour,
-     condition, cost or price;
-   - unknown TAC asks an Owner/Manager to choose or create a product;
-   - an Employee may propose evidence but never globally approve it;
-   - exact deterministic evidence must not be weakened by a lower learned score;
-   - no third-party IMEI lookup API, ever.
-3. `mobile/lib/imei.ts` already exports `tacOf()`.
+Today this is latent because almost nothing writes .
+**Dual-SIM OCR intake is exactly the workflow that would start writing it on
+every dual-SIM phone received**, so C-CP4 turns a latent gap into a likely one —
+two records claiming one physical identifier, with sell-once resting on which
+column happened to be searched.
 
-Then C-CP3 (three scanner modes — barcode, read-from-screen, manual; **manual
-must always work**) and C-CP4 (dual-SIM persistence: `units.imei_secondary`
-already exists and `InventoryUnitRow` already carries it, so **verify before
-writing any migration**).
+**C-CP4 must not persist a second identifier until this is closed.** Two shapes
+and the mandatory pre-audit query are in  §7. This needs a
+deliberate decision, which is why it was not guessed at.
+
+### Next exact action — C-CP3 (unblocked)
+
+1.  — add a third mode to :
+   **barcode · read IMEI from screen · manual**.    provides ,  and .
+2. **Manual entry must always work** — when OCR is unavailable, the camera is
+   denied, or the build has no native module. Guard the native import so a web
+   export still succeeds (the export is a verification gate).
+3. Confirmation card before anything enters inventory, showing every
+    entry so a human agrees to a reading rather than being
+   told about it.
+4. Discard the frame/image after processing; never persist or transmit it.
+5. Receiving prefill: IMEI1, optional IMEI2, suggested product. The human still
+   confirms variant, storage, colour, supplier, cost and price — **every
+   existing approval rule is preserved**.
+
 
 ### Verification at this checkpoint
 

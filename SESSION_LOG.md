@@ -4080,3 +4080,51 @@ probes back to deactivated spent state.
 
 **Not done: Milestone C CP2 to CP4** — the TAC audit and reuse, the three
 scanner modes, and dual-SIM persistence.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Milestone C CP2 (audit)
+
+**Repositories:** docs `9412a03` → `ded7217`. Backend `fe11142` and mobile
+`4b37d12` unchanged.
+
+The brief said audit the existing recognition system before building one, and
+the audit paid for itself twice.
+
+**First: there was nothing to build.** `CatalogService.recognize()` already
+validates Luhn, takes the TAC, consults the global catalogue, matches the
+company's own products and suggests brand and model only — never storage,
+colour, cost or price. It returns a product id solely when exactly one product
+matches, and asks a human otherwise. Six of the brief's seven TAC rules were
+already satisfied by code that shipped phases ago.
+
+Three things it does not do, and one of them is a trap. `tac_catalog` is empty,
+so recognition answers "unknown" for every IMEI ever scanned — the path is
+correct and completely inert, which changes what "Milestone C works" can
+honestly mean. And teaching that table is a tenancy problem: it is one of only
+two global models, shared by every company, so one shop confirming a name would
+rename that TAC for every other company on the installation. A per-company
+overlay is the recommendation, because it cannot affect another company by
+construction.
+
+**Second, and more serious: an IMEI is not protected across the two identifier
+columns.** Both are individually unique and the indexes are independent, so the
+same IMEI can be one unit's primary and another unit's secondary. This was
+tested against real MySQL rather than reasoned about, and all three duplicate
+insertions were allowed.
+
+It is latent today because almost nothing writes `imei_secondary`. Dual-SIM OCR
+intake is precisely the workflow that would begin writing it on every dual-SIM
+phone received, so this milestone would turn a theoretical gap into a support
+case: two records claiming one physical identifier, with sell-once resting on
+which column happened to be searched.
+
+Deliberately not fixed. MySQL has no single-index expression for cross-column
+uniqueness, and the two workable shapes — an identifier table, or a trigger
+pair — differ enough to deserve a decision rather than a guess. `docs/30` §7
+records both, plus the query that must audit existing data first, because a
+UNIQUE added over dirty data fails at the worst possible moment.
+
+**C-CP4 must not persist a second identifier until this is closed.** C-CP3 —
+the three scanner modes and the receiving prefill — is unaffected and is the
+next action.
