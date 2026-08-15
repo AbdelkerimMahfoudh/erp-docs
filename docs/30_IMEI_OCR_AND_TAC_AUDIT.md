@@ -162,3 +162,66 @@ settle it.
 
 **Nothing in C-CP3 or C-CP4 requires a schema change**, on current evidence —
 except the overlay in §2.3, which is additive if it is built.
+
+---
+
+## 7. VERIFIED DEFECT — an IMEI is not protected ACROSS the two columns
+
+The §3 check was run, and it failed.
+
+Both columns are individually unique:
+
+| Index | Column | Unique |
+|---|---|---|
+| `ux_units_identifier` | `identifier` = `COALESCE(imei_primary, serial_no)` | yes |
+| `units_imei_secondary_key` | `imei_secondary` | yes |
+
+Those two indexes are **independent**, so nothing stops the same IMEI being one
+unit's primary and a different unit's secondary. Tested against real MySQL on a
+restored copy:
+
+```
+unit A with IMEI as PRIMARY                    ALLOWED
+unit B with the SAME IMEI as SECONDARY         ALLOWED   ← the defect
+unit C reusing B's primary as its secondary    ALLOWED   ← and again
+```
+
+### Why this matters more after Milestone C
+
+Today almost nothing writes `imei_secondary`, so the gap is mostly theoretical.
+**Dual-SIM OCR intake changes that**: reading a `*#06#` screen is precisely the
+workflow that populates the second identifier, on every dual-SIM phone received.
+
+The consequence is not cosmetic. Two inventory records could claim the same
+physical identifier, a lookup for that IMEI would match two different phones,
+and the sell-once guarantee — one of the project's sacred rules — would be
+resting on which column happened to be searched.
+
+### This is NOT fixed here
+
+Deliberately. Cross-column uniqueness has no single-index expression in MySQL,
+and the options differ in ways that deserve a decision rather than a guess:
+
+- **An identifier table** — one row per (unit, identifier, kind) with a UNIQUE
+  on the identifier. Correct, ordinary, and the only shape that also extends to
+  a third identifier later. Requires a backfill and touching every read path.
+- **A trigger pair** — `BEFORE INSERT`/`BEFORE UPDATE` on `units` refusing an
+  identifier already present in either column. Cheaper, and this codebase
+  already uses triggers for append-only enforcement, so the precedent exists.
+  It does not extend as cleanly.
+
+**Whichever is chosen, existing data must be audited first**: the fix must not
+be applied before establishing whether any duplicate already exists, because a
+UNIQUE constraint added over dirty data fails at exactly the wrong moment.
+
+```sql
+-- Run this before designing the fix.
+SELECT u1.id, u2.id, u1.imei_primary
+  FROM units u1 JOIN units u2
+    ON u1.imei_primary = u2.imei_secondary
+ WHERE u1.imei_primary IS NOT NULL;
+```
+
+**C-CP4 must not persist a second identifier until this is closed.** Writing
+`imei_secondary` at scale through an unguarded column is how the theoretical
+becomes a support case.
