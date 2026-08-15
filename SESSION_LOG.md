@@ -3062,3 +3062,156 @@ backend and Expo server were never touched.
 
 **Commits:** backend `309a399` · mobile `d4ee658` · docs the commit carrying
 this entry. All three trees clean and level with `origin`.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Phase I2 (CP1–CP4): the reviewed return workflow
+
+Migration **`0036`**. Backend `e65d243`, `6b75ee0`, `bc5071d` · docs `403fd61`,
+`d81f86a`, `47bea21`, and the commit carrying this entry. **Mobile untouched
+(`d4ee658`).**
+
+**I2 is NOT complete.** CP1–CP4 are done, verified and pushed. **CP5 (mobile
+Returns workflow) and CP6 (full verification matrix) were not started.** The API
+is complete and live-verified; no screen consumes it yet.
+
+### What was built
+
+An employee raises a return against one serialized sale line and may take the
+phone in; a manager investigates, assigns responsibility and drafts what will be
+withheld; a manager or owner approves or rejects. Approval writes one immutable
+dated reversal, moves the phone to `faulty`, and reports the money on the day it
+was approved.
+
+Approval creates an **obligation**, never a payment. There is deliberately no
+`refunded` state in the lifecycle — confirming money moved is I3, and a state
+that does not exist cannot be set by accident.
+
+### The audit that made it safe (CP1)
+
+The stop condition worth checking hardest was whether an immutable dated
+reversal could exist without rewriting history. It can, and the reason is that
+`DailyRollup` is **derived** — recomputed per branch-day from source — while
+`DailyClosing` is a locked snapshot nothing recomputes. Keying the returns
+component on the approval date is therefore additive.
+
+That also diagnosed the deleted legacy endpoint precisely: it set
+`voided = true`, and because the rollup filters `si.voided = 0`, **every legacy
+return silently rewrote a past day's revenue and profit — including closed
+days.** The mirror of that defect is the one rule I2 must not get wrong, so
+approving on an already-closed day is a 409 that names the day.
+
+Three more findings shaped the design: the unit states `returned` and `faulty`
+already existed (no enum migration needed); the legacy `returns` table holds
+zero rows and encodes the exact defect being fixed, so it is deprecated in place
+rather than reused or dropped; and accessory linkage **cannot** be inferred —
+three demo sales carry two phones and one accessory line, so a guess would be
+wrong half the time.
+
+### Schema (CP2), and a correction to my own claim
+
+One active claim per sale line is enforced by the database through a VIRTUAL
+generated column (`NULL` when rejected, else 1) plus `UNIQUE (sale_item_id,
+claim_key)` — the same duplicate-NULL trick `sale_items.active_unit_id` has used
+since 0002. A CHECK tying status to the key was deliberately not added: the
+column is generated FROM status, so a CHECK could only ever be tautologically
+true, and a constraint that cannot fail misleads whoever reads it next.
+
+**My first draft claimed rerun safety it did not have.** Bare `CREATE TABLE`
+failed a replay with error 1050 while the header asserted a rerun changed
+nothing. Tables now use `IF NOT EXISTS`, and since MySQL has no
+`ADD COLUMN IF NOT EXISTS`, each `ALTER` is guarded by an `information_schema`
+probe through a prepared statement. Re-proved by applying twice: identical
+counts afterwards.
+
+Proven on four databases — restored pre-I2, a rerun of it, a clean build of all
+36 migrations, and dev. The documented reverse SQL was **executed**, not merely
+written. The clean run also caught a real gap: with no seed there are no roles,
+so the migration's grants insert nothing — the seed catalogue therefore carries
+the same matrix, and the drift test gained a fourth reader rather than an
+exemption.
+
+### CP2.1 — the 58-versus-57 reconciliation
+
+Both schemas were rebuilt and their table-name **sets** compared. Exactly one
+table differs: `_prisma_migrations`, Prisma's own bookkeeping, absent from the
+clean copy only because that copy was built with the `mysql` client. Every
+business table is identical, and both match the schema's 57 mapped models
+exactly. A real clean deployment runs `prisma migrate deploy`, which creates it,
+so a genuine clean deployment has 58 like dev. No corrective migration was
+written — adding a schema change to fix a difference that does not exist in a
+real deployment would be a change made to satisfy a miscount.
+
+### Accounting, stated precisely
+
+Gross refund is `price × quantity − discount` from the immutable line — the
+**same expression the rollup uses for revenue**, so a reversal cancels exactly
+what the sale created. Revenue falls by the NET refund, because anything
+withheld as an adjustment is money the shop kept.
+
+**COGS is deliberately not credited back.** The returned phone is held as
+`faulty` and `held-value` counts only `in_stock`, so crediting the cost while
+the asset is absent from inventory would book the same benefit twice and flatter
+the month. `returns_cogs` exists and stays 0 until the inspection milestone.
+
+### Two defects live verification found
+
+1. **The notifier wrote a `data` field that does not exist on `Notification`.**
+   Prisma rejected it and the global filter reported **"Invalid query
+   parameters"** — that message is emitted for any `PrismaClientValidationError`
+   regardless of cause, which cost real debugging time and is worth revisiting.
+2. **The existing deduplication mechanism was being ignored.** Fixing (1)
+   revealed that `Notification` already carries `payload`, `actionLink` and a
+   `dedupeKey` with a UNIQUE index, built in H1.3 precisely so a duplicate is an
+   insert the database refuses rather than one the application tries to avoid.
+   Retried delivery now uses it.
+
+### Verification
+
+Backend **65 suites / 935 tests**, `tsc` clean, `prisma validate` valid, **36
+migrations**, schema up to date.
+
+**62 of 63 live HTTP checks passed** against real MySQL on the first clean run,
+including: idempotent replay, changed-payload 409, a second active claim
+refused, identifier mismatch refused, employee cannot review/approve/adjust,
+custody intake moving the exact unit to `returned`, repeat intake idempotent, a
+returned phone refused for sale, stale version 409, server-calculated adjustment
+totals, adjustments over gross refused, manager refused an out-of-policy
+approval, owner refused without a reason then approving with one, exactly one
+reversal, a second approval refused, an approved return not then rejectable,
+sales/items/payments/closings unchanged by checksum, the rollup reporting the
+return on its approval day, and the legacy endpoint still 410 and mutation-free.
+
+The single failure was **the harness's own assertion** — it compared a MySQL
+`DATE` through `String()` against an ISO slice. The recorded approval date was
+already correct (`2026-08-15`, confirmed independently from audit row 900). The
+assertion is fixed for future runs.
+
+### Demo-data integrity, and what the run legitimately left behind
+
+Sales, sale items, payments and closings fingerprinted identical before and
+after. 0 return requests and 0 reversals remain; the legacy `returns` table is
+still empty.
+
+**Reported, as required:** the run created **8 append-only audit rows** (281 →
+289), preserved. Because `audit_logs.user_id` references them, **3 probe users
+could not be deleted** and were deactivated and renamed
+`i2p9b1b04_{own,mgr,emp}_spent`. Deleting them would have required editing audit
+history. A future phase may want probe identities that never touch audited
+paths, or an agreed retention rule for spent probes.
+
+The demo Owner password was **not** changed. Temporary credentials were
+generated in memory, never printed, written, committed or sent.
+
+### Not done, and the exact next action
+
+**CP5 — the mobile Returns workflow** has not been started: no navigation entry,
+list, detail, request form, custody confirmation, investigation UI, adjustment
+lines, approve/reject actions or EN/AR strings. **CP6** — the full verification
+matrix (mobile typecheck, lint, Expo Doctor, web export, mobile suites) — has
+not been run, because there are no mobile changes to verify.
+
+The next session should build CP5 against the live API, then run CP6.
+
+**Commits:** backend `bc5071d` · mobile `d4ee658` (unchanged) · docs the commit
+carrying this entry. All three trees clean and level with `origin`.

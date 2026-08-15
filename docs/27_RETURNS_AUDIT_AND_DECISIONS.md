@@ -1054,3 +1054,117 @@ investigated further, since it costs session time and blocks nothing.
 `mysql` client must be named `prisma_…` to fall under the migrator's grant.
 `i2_restored` failed with `ERROR 1044` for exactly that reason.
 
+
+### 16.10 I2-CP3 and CP4 — the workflow, as built
+
+Migration `0036`. Backend `6b75ee0` (request, custody, investigation,
+adjustments, queries) and `bc5071d` (approval, rejection, reversal, accounting).
+
+#### Lifecycle
+
+```
+pending_investigation ──► under_review ──┬──► approved_refund_due   (terminal)
+          │                              └──► rejected              (terminal)
+          └────────────────────────────────►  either, directly
+```
+
+There is deliberately **no `refunded` state**. Approval creates an obligation;
+confirming money moved is I3, and a state that does not exist cannot be set by
+accident.
+
+#### Custody, and the one new transition
+
+| Custody | Unit status | When |
+|---|---|---|
+| `customer_holds` | `sold` | request raised, phone still with the customer |
+| `store_holds` | `returned` | the shop physically received it |
+| `handed_back` | `sold` | rejected, and given back |
+| `retained_hold` | `faulty` | approved, held and unsellable |
+
+`returned → sold` was added to the unit state machine and is reachable **only**
+through rejection, together with a recorded hand-back. A returned or faulty unit
+was already un-sellable, un-priceable and un-transferable, because all three
+gates independently require `in_stock` — proven live: selling a returned phone
+was refused.
+
+#### Money
+
+Gross refund is `price × quantity − discount` from the immutable sale line —
+**the same expression the daily rollup uses for revenue**. Any other expression
+would fail to cancel the revenue it reverses, and the books would disagree by
+exactly the discount.
+
+Adjustments are explicit positive lines; the server multiplies and sums. They
+may not exceed the gross, so a customer never finishes a return owing money.
+`net = gross − adjustments`, enforced by a CHECK as well as by code.
+
+#### Accounting — what is reversed, and what deliberately is not
+
+Revenue falls by the **net** refund: anything withheld as an adjustment is money
+the shop kept.
+
+**COGS is not credited back.** The returned phone is held as `faulty`, and
+`held-value` counts only `in_stock`, so the goods are not an asset again.
+Crediting the cost while the asset is absent from inventory would book the same
+benefit twice and flatter the month. `returns_cogs` exists and stays 0 until the
+later inspection milestone decides whether the phone returns to stock or is
+written off. The profit impact of an approved return is therefore the full net
+refund — the conservative reading.
+
+The reversal is dated the **approval day**, so the sale's own day recomputes
+byte-identically. Approving on an already-closed day returns a 409 naming the
+day; no closing is ever reopened or rewritten.
+
+#### Authority
+
+| | view | request | review | approve | reject | exception |
+|---|---|---|---|---|---|---|
+| Owner | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Store Manager | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Store Employee | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+Two cases require `return.exception` **and** a written reason: an expired or
+absent policy window, and customer-caused damage. Both are departures from what
+the customer was promised.
+
+Custody intake is guarded on `return.request`, not `return.review`: the employee
+handed the phone records it. Waiting for a manager would either stall the
+customer or record an arrival time that never happened.
+
+#### Verification
+
+- Backend **65 suites / 935 tests**, `tsc` clean, `prisma validate` valid,
+  **36 migrations**, schema up to date.
+- **62 of 63 live HTTP checks** passed against real MySQL on the first clean
+  run. The single failure was the harness comparing a MySQL `DATE` through
+  `String()` against an ISO slice; the recorded approval date was already
+  correct (`2026-08-15`, verified independently from audit row 900).
+
+#### Two defects live verification found
+
+1. **The notifier wrote a `data` field that does not exist on `Notification`.**
+   Prisma rejected it, and the global exception filter reported **"Invalid query
+   parameters"** — a `PrismaClientValidationError` is mapped to that message
+   regardless of cause, which is misleading enough to be worth knowing when
+   debugging. Worth revisiting in a later phase.
+2. **The existing deduplication mechanism was being ignored.** Fixing (1)
+   surfaced that `Notification` already carries `payload`, `actionLink` and a
+   `dedupeKey` with a UNIQUE index, built in H1.3 so a duplicate is an insert
+   the database refuses rather than one the application tries to avoid. Retried
+   delivery now uses it, and the refusal is caught so it cannot roll back the
+   transition it was reporting.
+
+#### Demo-data integrity after verification
+
+Sales, sale items, payments and closings fingerprinted identical before and
+after. 0 return requests and 0 reversals remain. The legacy `returns` table is
+still empty and still 410 from its endpoint, proven mutation-free again.
+
+**Reported, as required:** the run created **8 append-only audit rows** (281 →
+289) which were preserved, and because `audit_logs.user_id` references them,
+**3 probe users could not be deleted**. They were deactivated and renamed
+`i2p9b1b04_{own,mgr,emp}_spent`. Deleting them would have required editing or
+deleting audit history, which is forbidden. A future phase may prefer probe
+identities that never touch audited paths, or an agreed retention rule for spent
+probe users.
+

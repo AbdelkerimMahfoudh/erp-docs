@@ -847,6 +847,43 @@ deliberately not performed.
 > exception, accessory dispositions, and the "provisional profit" display.
 
 
+> **I2 built the return workflow (2026-08-15, migration `0036`).** Detail in
+> [`docs/27` §16](27_RETURNS_AUDIT_AND_DECISIONS.md).
+>
+> - **Request → investigate → decide: DONE.** An employee raises a return against
+>   one serialized sale line and may take the phone in; a manager investigates
+>   and assigns responsibility; a manager or owner approves or rejects. Six
+>   narrow permissions replaced the blunt `sale.return`.
+> - **Owner-only exceptions: DONE.** An expired or absent policy window, and
+>   customer-caused damage, each require `return.exception` **and** a written
+>   reason. A manager cannot approve either.
+> - **Approval creates an OBLIGATION, not a payment.** The state is
+>   `approved_refund_due`, the notification says "refund due — NOT yet paid",
+>   and there is deliberately no `refunded` state at all. Confirming that money
+>   moved is I3.
+> - **Immutable dated reversal: DONE.** One append-only row per approved sale
+>   line, snapshotting revenue, cost, margin, gross refund, adjustments and net,
+>   dated the approval day. The original Sale, SaleItem, Payment and locked
+>   closings are never written — verified by checksum before and after.
+> - **Approval on an already-closed day is refused with a 409.** No closing is
+>   reopened or rewritten, ever.
+> - **Adjustments are explicit, audited and server-calculated.** They cannot
+>   exceed the gross refund, so a customer never ends a return owing money.
+>   Accessory linkage is never inferred — it cannot be, and `docs/27` §16.4
+>   shows why.
+> - **The returned phone is held as `faulty` and is not sellable.** Rejection
+>   hands it back and restores it to `sold` — the only route to that transition.
+> - **Profit treatment:** revenue falls by the NET refund; COGS is deliberately
+>   NOT credited back while the phone sits unsellable, because that would book
+>   the same benefit twice. Cost recovery belongs to the inspection milestone.
+>
+> **Still open (I3):** refund payout confirmation, receiving-account selection,
+> refund receipt, supplier reimbursement, customer-credit settlement, technician
+> inspection and cost recovery, independent quantity-product returns.
+>
+> **Not yet built in I2:** the mobile Returns workflow (CP5). The API is
+> complete and live-verified; no screen consumes it yet.
+
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the
 two things several of these decisions were waiting on:
 
