@@ -6,28 +6,26 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
-- Last authorised task (COMPLETE): **Phase J — Supplier Operations and Payables.** J0 audit
-  first, then J1 supplier foundation, payable ledger and the report/confirm
-  payment workflow. **Analytics polish is explicitly NOT authorised yet** —
-  supplier liabilities must be accurate before a dashboard reports them.
-- Takeover verification (checked, not assumed): backend `74c6757` · mobile
-  `90517c7` · docs `0b2a496` · **68 suites / 1017 tests** · **37 migrations**
-  through `0038` · schema up to date · `prisma validate` valid · all three trees
-  clean and level. Every expected value matched.
-- `started_at_utc`: **2026-08-15** — clean takeover from a `READY_FOR_HANDOFF`/NONE
-  state returned by **CLAUDE-B**, whose I3 CP1–CP4.5 work stands as recorded and
-  is **not** being redone or relabelled.
-- Previous authorised task (COMPLETE): **I3 CP5, CP6 and CP7** — the mobile refund report /
-  confirm workflow, the confirmed-refund PDF receipt, and full adversarial plus
-  live verification. Nothing beyond I3 is authorised.
-- Takeover verification (checked, not assumed): backend `71dcbeb` · mobile
-  `c7dfadc` · docs `838d800` · **68 suites / 1012 tests** · **37 migrations**
-  through `0038` · schema up to date · `prisma validate` valid · all three trees
-  clean and level with `origin/master`. Every expected value matched.
-- Previous account: **CLAUDE-B** (I3 CP1–CP4.5, live smoke 51/51).
-
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-15**
+- Authorised task: **UX/UI Redesign Foundation and Pilot milestone (UX0–UX7).**
+  An evidence-based interface audit, then token/typography refinement, shared
+  component refinement, navigation and role-landing work, and **five pilot
+  screens only** — Home, Sell, Inventory, Supplier, Return detail.
+  **No backend feature work and no schema migration is authorised.** A narrow
+  fix is permitted only if a real API-contract defect blocks a pilot screen.
+  **The milestone stops after the pilots**; the remaining screens are migrated
+  only after the user tests and approves the direction.
+- Takeover verification (checked, not assumed, every value matched):
+  backend `393f6fb` · mobile `a5e7316` · docs `750fb27` · **70 suites /
+  1070 tests** · **38 migrations** through `0039` · schema up to date ·
+  mobile `tsc` clean · **EN and AR both 1025 keys** · all three trees clean
+  and level with `origin/master` · previous state `READY_FOR_HANDOFF`/NONE.
+  Supplier live verification **52/52** stands as recorded by CLAUDE-A.
+- Previous account: **CLAUDE-A** (Phase J supplier operations and payables).
+- Next intended action: **UX0** — audit every route before changing any
+  component, and commit the audit before implementation.
 
 ### Phase J — Supplier Operations and Payables: COMPLETE
 
