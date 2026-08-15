@@ -6,10 +6,18 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-15**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-15 (I3 CP4→CP7 takeover)**
+- Current authorised task: **finish I3** — CP4 reconciliation reporting, CP4.5
+  live API smoke test, CP5 mobile payout UI, CP6 PDF receipt, CP7 full
+  verification.
+- Takeover verification (checked, not assumed): backend `1687322` · mobile
+  `c7dfadc` · docs `e36511f` · **67 suites / 992 tests** · **37 migrations**
+  through `0038` · schema up to date · all trees clean and level ·
+  `READY_FOR_HANDOFF` / owner `NONE`. **No discrepancies.**
+- Next intended action: CP4 — the reconciliation and liability reporting the
+  CP3 checkpoint left partial.
 
 ### ⚠️ I3 is PARTLY complete — read this first
 
