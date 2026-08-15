@@ -6,12 +6,26 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-15**
-- **Phase I2 is COMPLETE.** CP1 → CP6, including the CP2.1 reconciliation and
-  the CP4.1 accounting correction.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-15 (I3 takeover)**
+- Current authorised task: **Phase I3 — refund payout reporting, confirmation,
+  reconciliation and receipt sharing.** The app records what the store says
+  happened; it never moves money and integrates no payment provider.
+- Takeover verification (checked, not assumed): backend `404bee9` · mobile
+  `c7dfadc` · docs `f45bfa1` · **66 suites / 956 tests** · **36 migrations**
+  through `0037` with `0005` unused · schema up to date · mobile CP5 routes
+  present · I2 live 74/74 · all trees clean and level · `READY_FOR_HANDOFF` /
+  owner `NONE`. **No discrepancies.**
+- **I3-CP1 ✅** — audit and backup.
+  - Backup `~/erp-backups/phonestore-i3-20260815-041546.sql` — 329 152 bytes,
+    58 tables, 6 triggers, 0 raw `_binary`; restore proven into `prisma_i3`
+    (58 tables, sales 7 / 10 051.00, units checksum unchanged).
+  - **`prisma_i3` is retained for the CP2 migration proof and must be dropped
+    after it.**
+  - Audit: `docs/27` §17. **No stop condition triggered.**
+- Next intended action: migration `0038` — `RefundPayout` plus the two
+  permissions, with restored/clean/dev/rerun proofs.
 
 ### I2 — what shipped
 

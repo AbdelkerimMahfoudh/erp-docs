@@ -1353,3 +1353,127 @@ Camera scanning of a phone's `*#06#` display, haptics, bottom-sheet gestures,
 Arabic **visual** RTL and keyboard behaviour are unverified by anything but a
 type checker, a linter and a web export. `docs/24` §9e lists them.
 
+
+---
+
+## 17. I3.0 — the audit before refund settlement (2026-08-15, CLAUDE-B)
+
+The conclusion first, because it decides the shape of everything else:
+
+> **An outgoing refund CANNOT reuse `Payment`, and MUST NOT.** It can and should
+> reuse `ReceivingAccount`. A new, additive `RefundPayout` model represents the
+> settlement. No stop condition was triggered.
+
+### 17.1 `Payment` is strictly incoming sale money
+
+```prisma
+model Payment {
+  saleId  Bytes  @map("sale_id")   // REQUIRED, not nullable
+  method  PaymentMethod
+  amount  Decimal
+  sale    Sale   @relation(...)     // REQUIRED
+}
+```
+
+Two independent reasons it cannot carry a refund:
+
+1. **Every payment belongs to a sale.** A refund has no sale of its own — it
+   reverses a line of an existing one. Attaching a refund row to the original
+   sale would make that sale's payment history untrue, and the original sale is
+   immutable by decision.
+2. **Its only consumer treats it as income.** `closing.service.ts` computes
+   `expectedCash` as `SUM(amount) WHERE method = 'cash' AND sale.branchId = …`.
+   A refund row would be counted as **cash the shop received**, which is the
+   exact inversion of what happened. A negative amount would be worse: it would
+   silently flip the sign of a table every other reader assumes is positive.
+
+**Decision: `Payment` is untouched.** Refund settlement gets its own model.
+
+### 17.2 `ReceivingAccount` is a channel label, and is safely reusable
+
+It carries `provider`, `providerName`, `label`, `isActive`, `sortOrder` — and
+**no balance, no credentials, no token, no direction**. It is the answer to
+"which channel did the money move through?", which is the same question in both
+directions.
+
+Its own comment already anticipates this:
+
+> *"Deactivated rather than deleted, so past transactions keep pointing at a real
+> account once money movement is recorded against it."*
+
+**Decision: reuse it.** Building a second account/settings system for outgoing
+money would duplicate the Owner's configuration, and two lists of the same
+accounts drift the moment one is edited.
+
+The label is additionally **snapshotted onto the payout at confirmation**, so a
+receipt printed months later still reads what the employee actually chose, even
+if the Owner has since renamed or deactivated that account.
+
+### 17.3 Reconciliation: where the money and the profit each belong
+
+The two dates are already separate, and I3 keeps them that way:
+
+| | Approval date (I2) | Confirmation date (I3) |
+|---|---|---|
+| revenue reversal | ✅ | — |
+| adjustment income | ✅ | — |
+| COGS credit | ✅ | — |
+| profit effect | ✅ | **none** |
+| refund liability | **created** | **settled** |
+| cash / account outflow | — | ✅ |
+
+**Confirmation creates no second profit effect.** Profit was reversed at
+approval; paying the money out is a balance-sheet movement, not a new loss.
+Subtracting it again is the "double-counting" the brief warns about, and it is
+the single easiest thing to get wrong here.
+
+`expectedCash` in `closing.service` must therefore become *cash in − cash
+refunds confirmed out* for that day. That is an additive change to one formula.
+
+### 17.4 The receipt path already exists
+
+`mobile/lib/receipt.ts` renders HTML → PDF via `expo-print` and hands it to
+`expo-sharing`. It is 80 mm wide, RTL-aware through `isRtlLanguage`, escapes
+user data, and **persists nothing** — the PDF is generated on demand and shared.
+
+**Decision: reuse it.** A refund receipt is the same pipeline with different
+content and a different title. Nothing is persisted server-side either: the
+receipt is a projection of the confirmed payout, so it can always be regenerated
+and can never drift from the record.
+
+There is no separate receipt-numbering system — a sale receipt is identified by
+its `invoiceNo`. A refund receipt therefore references the **original invoice
+number** plus the return's own id, which is already stable and unique.
+
+### 17.5 What the reports must distinguish
+
+Four distinct states, and today nothing separates the last three:
+
+| State | Meaning |
+|---|---|
+| refund **approved** | I2 wrote the reversal; profit already reversed |
+| refund **due** | approved and not yet settled — an outstanding liability |
+| refund **reported** | an employee says the money was handed over |
+| refund **confirmed** | a manager or owner agrees it was |
+
+Only the fourth is authoritative. The reporter's word is a claim; the confirmer's
+is the record. That separation is the entire point of the phase, and it is why
+`reported_pending_confirmation` must never be styled or worded as settled.
+
+### 17.6 Consequences for the design
+
+1. New `RefundPayout` model — one per approved `ReturnRequest`, with
+   `clientUuid` + fingerprint idempotency, `version`, and lifecycle
+   `reported_pending_confirmation → confirmed`. `Payment` untouched.
+2. `ReceivingAccount` reused as the channel, with its label snapshotted at
+   confirmation.
+3. Two narrow permissions: `refund.report` (all three store roles) and
+   `refund.confirm` (Owner and Store Manager only).
+4. Amount is **not** client-authored: it is validated to equal the immutable
+   `net_refund_due` from the I2 reversal.
+5. `expectedCash` becomes cash in − confirmed cash refunds out, on the
+   confirmation day only.
+6. Confirmation on a locked day is a 409 — the same rule approval already obeys.
+7. The refund receipt is generated on demand from the confirmed payout, never
+   persisted, and carries no cost, margin or internal id.
+
