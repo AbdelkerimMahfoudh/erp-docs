@@ -405,3 +405,69 @@ an approved return read as "we owe this" rather than "we paid it".
 - Does scanning a phone's own screen actually focus, or does the glare beat it?
 - Is "Refund due — payment has not yet been confirmed" understood as *not paid*?
 - Can a manager finish an investigation with a customer standing there?
+
+
+## 9f. Refund payout and receipt (I3) — **never touched on a device**
+
+Everything in §9b–§9e still applies and is still unverified. Nothing below has
+been performed: I3 was verified by a type checker, a test runner, a web export
+and API-level scripts.
+
+### Reporting
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Open an approved return as an **Employee** | "Refund due — payment has not yet been confirmed", in warning tone, **not** green |
+| 2 | Look for a confirm button as an Employee | There is none — not a disabled one |
+| 3 | Tap "Report refund handed to customer" | The amount is shown and **cannot be edited** |
+| 4 | Choose Account with no active account configured | Says so plainly and offers cash instead |
+| 5 | Choose Account with accounts configured | Only **active** accounts are listed |
+| 6 | Submit | A dialog says a manager or owner must still confirm |
+| 7 | Turn airplane mode on mid-submit, then retry | **One** payout, not two — the same request id is reused |
+
+### Waiting and correcting
+
+| # | Check | Expected |
+|---|---|---|
+| 8 | The pending state as an Employee | Read-only: amount, method, reporter, server time. No correct or confirm |
+| 9 | The same screen as a Manager | Review/Correct and Confirm both offered |
+| 10 | Correct the method to an account | The amount does not change |
+| 11 | Have two people correct at once | The second is told someone acted first, and the screen refreshes |
+| 12 | Deactivate the account, then reopen | The payout keeps its original label and is still confirmable |
+
+### Confirming
+
+| # | Check | Expected |
+|---|---|---|
+| 13 | Tap Confirm | A dialog lists invoice, phone, amount, method, reporter and report time, and says it cannot be treated as pending afterwards |
+| 14 | Cancel that dialog | Nothing changes |
+| 15 | Confirm with the connection dropped | It does **not** show as confirmed; the error says nothing changed |
+| 16 | Confirm a refund somebody already confirmed | Told it was already confirmed; nothing recorded twice |
+| 17 | Confirm on a day that has been closed | Refused, explaining the day is closed |
+| 18 | After confirming | Success tone, confirmation time, amount, method, reporter, confirmer — and the phone still shown as held |
+
+### The receipt
+
+| # | Check | Expected |
+|---|---|---|
+| 19 | The receipt button before confirmation | Not offered |
+| 20 | Share the receipt after confirming | **The PDF renders and the share sheet opens** — the appearance is the part only a device can judge |
+| 21 | Read the PDF | Store, Refund Receipt, reference, original invoice, confirmation time, product and variant, masked identifier, gross, each adjustment, total, net, method/account, status |
+| 22 | Look for cost or margin on it | Neither appears |
+| 23 | Cancel the share sheet | The refund is still confirmed |
+| 24 | Rename the account, share the receipt again | The **old** label, unchanged |
+| 25 | The receipt in Arabic | Right-to-left, numerals legible, nothing clipped |
+
+### Arabic and layout
+
+| # | Check | Expected |
+|---|---|---|
+| 26 | The report sheet in Arabic | Labels, method control and amount read naturally |
+| 27 | The keyboard over the reference field | The submit button is not hidden behind it |
+| 28 | The confirmation dialog in Arabic | Fits without truncation on a small screen |
+
+### What only a device can answer
+
+Native share sheet behaviour · the PDF's real appearance and page breaks ·
+haptics on report and confirm · bottom-sheet gestures · keyboard avoidance ·
+Arabic **visual** mirroring · behaviour on a genuinely flaky connection.

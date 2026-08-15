@@ -1477,3 +1477,117 @@ is the record. That separation is the entire point of the phase, and it is why
 7. The refund receipt is generated on demand from the confirmed payout, never
    persisted, and carries no cost, margin or internal id.
 
+
+
+---
+
+## 20. I3 CP5–CP7 — the refund payout on the phone, and what proved it
+
+### 20.1 The workflow, as a person experiences it
+
+| State | What the screen says | Who acts |
+|---|---|---|
+| `approved_refund_due`, no payout | **"Refund due — payment has not yet been confirmed"**, warning tone | Owner, Manager, **Employee** may report |
+| reported, unconfirmed | **"Waiting for Manager or Owner confirmation"**, warning tone | Owner/Manager may correct or confirm; Employee sees it read-only |
+| confirmed | **"Refund confirmed"**, success tone, receipt offered | nobody — it is the record |
+
+**Only the confirmed state is ever green.** The phone stays `faulty` and not
+for sale in all three, and every state says so.
+
+### 20.2 Permissions
+
+`refund.report` — Owner, Manager and Employee. `refund.confirm` — Owner and
+Manager. Holding the first never implies the second: handing money over and
+vouching that it happened are different authorities. The route is reachable by
+anyone with `return.view`; **route visibility never implies mutation
+authority**, and the server refuses regardless — proved live, an Employee
+confirming gets **403**.
+
+### 20.3 Money, and the three timings
+
+Locked to the immutable net refund due, with no partial payout. Method is
+`cash` or `account` **only** — the DTO accepts nothing else, so the app offers
+nothing else rather than inventing an "Other" the backend would refuse.
+
+- **approval date** — profit reverses, the liability appears
+- **report date** — a workflow event. **No cash moves and the liability does not
+  change.** Proved live.
+- **confirmation date** — cash leaves, the liability settles, and there is **no
+  second profit effect**. Proved live: profit effect 150 → 150 across
+  confirmation.
+
+Expected cash = cash taken that day − confirmed cash refunds, **subtracted
+once**. Proved live: with nothing sold that day and a confirmed cash refund of
+1 000, expected cash was **−1 000**, not −2 000, and re-reading it did not
+subtract again.
+
+### 20.4 Account snapshots
+
+The label is captured at report time and frozen at confirmation. Reporting needs
+an **active** account; confirming does not, so retiring an account cannot strand
+a refund already owed. Proved live: after renaming *and* deactivating the
+account mid-flight, the payout kept its original label and stayed confirmable,
+and the receipt still shows the label the payout was made under.
+
+### 20.5 The receipt
+
+Generated **only** from `GET /returns/:id/refund/receipt`, which is a 409 until
+confirmed — so a receipt cannot exist for money nobody has vouched for. Same
+`expo-print` → `expo-sharing` path as the sale receipt, no new dependency, no
+persistence beyond the temporary file handed to the share sheet.
+
+Carries: store identity, "Refund Receipt", the stable reference
+`R-<invoice>-<short id>`, the original invoice, the server confirmation time,
+product and exact variant, the identifier **masked to its last four** as sale
+receipts do, gross, every adjustment, the deduction total, the net returned, the
+method/account snapshot, an optional transaction reference, and the confirmed
+status.
+
+Carries none of: cost, margin, internal ids, permissions, audit metadata, or any
+claim that a bank or provider verified the transaction — **the app never spoke
+to one**. All dynamic text is HTML-escaped; direction follows the language.
+
+### 20.6 Verification — 55 live checks, 0 failures
+
+Two runs against a **separate backend on port 3111** and real MySQL, reusing the
+three spent probes rather than creating identities.
+
+**Lifecycle, 47/47** — request · custody · investigation · adjustment ·
+approval · reversal with gross/adjustments/COGS/net · liability created ·
+Employee reports · duplicate report replays without paying twice · changed
+payload 409 · a pending report moves no cash and stays owed · Employee
+confirmation 403 · Manager correction with a label snapshot and an unchanged
+amount · stale correction 409 · rename/deactivate does not rewrite or strand ·
+stale confirmation 409 · Owner confirmation · liability settles exactly once ·
+cash moves on the confirmation day · no second profit effect · the phone stays
+faulty · the receipt's contents and its cost-free payload · duplicate
+confirmation safe · cross-branch refused without disclosure · malformed and
+unknown ids · notification dedupe · the legacy endpoint still **410** and
+mutation-free.
+
+**Expected cash and a locked day, 8/8** — including confirming into a closed day,
+refused with **409** and the payout left pending rather than half-settled, with
+the closing not reopened.
+
+### 20.7 One real defect the lifecycle found
+
+`money.provisional` was hardcoded `true`, so an approved return described its
+own immutable, already-reversed figures as provisional. The I2 screen derived
+its wording from `status` instead and was never wrong to a user, which is why
+nothing noticed — but I3's refund screens read the money block directly. Fixed,
+extracted into `isProvisionalMoney()` and given tests.
+
+**Four other first-run failures were the verification script's own errors**, not
+defects: a guessed `responsibility` enum, a missing `exceptionReason`, the wrong
+reversal cost column, and the wrong legacy route. They are recorded because a
+verification script lies as readily as the code it checks.
+
+### 20.8 Not verified, and not claimed
+
+**Nothing was exercised on a physical device or in a visible browser.** Camera,
+haptics, native share, the PDF's appearance, bottom-sheet gestures and Arabic
+**visual** RTL are unverified. `docs/24` §9f lists them.
+
+The mobile screens were verified by TypeScript, lint, a web export that renders
+every Return route, EN/AR key parity and pure Node tests over the receipt
+builder — **not by tapping through them**.

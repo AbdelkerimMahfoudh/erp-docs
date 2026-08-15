@@ -7,11 +7,20 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-15**
+- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- `started_at_utc`: **2026-08-15** — clean takeover from a `READY_FOR_HANDOFF`/NONE
+  state returned by **CLAUDE-B**, whose I3 CP1–CP4.5 work stands as recorded and
+  is **not** being redone or relabelled.
+- Last authorised task (COMPLETE): **I3 CP5, CP6 and CP7** — the mobile refund report /
+  confirm workflow, the confirmed-refund PDF receipt, and full adversarial plus
+  live verification. Nothing beyond I3 is authorised.
+- Takeover verification (checked, not assumed): backend `71dcbeb` · mobile
+  `c7dfadc` · docs `838d800` · **68 suites / 1012 tests** · **37 migrations**
+  through `0038` · schema up to date · `prisma validate` valid · all three trees
+  clean and level with `origin/master`. Every expected value matched.
+- Previous account: **CLAUDE-B** (I3 CP1–CP4.5, live smoke 51/51).
 
-### I3 — backend complete and LIVE-VERIFIED; mobile not started
+### I3 — COMPLETE. Backend, mobile and live verification all done.
 
 | Checkpoint | State |
 |---|---|
@@ -20,13 +29,14 @@
 | **CP3** report / correct / confirm / receipt contract | ✅ backend `1687322` |
 | **CP4** reconciliation + `refunds/summary`, derived liability | ✅ backend `886d71d` |
 | **CP4.5** live API smoke test over HTTP | ✅ backend `71dcbeb` — **51/51** |
-| **CP5** mobile report/confirm UI | ❌ **NOT STARTED** |
-| **CP6** PDF refund receipt sharing | ❌ **NOT STARTED** |
-| **CP7** full adversarial + live verification | ❌ **NOT STARTED** |
+| **CP5** mobile report/confirm UI | ✅ mobile `90517c7` |
+| **CP6** PDF refund receipt sharing | ✅ mobile `90517c7` |
+| **CP7** full adversarial + live verification | ✅ backend `74c6757` — **55/55 live** |
 
-**The refund payout backend is finished, unit-tested and proven over real
-HTTP.** No mobile screen consumes it yet. Nothing is half-built: the mobile
-repository is untouched at `c7dfadc`, and there is no partial migration.
+**A refund can now be paid, confirmed and receipted from the phone.** An
+Employee reports the payout, a Manager or Owner confirms it, and only then does
+cash move, the liability settle and a receipt exist. Nothing is half-built and
+no migration was needed — CP5–CP7 added no schema.
 
 ### CP4.5 found a real defect — this is why the step exists
 
@@ -45,43 +55,44 @@ first real HTTP request failed.** Do not treat a green suite as verification.
 
 ### Next exact action
 
-**Build CP5** — the mobile report/confirm UI on the existing Return detail
-screen — then CP6 (PDF) and CP7. The endpoints are stable and live-proven:
+**I3 is complete. Nothing beyond it is authorised.**
 
-```
-POST  /v1/returns/:id/refund/report    refund.report    a CLAIM, not the record
-PATCH /v1/returns/:id/refund           refund.confirm   correct method/account/ref/note
-POST  /v1/returns/:id/refund/confirm   refund.confirm   THE record; books cash today
-GET   /v1/returns/:id/refund/receipt   return.view      only once confirmed
-GET   /v1/returns/refunds/summary      return.view      declared BEFORE :id
-```
+The recommended next milestone is **Analytics polish** — the refund summary
+(`GET /v1/returns/refunds/summary`) is consumed only by a card on the closing
+screen today, and outstanding liability, awaiting-confirmation and settled
+refunds deserve a proper place beside the other financial figures. That screen
+is also where the pre-existing hardcoded English on `app/closing.tsx` should be
+localised; I3 did not widen its scope to do it.
 
-`GET /v1/returns/:id` returns a `payout` object — `null` when nobody has
-reported, which is different from reported-and-unconfirmed. **The screen must
-not blur the two.** Writes take `expectedVersion`; a stale one is a 409.
-
-**Wording rules, non-negotiable:** a reported payout is never green and never
-worded as settled; confirmed may be green; the phone stays `faulty` and not for
-sale either way.
+Also waiting, in dependency order: supplier reimbursement · customer-credit
+settlement · technician inspection · the **cost-recovery decision** for phones
+held as `faulty` · independent quantity-product returns.
 
 ### Verification at handoff
 
-- Backend **68 suites / 1012 tests**, `tsc` clean, `prisma validate` valid,
-  **37 migrations** (0001–0038, `0005` unused), schema up to date.
-- **Live smoke test: 51 checks, 0 failures** over HTTP on port 3099 — report,
-  duplicate-report rejection, correction, confirmation, replay idempotency,
-  permission denial per role, the receipt's contents, cost absence, malformed
-  and unknown ids, missing branch header, and the summary's arithmetic.
-- Migration `0038` proven on a restored copy, a rerun, a clean build of all 37,
-  and dev; reverse SQL executed; `prisma_i3` and `prisma_i3c` dropped.
-- Backup `~/erp-backups/phonestore-i3-20260815-041546.sql` — 329 152 bytes,
-  58 tables, 6 triggers, 0 raw `_binary`, restore proven.
-- Demo data unchanged after the live run: sales **7 / 10 051.00**, units checksum
-  **`2a1dc9bf284afde32b402ad108d38a76`**, `in_stock=3 sold=8`.
-- Smoke fixtures removed (`refund_payouts` 0, `return_requests` 0). Audit rows
-  were **kept**, as required: 325 audit logs, 41 notifications.
-- The three probes are back in deactivated spent state; no new user was created.
-- The verification server started by this session was stopped; port 3099 free.
+- Backend **68 suites / 1017 tests**, `tsc` clean, `prisma validate` valid,
+  **37 migrations** (0001–0038, `0005` unused), schema up to date. **CP5–CP7
+  added no migration.**
+- Mobile `tsc` clean, `expo lint` clean, **EN and AR both 943 keys** with no
+  missing, extra or duplicate, web export **37 routes** including `/returns`,
+  `/returns/new`, `/returns/[id]` and `/closing`, and **15 pure Node tests**
+  over the refund receipt builder.
+- **Live: 55 checks, 0 failures**, over HTTP on **port 3111** against real
+  MySQL — a 47-check full lifecycle and an 8-check expected-cash/locked-day run.
+  Both reused the three spent probes; **no new identity was created** and total
+  users remains 9.
+- **One real defect found and fixed:** `money.provisional` was hardcoded
+  `true`, so an approved return called its own immutable figures provisional.
+  Four other first-run failures were the verification script's own errors and
+  are recorded as such in `docs/27` §20.7.
+- Demo data identical to baseline afterwards: sales **7 / 10 051.00**, units
+  **11**, checksum **`2a1dc9bf284afde32b402ad108d38a76`**,
+  `in_stock=3 sold=8`, 0 return requests / payouts / reversals / adjustments,
+  0 closings, notifications back to **41**.
+- **Audit grew 325 → 459: 134 append-only rows** from legitimate verification,
+  preserved and reported. Nothing append-only was edited or deleted.
+- The verification server was stopped and **port 3111 released**. The user's
+  processes on 8081, 3010 and 80 were never touched.
 
 ### The I3 design, in one place
 
@@ -108,7 +119,9 @@ sale either way.
 
 ### Open items carried forward
 
-1. **I3 CP5, CP6, CP7** — the mobile work above, then live verification.
+1. **Analytics polish** — give the refund summary a proper home, and localise
+   `app/closing.tsx`, which still has hardcoded English from its prototype days.
+   I3 added a properly localised card to it rather than widening scope.
 2. **Device passes** — `docs/24` §9b/§9c/§9d/§9e outstanding; I3 will add its own
    (PDF generation, share sheet, confirmation wording).
 3. **Technical debt, now demonstrably costly:** every

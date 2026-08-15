@@ -3545,3 +3545,90 @@ was stopped and port 3099 released. All scripts lived outside every repository.
 
 **Not done: CP5, CP6, CP7** — the mobile report/confirm UI, the PDF receipt, and
 full adversarial verification. Left cleanly unstarted rather than half-built.
+
+
+---
+
+## 2026-08-15 — CLAUDE-A — **I3 CP5, CP6, CP7: paying a refund from the phone**
+
+**Takeover.** Clean, from `READY_FOR_HANDOFF`/NONE returned by CLAUDE-B. Verified
+before touching anything: backend `71dcbeb`, mobile `c7dfadc`, docs `838d800`,
+**68 suites / 1012 tests**, 37 migrations through `0038`, schema up to date, all
+three trees clean and level. Every expected value matched. **CP1–CP4.5 were not
+redone and CLAUDE-B's attribution stands.**
+
+### CP5 + CP6 — the mobile workflow and the receipt (mobile `90517c7`)
+
+**The contract was read over real HTTP before any screen was written**, because
+the handoff's own standing lesson is that a green suite has hidden a broken
+first request five times in this project. That probe corrected three things a
+code reading had got wrong: the `responsibility` enum values, that approval
+outside the policy needs an `exceptionReason`, and that confirm takes the
+**payout's** version rather than the return's.
+
+Three states, worded so they cannot be confused: money owed, money somebody
+*says* they handed over, and money a manager has vouched for. Only the last is
+green. The phone stays held and unsellable in all three.
+
+The amount is displayed and locked. Method is `cash` or `account` only —
+the DTO accepts nothing else, so no "Other" was invented. An account must be
+active to be *chosen*, but an already-recorded one stays confirmable after
+deactivation. The label shown is always the stored snapshot.
+
+One `clientUuid` per report, held in a ref. Confirmation is high-friction and
+lists everything being vouched for; nothing is marked confirmed locally.
+
+The receipt reuses the sale receipt's `expo-print`/`expo-sharing` path — no new
+dependency — and is generated **only** from the confirmed-refund endpoint. It
+masks the IMEI, escapes everything dynamic, and claims no provider verified
+anything.
+
+### CP7 — 55 live checks, 0 failures
+
+Two runs against a **separate backend on port 3111** and real MySQL, reusing the
+three `i2p9b1b04_*_spent` probes with a password that existed only in the
+running process.
+
+**Lifecycle 47/47** covering all 28 points of the brief, and **expected cash +
+locked day 8/8** — including confirming into a closed day, refused with 409 and
+the payout left pending.
+
+**One real defect, found by running it:** `money.provisional` was hardcoded
+`true`, so an approved return described its own immutable, already-reversed
+figures as provisional. The I2 screen derived its wording from `status` and so
+was never wrong to a user, which is exactly why nothing noticed — but I3's
+refund screens read the money block directly. Fixed in backend `74c6757`,
+extracted into `isProvisionalMoney()` and given tests.
+
+**Four first-run failures were my verification script's errors, not defects** —
+a guessed enum, a missing exception reason, the wrong reversal cost column and
+the wrong legacy route. Recorded, because a verification script lies as readily
+as the code it checks. A fifth apparent failure was a stray `daily_digests` row
+my own earlier cleanup had missed, which blocked closing the day.
+
+- **Files changed:** mobile — `lib/{returns,refund-receipt,permissions,query-keys}.ts`,
+  `components/returns/{RefundPayoutSheet,RefundSections,RefundReconciliation}.tsx`,
+  `app/returns/[id].tsx`, `app/closing.tsx`, `types/api.ts`, `lib/i18n/{en,ar}.ts`.
+  Backend — `src/returns/{returns.service,return-workflow,return-workflow.spec}.ts`.
+  Docs — `21`, `24`, `27`, handoff, this log.
+- **Migrations:** none. CP5–CP7 needed no schema change.
+- **Tests:** backend **68 suites / 1017 tests**; mobile `tsc` and `expo lint`
+  clean, EN/AR both **943 keys**, web export **37 routes**, 15 pure Node tests.
+- **Fixtures and cleanup:** every return, payout, reversal, adjustment, closing
+  and digest created by this session was removed; notifications are back to
+  **41**; the probes are deactivated and spent; total users remains **9**.
+  **Audit grew 325 → 459 — 134 append-only rows, preserved and reported.**
+  Demo data identical: sales 7 / 10 051.00, units checksum
+  `2a1dc9bf284afde32b402ad108d38a76`, `in_stock=3 sold=8`.
+- **Ports:** 3111 started by this session and released. The user's processes on
+  8081, 3010 and 80 were never touched.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a physical device or in a visible browser.** Camera,
+haptics, native share, the PDF's appearance, bottom-sheet gestures and Arabic
+**visual** RTL are unverified. `docs/24` §9f lists 28 checks for a device pass.
+
+**Commits:** mobile `90517c7` · backend `74c6757` · docs, the commit carrying
+this entry. All three trees clean and level with `origin`. `READY_FOR_HANDOFF`,
+owner `NONE`.

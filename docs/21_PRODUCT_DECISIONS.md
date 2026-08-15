@@ -1117,3 +1117,45 @@ git -C mobile commit -m "chore: untrack node_modules"
 `--cached` is the critical flag: it untracks without touching the filesystem, so the install survives and no reinstall is needed.
 
 **Scope note:** this removes them from *future* commits. History still contains them, so the repository stays large on disk. Rewriting history (`filter-repo`) would shrink it but rewrites every commit hash — not worth it unless clone size becomes a real problem. Since these files were never committed to a shared remote in a meaningful history, the simple untrack is the proportionate fix.
+
+
+---
+
+## 6f. Refund payout — I3, SHIPPED
+
+### ✅ APPROVED and implemented — reporting is not paying
+
+A refund has **three separate moments**, and collapsing any two of them is how a
+shop pays a refund twice:
+
+1. **Approval** reverses profit and creates the obligation.
+2. **Reporting** records that a person handed money over. It is a *claim*: no
+   cash movement, no change to what is owed. An **Employee** may do it.
+3. **Confirmation** is the record. Cash leaves, the liability settles, and there
+   is **no second profit effect**. Only an **Owner or Manager** may do it.
+
+The app says so in words at every step, and only a confirmed refund is ever
+shown in a success tone. The phone stays `faulty` and not for sale throughout —
+settling the money does not put the handset back on the shelf.
+
+### ✅ APPROVED — the amount cannot be negotiated at the counter
+
+Locked to the immutable net refund due. No partial payout; a payout that does
+not match it is a different obligation, not a correction. A Manager may correct
+**how** it was paid — method, account, reference, note — never how much.
+
+### ✅ APPROVED — an account label is frozen, not looked up
+
+Captured when the payout is reported and frozen at confirmation. Renaming an
+account must not retitle a movement that already happened, and deactivating one
+must not strand a refund already owed: reporting needs an active account,
+confirming does not.
+
+### ✅ APPROVED — no provider is ever implied
+
+Cash or account only. The app performs no balance lookup, holds no credential,
+calls no payment API, and the receipt claims no bank or provider verified
+anything. It records what a person says happened at the counter.
+
+> Detail, and the 55 live checks behind it, in
+> [`docs/27` §20](27_RETURNS_AUDIT_AND_DECISIONS.md).
