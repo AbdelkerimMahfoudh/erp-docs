@@ -45,45 +45,53 @@ fields, so the distinction cannot erode.
 
 | Step | State |
 |---|---|
-| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile  |
-| **C-CP2** TAC audit —  | ✅ docs ,  |
+| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile `4b37d12` |
+| **C-CP2** TAC audit — `docs/30` | ✅ docs `68b1510`, `ded7217` |
 | **C-CP3** three scanner modes + receiving prefill | ❌ **NEXT** |
 | **C-CP4** TAC overlay, dual-SIM persistence, device script | ⛔ **partly BLOCKED** |
 
-**The audit's conclusion: reuse, do not rebuild.**
- ()
-already validates Luhn, takes the TAC, consults the global catalogue, matches
-the company's own products, and suggests brand/model only. **Six of the seven
-TAC rules in the brief are already satisfied by code that shipped long ago.**
+**The audit's conclusion: reuse, do not rebuild.** `CatalogService.recognize()`
+(`GET /v1/products/recognition/:imei`) already validates Luhn, takes the TAC,
+consults the global catalogue, matches the company's own products, and suggests
+brand/model only — never storage, colour, cost or price. **Six of the seven TAC
+rules in the brief are already satisfied by code that shipped phases ago.**
+
+Two gaps, in `docs/30`: `tac_catalog` is **empty**, so recognition answers
+"unknown" for every IMEI — correct and completely inert. And teaching it is a
+tenancy problem, because it is one of only two GLOBAL models; one shop's
+confirmation would rename that TAC for every company on the installation. A
+per-company overlay is recommended.
 
 ### ⛔ BLOCKER for C-CP4 — verified, not theoretical
 
 **The same IMEI can be one unit's primary and another unit's secondary.**
- and  are independent
-indexes, and nothing joins them. Proven against real MySQL on a restored copy:
-all three duplicate insertions were ALLOWED.
+`ux_units_identifier` and `units_imei_secondary_key` are independent indexes
+and nothing joins them. Proven against real MySQL on a restored copy: all three
+duplicate insertions were ALLOWED.
 
-Today this is latent because almost nothing writes .
-**Dual-SIM OCR intake is exactly the workflow that would start writing it on
-every dual-SIM phone received**, so C-CP4 turns a latent gap into a likely one —
-two records claiming one physical identifier, with sell-once resting on which
-column happened to be searched.
+Latent today because almost nothing writes `imei_secondary`. **Dual-SIM OCR
+intake is exactly the workflow that would start writing it on every dual-SIM
+phone received**, so C-CP4 would turn a latent gap into a likely one — two
+records claiming one physical identifier, with sell-once resting on which column
+happened to be searched.
 
-**C-CP4 must not persist a second identifier until this is closed.** Two shapes
-and the mandatory pre-audit query are in  §7. This needs a
-deliberate decision, which is why it was not guessed at.
+**C-CP4 must not persist a second identifier until this is closed.** The two
+workable shapes (an identifier table, or a trigger pair) and the mandatory
+pre-audit query are in `docs/30` §7. It needs a deliberate decision, which is
+why it was not guessed at.
 
 ### Next exact action — C-CP3 (unblocked)
 
-1.  — add a third mode to :
-   **barcode · read IMEI from screen · manual**.    provides ,  and .
+1. `mobile/components/scanner/` — add a third mode to `ScanTarget`:
+   **barcode · read IMEI from screen · manual**. `mobile/lib/imei.ts` provides
+   `extractImeis`, `readDualSim` and `mergeFrames`, all pure and tested.
 2. **Manual entry must always work** — when OCR is unavailable, the camera is
-   denied, or the build has no native module. Guard the native import so a web
-   export still succeeds (the export is a verification gate).
-3. Confirmation card before anything enters inventory, showing every
-    entry so a human agrees to a reading rather than being
-   told about it.
-4. Discard the frame/image after processing; never persist or transmit it.
+   denied, or the build has no native module. Guard the native import so the web
+   export still succeeds; the export is a verification gate.
+3. A confirmation card before anything enters inventory, showing every
+   `substitutions` entry so a human agrees to a reading rather than being told
+   about it.
+4. Discard the frame after processing. Never persist or transmit an image.
 5. Receiving prefill: IMEI1, optional IMEI2, suggested product. The human still
    confirms variant, storage, colour, supplier, cost and price — **every
    existing approval rule is preserved**.
