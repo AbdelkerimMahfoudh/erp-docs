@@ -3499,3 +3499,49 @@ screen, then the PDF receipt, then the live lifecycle. Reuse the three
 
 **Commits:** backend `1687322` · mobile `c7dfadc` (unchanged) · docs the commit
 carrying this entry.
+
+---
+
+## 2026-08-15 — CLAUDE-B — I3 CP4 and CP4.5 (refund reconciliation, then live proof)
+
+**Repositories:** backend `886d71d` → `71dcbeb`; docs `ef7d906` → this entry.
+Mobile untouched at `c7dfadc`.
+
+**CP4 — reconciliation reporting.** Added `refundSummary()` and
+`GET /v1/returns/refunds/summary`, declared before `:id` or Nest reads "refunds"
+as a return id. Outstanding liability is **derived** — immutable approved
+reversals minus confirmed payouts, over all time, because a debt does not expire
+when a reporting period ends and nothing mutable in between should be able to
+move the figure. Moved the receiving-account label snapshot from confirmation
+back to **report** time, with confirmation freezing what is already there: a
+rename between the two must not retitle a movement that already happened, and a
+deactivated account must not strand a refund already owed. Added
+`refund-reconciliation.spec.ts`. 68 suites / 1012 tests.
+
+**CP4.5 — live API smoke test, run before any mobile work.** 51 checks over real
+HTTP using the three spent probes. First run: **45 passed, 6 failed.**
+
+One failure was mine (a `@Post` replay returns 201, not the 200 I asserted). The
+other was a genuine defect: the receipt endpoint **400'd**. `refundReceipt`
+called `this.db.company.findFirst()`, but the tenant extension injects
+`companyId` into every tenant model's `where` and `companies` has no such
+column, so Prisma rejected the query — and the global filter reported it as
+"Invalid query parameters", the same misleading message already recorded as
+technical debt. It has now hidden a real bug twice. Fixed by reading the company
+*through* the branch relation, which is a tenant model: same data, one query
+instead of two. Rerun: **51/51.**
+
+That makes five occasions in this project where the full suite passed while the
+first real HTTP request failed. The smoke-before-UI ordering in the brief was
+correct, and no mobile screen was ever built against the broken endpoint.
+
+**Data safety.** Smoke fixtures removed (`refund_payouts` 0, `return_requests`
+0); audit rows deliberately kept — 325 audit logs, 41 notifications. Demo data
+unchanged: sales 7 / 10 051.00, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, `in_stock=3 sold=8`. The three probes were
+returned to deactivated spent state by the harness's `finally` block on every
+run, including the failed ones; no new user was created. The verification server
+was stopped and port 3099 released. All scripts lived outside every repository.
+
+**Not done: CP5, CP6, CP7** — the mobile report/confirm UI, the PDF receipt, and
+full adversarial verification. Left cleanly unstarted rather than half-built.

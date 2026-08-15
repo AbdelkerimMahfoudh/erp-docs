@@ -6,75 +6,82 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15 (I3 CP4→CP7 takeover)**
-- Current authorised task: **finish I3** — CP4 reconciliation reporting, CP4.5
-  live API smoke test, CP5 mobile payout UI, CP6 PDF receipt, CP7 full
-  verification.
-- Takeover verification (checked, not assumed): backend `1687322` · mobile
-  `c7dfadc` · docs `e36511f` · **67 suites / 992 tests** · **37 migrations**
-  through `0038` · schema up to date · all trees clean and level ·
-  `READY_FOR_HANDOFF` / owner `NONE`. **No discrepancies.**
-- Next intended action: CP4 — the reconciliation and liability reporting the
-  CP3 checkpoint left partial.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- `finished_at_utc`: **2026-08-15**
 
-### ⚠️ I3 is PARTLY complete — read this first
+### I3 — backend complete and LIVE-VERIFIED; mobile not started
 
 | Checkpoint | State |
 |---|---|
 | **CP1** audit, backup, restore proof | ✅ docs `1e8ba6f` |
 | **CP2** migration `0038`, permissions, drift tests | ✅ backend `79e1e0e` |
-| **CP3** report / correct / confirm / receipt contract + reconciliation | ✅ backend `1687322` |
-| **CP4** *(reconciliation reporting surfaces beyond closing)* | ⚠️ **partial** — see below |
+| **CP3** report / correct / confirm / receipt contract | ✅ backend `1687322` |
+| **CP4** reconciliation + `refunds/summary`, derived liability | ✅ backend `886d71d` |
+| **CP4.5** live API smoke test over HTTP | ✅ backend `71dcbeb` — **51/51** |
 | **CP5** mobile report/confirm UI | ❌ **NOT STARTED** |
 | **CP6** PDF refund receipt sharing | ❌ **NOT STARTED** |
-| **CP7** adversarial + live verification | ❌ **NOT STARTED** |
+| **CP7** full adversarial + live verification | ❌ **NOT STARTED** |
 
-**The backend refund workflow is complete and unit-tested. No mobile screen
-consumes it, and no live HTTP run has exercised it.** Nothing is half-built: the
-mobile repository is untouched at `c7dfadc`, and there is no partial migration.
+**The refund payout backend is finished, unit-tested and proven over real
+HTTP.** No mobile screen consumes it yet. Nothing is half-built: the mobile
+repository is untouched at `c7dfadc`, and there is no partial migration.
 
-**What CP4 already has:** the confirmation-day rollup components
-(`refunds_paid_total`, `refunds_paid_cash`, `refunds_paid_count`), the closing
-snapshot, and `expectedCash` corrected to subtract confirmed cash refunds.
-**What it does not have:** an analytics endpoint exposing "approved / due /
-reported / confirmed" as a reconciliation view, and outstanding-liability
-reporting.
+### CP4.5 found a real defect — this is why the step exists
+
+The receipt endpoint returned **400** on its first live request. `refundReceipt`
+called `this.db.company.findFirst()`, but the tenant extension injects
+`companyId` into every tenant model's `where` and `companies` has no such
+column. Prisma rejected the query and the global filter reported it as
+"Invalid query parameters" — **the same misleading message already listed as
+technical debt below, which has now cost debugging time twice.**
+
+Fixed in `71dcbeb`: the company is read *through* the branch, which is a tenant
+model and gets scoped correctly. Same data, one query instead of two.
+
+**This is the fifth time in this project that the full suite passed while the
+first real HTTP request failed.** Do not treat a green suite as verification.
 
 ### Next exact action
 
 **Build CP5** — the mobile report/confirm UI on the existing Return detail
-screen — then CP6 (PDF) and CP7 (live verification). The endpoints are stable:
+screen — then CP6 (PDF) and CP7. The endpoints are stable and live-proven:
 
 ```
 POST  /v1/returns/:id/refund/report    refund.report    a CLAIM, not the record
 PATCH /v1/returns/:id/refund           refund.confirm   correct method/account/ref/note
 POST  /v1/returns/:id/refund/confirm   refund.confirm   THE record; books cash today
 GET   /v1/returns/:id/refund/receipt   return.view      only once confirmed
+GET   /v1/returns/refunds/summary      return.view      declared BEFORE :id
 ```
 
-`GET /v1/returns/:id` now returns a `payout` object (`null` when nobody has
-reported yet — which is different from reported-and-unconfirmed, and the screen
-must not blur the two). Writes take `expectedVersion`; a stale one is a 409.
+`GET /v1/returns/:id` returns a `payout` object — `null` when nobody has
+reported, which is different from reported-and-unconfirmed. **The screen must
+not blur the two.** Writes take `expectedVersion`; a stale one is a 409.
 
-**Mobile wording rules, non-negotiable:** a reported payout must never be green
-or worded as settled; the confirmed state may be green; the phone remains
-`faulty` and not for sale either way.
+**Wording rules, non-negotiable:** a reported payout is never green and never
+worded as settled; confirmed may be green; the phone stays `faulty` and not for
+sale either way.
 
 ### Verification at handoff
 
-- Backend **67 suites / 992 tests**, `tsc` clean, `prisma validate` valid,
+- Backend **68 suites / 1012 tests**, `tsc` clean, `prisma validate` valid,
   **37 migrations** (0001–0038, `0005` unused), schema up to date.
+- **Live smoke test: 51 checks, 0 failures** over HTTP on port 3099 — report,
+  duplicate-report rejection, correction, confirmation, replay idempotency,
+  permission denial per role, the receipt's contents, cost absence, malformed
+  and unknown ids, missing branch header, and the summary's arithmetic.
 - Migration `0038` proven on a restored copy, a rerun, a clean build of all 37,
   and dev; reverse SQL executed; `prisma_i3` and `prisma_i3c` dropped.
 - Backup `~/erp-backups/phonestore-i3-20260815-041546.sql` — 329 152 bytes,
   58 tables, 6 triggers, 0 raw `_binary`, restore proven.
-- Demo data untouched: sales **7 / 10 051.00**, units checksum
-  **`2a1dc9bf284afde32b402ad108d38a76`**.
-- **No live HTTP verification was run for I3.** The CP3 backend is proven by
-  unit tests only — and this project's history is that the suite passes while
-  the first real request fails. CP7 must not be skipped.
+- Demo data unchanged after the live run: sales **7 / 10 051.00**, units checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`**, `in_stock=3 sold=8`.
+- Smoke fixtures removed (`refund_payouts` 0, `return_requests` 0). Audit rows
+  were **kept**, as required: 325 audit logs, 41 notifications.
+- The three probes are back in deactivated spent state; no new user was created.
+- The verification server started by this session was stopped; port 3099 free.
 
 ### The I3 design, in one place
 
@@ -82,30 +89,39 @@ or worded as settled; the confirmed state may be green; the phone remains
   `reported_pending_confirmation → confirmed`. **`Payment` is untouched**: its
   `sale_id` is required and its only consumer counts it as cash received, so a
   refund there would look like sales income (`docs/27` §17).
-- `ReceivingAccount` reused as the channel label, snapshotted at confirmation.
+- `ReceivingAccount` reused as the channel label, **snapshotted at report time**
+  and *frozen* at confirmation — a rename in between must not retitle a movement
+  that already happened. Reporting needs an active account; confirming does not,
+  so deactivating one cannot strand a refund already owed.
 - Amount locked to the immutable net refund due; no partial payout; a zero
   refund is refused as having nothing to settle.
-- **Confirmation creates no second profit effect.** Profit reversed at approval;
-  confirmation moves cash only. The confirmation-day rollup has no profit column
-  at all, deliberately.
-- `expectedCash` = cash in − confirmed cash refunds out, so a paid refund is not
-  reported as a till shortage.
+- **Three timings stay apart**, because collapsing any two is how a refund gets
+  counted twice: approval reverses profit and creates the liability; the report
+  is a workflow event only; confirmation moves cash and settles it — with **no
+  second profit effect**. The confirmation-day rollup has no profit column.
+- **Outstanding liability is derived, never stored**: immutable approved
+  reversals minus confirmed payouts, all time. A debt does not expire because a
+  reporting period ended, and no mutable workflow state can move the figure.
+- `expectedCash` = cash in − confirmed cash refunds out, subtracted exactly once,
+  so a paid refund is not reported as a till shortage.
 - Locked confirmation day → 409, never a reopened closing.
 
 ### Open items carried forward
 
-1. **I3 CP4-partial, CP5, CP6, CP7** — the work above.
+1. **I3 CP5, CP6, CP7** — the mobile work above, then live verification.
 2. **Device passes** — `docs/24` §9b/§9c/§9d/§9e outstanding; I3 will add its own
    (PDF generation, share sheet, confirmation wording).
-3. **Technical debt:** every `PrismaClientValidationError` is reported as
-   "Invalid query parameters" whatever the cause.
+3. **Technical debt, now demonstrably costly:** every
+   `PrismaClientValidationError` is reported as "Invalid query parameters"
+   whatever the cause. It has hidden a real bug twice. Worth fixing before it
+   hides a third.
 4. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
 5. **Cost gating has no live negative case** — every store role holds
    `cost.view`; a product question for `docs/03`.
 6. **`mobile/lib/transfer-draft.test.ts` cannot run** (renamed export since
    `3c016e3`).
 7. **Three spent probe identities** (`i2p9b1b04_*_spent`) exist and must be
-   REUSED for live verification rather than adding more — see the I2 notes.
+   REUSED for live verification rather than adding more.
 
 ### I2 — what shipped
 
