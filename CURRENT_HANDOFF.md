@@ -9,7 +9,85 @@
 - Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-B**
 - `started_at_utc`: **2026-08-15**
-- Authorised task: **Milestone A (done), then B and C.** Do **not** begin D.
+- Authorised task: **Milestone A (done), B, then C.** Do **not** begin D.
+
+### Milestone B — CP2 of 4 complete
+
+| Step | State | Commit |
+|---|---|---|
+| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | ✅ | backend `eb0278c` |
+| **B-CP2** service, controller, derivation exclusion, rollup/closing, tests | ✅ | backend `3044a09` |
+| **B-CP3** mobile correction workflow | ❌ **NEXT** |  |
+| **B-CP4** live HTTP/MySQL lifecycle, docs, receipt disclosure | ❌ |  |
+
+**The design, in one paragraph.** Both liabilities are derived from rows whose
+status is `confirmed`, so a correction writes nothing back to the payment it
+corrects. It restores the liability because four derivation queries now exclude
+any target carrying an approved correction. The per-day rollup and the
+confirmed-refund period totals are deliberately **not** filtered — the original
+payment happened on its day and that day stands; the compensating movement
+lands on the correction day. Filtering both would remove the money twice.
+
+### API, as built
+
+```
+POST /v1/corrections              financial.correction.request   moves no money
+GET  /v1/corrections              financial.correction.request   newest first
+GET  /v1/corrections/:id          financial.correction.request
+POST /v1/corrections/:id/approve  financial.correction.approve   money comes back
+POST /v1/corrections/:id/reject   financial.correction.approve
+```
+
+Request body: `targetKind` (`refund_payout` | `supplier_settlement`),
+`targetId`, `reason` (mandatory), `supportingReference?`, `clientUuid`.
+**No amount field** — it is copied from the target, so a wrong figure has no
+way in. Approve/reject take `expectedVersion`; stale is 409
+`refresh_required`. A locked day is 409 `day_already_closed` — the same code
+the refund and settlement confirmations use.
+
+### Next exact action — B-CP3 (mobile)
+
+1. `mobile/types/api.ts` — add `FinancialCorrection` mirroring the service's
+   `shape()`: `id, targetKind, targetId, status, reason, supportingReference,
+   amount, method, accountLabel, requestedBy, requestedAt, decidedBy, decidedAt,
+   correctionDate, version`.
+2. `mobile/lib/corrections.ts` — query hooks + `correctionConflictKind`
+   following `lib/returns.ts`'s `refundConflictKind` exactly.
+3. Entry points, both gated on `financial.correction.request`:
+   - `app/returns/[id].tsx` — in the confirmed-refund section
+     (`RefundConfirmedSection`).
+   - `app/suppliers/[id].tsx` — on a confirmed settlement row.
+4. A request sheet (reason mandatory, optional reference) and an Owner
+   approve/reject screen with **high-friction confirmation** listing target,
+   amount, method, requester and reason.
+5. Corrected state on both screens, and the replacement-payment path: after a
+   correction the existing report flow works again unchanged.
+6. EN/AR parity. **An Employee sees no correction action at all.**
+
+Then **B-CP4**: live lifecycle over HTTP with the three spent probes, and the
+receipt disclosure — a corrected payout's receipt stays retrievable and must
+say a correction exists; **never rewrite an issued receipt payload**.
+
+### Verification at this checkpoint
+
+- Backend **72 suites / 1115 tests** (was 70/1070; +45 correction checks),
+  `tsc` clean, `prisma validate` valid, **39 migrations** through `0040`,
+  schema up to date.
+- Both raw SQL exclusion fragments **executed against real MySQL** — they are
+  `Prisma.raw`, so a syntax error would only surface at runtime.
+- Migration `0040` proven on a restored copy, a rerun and dev; seven
+  constraints exercised, including the double-correction guard. Scratch
+  databases `prisma_b0` and `prisma_b1` dropped.
+- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
+  61 tables, 7 triggers, 0 raw `_binary`, restore proven **before** migrating.
+- **No live HTTP run for B yet.** No fixtures on dev, no probe used, no port
+  opened, no user process touched.
+
+### Milestone C — not started
+
+For its audit: `InventoryUnitRow` already carries `imeiSecondary`, so the
+dual-SIM identifier may be representable **without** schema work — verify
+before writing a migration.
 
 ### Milestone A — COMPLETE (9 of 9)
 

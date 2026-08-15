@@ -3953,3 +3953,52 @@ actually restores liability — excluding corrected targets from the two
 derivation queries. Without that edit the correction record exists and changes
 nothing, which is exactly the kind of half-built financial change that must not
 be mistaken for a finished one.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Milestone B CP2
+
+**Repositories:** backend `eb0278c` → `3044a09`; docs `c3b61ec` → this entry.
+Mobile untouched at `9789856`.
+
+**The migration alone changed nothing.** CP2 is the part that makes a
+correction real: four derivation queries now exclude any payment carrying an
+approved correction — the supplier list balance, per-delivery outstanding, the
+paid-status recompute at confirmation, and the refund liability.
+
+The refund exclusion goes in the JOIN rather than the WHERE. In the WHERE it
+would filter the whole row out and the liability would *vanish* instead of
+returning — the opposite of the intent, and something that would have looked
+perfectly healthy in a smoke test that only counted rows.
+
+Equally deliberate is what is **not** filtered. The per-day rollup and the
+confirmed-refund period totals stay exactly as they were. The original payment
+really did happen on its day, that day's figures stand, and its closing may
+already be locked; the compensating movement lands on the correction day
+instead. Filtering both sides would remove the money twice, and getting that
+split wrong in either direction is the easiest way to double-count in this
+design.
+
+Expected cash *adds* corrected cash rather than subtracting it — a correction is
+the opposite movement, so on the correction day the drawer holds more than the
+day's sales alone would explain. Cash only; an account correction never touched
+the till.
+
+The service writes to `financial_corrections` and nothing else. No sale, no
+expense, no second return effect, and no profit component anywhere: profit was
+reversed at return approval and a supplier payment never had one. Approval
+refuses a locked day with the same conflict code the refund and settlement
+confirmations already use, so the mobile handler needs no second branch.
+
+The amount has no DTO field. It is copied from the target, so a wrong figure
+has no route in — and the compensating movement posts to the branch that
+*paid*, not the caller's active branch, since an owner may be standing in a
+different shop when they approve.
+
+**Verification.** 72 suites / 1115 tests (+45 correction checks), `tsc` clean,
+`prisma validate` valid, 39 migrations, schema up to date. Both raw SQL
+fragments were executed against real MySQL — they are `Prisma.raw`, so a syntax
+error would surface only at runtime, never at compile time.
+
+**Not done: B-CP3 (mobile) and B-CP4 (live lifecycle, receipt disclosure), then
+Milestone C.** No live HTTP run for B yet, no fixtures on dev, no probe used.
