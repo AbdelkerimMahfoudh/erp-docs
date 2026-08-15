@@ -873,9 +873,18 @@ deliberately not performed.
 >   shows why.
 > - **The returned phone is held as `faulty` and is not sellable.** Rejection
 >   hands it back and restores it to `sold` — the only route to that transition.
-> - **Profit treatment:** revenue falls by the NET refund; COGS is deliberately
->   NOT credited back while the phone sits unsellable, because that would book
->   the same benefit twice. Cost recovery belongs to the inspection milestone.
+> - **Profit treatment (corrected in CP4.1):** revenue is reversed by the gross
+>   refund, the line's immutable COGS snapshot is credited back, and that same
+>   cost is reinstated as **faulty/return-held inventory value** — owned, but
+>   never sellable. The profit effect is
+>   `− gross refund + adjustments + COGS credit`, so cumulative profit across a
+>   sale and its return equals the adjustment income alone. The earlier CP4
+>   treatment (no COGS credit, no asset) was a full write-off decided before
+>   inspection and was never approved. Impairment or recovery belongs to the
+>   later Technician/Owner inspection milestone.
+> - **Inventory is reported in three figures:** sellable, faulty/return-held and
+>   total owned. One number cannot answer both "what can I sell?" and "what do I
+>   own?".
 >
 > **Still open (I3):** refund payout confirmation, receiving-account selection,
 > refund receipt, supplier reimbursement, customer-credit settlement, technician

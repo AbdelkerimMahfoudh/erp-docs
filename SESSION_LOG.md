@@ -3215,3 +3215,85 @@ The next session should build CP5 against the live API, then run CP6.
 
 **Commits:** backend `bc5071d` · mobile `d4ee658` (unchanged) · docs the commit
 carrying this entry. All three trees clean and level with `origin`.
+
+---
+
+## 2026-08-15 — CLAUDE-B — I2-CP4.1: the returned-inventory and COGS correction
+
+Migration **`0037`**. Backend `404bee9` · docs the commit carrying this entry.
+Mobile untouched (`d4ee658`).
+
+### What was wrong, and it was mine
+
+CP4 shipped `returns_cogs = 0` while a returned phone, held as `faulty`, was
+excluded from every inventory figure. Together those are a **full write-off of
+an asset the shop still owns**, decided before anyone has inspected the phone.
+I had reasoned in `docs/27` §16.5 that crediting the cost while the asset was
+absent from inventory would double-count — the reasoning was sound but the
+conclusion was backwards. The fix was to stop the asset being absent, not to
+withhold the credit.
+
+### The corrected treatment
+
+Approval reverses the line's revenue, credits its immutable COGS snapshot back,
+and reinstates that same cost as faulty/return-held inventory value — owned,
+never sellable.
+
+    profit effect = − gross refund + adjustments + COGS credit
+
+Cumulative profit across a sale and its return is therefore the adjustment
+income alone, which is the honest position until an inspection decides whether
+the phone is repaired, partially impaired or scrapped.
+
+The credit and the asset are the same money, counted once: `returns_cogs` is the
+unit's own cost and `faultyHeldValue` sums that same figure. A test asserts the
+difference between the old and corrected profit effects is exactly the cost, so
+neither can drift into double-counting.
+
+### Reporting
+
+`inventoryValue` has always meant sellable stock and still does. Added
+`sellableInventoryValue`, `faultyHeldValue` / `faultyHeldUnits`, and
+`totalOwnedInventoryValue`. `totalStockValue` keeps its documented meaning and
+its guarantee that it does not move when stock is merely travelling. One number
+cannot answer both "what can I sell?" and "what do I own?".
+
+`DailyRollup` gained `returns_adjustments`; `DailyClosing` gained
+`total_return_adjustments` and `total_returns_cogs_credited`. All positive
+magnitudes, applied with an explicit sign.
+
+### Migration and proofs
+
+`0037` is additive and rerun-safe, guarded by `information_schema` probes
+through prepared statements as `0036` is. Backup
+`~/erp-backups/phonestore-i2cp41-20260815-030708.sql` (330 019 bytes, 58 tables,
+6 triggers, 0 raw `_binary`) taken and restore-proven first. Applied to a
+restored copy, rerun on it (645 columns before and after — unchanged), a clean
+build of all 37 migrations, and dev. Reverse SQL executed. `prisma_p41` and
+`prisma_c41` dropped; sanitised copy removed. Dev unchanged: sales 7 /
+10 051.00, units checksum `2a1dc9bf284afde32b402ad108d38a76`.
+
+### Four failing assertions, and what each was
+
+Two belonged to the CP4 spec and pinned the behaviour this replaces; they were
+**updated rather than deleted**, so the file now records why the treatment
+changed. Two were mine and simply wrong: one regex ignored the `COALESCE`
+wrapper around the aggregate, and one claimed the rollup never joins products
+when it legitimately does for its per-product facts — that assertion was
+scoped to the returns query, because a file-wide version was asserting something
+that had never been true.
+
+### Verification
+
+Backend **66 suites / 956 tests**, `tsc` clean, `prisma validate` valid, **37
+migrations**, schema up to date. No live HTTP run was repeated for CP4.1; the
+CP4 run remains the last live evidence, and CP6 must rerun the full lifecycle
+with the corrected date assertion.
+
+### Not done
+
+**CP5 (mobile Returns workflow) and CP6 (full verification matrix) remain
+unstarted.** The backend is complete and correct; no screen consumes it.
+
+**Commits:** backend `404bee9` · mobile `d4ee658` (unchanged) · docs the commit
+carrying this entry.

@@ -1168,3 +1168,84 @@ deleting audit history, which is forbidden. A future phase may prefer probe
 identities that never touch audited paths, or an agreed retention rule for spent
 probe users.
 
+
+### 16.11 I2-CP4.1 — the returned phone is an asset, not an instant write-off
+
+CP4 shipped `returns_cogs = 0` while a returned phone, held as `faulty`, was
+excluded from every inventory figure. Together those are a **full write-off of
+an asset the shop still owns**, decided before anyone has inspected the phone.
+That was never approved, and §16.5's own reasoning was wrong on this point: it
+argued that crediting the cost while the asset was absent from inventory would
+double-count, when the correct fix was to stop the asset being absent.
+
+#### The corrected treatment
+
+At approval:
+
+1. reverse the original line's **revenue** (gross refund);
+2. **credit back** the line's immutable **COGS snapshot**;
+3. **reinstate that same cost** as faulty/return-held inventory value;
+4. keep it entirely out of sellable/available stock;
+5. record the withheld **adjustments** as their own component.
+
+```
+profit effect = − gross refund + adjustments + COGS credit
+```
+
+Across a sale and its return, cumulative profit is the adjustment income alone:
+
+| | revenue | cost | profit |
+|---|---|---|---|
+| sale | + gross | − cost | + gross − cost |
+| return | − gross | + cost | − gross + adjustments + cost |
+| **net** | | | **+ adjustments** |
+
+That is the honest position until a later Technician/Owner inspection restores
+the phone to stock, repairs it, records a partial impairment, or writes it off.
+Approval must not anticipate that decision.
+
+#### Counted once
+
+The COGS credit and the reinstated asset are **the same money**. `returns_cogs`
+is the unit's own cost; `faultyHeldValue` sums that same figure. A test asserts
+the difference between the old and corrected profit effects is exactly the cost,
+so neither can drift into double-counting.
+
+#### Reporting
+
+`inventoryValue` has always meant SELLABLE stock, and still does. Added:
+
+| Figure | Meaning |
+|---|---|
+| `sellableInventoryValue` | what can actually be sold (`in_stock` only) |
+| `faultyHeldValue` / `faultyHeldUnits` | owned, unsellable, awaiting inspection (`returned` + `faulty`) |
+| `totalOwnedInventoryValue` | sellable + in-transit + faulty-held |
+
+`totalStockValue` keeps its documented meaning and its guarantee that it does
+not move when stock is merely travelling. "What can I sell?" must never include
+a faulty phone; "what do I own?" must never exclude one — one number cannot
+answer both.
+
+`DailyRollup` gains `returns_adjustments`; `DailyClosing` gains
+`total_return_adjustments` and `total_returns_cogs_credited`. All positive
+magnitudes, added or subtracted explicitly.
+
+#### Migration `0037`
+
+Additive and rerun-safe (guarded `information_schema` probes through prepared
+statements, as `0036`). Backup
+`~/erp-backups/phonestore-i2cp41-20260815-030708.sql` — 330 019 bytes, 58 tables,
+6 triggers, 0 raw `_binary`. Proven on a restored copy, a rerun of it, a clean
+build of all 37 migrations, and dev; reverse SQL executed; `prisma_p41` and
+`prisma_c41` dropped; sanitised copy removed. Dev unchanged: sales 7 / 10 051.00,
+units checksum `2a1dc9bf284afde32b402ad108d38a76`.
+
+**Backend 66 suites / 956 tests.**
+
+#### Technical debt recorded, not fixed here
+
+The global exception filter reports **every** `PrismaClientValidationError` as
+`"Invalid query parameters"`, whatever the cause. It cost real debugging time in
+CP4 when the notifier wrote a field that did not exist on `Notification`.
+Deliberately not redesigned — I2 is not the phase to rework the global filter.
+

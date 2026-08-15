@@ -22,12 +22,32 @@
 | **CP2.1** 58-vs-57 table reconciliation | ✅ docs `47bea21` |
 | **CP3** request, custody, investigation, adjustments, queries | ✅ backend `6b75ee0` |
 | **CP4** approval, rejection, immutable reversal, accounting | ✅ backend `bc5071d` |
+| **CP4.1** returned-inventory and COGS correction | ✅ backend `404bee9` |
 | **CP5** mobile Returns workflow | ❌ **NOT STARTED** |
 | **CP6** full verification matrix | ❌ **NOT STARTED** |
 
 **The backend API is complete and live-verified. No mobile screen consumes it.**
 Nothing is half-built: the mobile repository is untouched at `d4ee658`, and
 there is no partial migration or broken build anywhere.
+
+### CP4.1 — the accounting correction (read before touching reports)
+
+An approved return now **reverses revenue, credits the line's immutable COGS
+snapshot back, and reinstates that cost as faulty/return-held inventory value** —
+owned, never sellable.
+
+```
+profit effect = − gross refund + adjustments + COGS credit
+```
+
+so cumulative profit across a sale and its return equals the adjustment income
+alone. CP4's original treatment (no COGS credit, asset excluded everywhere) was
+a full write-off decided before inspection, and was never approved. Impairment
+or recovery is the later inspection milestone's decision.
+
+Inventory is now three figures — `sellableInventoryValue`, `faultyHeldValue`
+and `totalOwnedInventoryValue`. `totalStockValue` keeps its meaning and its
+"does not move when stock is travelling" guarantee. Detail: `docs/27` §16.11.
 
 ### Next exact action
 
@@ -52,8 +72,8 @@ is held and not sellable. Do not build payout confirmation (that is I3).
 
 ### Verification at handoff
 
-- Backend **65 suites / 935 tests**, `tsc` clean, `prisma validate` valid,
-  **36 migrations**, "Database schema is up to date".
+- Backend **66 suites / 956 tests**, `tsc` clean, `prisma validate` valid,
+  **37 migrations**, "Database schema is up to date".
 - **62 of 63 live HTTP checks** passed against real MySQL. The one failure was
   the harness comparing a MySQL `DATE` through `String()` against an ISO slice;
   the recorded approval date was correct and was confirmed independently from
@@ -62,10 +82,11 @@ is held and not sellable. Do not build payout confirmation (that is I3).
 
 ### Backup and temporary state
 
-- Backup: `~/erp-backups/phonestore-i2-20260814-185656.sql` — 305 824 bytes,
-  55 tables, 4 triggers, 0 raw `_binary`, restore proven.
+- Backups: `~/erp-backups/phonestore-i2-20260814-185656.sql` (pre-`0036`) and
+  `~/erp-backups/phonestore-i2cp41-20260815-030708.sql` (pre-`0037`, 330 019
+  bytes, 58 tables, 6 triggers, 0 raw `_binary`). Both restore-proven.
 - **All temporary databases dropped** (`prisma_i2_pre`, `prisma_i2_clean`,
-  `prisma_r`, `prisma_c`); sanitised dump copies removed.
+  `prisma_r`, `prisma_c`, `prisma_p41`, `prisma_c41`); sanitised copies removed.
 - The verification server on port 3099 was started by this session and
   **stopped**. The user's own backend and Expo server were never touched.
 
@@ -80,6 +101,21 @@ is held and not sellable. Do not build payout confirmation (that is I3).
 - Sales, sale items, payments and closings fingerprinted **identical** before and
   after. 0 return requests, 0 reversals, legacy `returns` still empty.
 - The demo Owner password was **not** changed.
+
+### Verification identities for CP6 — reuse, do not multiply
+
+Three spent probes exist: `i2p9b1b04_{own,mgr,emp}_spent`, deactivated, already
+referenced by audit rows and therefore permanent. **Reuse them** rather than
+creating more that become equally undeletable:
+
+- generate a fresh random password in memory only, hash it with the application's
+  own Argon2id call, and write it to those three rows for the run;
+- re-activate and (re)assign them to the branch under test;
+- afterwards set `is_active = 0` again and leave the names as they are;
+- never touch a real user or the demo Owner.
+
+That keeps the permanent probe count at three. If a run needs a role those three
+cannot cover, add ONE more and record why here rather than creating a set.
 
 ### Open items carried forward
 
@@ -114,7 +150,7 @@ All clean, all `master`, all level with `origin`.
 
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
-| Backend (`erp-backend`) | master | `bc5071d` | `bc5071d` | clean |
+| Backend (`erp-backend`) | master | `404bee9` | `404bee9` | clean |
 | Mobile (`erp-mobile`) | master | `d4ee658` | `d4ee658` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
