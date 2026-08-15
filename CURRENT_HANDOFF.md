@@ -8,17 +8,96 @@
 
 - Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15** — resumed from own checkpoint; UX1–UX4 stand
-  as committed and are **not** being redone.
-- Authorised task: **finish Milestone A** — UX checkpoints 5–9 (Sell, Inventory,
-  Supplier and Return-detail pilots, then localise the remaining hardcoded
-  screens and return the full mobile baseline to green). The failing
-  `transfer-draft.test.ts` is no longer allowed to stand as "pre-existing".
-- Resumption verification (checked, every value matched): docs `347a2e4` ·
-  backend `393f6fb` · mobile `3bfc7fb` · all three clean and level · migration
-  `0039` applied, schema up to date · mobile `tsc` clean · EN/AR **1059** keys
-  each · UX checkpoints 1–4 committed.
-- Next intended action: repair `lib/transfer-draft.test.ts`, then the Sell pilot.
+- `started_at_utc`: **2026-08-15**
+- Authorised task: **Milestone A, checkpoints 5–9.** Then milestones B–L of the
+  overnight queue.
+
+### Milestone A — 7 of 9 checkpoints complete
+
+| Checkpoint | State | Commit |
+|---|---|---|
+| 1 · Audit and visual direction | ✅ | docs `205b34a` |
+| 2 · Tokens and typography | ✅ | mobile `7f7cce2` |
+| 3 · Shared components and gallery | ✅ | mobile `c3d2202` |
+| 4 · Navigation and role landing (Pilot 1) | ✅ | mobile `21f8250`, `3bfc7fb` |
+| — · Repair the transfer-draft suite | ✅ | mobile `eeb23cc` |
+| 5 · **Sell pilot** | ✅ | mobile `5d10d5c` |
+| 8 · **Return-detail pilot** | ✅ | mobile `bc19929` |
+| 7 · **Supplier pilot** | ◐ **partial** | mobile `b0b3e08` |
+| 6 · **Inventory pilot** | ❌ **NOT STARTED** |  |
+| 9 · Localise the remaining screens | ❌ **NOT STARTED** |  |
+
+**Backend untouched** at `393f6fb` — no API-contract defect blocked any pilot,
+so the narrow-fix allowance stayed unused. No migration, no fixtures, no probe,
+no port, no user process touched.
+
+### Next exact action, in order
+
+1. **Finish A7 (Supplier).** Only the ledger money column was converted so far
+   (`app/suppliers/[id].tsx`). Still to do: `app/suppliers/index.tsx` line
+   ~115 still formats `row.outstanding` with `formatMoney` into
+   `ListRow value` — move it to `MoneyValue` via `accessory`; the
+   settlement rows at `[id].tsx` ~330 and the purchase rows ~234 likewise;
+   confirm empty/loading/error states and that an Employee sees no ledger.
+2. **A6 (Inventory)** — `app/(tabs)/inventory.tsx`. Already on the design
+   system. Serialized-versus-quantity distinction, unit status clarity,
+   cost-hidden state, and inventory value via `MoneyValue`. **Preserve
+   server-side pagination and search.**
+3. **A9** — localise the five remaining hardcoded-English screens, in the
+   `docs/29` §9 order: `closing`, `unit/[identifier]`, `(tabs)/more`,
+   `select-branch`, `analytics`. Then add the gallery entries for anything
+   new and run the full verification list.
+4. Then **Milestone B** (immutable financial correction) — the production
+   blocker recorded below.
+
+### Verification at this checkpoint
+
+- Mobile `tsc` clean · `expo lint` clean (0 errors, 0 warnings) · web export
+  **40 routes** · **EN and AR both 1068 keys** · **zero raw hex** in `app/`
+  and `components/`.
+- **Pure suites 7 of 7 green.** The baseline is fully restored:
+  `transfer-draft.test.ts` was repaired rather than carried forward again, and
+  a new `return-timeline.test.ts` adds 8 checks.
+- **No device pass.** Nothing visual is claimed as device-verified;
+  `docs/24` §9h is the script.
+
+### What A5/A7/A8 changed
+
+- **Sell** — below-cost is warned about **in the cart**, not in the dialog after
+  Charge is pressed, because by then the cashier has already quoted a price.
+  Charge is shut while offline, with a notice saying why. Total uses
+  `MoneyValue`.
+- **Return detail** — `WorkflowTimeline` replaces the flat event log.
+  `lib/return-timeline.ts` maps the lifecycle; a **reported** payout renders
+  `current` (warning) and explicitly never `done`, because a green tick reads
+  as "someone paid this" before anyone agreed the money left. A **rejected**
+  return drops the money stages entirely rather than greying them out.
+- **Supplier** — the ledger column is tabular, and a withheld figure renders as
+  an em dash rather than something that looks like "you owe nothing".
+
+### Open items
+
+1. **A6, A9, and the rest of A7** — see "Next exact action".
+2. **Five screens still hardcoded English** — `closing`,
+   `unit/[identifier]`, `(tabs)/more`, `select-branch`, `analytics`.
+3. **A lint rule is still missing** that would stop a new screen shipping
+   untranslated, using `className` on native, or unreachable from navigation.
+4. **Device passes** — `docs/24` §9b–§9h all outstanding.
+5. **Technical debt:** every `PrismaClientValidationError` reports as
+   "Invalid query parameters"; it has hidden a real bug twice.
+6. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+7. **Cost gating has no live negative case** — every store role holds
+   `cost.view`; a product question for `docs/03`.
+8. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
+
+### PRODUCTION BLOCKER — Milestone B
+
+**A confirmed refund payout and a confirmed supplier settlement cannot be
+corrected.** Both are immutable by design and nothing financial is
+hard-deleted — but no compensating reversal path exists, so a confirmation made
+in error has no in-app remedy. Must be solved before real money runs through
+the system. Design recorded in the overnight brief; audit notes in `docs/29`
+§10.
 
 ### UX redesign milestone — checkpoints 1–4 of 9 complete
 

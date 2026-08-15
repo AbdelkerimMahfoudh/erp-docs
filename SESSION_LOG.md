@@ -3839,3 +3839,59 @@ and legibility in sunlight.
 
 No backend change, no migration, no fixtures, no probes, no ports, no user
 process touched.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Milestone A checkpoints 5–8 (intermediate)
+
+**Repositories:** mobile `3bfc7fb` → `b0b3e08`; docs `347a2e4` → this entry.
+Backend untouched at `393f6fb`.
+
+**Resumption.** Every expected value matched: three repos clean and level,
+migration `0039` applied, mobile `tsc` clean, EN/AR 1059, UX1–UX4 committed,
+`READY_FOR_HANDOFF`/NONE. Ownership reclaimed; nothing from UX1–UX4 redone.
+
+**The transfer-draft suite was repaired rather than carried forward again.** It
+had been failing since H1.4 and had survived several sessions as a "known
+pre-existing" item. The cause was not a regression: H1.4 split the draft into
+serialized and quantity lines, and the test was never moved across — it imported
+names that no longer existed, so the file died at import and every rule it
+guarded was silently unguarded. One assertion could not be carried over as
+written, because the rule it proved is gone by design: a quantity product used
+to be refused, and now merges, since scanning the same box of cables twice means
+two of them. The test proves the merge instead, plus the availability ceiling
+and the nothing-free case. 14 checks pass.
+
+**Sell.** Below-cost was only ever said in the dialog after Charge was pressed —
+by which time the cashier has quoted the customer a price, and learning the sale
+needs a manager makes the shop look disorganised in front of them. The warning
+now sits in the cart beside the money. It appears only when every line's cost
+came back: without `cost.view` the server strips it and `cartCost` returns
+undefined rather than guessing, so that cashier gets no warning and the server
+still refuses the sale. Charge is also shut while offline, since a sale taken
+then fails at the server *after* the customer has paid.
+
+**Return detail.** The screen rendered the server's append-only event log as a
+flat column of identical rows — faithful, and the wrong answer to "where has
+this got to and what has not happened yet", because an event log structurally
+cannot show a stage that has not occurred. `lib/return-timeline.ts` maps the
+lifecycle instead and `WorkflowTimeline` gives each stage a shape before a
+colour.
+
+The rule now pinned by eight assertions: **a reported payout is never done.** It
+renders `current`, warning-toned, because a green tick reads as "someone paid
+this" before an owner or manager has agreed the money left. Only confirmation is
+allowed to look settled. A rejected return drops the money stages entirely
+rather than greying them out — greyed-out stages would imply something is still
+owed, and nothing is.
+
+**Supplier (partial).** The ledger column is now tabular, and a withheld figure
+renders as an em dash rather than as something resembling "you owe nothing". The
+list screen and settlement rows are still on `formatMoney`.
+
+**Verification.** `tsc` and `expo lint` clean, 40 routes export, EN/AR both
+1068, zero raw hex in `app/` and `components/`, **all seven pure suites green**.
+No device pass; nothing visual claimed as device-verified.
+
+**Not done: A6 (Inventory), A9 (localise five screens), and the rest of A7.**
+No backend change, no migration, no fixtures, no probes, no ports.
