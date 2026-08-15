@@ -3297,3 +3297,98 @@ unstarted.** The backend is complete and correct; no screen consumes it.
 
 **Commits:** backend `404bee9` · mobile `d4ee658` (unchanged) · docs the commit
 carrying this entry.
+
+---
+
+## 2026-08-15 — CLAUDE-B — I2-CP5 and CP6: Phase I2 complete
+
+Mobile `c7dfadc` · docs the commit carrying this entry. Backend unchanged
+(`404bee9`).
+
+### The takeover found one discrepancy, and it was mine
+
+The previous handoff said 37 migrations. There are **36**, numbered 0001–0037
+with **`0005` unused** — a pre-existing gap, not a missing migration. Prisma
+reports 36 found and the database records 36 applied. I introduced the wrong
+figure in CP4.1 by misreading my own clean-build loop message, and it had spread
+into `docs/27` and this log. Corrected in all three, because the alternative is
+the next reader hunting for a migration that never existed.
+
+### CP5 — the mobile workflow
+
+Three routes (`/returns`, `/returns/new`, `/returns/[id]`) plus a custody sheet
+and an investigation sheet, built on the existing design system, scanner,
+dialog, toast, status registry and permission catalogue. No new infrastructure.
+
+The wording is the substance. Every figure is provisional until approval and
+agreed after it; an approved return says **"refund due — payment has not yet
+been confirmed"** beside "the phone is held and is not for sale". **The word
+"refunded" appears nowhere in I2**, because nothing has been.
+
+`approved_refund_due` is toned `info`, not `success`: the shop now owes money it
+has not paid, and green reads as "settled".
+
+Status comes from the shared registry, so colour without words is not
+expressible — adding the three return domains was a type error until their EN
+and AR strings existed. 871 keys each side, verified equal.
+
+Actions are gated by permission **and** lifecycle, so a reachable route never
+implies an available decision. Approve is disabled until the phone is held;
+customer-damage warns that only the Owner can approve *before* a manager tries;
+the exception path demands a reason and never falls back to normal approval. A
+409 is never retried — the server already decided, so the screen refreshes and
+shows what won. One `clientUuid` per logical request, reused across retries.
+
+Cost renders **"Hidden"** when gated, never `0`. "Request return" appears only
+on serialized sale lines.
+
+### CP6 — a genuinely green run
+
+**74 live checks, 0 failed** against real MySQL. The earlier 62/63 run predated
+CP4.1 and was replaced rather than explained away. Two obsolete assertions in the
+harness were corrected as part of getting there: one expected `returns_revenue`
+to be the net refund, which CP4.1 deliberately changed to the gross, and one
+compared a MySQL `DATE` through `String()` against an ISO slice.
+
+Accounting proved against the database: gross = immutable line revenue, COGS
+credit = immutable line cost, net = gross − adjustments, profit effect =
+− gross + adjustments + COGS credit, adjustments counted once, the unit `faulty`
+with its cost preserved, excluded from sellable stock and carried in
+faulty-held. Sale, sale items, payments and closings byte-identical.
+
+### Verification identities, reused rather than multiplied
+
+The three probes CP4 could not delete — `audit_logs.user_id` references them and
+audit history is append-only — were reactivated for the run with a password that
+existed only in the process, then returned to deactivated spent state. **No new
+permanent identity was created.** Total users remains 9.
+
+### Integrity after the run
+
+Sales 7 / 10 051.00, units checksum `2a1dc9bf284afde32b402ad108d38a76`, unit
+statuses back to `in_stock=3, sold=8`, 0 return requests / reversals /
+adjustments. Notifications returned to **41**: the 39 the runs created pointed at
+returns that no longer exist and are not append-only, so they were removed. Audit
+grew **289 → 305** and every row was preserved — 16 append-only records of what
+the verification legitimately did.
+
+The demo Owner password was not touched. The verification server on 3099 was
+started by this session and stopped; no process belonging to the user was
+affected.
+
+### Verification totals
+
+Backend **66 suites / 956 tests**, `tsc` clean, `prisma validate` valid, 36
+migrations, schema up to date. Mobile `tsc` and `expo lint` clean, web export
+lists all three new routes, EN/AR parity exact.
+
+### Next
+
+**I3 — refund payout confirmation**, the receiving-account/payment record,
+refund receipt and PDF sharing, and any remaining accessory settlement. Not
+started. Also open: cost recovery for phones held `faulty` (`returns_cogs`
+exists for it), supplier reimbursement, customer-credit settlement, technician
+inspection, independent quantity returns, and the device pass in `docs/24` §9e.
+
+**Commits:** backend `404bee9` · mobile `c7dfadc` · docs the commit carrying
+this entry.

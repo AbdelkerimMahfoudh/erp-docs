@@ -890,8 +890,12 @@ deliberately not performed.
 > refund receipt, supplier reimbursement, customer-credit settlement, technician
 > inspection and cost recovery, independent quantity-product returns.
 >
-> **Not yet built in I2:** the mobile Returns workflow (CP5). The API is
-> complete and live-verified; no screen consumes it yet.
+> **The mobile workflow shipped in CP5.** Returns list, request (scan or manual
+> IMEI, or from a sale line), detail with timeline, custody intake,
+> investigation with draft adjustments, and role-gated approve/reject including
+> the Owner-only exception. Every figure is provisional until approval; an
+> approved return says "refund due — payment has not yet been confirmed". The
+> word "refunded" appears nowhere in I2.
 
 🟡 **Partly unblocked (0019).** Migration `0019_settings_foundation` created the
 two things several of these decisions were waiting on:

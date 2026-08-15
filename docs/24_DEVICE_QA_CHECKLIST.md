@@ -349,3 +349,59 @@ the receipt they are actually handed.
 - On a small screen, does the payment sheet still fit with the policy control in
   it, or does Complete get pushed below the fold?
 
+
+## 9e. The Returns workflow (I2) — **never touched on a device**
+
+Verified by a type checker, a linter and a web export only. The two questions
+worth most: can an employee complete a return with a customer waiting, and does
+an approved return read as "we owe this" rather than "we paid it".
+
+### Raising one
+
+1. **More → Returns → Request a return.** Tap **Scan the phone**. Dial `*#06#`
+   on the customer's phone and scan the IMEI **from its screen**, not the box.
+2. Scan a box barcode instead. It must not silently match a different phone.
+3. Type an IMEI by hand. The whole flow must complete with the camera never
+   opened — permission denied included.
+4. Type an IMEI that was never sold. The message must say what to try next.
+5. Start from **Sales → a sale → Request return** on a phone line. An accessory
+   line must offer no such button.
+6. Fill the form, press back. It must ask before discarding.
+7. Submit with a dead connection, then retry when it returns. **Exactly one**
+   return must exist afterwards.
+
+### Custody
+
+8. Raise one with "Customer still has it". The phone stays sellable; the screen
+   says approval cannot happen yet.
+9. Record intake with the wrong IMEI — refused, and nothing changes.
+10. Record it with the right IMEI. Try to sell that phone: it must be refused.
+11. Record intake twice. The second must not look like a failure.
+
+### Deciding
+
+12. As an **employee**: no Investigate, Approve or Reject buttons.
+13. As a **manager**: investigate, set responsibility, add a withheld charge.
+    Totals must come back from the server and match what approval later records.
+14. Add a charge larger than the refund — refused, in words.
+15. Set **customer-caused damage**. The warning that only the Owner can approve
+    must appear *before* trying.
+16. As a **manager** on an out-of-policy return: Approve must refuse.
+17. As the **Owner**: approve it with a reason. The reason must be required.
+18. Two devices approve and reject the same return at once. Exactly one wins;
+    the loser refreshes and shows what actually happened.
+19. After approval the screen must say **refund due, payment not confirmed**,
+    and that the phone is held and not for sale.
+
+### Arabic and layout
+
+20. Switch to Arabic. Every Returns screen: no English leaks, IMEI still reads
+    left-to-right, the money column does not collide with labels.
+21. Bottom action buttons must not cover the last field with the keyboard open.
+22. Tap targets on the adjustment rows are reachable one-handed.
+
+### What only a device can answer
+
+- Does scanning a phone's own screen actually focus, or does the glare beat it?
+- Is "Refund due — payment has not yet been confirmed" understood as *not paid*?
+- Can a manager finish an investigation with a customer standing there?

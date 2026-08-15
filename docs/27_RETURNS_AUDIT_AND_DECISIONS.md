@@ -1249,3 +1249,107 @@ The global exception filter reports **every** `PrismaClientValidationError` as
 CP4 when the notifier wrote a field that did not exist on `Notification`.
 Deliberately not redesigned — I2 is not the phase to rework the global filter.
 
+
+### 16.12 I2-CP5 and CP6 — the mobile workflow, and the green run
+
+Mobile `c7dfadc`. **Phase I2 is complete.**
+
+#### Screens and routes
+
+| Route | Purpose |
+|---|---|
+| `/returns` | branch-scoped, keyset-paged list; SQL search by invoice, IMEI, serial; status filters |
+| `/returns/new` | one shared request form, reached by scan, manual IMEI, or from a sale line |
+| `/returns/[id]` | detail, timeline, money, and every role-gated action |
+
+Plus `CustodySheet` (intake) and `InvestigationSheet` (responsibility, notes,
+draft adjustments). The Returns entry appears in **More** for `return.view`.
+
+#### What the screens will and will not say
+
+Every figure is labelled **provisional** until approval and **agreed** after it.
+An approved return shows *"Refund due — payment has not yet been confirmed"*
+beside *"The phone is held and is not for sale."* The word **"refunded" appears
+nowhere in I2**, because nothing has been: this milestone records an obligation,
+and I3 pays it.
+
+`approved_refund_due` is toned `info`, not `success`. Nothing good has finished
+happening — the shop now owes money it has not paid, and green reads as
+"settled" to somebody glancing at a list.
+
+Cost shows **"Hidden"** when `cost.view` gated it, never `0`: an absent field
+and a zero cost are different facts.
+
+Status comes from the shared registry, so a colour without words is not
+expressible. Adding the three return domains was a **type error** until their EN
+and AR strings existed — 871 keys each side, verified equal.
+
+#### Actions are gated twice
+
+Permission **and** lifecycle. A reachable route never implies an available
+decision: Approve is disabled until the phone is physically held; customer-caused
+damage warns that only the Owner can approve it *before* a manager tries; the
+Owner exception path demands a written reason and never falls back to a normal
+approval. A 409 is never retried — it means the server already decided, so the
+screen refreshes and shows the outcome that won.
+
+One `clientUuid` per logical request, reused across retries, so a flaky
+connection cannot turn one complaint into two claims.
+
+"Request return" appears on a sale line **only for serialized items** —
+an accessory has no unit to present, and inventing an independent quantity
+return is exactly what §16.4 says cannot be inferred.
+
+#### CP6 — the live run
+
+**74 checks passed, 0 failed** against real MySQL over real HTTP. The earlier
+62/63 run predated CP4.1 and does not count; this run replaces it.
+
+Covered: employee request with customer custody and with store intake · exact
+IMEI matching and mismatch refusal · idempotent replay · changed-payload 409 ·
+duplicate active claim refused · manager investigation · draft adjustment
+create/remove · server-calculated totals · adjustments over gross refused ·
+negative adjustment refused · stale-version 409 · employee refused
+review/approve/adjust · manager refused an out-of-policy approval · Owner
+refused without a reason, then approving with one · exactly one reversal · second
+approval refused · approved return not then rejectable · returned phone refused
+for sale · malformed and unknown ids · legacy endpoint still 410 and
+mutation-free · list paging, `?limit=` conversion, search and filters.
+
+**Accounting proved against the database:**
+
+| Claim | Result |
+|---|---|
+| gross refund = immutable line revenue | ✅ |
+| COGS credit = immutable line cost | ✅ |
+| net = gross − adjustments | ✅ |
+| profit effect = − gross + adjustments + COGS credit | ✅ |
+| adjustments counted exactly once | ✅ |
+| rollup records gross, adjustments and COGS separately | ✅ |
+| unit becomes `faulty`, cost preserved not zeroed | ✅ |
+| returned phone excluded from sellable stock | ✅ |
+| faulty-held inventory carries that cost | ✅ |
+| sale, sale items, payments, closings byte-identical | ✅ |
+
+#### Verification identities — reused, not multiplied
+
+The three probes the CP4 run could not delete (`audit_logs.user_id` references
+them, and audit history is append-only) were **reused**: reactivated, given a
+password that existed only in the process, exercised, then returned to
+deactivated spent state. **No new permanent identity was created.** Total users
+remains 9 — six demo, three spent probes.
+
+#### Demo-data integrity after CP6
+
+Sales **7 / 10 051.00**, units checksum
+**`2a1dc9bf284afde32b402ad108d38a76`**, unit statuses back to `in_stock=3,
+sold=8`, 0 return requests / reversals / adjustments, notifications back to
+**41**. Audit grew **289 → 305**: 16 append-only rows from legitimate
+verification, preserved and reported. The demo Owner password was not touched.
+
+#### Still device-only
+
+Camera scanning of a phone's `*#06#` display, haptics, bottom-sheet gestures,
+Arabic **visual** RTL and keyboard behaviour are unverified by anything but a
+type checker, a linter and a web export. `docs/24` §9e lists them.
+

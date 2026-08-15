@@ -6,155 +6,84 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15 (CP5/CP6 takeover)**
-- Current authorised task: **I2-CP5 (mobile Returns workflow) and I2-CP6 (full
-  end-to-end verification), completing Phase I2.** CP4.1's approved accounting
-  treatment is settled and is NOT reopened.
-- Takeover verification (checked, not assumed): backend `404bee9` · mobile
-  `d4ee658` · docs `3b6244b` · **66 suites / 956 tests** · schema up to date ·
-  `prisma validate` valid · all three trees clean and level ·
-  `READY_FOR_HANDOFF` / owner `NONE`.
-- **One discrepancy found, and it was a documentation error of mine.** The
-  previous handoff said "37 migrations". There are **36**, numbered 0001–0037
-  with **`0005` unused** — a pre-existing gap in numbering, not a missing
-  migration. Prisma reports "36 migrations found" and the database records 36
-  applied. I introduced the wrong figure in CP4.1 by misreading a clean-build
-  loop message. Corrected everywhere below.
-- Next intended action: audit the nine Returns endpoints against their real
-  serialized HTTP responses, then build the mobile workflow.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- `finished_at_utc`: **2026-08-15**
+- **Phase I2 is COMPLETE.** CP1 → CP6, including the CP2.1 reconciliation and
+  the CP4.1 accounting correction.
 
-### ⚠️ I2 is PARTLY complete — read this before planning
+### I2 — what shipped
 
-| Checkpoint | State |
+| Checkpoint | Commit |
 |---|---|
-| **CP1** takeover, audit, backup and restore proof | ✅ docs `d81f86a` |
-| **CP2** schema, migration `0036`, permissions, drift tests | ✅ backend `e65d243` |
-| **CP2.1** 58-vs-57 table reconciliation | ✅ docs `47bea21` |
-| **CP3** request, custody, investigation, adjustments, queries | ✅ backend `6b75ee0` |
-| **CP4** approval, rejection, immutable reversal, accounting | ✅ backend `bc5071d` |
-| **CP4.1** returned-inventory and COGS correction | ✅ backend `404bee9` |
-| **CP5** mobile Returns workflow | ❌ **NOT STARTED** |
-| **CP6** full verification matrix | ❌ **NOT STARTED** |
-
-**The backend API is complete and live-verified. No mobile screen consumes it.**
-Nothing is half-built: the mobile repository is untouched at `d4ee658`, and
-there is no partial migration or broken build anywhere.
-
-### CP4.1 — the accounting correction (read before touching reports)
-
-An approved return now **reverses revenue, credits the line's immutable COGS
-snapshot back, and reinstates that cost as faulty/return-held inventory value** —
-owned, never sellable.
-
-```
-profit effect = − gross refund + adjustments + COGS credit
-```
-
-so cumulative profit across a sale and its return equals the adjustment income
-alone. CP4's original treatment (no COGS credit, asset excluded everywhere) was
-a full write-off decided before inspection, and was never approved. Impairment
-or recovery is the later inspection milestone's decision.
-
-Inventory is now three figures — `sellableInventoryValue`, `faultyHeldValue`
-and `totalOwnedInventoryValue`. `totalStockValue` keeps its meaning and its
-"does not move when stock is travelling" guarantee. Detail: `docs/27` §16.11.
-
-### Next exact action
-
-**Build CP5 — the mobile Returns workflow** against the live API, then run CP6.
-The endpoints are stable and documented in `docs/27` §16.10:
-
-```
-GET    /v1/returns                        return.view    list, keyset-paged, SQL search
-GET    /v1/returns/:id                    return.view    detail + timeline + provisional money
-POST   /v1/returns                        return.request create (clientUuid idempotent)
-POST   /v1/returns/:id/custody            return.request record physical intake
-PATCH  /v1/returns/:id/investigation      return.review   responsibility + notes
-POST   /v1/returns/:id/adjustments        return.review   draft a withheld charge
-DELETE /v1/returns/:id/adjustments/:aid   return.review   remove a draft
-POST   /v1/returns/:id/approve            return.approve  (+ return.exception when required)
-POST   /v1/returns/:id/reject             return.reject   mandatory reason
-```
-
-Every write takes `expectedVersion`; a stale value is a 409 `refresh_required`.
-The approved screen must say **"refund due — not yet paid"** and that the phone
-is held and not sellable. Do not build payout confirmation (that is I3).
+| CP1 audit, backup, restore proof | docs `d81f86a` |
+| CP2 migration `0036`, permissions, drift tests | backend `e65d243` |
+| CP2.1 table-count reconciliation | docs `47bea21` |
+| CP3 request, custody, investigation, adjustments, queries | backend `6b75ee0` |
+| CP4 approval, rejection, immutable reversal, accounting | backend `bc5071d` |
+| CP4.1 returned-inventory and COGS correction (`0037`) | backend `404bee9` |
+| CP5 mobile Returns workflow | mobile `c7dfadc` |
+| CP6 full verification | this handoff |
 
 ### Verification at handoff
 
 - Backend **66 suites / 956 tests**, `tsc` clean, `prisma validate` valid,
-  **36 migrations**, "Database schema is up to date".
-- **62 of 63 live HTTP checks** passed against real MySQL. The one failure was
-  the harness comparing a MySQL `DATE` through `String()` against an ISO slice;
-  the recorded approval date was correct and was confirmed independently from
-  audit row 900. The assertion is fixed for future runs.
-- Mobile unchanged, so its checks were not re-run.
+  **36 migrations** (0001–0037, `0005` unused), schema up to date.
+- Mobile `tsc` clean, `expo lint` clean, web export lists `/returns`,
+  `/returns/new` and `/returns/[id]`; EN/AR parity exact at **871 keys** each.
+- **74 live HTTP checks, 0 failed**, against real MySQL. This replaces the
+  earlier 62/63 run, which predated CP4.1.
+- Demo data identical to baseline: sales **7 / 10 051.00**, units checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`**, unit statuses `in_stock=3, sold=8`,
+  0 return requests / reversals / adjustments, notifications back to **41**.
+- **Audit grew 289 → 305**: 16 append-only rows from legitimate verification,
+  preserved and reported. Nothing append-only was edited or deleted.
 
-### Backup and temporary state
+### Verification identities — reused, not multiplied
 
-- Backups: `~/erp-backups/phonestore-i2-20260814-185656.sql` (pre-`0036`) and
-  `~/erp-backups/phonestore-i2cp41-20260815-030708.sql` (pre-`0037`, 330 019
-  bytes, 58 tables, 6 triggers, 0 raw `_binary`). Both restore-proven.
-- **All temporary databases dropped** (`prisma_i2_pre`, `prisma_i2_clean`,
-  `prisma_r`, `prisma_c`, `prisma_p41`, `prisma_c41`); sanitised copies removed.
-- The verification server on port 3099 was started by this session and
-  **stopped**. The user's own backend and Expo server were never touched.
+The three probes CP4 could not delete (audit rows reference them) were reused:
+reactivated, given a password that existed only in the running process,
+exercised, then returned to deactivated spent state. **No new permanent identity
+was created** — total users remains 9 (six demo, three spent probes). The demo
+Owner password was not touched, and no process belonging to the user was
+stopped. The verification server on port 3099 was started by this session and
+stopped; port released.
 
-### What the verification legitimately left in the demo database
+### Next milestone — I3, NOT started
 
-- **8 append-only audit rows** (281 → 289), preserved as required.
-- **3 probe users could NOT be deleted** because those audit rows reference them
-  through `audit_logs.user_id`. They are deactivated and renamed
-  `i2p9b1b04_{own,mgr,emp}_spent`. Deleting them would have required editing
-  audit history. A future phase may prefer probe identities that never touch
-  audited paths, or an agreed retention rule.
-- Sales, sale items, payments and closings fingerprinted **identical** before and
-  after. 0 return requests, 0 reversals, legacy `returns` still empty.
-- The demo Owner password was **not** changed.
+Refund **payout confirmation**: recording that money actually moved, the
+receiving account / payment record, refund receipt and PDF sharing, and any
+remaining accessory settlement. I2 deliberately has no `refunded` state, so I3
+adds one rather than repurposing anything.
 
-### Verification identities for CP6 — reuse, do not multiply
-
-Three spent probes exist: `i2p9b1b04_{own,mgr,emp}_spent`, deactivated, already
-referenced by audit rows and therefore permanent. **Reuse them** rather than
-creating more that become equally undeletable:
-
-- generate a fresh random password in memory only, hash it with the application's
-  own Argon2id call, and write it to those three rows for the run;
-- re-activate and (re)assign them to the branch under test;
-- afterwards set `is_active = 0` again and leave the names as they are;
-- never touch a real user or the demo Owner.
-
-That keeps the permanent probe count at three. If a run needs a role those three
-cannot cover, add ONE more and record why here rather than creating a set.
+Also waiting for I3 or later: supplier reimbursement, customer-credit
+settlement, technician inspection and the **cost-recovery decision** for phones
+held as `faulty` (`returns_cogs` exists for that day), and independent
+quantity-product returns.
 
 ### Open items carried forward
 
-1. **The mobile Returns workflow (CP5) and the CP6 matrix.** The main work left.
-2. **A misleading error message.** Any `PrismaClientValidationError` is reported
-   as "Invalid query parameters" by the global filter, whatever the cause. It
-   cost real debugging time when the notifier wrote a field that did not exist.
+1. **Device pass for Returns** — `docs/24` §9e (22 checks). Camera scanning of a
+   phone's own `*#06#` display, haptics, sheet gestures and Arabic visual RTL
+   are unverified by anything but tooling. §9b/§9c/§9d remain outstanding too.
+2. **Technical debt: a misleading error message.** Every
+   `PrismaClientValidationError` is reported as "Invalid query parameters"
+   whatever the cause. It cost real debugging time in CP4. Deliberately not
+   fixed — I2 was not the phase to redesign the global filter.
 3. **`OWNER_SEED_PASSWORD` still does not authenticate the owner** — the seed
-   upserts with `update: {}`. Unchanged from I1; still worth a deliberate fix.
+   upserts with `update: {}`. Unchanged since I1.
 4. **Cost gating has no live negative case** — every store role holds
    `cost.view`. A product question for `docs/03`, untouched by I2 as instructed.
 5. **`mobile/lib/transfer-draft.test.ts` cannot run** (renamed export since
    `3c016e3`). Belongs to the transfer work.
-6. **Device passes outstanding** — `docs/24` §9b/§9c/§9d.
-7. **`prisma migrate deploy` cannot target an overridden `DATABASE_URL`** on this
-   machine; recorded in `docs/27` §16.9 and deliberately not chased.
-
-### After I2 — I3
-
-Refund payout confirmation, receiving-account selection, refund receipt sharing,
-supplier reimbursement, customer-credit settlement, technician inspection and
-cost recovery, and independent quantity-product returns.
+6. **`prisma migrate deploy` cannot target an overridden `DATABASE_URL`** on this
+   machine — `docs/27` §16.9. Blocks nothing.
 
 > **Account labels.** Several older entries (G1 backend, G1 mobile, G2A-CP1)
 > recorded themselves as `CLAUDE-B` when the work was `CLAUDE-A` — only those
-> labels were wrong; the work in them is correct. Read any `CLAUDE-B`
-> attribution dated **2026-08-05/06** as `CLAUDE-A`.
+> labels were wrong. Read any `CLAUDE-B` attribution dated **2026-08-05/06** as
+> `CLAUDE-A`.
 
 ## Repository state
 
@@ -163,7 +92,7 @@ All clean, all `master`, all level with `origin`.
 | Repository | Branch | Local HEAD | Remote HEAD | Working tree |
 |---|---|---|---|---|
 | Backend (`erp-backend`) | master | `404bee9` | `404bee9` | clean |
-| Mobile (`erp-mobile`) | master | `d4ee658` | `d4ee658` | clean |
+| Mobile (`erp-mobile`) | master | `c7dfadc` | `c7dfadc` | clean |
 | Documentation (`erp-docs`) | master | *the commit carrying this handoff* | same | clean |
 
 H1.4 commits — backend `3ae972b` (CP2: migration 0034) · `46cbbe6` (CP3:
