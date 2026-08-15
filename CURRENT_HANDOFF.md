@@ -9,8 +9,107 @@
 - Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-B**
 - `started_at_utc`: **2026-08-15**
-- Authorised task: **Milestone A, checkpoints 5–9.** Then milestones B–L of the
-  overnight queue.
+- Authorised task: **Milestone A (done), then B and C.** Do **not** begin D.
+
+### Milestone A — COMPLETE (9 of 9)
+
+| Checkpoint | Commit |
+|---|---|
+| A1 audit and visual direction | docs `205b34a` |
+| A2 tokens and typography | mobile `7f7cce2` |
+| A3 shared components and gallery | mobile `c3d2202` |
+| A4 navigation and role landing | mobile `21f8250`, `3bfc7fb` |
+| — transfer-draft suite repaired | mobile `eeb23cc` |
+| A5 Sell pilot | mobile `5d10d5c` |
+| A8 Return-detail pilot | mobile `bc19929` |
+| A7 Supplier pilot | mobile `b0b3e08`, `3953ff4` |
+| A6 Inventory pilot | mobile `90b5813` |
+| A9 i18n completion | mobile `9789856` |
+
+**All six formerly-hardcoded-English screens now import i18n.** Gate passed:
+`tsc`, `expo lint`, **Expo Doctor 18/18**, web export **40 routes**, EN/AR
+both **1140**, **7/7 pure suites**, **zero raw hex** outside the token layer.
+No device pass — nothing visual is claimed as device-verified.
+
+### Milestone B — CP1 of ~4 complete
+
+| Step | State |
+|---|---|
+| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | ✅ backend `eb0278c` |
+| **B-CP2** service layer: request / approve / reject, derivation exclusion | ❌ **NEXT** |
+| **B-CP3** mobile correction workflow | ❌ |
+| **B-CP4** live HTTP/MySQL lifecycle, docs | ❌ |
+
+**The design, so it is not re-derived.** Both liabilities are already DERIVED
+from `status = 'confirmed'` rows — supplier outstanding from purchases minus
+confirmed allocations (`suppliers.service.outstandingBySupplier`), refund
+liability from approved reversals minus confirmed payouts
+(`returns.service.refundSummary`). **So a correction writes nothing back to
+the row it corrects.** It restores the liability by existing, because the
+derivation queries must exclude any target carrying an approved correction.
+That makes "restored exactly once" and "no double correction" schema
+properties, enforced by the `active_target_*` partial-unique columns.
+
+### Next exact action — B-CP2
+
+1. **Exclude corrected targets from both derivations.** Add to the two queries
+   above: `AND NOT EXISTS (SELECT 1 FROM financial_corrections c WHERE
+   c.target_… = <row>.id AND c.status = 'approved')`. **These two edits are
+   what actually restore the liability** — without them the correction record
+   exists and changes nothing.
+2. Build `src/corrections/` — module, service, controller, DTOs:
+   - `POST /v1/corrections` (`financial.correction.request`) — target,
+     mandatory reason, optional reference, `expectedVersion`, `clientUuid`.
+     Copies amount/method/label from the target; changes no money.
+   - `POST /v1/corrections/:id/approve` (`financial.correction.approve`,
+     Owner only) — sets `correction_date` to the current open business day,
+     **409 if that day is locked**, optimistic `version`.
+   - `POST /v1/corrections/:id/reject` (same permission).
+   - `GET /v1/corrections` and `GET /v1/corrections/:id`.
+   - `isUuid` guard on every `:id` — a malformed id must 404, not 500
+     (the defect J1 shipped and I1 shipped before it).
+3. Rollup: add the `corrections_*` components keyed on `correction_date`,
+   and subtract corrected cash in `closing.service` expected cash — **once**.
+4. Receipts: a corrected payout's receipt stays retrievable and must say a
+   correction exists. **Never rewrite an issued receipt payload.**
+
+### Verification at this checkpoint
+
+- Backend **70 suites / 1070 tests**, `tsc` clean, `prisma validate` valid,
+  **39 migrations** (0001–0040, `0005` unused), schema up to date.
+- Migration `0040` proven on a restored copy, a rerun, and dev. Seven
+  constraints exercised against real MySQL, including the double-correction
+  guard. Both scratch databases (`prisma_b0`, `prisma_b1`) dropped.
+- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
+  61 tables, 7 triggers, 0 raw `_binary`; **restore proven before migrating**
+  (61/61 tables, 7/7 triggers, units checksum
+  `2a1dc9bf284afde32b402ad108d38a76` identical).
+- **A real drift was found and fixed**: `0039` grants
+  `supplier.payment.*` to store roles and the seed matrix never did, so a
+  seeded company differed from a migrated one. The drift test missed it because
+  `0039` was absent from its own hand-maintained list. Both fixed; the Owner
+  count assertion (36 → 40) now records that it moved late.
+- No live HTTP run yet for B. No fixtures created on dev. No probe used.
+
+### Milestone C — not started
+
+IMEI OCR and TAC recognition. Note for the audit: `InventoryUnitRow` already
+carries `imeiSecondary`, so the dual-SIM identifier may already be
+representable without schema work — **verify before adding a migration**.
+
+### Open items
+
+1. **B-CP2 → B-CP4**, then Milestone C. Do not begin D.
+2. **Device passes** — `docs/24` §9b–§9h all outstanding.
+3. **The drift test's migration list is hand-maintained** and has now hidden one
+   real drift. Deriving it from the migrations directory would remove the whole
+   class of bug.
+4. **No lint rule** stops a new screen shipping untranslated or using
+   `className` on native.
+5. **Technical debt:** every `PrismaClientValidationError` reports as
+   "Invalid query parameters"; it has hidden a real bug twice.
+6. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+7. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
 
 ### Milestone A — 7 of 9 checkpoints complete
 

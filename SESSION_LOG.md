@@ -3895,3 +3895,61 @@ No device pass; nothing visual claimed as device-verified.
 
 **Not done: A6 (Inventory), A9 (localise five screens), and the rest of A7.**
 No backend change, no migration, no fixtures, no probes, no ports.
+
+---
+
+## 2026-08-15 — CLAUDE-B — Milestone A complete, Milestone B CP1
+
+**Repositories:** mobile `3bfc7fb` → `9789856`; backend `393f6fb` → `eb0278c`;
+docs `6afc479` → this entry.
+
+**Milestone A finished.** A7 completed the supplier money conversion, A6 gave
+Inventory the cost it already received from the server but never displayed, and
+A9 translated the last six hardcoded-English screens.
+
+A9 was the one that mattered. Branch selection is the first screen after
+signing in — an Arabic-speaking employee met English before they had done
+anything at all — and the unit screen is where every camera scan lands. Three
+things there were not merely untranslated but wrong: unit status was rendered by
+`replace('_', ' ')`, which produced English in both languages; the More menu
+showed the signed-in role the same way; and branch selection showed the branch
+type as a raw enum. All three now go through the status registry or a key, so a
+word always accompanies the colour.
+
+Gate: `tsc`, `expo lint`, Expo Doctor 18/18, 40 routes, EN/AR both 1140, seven
+pure suites green, zero raw hex outside the token layer.
+
+**Milestone B CP1.** The correction design turns on something the codebase
+already does: both liabilities are *derived* from rows whose status is
+`confirmed`. So a correction writes nothing back to the row it corrects and
+decrements no counter — it restores the liability by existing, once the
+derivation queries exclude any target carrying an approved correction. That
+makes "restored exactly once" and "no double correction" properties of the
+schema rather than things the application must remember.
+
+At most one approved correction can exist per target, enforced by the
+partial-unique trick from `0002`: a VIRTUAL column holding the target id only
+while approved. Proven against real MySQL — a second approved correction on the
+same target is refused as a duplicate key, while further requested and rejected
+ones are still allowed.
+
+**A real drift from Phase J was found and fixed.** Migration `0039` grants
+`supplier.payment.*` to the store roles and the seed matrix never did, so a
+migrated company could report a supplier payment and a freshly seeded one could
+not. The drift test did not catch it because `0039` was missing from its own
+hand-maintained list of later grants — the list that exists precisely to catch
+this. Both are fixed, and the Owner permission count assertion now records that
+it moved late rather than silently.
+
+**Verification.** Backend 70 suites / 1070 tests, `tsc` clean, `prisma
+validate` valid, 39 migrations, schema up to date. Migration `0040` proven on a
+restored copy, a rerun and dev; seven constraints exercised against real MySQL;
+both scratch databases dropped. Backup `phonestore-b0-20260815-174119.sql` —
+404 752 bytes, 61 tables, 7 triggers, 0 raw `_binary`, restore proven *before*
+migrating with the units checksum identical.
+
+**Not done: B-CP2 to B-CP4, and Milestone C.** The next action is the one that
+actually restores liability — excluding corrected targets from the two
+derivation queries. Without that edit the correction record exists and changes
+nothing, which is exactly the kind of half-built financial change that must not
+be mistaken for a finished one.
