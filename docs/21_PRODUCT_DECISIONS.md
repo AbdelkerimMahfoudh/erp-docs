@@ -1209,3 +1209,80 @@ finished.**
 
 > Detail, and the 52 live checks behind it, in
 > [`docs/28` §5](28_SUPPLIERS_PAYABLES_AUDIT.md).
+
+---
+
+## Milestone B — correcting confirmed money (approved, implemented)
+
+**A confirmed refund payout and a confirmed supplier settlement can be
+corrected, and neither is ever edited.** A correction is an append-only record
+beside the original; the liability returns because every derivation of "what is
+owed" excludes a payment carrying an approved correction.
+
+- `financial.correction.request` — Owner and **Store Manager**.
+- `financial.correction.approve` — **Owner only.** Approving is what actually
+  restores a settled liability.
+- A Store Employee holds **neither**. The person who reported a payment must not
+  be able to open the process that unwinds it.
+
+**The compensating movement posts to the current open business day**, never to
+the day of the original payment. If today is closed, the correction waits — a
+filed closing is never reopened. The original day keeps its figures, and its
+receipt is never rewritten; a corrected receipt gains a `correctedAt` field and
+nothing else changes.
+
+**A correction moves cash and liability only.** No sale, no expense, no second
+return profit effect. Profit was reversed at return approval; a supplier payment
+never had one.
+
+At most **one approved correction per payment**, enforced by the database. A
+replacement payment may follow — which is why `0041` moved the payout uniqueness
+onto "one *live* payout per return".
+
+> Detail and the 41 live checks in `docs/29` §10 and the migration headers for
+> `0040`/`0041`.
+
+---
+
+## Milestone C — TAC recognition: two layers, never merged (approved, implemented)
+
+**Decided:** a **per-company overlay**. A store user's confirmation must never
+write into or rename the globally shared `tac_catalog`.
+
+| | `tac_catalog` | Company TAC mapping (`product_recognition`) |
+|---|---|---|
+| Scope | **Global**, shared by every company | **Company-scoped** |
+| Control | Platform only | The shop itself |
+| Holds | Generic manufacturer / model / TAC | That company's own **Product** |
+| Written by | Reviewed, official or licensed data, later | Explicit store confirmation |
+| Store users | **Never write to it** | Propose and confirm |
+
+A global record **never points at one tenant's Product** — the table has neither
+a `company_id` nor a `product_id`, so it cannot, even by mistake.
+
+**Authority:** an **Employee may propose** a mapping while receiving; **Owner
+and Store Manager confirm** it. No new permission was created: `unit.add`
+already gates receiving and all three store roles hold it, and `catalog.manage`
+already means "manage the product catalog", which is what deciding a code's
+product is. The **service** decides proposal-versus-confirmation from the
+caller's permission, so a client cannot assert an authority it does not have.
+
+**The resolution ladder is deterministic:**
+
+1. a **confirmed** company mapping returns that company's exact Product;
+2. a **pending proposal** is shown, flagged, and returns **no product id** — it
+   can never be auto-selected;
+3. otherwise the global catalogue gives **manufacturer and model only**;
+4. otherwise **unknown**, and a human chooses.
+
+**Storage, colour, condition, cost and selling price are never inferred from a
+TAC.** Confidence is reported but never used to demote a confirmed mapping.
+Conflicting evidence requires explicit review rather than a silent pick, and a
+replaced mapping is **superseded, never deleted**.
+
+**Dual-SIM:** two TACs describe **one** phone. Agreeing is one strong
+suggestion; one resolving is still usable; **disagreeing blocks automatic
+selection**, because picking one would create a record for a device that does
+not exist.
+
+> Detail in [`docs/30`](30_IMEI_OCR_AND_TAC_AUDIT.md); 41 live checks behind it.

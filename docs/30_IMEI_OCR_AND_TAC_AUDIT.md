@@ -225,3 +225,65 @@ SELECT u1.id, u2.id, u1.imei_primary
 **C-CP4 must not persist a second identifier until this is closed.** Writing
 `imei_secondary` at scale through an unguarded column is how the theoretical
 becomes a support case.
+
+---
+
+## 8. RESOLVED — §2.3 is closed
+
+**The decision: a per-company overlay.** A store user's confirmation never
+writes into or renames the globally shared `tac_catalog`.
+
+### It needed almost no new schema
+
+The audit's own conclusion held: `product_recognition` was already the overlay.
+Company-scoped, keyed `(company_id, code_type, code)`, already carrying
+`code_type = 'tac'`, already holding the learning statistics and confidence
+scorer. **Building a second mapping table would have been the competing evidence
+system the brief forbids.**
+
+Migration `0043` adds six columns to it rather than a model: `status`
+(`proposed` / `confirmed` / `superseded`), `proposed_by_id`, `confirmed_by_id`,
+`confirmed_at`, `evidence_source`, `version`. The old absolute unique on
+`(company, code_type, code)` becomes a **partial** unique on a generated column
+that carries the code only while the row is confirmed — so one confirmed mapping
+coexists with any number of proposals, which is exactly what the authority split
+requires and what the old constraint could not express.
+
+Also enforced in the database: a TAC is `^[0-9]{8}$`, and a confirmed row must
+carry `confirmed_at`.
+
+### No new permission
+
+`unit.add` gates receiving, which is where an Employee meets an unrecognised
+phone; all three store roles hold it. `catalog.manage` is "manage the product
+catalog", and deciding which product a code means *is* catalog management; Owner
+and Store Manager hold it, a Store Employee does not.
+
+So both routes take `unit.add`, and the **service** decides whether a write is a
+proposal or a confirmation by checking `catalog.manage`. That check belongs in
+the service rather than the route: one endpoint that behaves according to who
+you are cannot be called with the wrong intent, and the client never has to know
+which it is allowed to do.
+
+### Verified
+
+**41 live checks, 0 failures**, over HTTP against real MySQL — including the one
+that matters most, proven with a temporary second company: **an Owner cannot map
+a TAC to another company's Product** (404, nothing written). The temporary
+company and product were removed and the units checksum was unchanged.
+
+Also proven live: an Employee's write is recorded as a proposal and names no
+product; a Manager's confirms; an Employee cannot replace a confirmation; a
+Manager must send the version they read; a stale version is a 409; the replaced
+mapping is superseded rather than deleted; **nothing wrote to `tac_catalog`**
+(still 0 rows); several TACs may map to one product; and no storage, colour,
+condition, cost or price appears anywhere in the response.
+
+Four deployment proofs: restored pre-migration copy, rerun, a clean build of all
+43 migrations, and dev.
+
+### Still true, and still the limit
+
+`tac_catalog` remains **empty**, so the global fallback has nothing to offer
+until it is populated from reviewed data. And **the OCR camera path remains
+device-unverified** — see §5 and `docs/24` §9i.

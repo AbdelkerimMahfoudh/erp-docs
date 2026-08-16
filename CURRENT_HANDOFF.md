@@ -6,163 +6,107 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc`: **2026-08-15**
-- Authorised task: **A (done), B (done), C.** Do **not** begin D.
+COORDINATION_MARKER: BC_COMPLETE
 
-### Milestone B — COMPLETE
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- `finished_at_utc`: **2026-08-16**
 
-| Step | Commit |
+### Exact state at handoff
+
+| | |
 |---|---|
-| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | backend `eb0278c` |
-| **B-CP2** service, derivation exclusion, rollup/closing, 45 tests | backend `3044a09` |
-| **B-CP3** correction exposed on both payments · mobile workflow | backend `dc858a0` · mobile `da173fe` |
-| **B-CP4** migration `0041`, live lifecycle **41/41** | backend `fe11142` |
+| **backend HEAD** | `6d91fc5` |
+| **mobile HEAD** | `a4379c8` |
+| **docs HEAD** | this commit |
+| **Migrations** | **43** (0001–0043, `0005` unused); latest `0043_company_tac_mapping` |
+| **Backend tests** | **73 suites / 1150 tests**, 0 failures |
+| **Mobile pure suites** | **8 of 8**, 0 failures |
+| **Live checks** | **B: 41/41** · **C: 41/41** (37 + 4 cross-company) |
+| **Audit-row growth** | **485 → 510** (+25), append-only, preserved |
+| **Triggers** | 10 |
+| **EN / AR keys** | **1200 each** |
+| **Routes exported** | **40** |
 
-**The production blocker is closed.** A confirmed refund payout and a confirmed
-supplier settlement can now be corrected — through an append-only compensating
-record, never by editing the original.
+### Milestones A, B and C — all COMPLETE
 
-**The live test earned its place: it found two defects a green 1115-test suite
-did not.**
+- **A — UX redesign.** Nine checkpoints. The audit found an *adoption* problem,
+  not a design problem: six user-facing screens had zero i18n imports, and the
+  whole Phase J payables workflow was unreachable by tapping. Both fixed.
+- **B — immutable financial correction.** **The production blocker is closed.**
+  A confirmed refund payout and a confirmed supplier settlement can be corrected
+  through an append-only compensating record, never by editing the original.
+- **C — IMEI OCR and TAC recognition.** Three intake modes, a pure and fully
+  tested IMEI reader, and the per-company TAC overlay.
 
-1. **The rollup was never recomputed.** An approved correction restored the
-   liability and never reached the day's figures, so expected cash still
-   reported a shortage for money that had come back.
-2. **A replacement payout was impossible.** `0038` made
-   `return_request_id` UNIQUE. Migration `0041` moves that onto a generated
-   column holding the return id only while the payout is live, so a corrected
-   payout can be replaced while "one LIVE payout per return" stays a **database**
-   guarantee.
+### The two defects the LIVE tests found behind green suites
 
-`0041` adds `refund_payouts.corrected_by_id` — a back-reference and nothing
-more. No financial field is rewritten, and the accounting spec asserts exactly
-that: the write must contain `correctedById` and none of seven financial
-fields, so the distinction cannot erode.
+1. **The correction rollup was never recomputed** — the liability came back
+   while the till still reported a shortage for money that had returned.
+2. **A replacement payout was impossible** — `0038`'s uniqueness meant a
+   corrected refund could never be paid again. `0041` moved it onto "one
+   *live* payout per return".
 
-### Milestone C — CP4 of 4, ONE item blocked on a product decision
+Neither was visible to 1115 passing unit tests. **A green suite is not
+verification.**
 
-| Step | State |
-|---|---|
-| **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile `4b37d12` |
-| **C-CP2** TAC audit — `docs/30` | ✅ docs `68b1510`, `ded7217` |
-| **C-CP3** three scanner modes, guarded OCR, privacy | ✅ mobile `2131929` |
-| **C-CP4** cross-column identifier uniqueness (`0042`) | ✅ backend `b9656a9` |
-| **C-CP4** `docs/24` §9i device script | ✅ docs |
-| **C-CP4** TAC teaching overlay | ⛔ **BLOCKED — needs a decision** |
+### ⚠️ Device-unverified — do not claim otherwise
 
-### ⛔ The one open question
+**The OCR camera path has never been executed.** The native module cannot run in
+Expo Go, and no development build can be produced in this environment. **Expo
+Doctor passing is a compatibility check, not a working camera.**
 
-**Where should a confirmed TAC→product mapping be written?**
+`docs/24` §9i is the script. It needs a **development build on a physical
+Android phone**, and it is the only thing that can settle accuracy, glare,
+moiré, cracked screens, focus distance and the privacy claims.
 
-`tac_catalog` is one of only **two GLOBAL models** (`GLOBAL_MODELS` in
-`prisma/tenant.extension.ts`). It is shared by every company and deliberately
-unscoped, so "an Owner confirmation teaches the mapping" **cannot write to it
-directly**: one shop naming a TAC would rename it for every other company on
-the installation, including their existing suggestions.
+**No device pass has been run for any milestone.** `docs/24` §9b–§9i are all
+outstanding.
 
-This was not guessed at because the safe alternative is a **new schema surface**
-the brief did not specify. `docs/30` §2.3 records both options; the
-recommendation is a **per-company overlay** (`company_tac_mapping`, consulted
-before the global table) because it is additive, needs no new permission —
-`catalog.manage` already expresses "may approve", and a Store Employee does not
-hold it — and cannot affect another company by construction.
+### Data integrity at handoff
 
-**Also relevant to the decision:** `tac_catalog` currently has **0 rows**, so
-recognition answers "unknown" for every IMEI today. The reading half of
-Milestone C is finished and testable; the suggesting half has no data to
-demonstrate against either way.
-
-### What C delivered
-
-- **The IMEI reader** (`mobile/lib/imei.ts`) — pure, 21 checks. Never accepts a
-  guessed digit unless the substitution still satisfies Luhn **and** every
-  changed character is listed for a human to agree to. Two IMEIs are **one**
-  dual-SIM phone; three or more is reported ambiguous rather than resolved.
-  Reads Arabic-Indic digits.
-- **Three intake modes** — barcode · read-from-screen · manual. **Manual always
-  works**: `lib/ocr.ts` loads the native module lazily inside a `try`, so Expo
-  Go, web, a build without the module and a denied camera all degrade to typing.
-  The web export still yields 40 routes with the module installed.
-- **Privacy** — recognition is on-device, the photograph is deleted in a
-  `finally`, and nothing carries an image off the phone.
-- **Migration `0042`** — closes a verified defect: the same IMEI could be one
-  unit's primary and another's secondary. Both directions now refused, and both
-  legitimate cases (a real dual-SIM insert, an ordinary status change) still
-  work.
-
-### ⚠️ NOT device-verified — do not claim otherwise
-
-**The native OCR module has never been executed.** It cannot run in Expo Go and
-no development build can be produced in this environment. Expo Doctor passing is
-a compatibility check, not a working camera. `docs/24` §9i is the script, and a
-**development build on a physical Android phone** is the only thing that can
-settle accuracy, glare, moiré, cracked screens and focus distance.
-
-
-### Verification at this checkpoint
-
-**Backend**
-- **72 suites / 1119 tests**, `tsc` clean, `prisma validate` valid.
-- **42 migrations** (0001–0042, `0005` unused), schema up to date, **10 triggers**.
-
-**Mobile**
-- `tsc` clean · `expo lint` clean · **Expo Doctor 18/18** · web export
-  **40 routes** · **8 pure suites green** · EN and AR both **1195 keys** ·
-  **zero raw hex** outside the token layer.
-
-**Live (Milestone B)**
-- **41 checks, 0 failures** on port 3099 against real MySQL, using the three
-  spent probes. It found two defects the unit suite could not — see the
-  Milestone B section.
-
-**Data**
 - Demo at baseline: sales **7 / 10 051.00** · units checksum
-  **`2a1dc9bf284afde32b402ad108d38a76`** · suppliers 3 · purchases
-  **9 / 11 185.00** · corrections 0 · payouts 0 · settlements 0 ·
-  notifications 41 · users **9** (no new identity created).
-- **Audit grew 485 → 506 and was preserved.**
-- Probes back to deactivated spent state. Port 3099 released. Scratch databases
-  `prisma_b0`, `prisma_b1`, `prisma_b2`, `prisma_c1`, `prisma_c2` all
-  dropped.
-- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
-  61 tables, 7 triggers, 0 raw `_binary`, **restore proven before migrating**.
+  **`2a1dc9bf284afde32b402ad108d38a76`** · `in_stock=3 sold=8` ·
+  companies 1 · products 13 · suppliers 3 · purchases **9 / 11 185.00** ·
+  corrections 0 · payouts 0 · settlements 0 · notifications 41 · users **9**.
+- `product_recognition` back to its **7 seeded rows**; every test TAC removed.
+- `tac_catalog` **0 rows** — nothing ever wrote to it, which is the point.
+- Probes `i2p9b1b04_*_spent` all deactivated. **No permanent identity created.**
+- Port 3099 released. Scratch databases `prisma_b0`–`b2`, `prisma_c1`–`c4`
+  all dropped.
+- Backups: `phonestore-b0-20260815-174119.sql` and
+  `phonestore-c-20260816-001214.sql` (423 256 bytes, 62 tables, 10 triggers,
+  0 raw `_binary`) — **both restore-proven before their migrations**.
 
-**Not verified — and not claimed**
-- **No device pass, anywhere.** Nothing visual and nothing native is
-  device-verified. `docs/24` §9b–§9i are all outstanding.
-- **The OCR native module has never been executed.** Expo Doctor passing is a
-  compatibility check, not a working camera.
+### Next work — NOT authorised yet
 
-### Open items
+**Milestone D (Expenses) onwards was explicitly not to be started, and was
+not.** The queue from the overnight brief: D Expenses · E progressive
+reconciliation · F Goals · G Excel import · H inter-store consignment · I money
+loans · J offline foundation · K subscription entitlement · L analytics polish.
 
-1. **⛔ The TAC teaching overlay** — the one blocked item. See the Milestone C
-   section: it needs a decision about writing to a globally-shared table.
-2. **Device passes** — `docs/24` §9b–§9i, including the new §9i OCR script.
-   The OCR one needs a **development build**; it cannot run in Expo Go.
-3. **Milestone D onwards** — Expenses, reconciliation, Goals, Excel import,
-   consignment, loans, offline, subscriptions, analytics. **Not authorised yet.**
-4. **UX: the remaining screen migration** — the five pilots are done and
-   awaiting the user's visual approval before the rest are migrated
-   (`docs/29` §9 has the order).
-5. **The drift test's migration list is hand-maintained** and has already hidden
+Before any of it, two things are worth deciding:
+
+1. **The five UX pilots await visual approval** before the remaining screens are
+   migrated (`docs/29` §9 has the order).
+2. **`tac_catalog` is empty**, so TAC recognition can only ever answer
+   "unknown" from the global layer until it is populated from reviewed data.
+
+### Carried-forward items
+
+1. **Device passes** — `docs/24` §9b–§9i, all outstanding. §9i needs a dev build.
+2. **The drift test's migration list is hand-maintained** and has already hidden
    one real drift. Deriving it from the migrations directory would remove the
-   whole class of bug.
-6. **No lint rule** stops a new screen shipping untranslated or using
+   class of bug.
+3. **No lint rule** stops a new screen shipping untranslated or using
    `className` on native — the omission behind three of the audit's findings.
-7. **Technical debt:** every `PrismaClientValidationError` reports as
+4. **Technical debt:** every `PrismaClientValidationError` reports as
    "Invalid query parameters"; it has hidden a real bug twice.
-8. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
-9. **Cost gating has no live negative case** — every store role holds
+5. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+6. **Cost gating has no live negative case** — every store role holds
    `cost.view`; a product question for `docs/03`.
-10. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
-
-### ✅ The production blocker is CLOSED
-
-A confirmed refund payout and a confirmed supplier settlement **can now be
-corrected**, through an append-only compensating record — never by editing the
-original. Milestone B, backend `fe11142`.
+7. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
 
 
 ### Milestone A (UX redesign) — COMPLETE, 9 of 9

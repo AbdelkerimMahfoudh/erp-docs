@@ -4191,3 +4191,76 @@ preserved. All scratch databases dropped, port 3099 free, probes deactivated.
 **Nothing native or visual is device-verified.** `docs/24` §9i is the OCR script
 and needs a development build; it cannot run in Expo Go. Expo Doctor passing is
 a compatibility check, not a working camera.
+
+---
+
+## 2026-08-16 — CLAUDE-B — Milestone C complete: the per-company TAC overlay
+
+**Repositories:** backend `b9656a9` → `6d91fc5`; mobile `2131929` → `a4379c8`;
+docs `c40756c` → this entry.
+
+The product decision arrived — a per-company overlay — and the audit's own
+conclusion held up: **there was almost nothing to build.**
+`product_recognition` was already the overlay. Company-scoped, keyed
+`(company_id, code_type, code)`, already carrying `code_type = 'tac'`, already
+holding the learning statistics and confidence scorer. Building a second mapping
+table would have been exactly the competing evidence system the brief forbids,
+so migration `0043` adds six columns to what exists rather than a new model.
+
+What it genuinely lacked was **authority**. `learn()` wrote a mapping outright,
+with no notion of "an Employee proposed this" versus "an Owner confirmed it" and
+no record of who did either. The old absolute unique could not express that
+either — one row per code, full stop — so it became a partial unique on a
+generated column carrying the code only while confirmed. One confirmed mapping
+now coexists with any number of proposals, which is what the split requires.
+
+**No new permission was created**, and that was the right answer rather than a
+shortcut. `unit.add` gates receiving, which is exactly where an Employee meets
+an unrecognised phone; `catalog.manage` means "manage the product catalog", and
+deciding which product a code means *is* catalog management. So both routes take
+`unit.add` and the **service** decides proposal-versus-confirmation from the
+caller's permission. That check belongs in the service: one endpoint that
+behaves according to who you are cannot be called with the wrong intent.
+
+The resolution ladder is a pure function, so it is testable without a database.
+A confirmed company mapping wins outright — confidence is reported but never
+used to demote somebody's explicit decision. A pending proposal returns
+`productId: null` **on purpose**: the surest way to guarantee a proposal is never
+auto-selected is to give the caller nothing to select. The global catalogue
+supplies manufacturer and model only, and cannot name a tenant's product because
+it has neither a `company_id` nor a `product_id`.
+
+**41 live checks, 0 failures.** The one that matters most had to be built
+specially: the first run skipped the cross-company case because this database
+holds only one company. A temporary second company and product were created,
+used to prove that an Owner **cannot** map a TAC to another company's Product
+(404, nothing written), then removed — with the units checksum verified
+unchanged afterwards. That property is the entire reason the overlay exists, so
+proving it was worth the extra work rather than reporting it as skipped.
+
+On the phone, the scanner now shows **which layer answered**. A suggestion the
+user cannot trace is one they cannot judge, so the four cases read differently
+in plain words, and a proposal never reads like a decision. A dual-SIM conflict
+disables the Use button outright: two IMEIs pointing at different products means
+the read is wrong, the phone is unusual, or the mappings are — and picking one
+would create an inventory record for a device that does not exist.
+
+**Verification.** Backend 73 suites / 1150 tests, 43 migrations, 10 triggers,
+schema up to date, `prisma validate` valid. Mobile `tsc`, lint, Expo Doctor
+18/18, 40 routes, 8 pure suites, EN/AR both 1200, zero raw hex. Four deployment
+proofs: restored pre-migration copy, rerun, clean build of all 43, and dev.
+Backup `phonestore-c-20260816-001214.sql` restore-proven before migrating.
+
+Demo returned to baseline exactly — sales 7 / 10 051.00, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, companies 1, products 13,
+`product_recognition` back to its 7 seeded rows, and `tac_catalog` still **0
+rows**, which is the point. Audit 485 → 510, preserved. All scratch databases
+dropped, port 3099 released, probes deactivated, no permanent identity created.
+
+**The OCR camera path remains device-unverified**, and the handoff says so
+plainly. It cannot run in Expo Go and no development build can be produced here;
+Expo Doctor passing is a compatibility check, not a working camera. `docs/24`
+§9i is the script and needs a physical Android phone.
+
+**Milestones A, B and C are complete.** `COORDINATION_MARKER: BC_COMPLETE` is in
+the handoff. Milestone D was explicitly not to be started, and was not.
