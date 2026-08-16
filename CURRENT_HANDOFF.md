@@ -41,393 +41,164 @@ more. No financial field is rewritten, and the accounting spec asserts exactly
 that: the write must contain `correctedById` and none of seven financial
 fields, so the distinction cannot erode.
 
-### Milestone C — CP2 of ~4
+### Milestone C — CP4 of 4, ONE item blocked on a product decision
 
 | Step | State |
 |---|---|
 | **C-CP1** dependency gate + IMEI parser (21 checks) | ✅ mobile `4b37d12` |
 | **C-CP2** TAC audit — `docs/30` | ✅ docs `68b1510`, `ded7217` |
-| **C-CP3** three scanner modes + receiving prefill | ❌ **NEXT** |
-| **C-CP4** TAC overlay, dual-SIM persistence, device script | ⛔ **partly BLOCKED** |
+| **C-CP3** three scanner modes, guarded OCR, privacy | ✅ mobile `2131929` |
+| **C-CP4** cross-column identifier uniqueness (`0042`) | ✅ backend `b9656a9` |
+| **C-CP4** `docs/24` §9i device script | ✅ docs |
+| **C-CP4** TAC teaching overlay | ⛔ **BLOCKED — needs a decision** |
 
-**The audit's conclusion: reuse, do not rebuild.** `CatalogService.recognize()`
-(`GET /v1/products/recognition/:imei`) already validates Luhn, takes the TAC,
-consults the global catalogue, matches the company's own products, and suggests
-brand/model only — never storage, colour, cost or price. **Six of the seven TAC
-rules in the brief are already satisfied by code that shipped phases ago.**
+### ⛔ The one open question
 
-Two gaps, in `docs/30`: `tac_catalog` is **empty**, so recognition answers
-"unknown" for every IMEI — correct and completely inert. And teaching it is a
-tenancy problem, because it is one of only two GLOBAL models; one shop's
-confirmation would rename that TAC for every company on the installation. A
-per-company overlay is recommended.
+**Where should a confirmed TAC→product mapping be written?**
 
-### ⛔ BLOCKER for C-CP4 — verified, not theoretical
+`tac_catalog` is one of only **two GLOBAL models** (`GLOBAL_MODELS` in
+`prisma/tenant.extension.ts`). It is shared by every company and deliberately
+unscoped, so "an Owner confirmation teaches the mapping" **cannot write to it
+directly**: one shop naming a TAC would rename it for every other company on
+the installation, including their existing suggestions.
 
-**The same IMEI can be one unit's primary and another unit's secondary.**
-`ux_units_identifier` and `units_imei_secondary_key` are independent indexes
-and nothing joins them. Proven against real MySQL on a restored copy: all three
-duplicate insertions were ALLOWED.
+This was not guessed at because the safe alternative is a **new schema surface**
+the brief did not specify. `docs/30` §2.3 records both options; the
+recommendation is a **per-company overlay** (`company_tac_mapping`, consulted
+before the global table) because it is additive, needs no new permission —
+`catalog.manage` already expresses "may approve", and a Store Employee does not
+hold it — and cannot affect another company by construction.
 
-Latent today because almost nothing writes `imei_secondary`. **Dual-SIM OCR
-intake is exactly the workflow that would start writing it on every dual-SIM
-phone received**, so C-CP4 would turn a latent gap into a likely one — two
-records claiming one physical identifier, with sell-once resting on which column
-happened to be searched.
+**Also relevant to the decision:** `tac_catalog` currently has **0 rows**, so
+recognition answers "unknown" for every IMEI today. The reading half of
+Milestone C is finished and testable; the suggesting half has no data to
+demonstrate against either way.
 
-**C-CP4 must not persist a second identifier until this is closed.** The two
-workable shapes (an identifier table, or a trigger pair) and the mandatory
-pre-audit query are in `docs/30` §7. It needs a deliberate decision, which is
-why it was not guessed at.
+### What C delivered
 
-### Next exact action — C-CP3 (unblocked)
+- **The IMEI reader** (`mobile/lib/imei.ts`) — pure, 21 checks. Never accepts a
+  guessed digit unless the substitution still satisfies Luhn **and** every
+  changed character is listed for a human to agree to. Two IMEIs are **one**
+  dual-SIM phone; three or more is reported ambiguous rather than resolved.
+  Reads Arabic-Indic digits.
+- **Three intake modes** — barcode · read-from-screen · manual. **Manual always
+  works**: `lib/ocr.ts` loads the native module lazily inside a `try`, so Expo
+  Go, web, a build without the module and a denied camera all degrade to typing.
+  The web export still yields 40 routes with the module installed.
+- **Privacy** — recognition is on-device, the photograph is deleted in a
+  `finally`, and nothing carries an image off the phone.
+- **Migration `0042`** — closes a verified defect: the same IMEI could be one
+  unit's primary and another's secondary. Both directions now refused, and both
+  legitimate cases (a real dual-SIM insert, an ordinary status change) still
+  work.
 
-1. `mobile/components/scanner/` — add a third mode to `ScanTarget`:
-   **barcode · read IMEI from screen · manual**. `mobile/lib/imei.ts` provides
-   `extractImeis`, `readDualSim` and `mergeFrames`, all pure and tested.
-2. **Manual entry must always work** — when OCR is unavailable, the camera is
-   denied, or the build has no native module. Guard the native import so the web
-   export still succeeds; the export is a verification gate.
-3. A confirmation card before anything enters inventory, showing every
-   `substitutions` entry so a human agrees to a reading rather than being told
-   about it.
-4. Discard the frame after processing. Never persist or transmit an image.
-5. Receiving prefill: IMEI1, optional IMEI2, suggested product. The human still
-   confirms variant, storage, colour, supplier, cost and price — **every
-   existing approval rule is preserved**.
+### ⚠️ NOT device-verified — do not claim otherwise
+
+**The native OCR module has never been executed.** It cannot run in Expo Go and
+no development build can be produced in this environment. Expo Doctor passing is
+a compatibility check, not a working camera. `docs/24` §9i is the script, and a
+**development build on a physical Android phone** is the only thing that can
+settle accuracy, glare, moiré, cracked screens and focus distance.
 
 
 ### Verification at this checkpoint
 
-- Backend **72 suites / 1119 tests**, `tsc` clean, `prisma validate` valid,
-  **41 migrations** through `0041`, schema up to date.
-- Mobile `tsc`, `expo lint`, **Expo Doctor 18/18**, web export **40 routes**,
-  **8 pure suites green**, EN/AR both **1183**, zero raw hex.
-- **Live: 41 checks, 0 failures** on port 3099 against real MySQL, using the
-  three spent probes.
-- **Demo returned to baseline exactly**: corrections 0 · payouts 0 · returns 0 ·
-  sales **7 / 10 051.00** · units checksum
-  **`2a1dc9bf284afde32b402ad108d38a76`** · `in_stock=3 sold=8` ·
-  notifications 41. **Audit grew 485 → 506 and was preserved.**
-- Fixture cleanup needed the migrator connection: the append-only trigger
-  correctly refused the app user, and the partial unique correctly refused
-  clearing a supersession marker while a replacement payout was still live.
-  Both refusals were the design working.
-- Backups `phonestore-b0-20260815-174119.sql` (restore proven before
-  migrating). Scratch databases `prisma_b0`, `prisma_b1`, `prisma_b2` all
-  dropped. Port 3099 released. Probes back to deactivated spent state.
-- **No device pass.** Nothing visual or native is claimed as device-verified.
+**Backend**
+- **72 suites / 1119 tests**, `tsc` clean, `prisma validate` valid.
+- **42 migrations** (0001–0042, `0005` unused), schema up to date, **10 triggers**.
 
-### Milestone A — COMPLETE (9 of 9)
+**Mobile**
+- `tsc` clean · `expo lint` clean · **Expo Doctor 18/18** · web export
+  **40 routes** · **8 pure suites green** · EN and AR both **1195 keys** ·
+  **zero raw hex** outside the token layer.
+
+**Live (Milestone B)**
+- **41 checks, 0 failures** on port 3099 against real MySQL, using the three
+  spent probes. It found two defects the unit suite could not — see the
+  Milestone B section.
+
+**Data**
+- Demo at baseline: sales **7 / 10 051.00** · units checksum
+  **`2a1dc9bf284afde32b402ad108d38a76`** · suppliers 3 · purchases
+  **9 / 11 185.00** · corrections 0 · payouts 0 · settlements 0 ·
+  notifications 41 · users **9** (no new identity created).
+- **Audit grew 485 → 506 and was preserved.**
+- Probes back to deactivated spent state. Port 3099 released. Scratch databases
+  `prisma_b0`, `prisma_b1`, `prisma_b2`, `prisma_c1`, `prisma_c2` all
+  dropped.
+- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
+  61 tables, 7 triggers, 0 raw `_binary`, **restore proven before migrating**.
+
+**Not verified — and not claimed**
+- **No device pass, anywhere.** Nothing visual and nothing native is
+  device-verified. `docs/24` §9b–§9i are all outstanding.
+- **The OCR native module has never been executed.** Expo Doctor passing is a
+  compatibility check, not a working camera.
+
+### Open items
+
+1. **⛔ The TAC teaching overlay** — the one blocked item. See the Milestone C
+   section: it needs a decision about writing to a globally-shared table.
+2. **Device passes** — `docs/24` §9b–§9i, including the new §9i OCR script.
+   The OCR one needs a **development build**; it cannot run in Expo Go.
+3. **Milestone D onwards** — Expenses, reconciliation, Goals, Excel import,
+   consignment, loans, offline, subscriptions, analytics. **Not authorised yet.**
+4. **UX: the remaining screen migration** — the five pilots are done and
+   awaiting the user's visual approval before the rest are migrated
+   (`docs/29` §9 has the order).
+5. **The drift test's migration list is hand-maintained** and has already hidden
+   one real drift. Deriving it from the migrations directory would remove the
+   whole class of bug.
+6. **No lint rule** stops a new screen shipping untranslated or using
+   `className` on native — the omission behind three of the audit's findings.
+7. **Technical debt:** every `PrismaClientValidationError` reports as
+   "Invalid query parameters"; it has hidden a real bug twice.
+8. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
+9. **Cost gating has no live negative case** — every store role holds
+   `cost.view`; a product question for `docs/03`.
+10. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
+
+### ✅ The production blocker is CLOSED
+
+A confirmed refund payout and a confirmed supplier settlement **can now be
+corrected**, through an append-only compensating record — never by editing the
+original. Milestone B, backend `fe11142`.
+
+
+### Milestone A (UX redesign) — COMPLETE, 9 of 9
 
 | Checkpoint | Commit |
 |---|---|
-| A1 audit and visual direction | docs `205b34a` |
+| A1 audit and visual direction — `docs/29` | docs `205b34a` |
 | A2 tokens and typography | mobile `7f7cce2` |
 | A3 shared components and gallery | mobile `c3d2202` |
 | A4 navigation and role landing | mobile `21f8250`, `3bfc7fb` |
 | — transfer-draft suite repaired | mobile `eeb23cc` |
 | A5 Sell pilot | mobile `5d10d5c` |
-| A8 Return-detail pilot | mobile `bc19929` |
-| A7 Supplier pilot | mobile `b0b3e08`, `3953ff4` |
 | A6 Inventory pilot | mobile `90b5813` |
+| A7 Supplier pilot | mobile `b0b3e08`, `3953ff4` |
+| A8 Return-detail pilot | mobile `bc19929` |
 | A9 i18n completion | mobile `9789856` |
 
-**All six formerly-hardcoded-English screens now import i18n.** Gate passed:
-`tsc`, `expo lint`, **Expo Doctor 18/18**, web export **40 routes**, EN/AR
-both **1140**, **7/7 pure suites**, **zero raw hex** outside the token layer.
-No device pass — nothing visual is claimed as device-verified.
+**What the audit found, and it was not a design problem.** The design system was
+sound — two raw hex literals in the whole tree, both in primitives. What had
+stalled was the *migration onto it*, and the screens left behind were the ones
+that matter: the landing screen, the More menu, the branch picker, daily closing,
+and the screen you reach after scanning a phone.
 
-### Milestone B — CP1 of ~4 complete
+Two findings outranked everything aesthetic, and neither was visual:
 
-| Step | State |
-|---|---|
-| **B-CP1** audit, backup, migration `0040`, permissions, drift fix | ✅ backend `eb0278c` |
-| **B-CP2** service layer: request / approve / reject, derivation exclusion | ❌ **NEXT** |
-| **B-CP3** mobile correction workflow | ❌ |
-| **B-CP4** live HTTP/MySQL lifecycle, docs | ❌ |
+1. **Six user-facing screens had zero i18n imports.** The project's "EN and AR
+   both 1025 keys" check is *structurally blind* to this — strings that were
+   never keyed are not missing from either file. **A key-count check is not an
+   i18n check.** All six are now translated.
+2. **The entire Phase J supplier payables workflow was unreachable by tapping.**
+   Three routes exported; nothing linked to them. Now reachable from both Home
+   and More.
 
-**The design, so it is not re-derived.** Both liabilities are already DERIVED
-from `status = 'confirmed'` rows — supplier outstanding from purchases minus
-confirmed allocations (`suppliers.service.outstandingBySupplier`), refund
-liability from approved reversals minus confirmed payouts
-(`returns.service.refundSummary`). **So a correction writes nothing back to
-the row it corrects.** It restores the liability by existing, because the
-derivation queries must exclude any target carrying an approved correction.
-That makes "restored exactly once" and "no double correction" schema
-properties, enforced by the `active_target_*` partial-unique columns.
+**The five pilots await the user's visual approval** before the remaining
+screens are migrated. `docs/29` §9 has the order.
 
-### Next exact action — B-CP2
-
-1. **Exclude corrected targets from both derivations.** Add to the two queries
-   above: `AND NOT EXISTS (SELECT 1 FROM financial_corrections c WHERE
-   c.target_… = <row>.id AND c.status = 'approved')`. **These two edits are
-   what actually restore the liability** — without them the correction record
-   exists and changes nothing.
-2. Build `src/corrections/` — module, service, controller, DTOs:
-   - `POST /v1/corrections` (`financial.correction.request`) — target,
-     mandatory reason, optional reference, `expectedVersion`, `clientUuid`.
-     Copies amount/method/label from the target; changes no money.
-   - `POST /v1/corrections/:id/approve` (`financial.correction.approve`,
-     Owner only) — sets `correction_date` to the current open business day,
-     **409 if that day is locked**, optimistic `version`.
-   - `POST /v1/corrections/:id/reject` (same permission).
-   - `GET /v1/corrections` and `GET /v1/corrections/:id`.
-   - `isUuid` guard on every `:id` — a malformed id must 404, not 500
-     (the defect J1 shipped and I1 shipped before it).
-3. Rollup: add the `corrections_*` components keyed on `correction_date`,
-   and subtract corrected cash in `closing.service` expected cash — **once**.
-4. Receipts: a corrected payout's receipt stays retrievable and must say a
-   correction exists. **Never rewrite an issued receipt payload.**
-
-### Verification at this checkpoint
-
-- Backend **70 suites / 1070 tests**, `tsc` clean, `prisma validate` valid,
-  **39 migrations** (0001–0040, `0005` unused), schema up to date.
-- Migration `0040` proven on a restored copy, a rerun, and dev. Seven
-  constraints exercised against real MySQL, including the double-correction
-  guard. Both scratch databases (`prisma_b0`, `prisma_b1`) dropped.
-- Backup `~/erp-backups/phonestore-b0-20260815-174119.sql` — 404 752 bytes,
-  61 tables, 7 triggers, 0 raw `_binary`; **restore proven before migrating**
-  (61/61 tables, 7/7 triggers, units checksum
-  `2a1dc9bf284afde32b402ad108d38a76` identical).
-- **A real drift was found and fixed**: `0039` grants
-  `supplier.payment.*` to store roles and the seed matrix never did, so a
-  seeded company differed from a migrated one. The drift test missed it because
-  `0039` was absent from its own hand-maintained list. Both fixed; the Owner
-  count assertion (36 → 40) now records that it moved late.
-- No live HTTP run yet for B. No fixtures created on dev. No probe used.
-
-### Milestone C — not started
-
-IMEI OCR and TAC recognition. Note for the audit: `InventoryUnitRow` already
-carries `imeiSecondary`, so the dual-SIM identifier may already be
-representable without schema work — **verify before adding a migration**.
-
-### Open items
-
-1. **B-CP2 → B-CP4**, then Milestone C. Do not begin D.
-2. **Device passes** — `docs/24` §9b–§9h all outstanding.
-3. **The drift test's migration list is hand-maintained** and has now hidden one
-   real drift. Deriving it from the migrations directory would remove the whole
-   class of bug.
-4. **No lint rule** stops a new screen shipping untranslated or using
-   `className` on native.
-5. **Technical debt:** every `PrismaClientValidationError` reports as
-   "Invalid query parameters"; it has hidden a real bug twice.
-6. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
-7. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
-
-### Milestone A — 7 of 9 checkpoints complete
-
-| Checkpoint | State | Commit |
-|---|---|---|
-| 1 · Audit and visual direction | ✅ | docs `205b34a` |
-| 2 · Tokens and typography | ✅ | mobile `7f7cce2` |
-| 3 · Shared components and gallery | ✅ | mobile `c3d2202` |
-| 4 · Navigation and role landing (Pilot 1) | ✅ | mobile `21f8250`, `3bfc7fb` |
-| — · Repair the transfer-draft suite | ✅ | mobile `eeb23cc` |
-| 5 · **Sell pilot** | ✅ | mobile `5d10d5c` |
-| 8 · **Return-detail pilot** | ✅ | mobile `bc19929` |
-| 7 · **Supplier pilot** | ◐ **partial** | mobile `b0b3e08` |
-| 6 · **Inventory pilot** | ❌ **NOT STARTED** |  |
-| 9 · Localise the remaining screens | ❌ **NOT STARTED** |  |
-
-**Backend untouched** at `393f6fb` — no API-contract defect blocked any pilot,
-so the narrow-fix allowance stayed unused. No migration, no fixtures, no probe,
-no port, no user process touched.
-
-### Next exact action, in order
-
-1. **Finish A7 (Supplier).** Only the ledger money column was converted so far
-   (`app/suppliers/[id].tsx`). Still to do: `app/suppliers/index.tsx` line
-   ~115 still formats `row.outstanding` with `formatMoney` into
-   `ListRow value` — move it to `MoneyValue` via `accessory`; the
-   settlement rows at `[id].tsx` ~330 and the purchase rows ~234 likewise;
-   confirm empty/loading/error states and that an Employee sees no ledger.
-2. **A6 (Inventory)** — `app/(tabs)/inventory.tsx`. Already on the design
-   system. Serialized-versus-quantity distinction, unit status clarity,
-   cost-hidden state, and inventory value via `MoneyValue`. **Preserve
-   server-side pagination and search.**
-3. **A9** — localise the five remaining hardcoded-English screens, in the
-   `docs/29` §9 order: `closing`, `unit/[identifier]`, `(tabs)/more`,
-   `select-branch`, `analytics`. Then add the gallery entries for anything
-   new and run the full verification list.
-4. Then **Milestone B** (immutable financial correction) — the production
-   blocker recorded below.
-
-### Verification at this checkpoint
-
-- Mobile `tsc` clean · `expo lint` clean (0 errors, 0 warnings) · web export
-  **40 routes** · **EN and AR both 1068 keys** · **zero raw hex** in `app/`
-  and `components/`.
-- **Pure suites 7 of 7 green.** The baseline is fully restored:
-  `transfer-draft.test.ts` was repaired rather than carried forward again, and
-  a new `return-timeline.test.ts` adds 8 checks.
-- **No device pass.** Nothing visual is claimed as device-verified;
-  `docs/24` §9h is the script.
-
-### What A5/A7/A8 changed
-
-- **Sell** — below-cost is warned about **in the cart**, not in the dialog after
-  Charge is pressed, because by then the cashier has already quoted a price.
-  Charge is shut while offline, with a notice saying why. Total uses
-  `MoneyValue`.
-- **Return detail** — `WorkflowTimeline` replaces the flat event log.
-  `lib/return-timeline.ts` maps the lifecycle; a **reported** payout renders
-  `current` (warning) and explicitly never `done`, because a green tick reads
-  as "someone paid this" before anyone agreed the money left. A **rejected**
-  return drops the money stages entirely rather than greying them out.
-- **Supplier** — the ledger column is tabular, and a withheld figure renders as
-  an em dash rather than something that looks like "you owe nothing".
-
-### Open items
-
-1. **A6, A9, and the rest of A7** — see "Next exact action".
-2. **Five screens still hardcoded English** — `closing`,
-   `unit/[identifier]`, `(tabs)/more`, `select-branch`, `analytics`.
-3. **A lint rule is still missing** that would stop a new screen shipping
-   untranslated, using `className` on native, or unreachable from navigation.
-4. **Device passes** — `docs/24` §9b–§9h all outstanding.
-5. **Technical debt:** every `PrismaClientValidationError` reports as
-   "Invalid query parameters"; it has hidden a real bug twice.
-6. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
-7. **Cost gating has no live negative case** — every store role holds
-   `cost.view`; a product question for `docs/03`.
-8. **Three spent probes** (`i2p9b1b04_*_spent`) — reuse, never add more.
-
-### PRODUCTION BLOCKER — Milestone B
-
-**A confirmed refund payout and a confirmed supplier settlement cannot be
-corrected.** Both are immutable by design and nothing financial is
-hard-deleted — but no compensating reversal path exists, so a confirmation made
-in error has no in-app remedy. Must be solved before real money runs through
-the system. Design recorded in the overnight brief; audit notes in `docs/29`
-§10.
-
-### UX redesign milestone — checkpoints 1–4 of 9 complete
-
-The full audit and the shared system are done. **Four of the five pilot screens
-were not started**, deliberately left unstarted rather than half-built.
-
-| Checkpoint | State |
-|---|---|
-| 1 · Audit and visual direction | ✅ docs `205b34a` |
-| 2 · Tokens and typography | ✅ mobile `7f7cce2` |
-| 3 · Shared components and gallery | ✅ mobile `c3d2202` |
-| 4 · Navigation and role landing (**Pilot 1**) | ✅ mobile `21f8250`, `3bfc7fb` |
-| 5 · Sell pilot | ❌ **NOT STARTED** |
-| 6 · Inventory pilot | ❌ **NOT STARTED** |
-| 7 · Supplier pilot | ❌ **NOT STARTED** |
-| 8 · Return-detail pilot | ❌ **NOT STARTED** |
-| 9 · Verification and handoff | ◐ static only — **no device pass** |
-
-**No backend change was made.** No API-contract defect blocked the work, so the
-brief's narrow-fix allowance went unused. Backend stands at `393f6fb`,
-70 suites / 1070 tests, migration `0039`, schema up to date — untouched.
-
-### What the audit found (`docs/29`)
-
-The design system was never the problem; **adoption stopped halfway**. Two
-findings outranked everything aesthetic, and neither is visual:
-
-1. **Six user-facing screens had zero i18n imports** — Home, More, branch
-   selection, daily closing, analytics, and the screen you land on after
-   scanning a phone were hardcoded English. The "EN and AR both 1025 keys"
-   check is *structurally blind* to this: the strings were never keyed, so
-   nothing is missing from either file. **A key-count check is not an i18n
-   check.**
-2. **The entire Phase J supplier payables workflow was unreachable.** Three
-   routes exported; nothing linked to them. It worked only via a typed deep
-   link.
-
-Both are now fixed for Home. **Five screens remain untranslated** —
-`more`, `select-branch`, `closing`, `analytics`, `unit/[identifier]`.
-
-### Next exact action
-
-**Checkpoint 5 — the Sell pilot.** Already on the design system, so this is
-hierarchy work, not re-plumbing: scan-first emphasis, cart readability,
-below-cost warning through the new `InlineNotice`, and the checkout action in
-`Screen`'s existing sticky footer (**do not build a second action-bar
-system — `Screen` already owns `footer`**).
-
-Then Inventory, Supplier, and Return detail. Return detail is where
-`WorkflowTimeline` replaces the hand-rolled lifecycle; until then acceptance
-criterion A10 is proven in the component and the gallery, **not in a screen**.
-
-**Then stop.** The brief's completion boundary holds: the user tests and
-approves the direction before any further screen is migrated. The full
-migration order is recorded in `docs/29` §9.
-
-### Verification at handoff
-
-- Mobile `tsc` clean · `expo lint` clean (0 errors, 0 warnings) · web export
-  **40 routes** · **EN and AR both 1059 keys** (was 1025; +34 all paired).
-- Pure mobile suites: **5 of 6 pass**. `lib/transfer-draft.test.ts` still
-  fails on the renamed `addToDraft` export — **pre-existing**, last touched in
-  `112e035`, already open item 6 below. Not caused by this milestone.
-- **Zero raw hex** in `app/` and `components/` (was 2, both in primitives).
-- **No device pass was run.** Everything visual is verified by build output and
-  code inspection only. `docs/24` §9h is the script, and it is honest about
-  what a web export structurally cannot answer — Hermes ICU numeral shaping,
-  whether `tabular-nums` is honoured by the platform font, safe-area insets on
-  a notched phone, haptics, sunlight legibility.
-- Backend untouched, so its suite was not re-run beyond takeover verification.
-- No database change, no migration, no fixtures created, no probe used, no port
-  opened, no user process touched.
-
-### What changed, in one place
-
-- **Tokens** — money variants with `tabular-nums`; `icon` and `density`
-  scales; `elevation.xs`; an accent focus ring. `disabledOpacity` raised
-  0.4 → 0.55 after finding a real defect: `SegmentedControl` dimmed its track
-  *and* used `text.disabled`, compounding to ~1.3:1 — a label that was absent
-  rather than merely quiet. **The rule is now: dim the container or use the
-  disabled colour, never both.**
-- **New primitives** — `MoneyValue`, `InlineNotice`, `PermissionNotice`,
-  `OfflineBanner`, `WorkflowTimeline`. `ListRow` gained a `warning`
-  value tone; `StatTile` now accepts a node so money tiles keep tabular
-  figures.
-- **Offline** — `lib/connectivity.ts`, fed by `api-client`. Deliberately
-  **not** a connectivity library: a shop's problem is wifi that is up while the
-  internet is dead, and a radio indicator reports "online" in exactly that case,
-  which is worse than nothing because staff would trust it. A `fetch`
-  rejection is the signal; any response, even 4xx, proves reachability. Mounted
-  once at the app root. **This is the read-only half of offline support** —
-  write queueing is Milestone J and is not pretended at.
-- **Home** — rebuilt. Gated section by section instead of wholesale, so the
-  Home tab is no longer hidden from employees. Pending work leads. Health reads
-  as a sentence. Withheld profit renders restricted, never `0`.
-
-### Open items carried forward
-
-1. **UX checkpoints 5–8** (four pilot screens), then user approval, then the
-   `docs/29` §9 migration order.
-2. **Five screens still hardcoded English** — see above. Highest-value
-   remaining usability fix in the app.
-3. **A lint rule is missing.** Nothing structurally prevents a new screen
-   shipping untranslated, using `className` on native, or being unreachable
-   from navigation. All three of the audit's top findings were the same
-   omission wearing different clothes.
-4. **Device passes** — `docs/24` §9b–§9h all outstanding.
-5. **Technical debt:** every `PrismaClientValidationError` reports as
-   "Invalid query parameters" whatever the cause; it has hidden a real bug twice.
-6. **`mobile/lib/transfer-draft.test.ts` cannot run** (renamed export).
-7. **`OWNER_SEED_PASSWORD` still does not authenticate the owner.**
-8. **Cost gating has no live negative case** — every store role holds
-   `cost.view`; a product question for `docs/03`.
-9. **Three spent probe identities** (`i2p9b1b04_*_spent`) exist and must be
-   REUSED rather than adding more.
-
-### PRODUCTION BLOCKER — not part of this milestone
-
-**A confirmed refund payout and a confirmed supplier settlement cannot be
-corrected.** Both are immutable by design and nothing financial is
-hard-deleted — but no compensating reversal path exists either, so a
-confirmation made in error has no in-app remedy. This must be solved before
-real money runs through the system. Recorded in `docs/29` §10; deliberately
-kept out of a UX milestone.
 
 ### Phase J — Supplier Operations and Payables: COMPLETE
 

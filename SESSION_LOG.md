@@ -4128,3 +4128,66 @@ UNIQUE added over dirty data fails at the worst possible moment.
 **C-CP4 must not persist a second identifier until this is closed.** C-CP3 —
 the three scanner modes and the receiving prefill — is unaffected and is the
 next action.
+
+---
+
+## 2026-08-16 — CLAUDE-B — Milestone C CP3–CP4
+
+**Repositories:** mobile `4b37d12` → `2131929`; backend `fe11142` → `b9656a9`;
+docs `f6f002f` → this entry.
+
+**Three intake modes.** Barcode, read-from-screen, manual. The third is the one
+that matters for a used phone with no box and no label, which is the common case
+at a counter.
+
+Everything about the integration serves one promise: **manual entry always
+works.** `lib/ocr.ts` loads the native module lazily inside a `try`, so Expo Go,
+web, a build without the module compiled in, and a denied camera all degrade to
+typing rather than to a dead screen — and the web export, itself a verification
+gate, still produces 40 routes with the module installed. The mode switch
+appears only where OCR can actually run, because a button that always fails is
+worse than one that is absent.
+
+Barcode detection is switched off while reading a screen: a `*#06#` display
+often carries a QR beside the digits, and a stray hit would close the sheet
+mid-read. The photograph is deleted in a `finally`, so it goes even when
+recognition throws; nothing carries an image off the phone.
+
+**The blocker from the previous checkpoint is closed.** Migration `0042` fixes
+the verified defect where the same IMEI could be one unit's primary and another
+unit's secondary. Triggers rather than a normalised identifier table, on one
+argument: the table needs a backfill and a change to every read path that looks
+a phone up, and each of those is a place to break code that already works. The
+trigger is additive, reversible and touches no query.
+
+Unlike the append-only guards elsewhere in this schema, these fire for **every**
+user including the migrator. An append-only rule exempts the migrator so the
+documented restore can rewrite history; a uniqueness rule must not, because a
+restore that reintroduces a duplicate identifier is the exact thing being
+prevented.
+
+Proven on a restored copy and a rerun: both directions refused, the same IMEI in
+both columns of one row refused, an UPDATE stealing another unit's identifier
+refused — and the two cases that must keep working still do, a genuine dual-SIM
+insert and an ordinary status change. The `id <> NEW.id` guard is what makes the
+second true; without it every save would fail. The pre-migration audit found
+zero duplicates in live data, which is why the constraint could be added at all.
+
+**One item is deliberately not done: the TAC teaching overlay.** `tac_catalog`
+is one of only two global models, shared by every company and unscoped, so "an
+Owner confirmation teaches the mapping" cannot write to it — one shop would
+rename that TAC for every other company on the installation. The safe
+alternative is a per-company overlay, which is a new schema surface the brief
+did not specify. That is a product decision, not an implementation detail, so it
+was recorded rather than guessed. `tac_catalog` also currently has zero rows, so
+nothing can be demonstrated against it either way.
+
+**Verification.** Backend 72 suites / 1119 tests, 42 migrations, 10 triggers,
+schema up to date. Mobile Doctor 18/18, 40 routes, 8 pure suites, EN/AR both
+1195, zero raw hex. Demo at baseline — sales 7 / 10 051.00, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, purchases 9 / 11 185.00, users 9. Audit 506,
+preserved. All scratch databases dropped, port 3099 free, probes deactivated.
+
+**Nothing native or visual is device-verified.** `docs/24` §9i is the OCR script
+and needs a development build; it cannot run in Expo Go. Expo Doctor passing is
+a compatibility check, not a working camera.

@@ -583,3 +583,69 @@ whether `tabular-nums` is actually honoured by the platform font (the web export
 proves nothing here) · the safe-area inset of the offline strip on a notched
 phone · haptics · scroll performance of the landing screen on a low-end device ·
 whether the strip's red is legible in direct sunlight.
+
+---
+
+## 9i. Reading an IMEI off a phone screen (Milestone C) — **never run on a device**
+
+This section is the most device-dependent in the whole checklist. The parser is
+pure and has 21 passing checks; **the camera and the native recogniser have
+never been executed.** Expo Doctor passing is a compatibility check, not a
+working camera.
+
+**A development build is required.** This will not run in Expo Go — the native
+ML Kit module is not in that binary. If the mode switch is absent on a device,
+that is the guard working, not a bug.
+
+**Setup:** an Android phone, a development build, portrait, one pass in English
+and one in Arabic. A second phone to read from — ideally one dual-SIM and one
+single-SIM.
+
+### The three modes
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open the scanner | It starts in barcode mode, exactly as before |
+| 2 | Look for the mode switch | Present on a dev build; **absent in Expo Go** |
+| 3 | Switch to read-from-screen | Hint says to dial `*#06#` |
+| 4 | Point at a `*#06#` screen, tap Read | The IMEI appears within a second or two |
+| 5 | Tap "Type instead" from **either** mode | The keypad opens — this must never be unavailable |
+| 6 | Deny the camera, then reopen | Typing is still offered, and works |
+
+### The reading itself — the part that matters
+
+| # | Do this | Expect |
+|---|---|---|
+| 7 | Read a **dual-SIM** phone | Two IMEIs, and the words "one dual-SIM phone, not two phones" |
+| 8 | Confirm it creates **one** unit | Not two. This is the phantom-device failure |
+| 9 | Read a **single-SIM** phone | One IMEI, no invented second |
+| 10 | Deliberately blur the shot | Either nothing found, or a valid IMEI — **never a wrong one** |
+| 11 | If any substitution is shown | The changed characters are listed, e.g. `O→0` |
+| 12 | Cross-check every digit against the screen | They match exactly. **Any mismatch is a stop-ship** |
+| 13 | Read the same phone twice | The same IMEI; nothing duplicates |
+
+### Conditions that break OCR in a real shop
+
+| # | Condition | Expect |
+|---|---|---|
+| 14 | Direct sunlight / glare on the screen | Fails cleanly with "type it in", never a wrong read |
+| 15 | Moiré (camera against an LCD at the wrong angle) | Same |
+| 16 | A **cracked** screen across the digits | Same — this is common on returned phones |
+| 17 | Low light | Torch helps; a failed read still says so |
+| 18 | A phone set to **Arabic**, showing Arabic-Indic digits | Read correctly — the parser normalises them |
+| 19 | A very dim or power-saving display | Fails cleanly |
+
+### Privacy — verify, do not assume
+
+| # | Do this | Expect |
+|---|---|---|
+| 20 | Read several IMEIs, then browse the phone's gallery and cache | **No photographs left behind** |
+| 21 | Turn airplane mode on, then read a screen | OCR still works — recognition is on-device |
+| 22 | Watch the network while reading (proxy or dev tools) | **No request carries an image**; only the resulting `/scan` lookup goes out |
+
+### What only a device can answer
+
+Whether ML Kit's accuracy is good enough on the screens this shop actually
+sees · camera focus distance on a phone held 10–15 cm away · whether the torch
+helps or worsens glare on a glossy display · how long a read takes on a low-end
+Android · whether the capture button is reachable one-handed · haptics.
