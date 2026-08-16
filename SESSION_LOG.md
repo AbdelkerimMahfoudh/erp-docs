@@ -4264,3 +4264,69 @@ Expo Doctor passing is a compatibility check, not a working camera. `docs/24`
 
 **Milestones A, B and C are complete.** `COORDINATION_MARKER: BC_COMPLETE` is in
 the handoff. Milestone D was explicitly not to be started, and was not.
+
+---
+
+## 2026-08-16 — CLAUDE-B — Milestone D, backend
+
+**Repositories:** backend `6d91fc5` → `b084717`; docs `c3067b6` → this entry.
+Mobile untouched at `a4379c8`.
+
+Takeover verified against every expected value with no discrepancies.
+
+**The D0 audit found three defects, and the second had been open since expenses
+were first built.**
+
+A report used to be final: `POST /expenses` wrote a row that immediately reached
+the day's profit, so "a report changes nothing" could not be true — every
+submission was already a decision.
+
+A cash expense never reduced expected cash. Expenses fed net profit, but the
+till figure subtracted refunds and supplier payments only. A shop that paid for
+electricity out of the drawer reported a shortage that was not a shortage —
+precisely the defect J1 fixed for supplier payments, still sitting here
+untouched.
+
+And there was no channel at all. Cash and bank transfer were indistinguishable,
+so even once expenses reached the till figure there would have been no way to
+subtract only the ones that touched it.
+
+The two accounting classes are not cosmetic. A variable expense belongs to the
+day it is confirmed; a fixed one to its due date and is never spread across
+every day. Keying both on `spent_on`, as the old rollup did, put rent in
+whatever day somebody happened to type it. Salaries are summed separately from
+other fixed costs, as required.
+
+**The permission split is the one the seed itself said was impossible.** That
+file carried the note: *"expense.manage — the model cannot express 'submit'
+separately from 'manage', so the narrower reading wins."* The model can now, so
+`expense.submit` goes to all three store roles, `expense.review` to the Owner
+alone, and `expense.manage` is untouched and still Owner-only. Submitting does
+not hand somebody the shop's outgoings: the list scopes a submitter to their own
+rows, which is asserted rather than assumed.
+
+A missing reason is stored as an explicit `reasonOmitted` state, never as
+invented copy. "Miscellaneous" in a ledger is indistinguishable from a real
+category a year later.
+
+**One existing assertion had to be narrowed rather than satisfied.** I3's "never
+treats a refund as an expense" sliced a region of the closing service and
+forbade the word "expense" anywhere inside it. That was a proxy for the real
+rule, and it stopped being a valid one the moment expenses legitimately gained
+their own line in the same function — it would have failed for a correct change,
+which is worse than not existing. It now asserts what it actually means: each
+figure reads its own rollup column.
+
+The reconciliation equation now reads, with every movement appearing once:
+`expected = cash in − refunds(cash) − supplier(cash) − expenses(cash) +
+corrections(cash)`. Pending reports appear nowhere. Milestone E builds on this
+and must not create a second closing system.
+
+**Verification.** 74 suites / 1188 tests (+38), `tsc` clean, `prisma validate`
+valid, 44 migrations, 11 triggers, schema up to date. Four deployment proofs;
+nine constraints exercised against real MySQL. Backup
+`phonestore-d-20260816-003152.sql` restore-proven before migrating; both scratch
+databases dropped.
+
+**Not done: D mobile, D live verification, then E and F.** Mobile is untouched,
+so there is no half-built screen.

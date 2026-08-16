@@ -10,11 +10,87 @@
 - Active account / Owner: **CLAUDE-B**
 - `started_at_utc`: **2026-08-16**
 - Authorised task: **Milestones D, E and F**, sequentially. Do **not** begin G.
-- Takeover verified (every value matched): docs `03ca569` · backend `6d91fc5` ·
-  mobile `a4379c8` · 73 suites / 1150 tests · 43 migrations · 10 triggers ·
-  sales 7 / 10 051.00 · units checksum `2a1dc9bf284afde32b402ad108d38a76` ·
-  all three trees clean and level. A, B and C stand as complete.
-- Previous marker `BC_COMPLETE` was reached and is recorded in `SESSION_LOG.md`.
+- Takeover verified (every value matched): docs `c3067b6` · backend `6d91fc5`
+  · mobile `a4379c8` · 73 suites / 1150 tests · 43 migrations · 10 triggers ·
+  sales 7 / 10 051.00 · units checksum `2a1dc9bf284afde32b402ad108d38a76`.
+  A, B and C stand as complete; `BC_COMPLETE` is recorded in `SESSION_LOG.md`.
+
+### Milestone D — backend COMPLETE, mobile and live outstanding
+
+| Step | State |
+|---|---|
+| **D0** truth audit | ✅ three defects found, all real |
+| **D-CP1** migration `0044`, permissions, rollup, closing, 38 tests | ✅ backend `b084717` |
+| **D-CP2** mobile expense screens | ❌ **NEXT** |
+| **D-CP3** live HTTP/MySQL lifecycle | ❌ |
+
+**What D0 found, and why it mattered:**
+
+1. **A report used to be final.** `POST /expenses` wrote a row that
+   immediately reached the day's profit — "a report changes nothing" could not
+   be true.
+2. **A cash expense never reduced expected cash.** Expenses fed net profit, but
+   the till figure subtracted refunds and supplier payments only. A shop paying
+   for electricity out of the drawer reported a shortage that was not one —
+   exactly the defect J1 fixed for supplier payments, still open here.
+3. **No channel at all.** Cash and transfer were indistinguishable.
+
+**The reconciliation equation** now reads, once each:
+
+```
+expected = cash in − refunds(cash) − supplier(cash) − expenses(cash) + corrections(cash)
+```
+
+Pending reports appear nowhere. Milestone E must build on this and **not create
+a second closing system**.
+
+### Next exact action — D-CP2 (mobile)
+
+1. `mobile/types/api.ts` — add `Expense` mirroring `ExpensesService.shape()`:
+   `id, category, amount, status, expenseClass, isSalary, dueDate, method,
+   accountLabel, reference, note, reasonOmitted, rejectedReason, spentOn,
+   reportedBy, reportedAt, confirmedBy, confirmedAt, confirmationDate, version`.
+2. `mobile/lib/expenses.ts` — hooks + `expenseConflictKind`, following
+   `lib/corrections.ts` exactly.
+3. `mobile/lib/permissions.ts` — add `'expense.submit'` and
+   `'expense.review'` to the `PERMISSIONS` union.
+4. Screens: list · detail · submit form · Owner review (confirm/reject) ·
+   fixed-template settings · salary shown separately. Money through
+   `MoneyValue`; EN/AR parity; RTL-safe sheets.
+5. **The missing-reason warning**: confirming with no note must show
+   *"Are you sure you do not want to clarify the reason?"* and send
+   `reasonOmitted: true` — never invent placeholder copy.
+6. An Employee sees only their own expenses and no review action at all.
+
+Then **D-CP3**: live lifecycle with the three spent probes, covering role
+boundaries, idempotent replay, changed-payload conflict, stale version, locked
+day, active/inactive account, label snapshot, variable-versus-fixed timing and
+salary separation.
+
+### Then E, then F — not started
+
+**E** must first trace every input to expected cash and pin ONE authoritative
+equation with tests (the one above is the current truth). Then the progressive
+closing, the discrepancy lifecycle (`pending_investigation`, never
+auto-assigned) and the Owner-only employee debt ledger.
+
+**F** is the unified goal system: gross profit / serialized units / quantity,
+scoped and periodised, with immutable sale attribution.
+
+### Verification at this checkpoint
+
+- Backend **74 suites / 1188 tests** (was 73/1150; +38 expense checks),
+  `tsc` clean, `prisma validate` valid, **44 migrations** through `0044`,
+  schema up to date, **11 triggers**.
+- Four deployment proofs for `0044`: restored pre-migration copy, rerun, clean
+  build of all 44, and dev. Nine constraints exercised against real MySQL.
+- Backup `~/erp-backups/phonestore-d-20260816-003152.sql` — 426 888 bytes,
+  62 tables, 10 triggers, 0 raw `_binary`, **restore proven before migrating**.
+- Scratch databases `prisma_d1`, `prisma_d2` dropped.
+- **Mobile untouched** at `a4379c8` — no half-built screen.
+- **No live HTTP run for D yet.** No fixtures on dev, no probe used, no port
+  opened.
+
 
 ### Exact state at handoff
 
