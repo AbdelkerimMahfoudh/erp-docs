@@ -6,12 +6,15 @@
 
 ## Session control
 
-COORDINATION_MARKER: BC_COMPLETE
-
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- `finished_at_utc`: **2026-08-16**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc`: **2026-08-16**
+- Authorised task: **Milestones D, E and F**, sequentially. Do **not** begin G.
+- Takeover verified (every value matched): docs `03ca569` · backend `6d91fc5` ·
+  mobile `a4379c8` · 73 suites / 1150 tests · 43 migrations · 10 triggers ·
+  sales 7 / 10 051.00 · units checksum `2a1dc9bf284afde32b402ad108d38a76` ·
+  all three trees clean and level. A, B and C stand as complete.
+- Previous marker `BC_COMPLETE` was reached and is recorded in `SESSION_LOG.md`.
 
 ### Exact state at handoff
 
