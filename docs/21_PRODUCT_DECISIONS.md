@@ -1286,3 +1286,56 @@ selection**, because picking one would create a record for a device that does
 not exist.
 
 > Detail in [`docs/30`](30_IMEI_OCR_AND_TAC_AUDIT.md); 41 live checks behind it.
+
+---
+
+## Milestone D — expenses and controlled cash outflow (approved, implemented)
+
+**Two accounting classes, and the difference is not cosmetic.**
+
+- **Variable** — electricity, food, supplies, transport. Counted on the day it
+  is **confirmed**.
+- **Fixed** — rent, salaries, recurring owner-defined costs. Counted on its
+  **due date**, and never spread across every day.
+- **Salaries** are summed separately from other fixed costs. No payroll
+  calculation beyond the approved employee salary fields.
+
+**The workflow.** Reported → confirmed or rejected. A report changes no cash, no
+account, no profit and no report figure. Only confirmation does, exactly once. A
+confirmed expense is immutable: a mistake is put right through Milestone B's
+append-only correction workflow, never by editing or deleting.
+
+**Permissions — a three-way split.** The seed used to note that the model could
+not express "submit" separately from "manage"; it can now.
+
+- `expense.submit` — Owner, Store Manager, **Store Employee**. The person who
+  spent the money reports it. **A submitter sees only their own expenses**, so
+  reporting never hands somebody the shop's whole outgoings.
+- `expense.review` — **Owner only.** Confirming is when the money counts as gone.
+- `expense.manage` — **Owner only, unchanged.** Categories, templates, settings.
+  Deliberately **not** widened.
+
+**A missing reason** is an explicit `reasonOmitted` state, never invented copy.
+The Owner is asked *"Are you sure you do not want to clarify the reason?"* and
+may proceed — "Miscellaneous" in a ledger is indistinguishable from a real
+category a year later.
+
+**Accounts.** Reporting requires an **active** account; the label is snapshotted
+at report time, so a later rename or deactivation cannot retitle the movement or
+strand its confirmation.
+
+**The reconciliation equation**, with every movement appearing exactly once:
+
+```
+expected cash = cash taken in
+              − refunds paid in cash
+              − supplier payments in cash
+              − expenses paid in cash
+              + corrections returned in cash
+```
+
+Pending reports appear nowhere. **A supplier payment and a refund remain
+liability settlements, not expenses.** Milestone E builds on this equation and
+must not create a second closing system.
+
+> 45 live checks. Detail in the `0044` migration header.
