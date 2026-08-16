@@ -15,67 +15,75 @@
   sales 7 / 10 051.00 · units checksum `2a1dc9bf284afde32b402ad108d38a76`.
   A, B and C stand as complete; `BC_COMPLETE` is recorded in `SESSION_LOG.md`.
 
-### Milestone D — backend COMPLETE, mobile and live outstanding
+### Milestone D — COMPLETE
+
+| Step | State | Commit |
+|---|---|---|
+| **D0** truth audit | ✅ three defects, all real | — |
+| **D-CP1** migration `0044`, permissions, rollup, closing | ✅ | backend `b084717` |
+| **D-CP2** mobile list / detail / submit + More entry | ✅ | mobile `980bbe9` |
+| **D-CP3** live lifecycle **45/45** | ✅ | — |
+| **D docs** | ✅ | docs `c5b3b7f` |
+
+**What D0 found:** a report used to be final and already hit profit; a cash
+expense never reduced expected cash (the J1 defect, still open here); and there
+was no channel to tell cash from transfer.
+
+**Live 45/45** proved the parts a unit test cannot: a Manager cannot confirm
+(review is Owner-only), an Employee cannot see a Manager’s expense and gets a
+404 reading it directly, a fixed cost lands on its DUE date and NOT on today,
+and a salary is summed separately while still counting as fixed.
+
+One live failure was a TEST defect, not a product one: `enqueueDailyRecompute`
+is fire-and-forget by design, so the response returns before the rollup lands.
+Replaced the racing reads with a bounded poll rather than a blind sleep.
+
+### Milestone E — E0 COMPLETE, implementation NEXT
 
 | Step | State |
 |---|---|
-| **D0** truth audit | ✅ three defects found, all real |
-| **D-CP1** migration `0044`, permissions, rollup, closing, 38 tests | ✅ backend `b084717` |
-| **D-CP2** mobile expense screens | ❌ **NEXT** |
-| **D-CP3** live HTTP/MySQL lifecycle | ❌ |
+| **E0** consumer audit + the equation pinned (19 checks) | ✅ backend `cb26b21` |
+| **E-CP1** `closing.count` permission + per-channel breakdown | ❌ **NEXT** |
+| **E-CP2** discrepancy lifecycle + employee debt ledger | ❌ |
+| **E-CP3** mobile progressive closing | ❌ |
+| **E-CP4** live lifecycle | ❌ |
 
-**What D0 found, and why it mattered:**
-
-1. **A report used to be final.** `POST /expenses` wrote a row that
-   immediately reached the day's profit — "a report changes nothing" could not
-   be true.
-2. **A cash expense never reduced expected cash.** Expenses fed net profit, but
-   the till figure subtracted refunds and supplier payments only. A shop paying
-   for electricity out of the drawer reported a shortage that was not one —
-   exactly the defect J1 fixed for supplier payments, still open here.
-3. **No channel at all.** Cash and transfer were indistinguishable.
-
-**The reconciliation equation** now reads, once each:
+**The authoritative equation** (pinned in `src/closing/reconciliation.spec.ts`
+— E must extend it, never fork it):
 
 ```
-expected = cash in − refunds(cash) − supplier(cash) − expenses(cash) + corrections(cash)
+expected = cash in
+         − refunds(cash) − supplier(cash) − expenses(cash)
+         + corrections(cash)
 ```
 
-Pending reports appear nowhere. Milestone E must build on this and **not create
-a second closing system**.
 
-### Next exact action — D-CP2 (mobile)
 
-1. `mobile/types/api.ts` — add `Expense` mirroring `ExpensesService.shape()`:
-   `id, category, amount, status, expenseClass, isSalary, dueDate, method,
-   accountLabel, reference, note, reasonOmitted, rejectedReason, spentOn,
-   reportedBy, reportedAt, confirmedBy, confirmedAt, confirmationDate, version`.
-2. `mobile/lib/expenses.ts` — hooks + `expenseConflictKind`, following
-   `lib/corrections.ts` exactly.
-3. `mobile/lib/permissions.ts` — add `'expense.submit'` and
-   `'expense.review'` to the `PERMISSIONS` union.
-4. Screens: list · detail · submit form · Owner review (confirm/reject) ·
-   fixed-template settings · salary shown separately. Money through
-   `MoneyValue`; EN/AR parity; RTL-safe sheets.
-5. **The missing-reason warning**: confirming with no note must show
-   *"Are you sure you do not want to clarify the reason?"* and send
-   `reasonOmitted: true` — never invent placeholder copy.
-6. An Employee sees only their own expenses and no review action at all.
+**What E0 found:**
 
-Then **D-CP3**: live lifecycle with the three spent probes, covering role
-boundaries, idempotent replay, changed-payload conflict, stale version, locked
-day, active/inactive account, label snapshot, variable-versus-fixed timing and
-salary separation.
+1. **The closing is cash-only.** There is no per-channel breakdown anywhere —
+   `expectedCash` is a single number. The mismatch path that expands into Cash
+   plus every active receiving account is entirely new work.
+2. **An Employee cannot enter a count at all.** `closing.perform` is held by
+   Owner and Store Manager only, and it both records the count AND locks the
+   day. So a `closing.count` key is genuinely needed — giving an Employee
+   `closing.perform` to let them count would hand them finalisation too.
+3. **No discrepancy lifecycle and no debt ledger exist.** Both are new.
 
-### Then E, then F — not started
+### Next exact action — E-CP1
 
-**E** must first trace every input to expected cash and pin ONE authoritative
-equation with tests (the one above is the current truth). Then the progressive
-closing, the discrepancy lifecycle (`pending_investigation`, never
-auto-assigned) and the Owner-only employee debt ledger.
+1. Migration `0045`: `closing.count` permission (Employee + Manager + Owner);
+   per-channel snapshot rows on the closing; discrepancy status
+   (`pending_investigation`) and its ledger. **Back up and restore-prove first.**
+2. Extend the equation per channel — cash stays as pinned; each active
+   `receiving_account` gets expected/counted of its own. **Do not fork the
+   equation**: add terms to `reconciliation.spec.ts` with signs and reasons.
+3. A discrepancy starts `pending_investigation` and is **never** auto-assigned
+   to an Employee. Only the Owner may assign, deduct, record repayment, or
+   forgive — each with a mandatory reason and an immutable ledger row.
 
-**F** is the unified goal system: gross profit / serialized units / quantity,
-scoped and periodised, with immutable sale attribution.
+Then **F** (goals): gross profit / serialized units / quantity, scoped and
+periodised, with immutable sale attribution.
 
 ### Verification at this checkpoint
 

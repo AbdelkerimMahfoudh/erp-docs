@@ -4330,3 +4330,64 @@ databases dropped.
 
 **Not done: D mobile, D live verification, then E and F.** Mobile is untouched,
 so there is no half-built screen.
+
+---
+
+## 2026-08-16 — CLAUDE-B — Milestone D complete, E0 done
+
+**Repositories:** backend `b084717` → `cb26b21`; mobile `a4379c8` → `980bbe9`;
+docs `cf5d8c9` → this entry.
+
+**Milestone D is complete: 45/45 live checks.**
+
+The live run proved the parts a unit test cannot. A *Manager* cannot confirm an
+expense — review is Owner-only, and that is easy to get wrong when a manager
+holds nearly everything else. An Employee does not see a Manager's expense in
+the list and gets a 404 reading it directly, so `expense.submit` really is
+"report what you spent" rather than company-wide visibility. A fixed cost lands
+on its due date and demonstrably *not* on today. And a salary is summed
+separately while still counting as fixed.
+
+**One live failure was a test defect, not a product one**, and it was worth
+distinguishing carefully rather than assuming. Four assertions about the due-date
+rollup failed, which looked like the fixed-expense routing being broken. It was
+not: `enqueueDailyRecompute` is fire-and-forget by design — a rollup failure must
+never roll back the write that triggered it — so the HTTP response returns before
+the figures refresh. The evidence was in the failure output itself: a later
+assertion saw `fixed = 5000`, proving the rent's recompute *had* landed, just
+after my read. Replaced the racing reads with a bounded poll rather than a blind
+sleep.
+
+**E0 is done, and it is the piece of Milestone E most worth having.**
+
+Five milestones have now each added a movement to expected cash, and every one
+arrived as a separate fix for a separately-reported shortage: I3 refunds, J1
+supplier payments, B corrections, D expenses. Each addition was individually
+correct. Nobody was ever looking at the whole equation, so the next omission was
+only ever found by somebody noticing their till did not balance.
+
+`src/closing/reconciliation.spec.ts` now pins all five terms with their signs
+and reasons, and asserts that the equation contains *nothing else* — the
+assertion that catches a sixth movement being bolted on without being reasoned
+about. It also asserts what feeds it: refunds, supplier payments and expenses
+count only confirmed rows, corrections only approved ones, and every component
+reads its cash half rather than its total.
+
+**E0's audit findings for the implementation ahead:**
+
+The closing is **cash-only** — there is no per-channel breakdown anywhere, so
+the mismatch path that expands into Cash plus every active receiving account is
+entirely new work. An Employee **cannot enter a count at all**, because
+`closing.perform` both records the count and locks the day; a `closing.count`
+key is genuinely needed rather than nice to have, since granting
+`closing.perform` to let somebody count would hand them finalisation too. And
+neither the discrepancy lifecycle nor the employee debt ledger exists yet.
+
+**Verification.** Backend 75 suites / 1207 tests, 44 migrations, 11 triggers,
+`tsc` clean. Mobile `tsc`, lint, 43 routes exporting, 8 pure suites, EN/AR both
+1272, zero raw hex. Demo at baseline — sales 7 / 10 051.00, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, expenses back to its 1 seeded row, zero
+rollup residue. Audit 510 → 528, preserved. Port 3099 released, probes
+deactivated, no scratch databases.
+
+**Not done: E's implementation and all of F.**
