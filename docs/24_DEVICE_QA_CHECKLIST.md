@@ -649,3 +649,62 @@ Whether ML Kit's accuracy is good enough on the screens this shop actually
 sees · camera focus distance on a phone held 10–15 cm away · whether the torch
 helps or worsens glare on a glossy display · how long a read takes on a low-end
 Android · whether the capture button is reachable one-handed · haptics.
+
+---
+
+## 9j. Counting the day, one channel at a time (Milestone E) — **never run on a device**
+
+The server behaviour is proven by 72 live checks over real HTTP. What follows
+is only what a device can answer: whether the counting flow survives the way a
+shift actually ends.
+
+### The flow, as an Employee
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open the closing screen as a **Store Employee** | The day, every channel, and how many are still outstanding |
+| 2 | Enter the cash count and save it | Saved. **The day is not closed** and no lock appears anywhere |
+| 3 | Force-quit the app, reopen, return to the screen | The cash count is still there — counting must survive an interruption |
+| 4 | Enter **0** for an account | Recorded as a count, not as "not counted yet" |
+| 5 | Tap "Cannot check now" on an account, leave the reason blank | The confirm button stays disabled |
+| 6 | Give a reason and confirm | Recorded as skipped, with the reason visible |
+| 7 | Look for a "close the day" button | **Absent**, and a line explains who finishes it |
+
+### The flow, as a Manager or Owner
+
+| # | Do this | Expect |
+|---|---|---|
+| 8 | Open the same day | Counts already entered by the Employee are shown, not blank fields |
+| 9 | Close the day | Locks. The counted cash is **the Employee's figure**, not one you retyped |
+| 10 | Reopen the screen | The signed-off view, with each channel's difference |
+| 11 | Try to close again | Refused, in plain language |
+
+### The parts most likely to be wrong on a real phone
+
+| # | Check | Why it matters |
+|---|---|---|
+| 12 | The money keypad on each channel card | Several inputs on one scrolling screen is where keyboards fight layout |
+| 13 | Scroll position after saving a count | Being thrown back to the top after every channel makes a five-account shop miserable |
+| 14 | The same screen in **Arabic** | Amounts, signs and the skip reason must all read right-to-left correctly |
+| 15 | A **negative** difference in Arabic | The minus sign must sit on the correct side of the figure |
+| 16 | Go offline mid-count | Saving says so plainly; nothing silently discards a typed figure |
+| 17 | A shop with **one** active account vs **four** | The single-account case should not feel like a form |
+
+### Deciding a difference (Owner)
+
+| # | Do this | Expect |
+|---|---|---|
+| 18 | Open a pending difference | Nothing preselected — no resolution, no person |
+| 19 | Choose "Someone owes it" without picking a person | Submit stays disabled |
+| 20 | Pick a person, write a two-character reason | Still disabled — the reason has to say something |
+| 21 | Resolve it | The record shows the decision, the person and the reason |
+| 22 | Open a **surplus** | Only "the shop covers it" and "a record was wrong" are offered |
+| 23 | As the charged Employee, open your own record | You can see what you owe and why, with no special permission |
+
+### What only a device can answer
+
+Whether a five-channel count is genuinely faster than the notebook it replaces ·
+whether the keypad obscures the save button on a small screen · whether the
+skip reason field is reachable one-handed · whether an Employee understands
+from the screen alone that they have not closed anything · whether the Arabic
+layout of a signed difference is unambiguous at a glance.

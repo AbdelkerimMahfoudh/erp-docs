@@ -1339,3 +1339,124 @@ liability settlements, not expenses.** Milestone E builds on this equation and
 must not create a second closing system.
 
 > 45 live checks. Detail in the `0044` migration header.
+
+---
+
+## Milestone E — the closing becomes progressive, per-channel and answerable
+
+### What the E0 audit found
+
+Three things, and the first stops an employee working.
+
+1. **An Employee could not enter a count at all.** `closing.perform` recorded
+   the count *and* locked the day, and only Owner and Manager held it. So the
+   person physically holding the drawer could not report what was in it without
+   somebody senior standing there.
+2. **The closing was cash-only.** A shop taking Bankily had no expected figure
+   for it, so an account could drift indefinitely and nothing noticed.
+3. **A difference had nowhere to go.** It was a number on a locked row: no
+   investigation, no decision, no record of who was held responsible, no ledger
+   if somebody agreed to repay. A shortage was either silently absorbed or
+   settled verbally.
+
+### The asymmetry that had to be fixed first
+
+Money going **out** was already attributed to an account — `refund_payouts`,
+`supplier_settlements` and `expenses` all carry `receiving_account_id`. Money
+coming **in** was not: `payments` recorded only a method, so a per-account
+expected figure was arithmetically impossible.
+
+`0045` adds it and the sell flow now sets it. **Payments taken before `0045`
+stay NULL and are reported as unattributed**, never guessed into an account —
+inventing which account a sale from six months ago reached would be fabricating
+a financial record. Unattributed money is shown and is deliberately **not
+countable**: there is no balance behind it to compare a count against.
+
+### Counting and signing off are two acts
+
+| Permission | Held by | Means |
+|---|---|---|
+| `closing.count` | Owner · Manager · **Employee** | Record what is in front of you. Locks nothing. |
+| `closing.perform` | Owner · Manager | Sign the day off. The figures become a snapshot. |
+| `debt.manage` | **Owner only** | Decide who is responsible, collect, or forgive. |
+
+`debt.manage` is deliberately **not** folded into `closing.perform`, which a
+Manager holds. Deciding that a named person owes the business money is not an
+operational act.
+
+**A locked day stays locked.** Correcting one goes through Milestone B's
+append-only correction workflow, never by reopening.
+
+### The equation is extended, never forked
+
+Every channel uses the same five movements with the same signs the till uses:
+
+```
+expected = sales in
+         - refunds out - supplier out - expenses out
+         + corrections in
+```
+
+Cash is simply the channel whose account is NULL. The signs live in one table
+(`channels.ts`), and `reconciliation.spec.ts` asserts the closing computes no
+expected figure of its own.
+
+**Which channels must be counted**, and why each rule exists:
+
+- **Cash always**, even on a day with no movement. A day where nobody counted
+  the drawer must not read as balanced.
+- **Every active account**, even with no movement - an account that did nothing
+  should still be confirmed as unchanged.
+- **A deactivated account that moved money today.** Otherwise deactivating an
+  account would be a way to stop reconciling it.
+- **A skip is recorded with a reason**, never inferred from a missing count.
+  An account balance cannot always be read at closing time; silence and a
+  decision must not look the same.
+
+### A difference becomes a question
+
+A discrepancy opens `pending_investigation` and is **never auto-assigned**. The
+system observes that a channel is out; it does not accuse whoever was counting.
+A skipped or uncounted channel opens nothing - nobody claimed a figure, so there
+is nothing to disagree with.
+
+Rules that protect the person on the wrong end of a shortage:
+
+- **Every resolution requires a reason.** There is no resolving one silently.
+- **Naming somebody and then absorbing the loss is refused** - that records an
+  accusation that led to nothing.
+- **A surplus can never become a debt.** Nobody owes money for having too much
+  of it; unexplained extra cash is a mis-recorded sale until shown otherwise.
+- **A charge can never be posted directly.** It comes only from resolving a real
+  discrepancy - otherwise it is a way to make somebody owe money with no till,
+  no day and no shortage behind it.
+- **Settling more than is owed is refused**, which catches the same repayment
+  entered twice.
+- **Forgiving writes both the charge and the waiver**, so an Owner can still see
+  somebody came up short three times even when every one was forgiven.
+
+**The balance is derived from the ledger every time and stored nowhere** - a
+stored balance can disagree with its own history. It is not clamped at zero
+either: if the shop has taken more than it was owed, that shows as negative
+rather than being swallowed. The ledger is append-only, enforced by triggers.
+
+`GET /debt/me` is deliberately ungated. Somebody being asked to repay money
+should never need permission to see the record of it; it reads only their own
+rows, and reading anybody else's needs `debt.manage`.
+
+> 72 live checks. `0045` carries the schema reasoning; `0046` records a
+> constraint `0045` got wrong - see below.
+
+### A constraint `0045` got wrong, and how it was found
+
+`ck_closings_counted_fields` asserted `(status = 'counting') = (counted_at IS
+NULL)`: a day still being counted has nobody's count on it. That reads
+plausibly and is wrong. A shop that has counted the drawer but not yet checked
+its Bankily balance is legitimately **both** `counting` **and** holding a real
+count - so the first live count against a multi-channel day failed with MySQL
+3819.
+
+No unit test could have caught it: the rule only breaks once a real second
+channel exists, which is exactly what the live run supplies. `0046` replaces it
+with the two rules actually meant - the *who* and the *when* travel together,
+and `counted` implies somebody counted.

@@ -38,18 +38,19 @@ One live failure was a TEST defect, not a product one: `enqueueDailyRecompute`
 is fire-and-forget by design, so the response returns before the rollup lands.
 Replaced the racing reads with a bounded poll rather than a blind sleep.
 
-### Milestone E — E0 COMPLETE, implementation NEXT
+### Milestone E — COMPLETE
 
-| Step | State |
-|---|---|
-| **E0** consumer audit + the equation pinned (19 checks) | ✅ backend `cb26b21` |
-| **E-CP1** `closing.count` permission + per-channel breakdown | ❌ **NEXT** |
-| **E-CP2** discrepancy lifecycle + employee debt ledger | ❌ |
-| **E-CP3** mobile progressive closing | ❌ |
-| **E-CP4** live lifecycle | ❌ |
+| Step | State | Commit |
+|---|---|---|
+| **E0** consumer audit + the equation pinned (19 checks) | ✅ | backend `cb26b21` |
+| **E-CP1** `closing.count`, per-channel breakdown, `0045` | ✅ | backend `b7fc620` |
+| **E-CP1 fix** `0046` — a constraint `0045` got wrong | ✅ | backend `1cdac9a` |
+| **E-CP2** discrepancy lifecycle + employee debt ledger | ✅ | backend `bf448f2` |
+| **E-CP3** mobile progressive closing + discrepancy screens | ✅ | mobile `dd27254` |
+| **E-CP4** live lifecycle **72/72** | ✅ | — |
 
 **The authoritative equation** (pinned in `src/closing/reconciliation.spec.ts`
-— E must extend it, never fork it):
+— E extended it, and did not fork it):
 
 ```
 expected = cash in
@@ -57,64 +58,98 @@ expected = cash in
          + corrections(cash)
 ```
 
+Every channel now uses those same five movements with those same signs. The
+signs live in exactly one table, `COMPONENT_SIGN` in `src/closing/channels.ts`,
+and `reconciliation.spec.ts` asserts the closing computes no expected figure of
+its own. Cash is simply the channel whose account is NULL.
 
+**What E0 found**, all three confirmed and all three now closed:
 
-**What E0 found:**
+1. The closing was cash-only — no per-channel breakdown existed anywhere.
+2. An Employee could not enter a count at all: `closing.perform` recorded the
+   count AND locked the day, and only Owner and Manager held it.
+3. No discrepancy lifecycle and no debt ledger existed.
 
-1. **The closing is cash-only.** There is no per-channel breakdown anywhere —
-   `expectedCash` is a single number. The mismatch path that expands into Cash
-   plus every active receiving account is entirely new work.
-2. **An Employee cannot enter a count at all.** `closing.perform` is held by
-   Owner and Store Manager only, and it both records the count AND locks the
-   day. So a `closing.count` key is genuinely needed — giving an Employee
-   `closing.perform` to let them count would hand them finalisation too.
-3. **No discrepancy lifecycle and no debt ledger exist.** Both are new.
+**The asymmetry E-CP1 had to fix first.** Money going OUT was already
+attributed to an account — `refund_payouts`, `supplier_settlements` and
+`expenses` all carry `receiving_account_id`. Money coming IN was not:
+`payments` recorded only a method. A per-account expected figure was therefore
+arithmetically impossible, so `0045` adds the column and the sell flow sets it.
+**Payments taken before `0045` stay NULL and are reported as unattributed** —
+guessing which account an old sale reached would fabricate a financial record.
 
-### Next exact action — E-CP1
+**Two new permissions.** `closing.count` (all three store roles) separates
+counting from signing off. `debt.manage` is Owner-only and deliberately NOT
+folded into `closing.perform`, which a Manager holds. Owner permission count
+**42 → 44**, recorded with its reason in `store-roles.spec.ts`.
 
-1. Migration `0045`: `closing.count` permission (Employee + Manager + Owner);
-   per-channel snapshot rows on the closing; discrepancy status
-   (`pending_investigation`) and its ledger. **Back up and restore-prove first.**
-2. Extend the equation per channel — cash stays as pinned; each active
-   `receiving_account` gets expected/counted of its own. **Do not fork the
-   equation**: add terms to `reconciliation.spec.ts` with signs and reasons.
-3. A discrepancy starts `pending_investigation` and is **never** auto-assigned
-   to an Employee. Only the Owner may assign, deduct, record repayment, or
-   forgive — each with a mandatory reason and an immutable ledger row.
+### The defect the live run found, which no unit test could have
 
-Then **F** (goals): gross profit / serialized units / quantity, scoped and
-periodised, with immutable sale attribution.
+`ck_closings_counted_fields` in `0045` asserted
+`(status = 'counting') = (counted_at IS NULL)` — a day still being counted has
+nobody's count on it. That reads plausibly and is wrong: a shop that has counted
+the drawer but not yet checked its Bankily balance is legitimately BOTH
+`counting` AND holding a real count. The first live count against a
+multi-channel day failed with MySQL 3819.
+
+The rule only breaks once a real second channel exists, which is exactly what a
+live run supplies and a unit test does not. `0046` replaces it with the two
+rules actually meant: the WHO and the WHEN travel together
+(`ck_closings_count_attribution`), and `counted` implies somebody counted
+(`ck_closings_counted_started`).
+
+Two of the same run's failures were TEST defects, both recorded rather than
+patched over: a MySQL `Date` compared as a string, and an absolute cash
+expectation that stopped being right once a real sale was moved into the test
+day. A third — one skip not finishing a two-account day — was correct product
+behaviour the script had not accounted for, and is now asserted deliberately.
+
+### Milestone F — NOT started
+
+Goals: gross profit / serialized units / quantity, scoped and periodised, with
+immutable sale attribution. Nothing exists yet — no schema, no service, no
+screen. This is the next authorised work.
 
 ### Verification at this checkpoint
 
-- Backend **74 suites / 1188 tests** (was 73/1150; +38 expense checks),
-  `tsc` clean, `prisma validate` valid, **44 migrations** through `0044`,
-  schema up to date, **11 triggers**.
-- Four deployment proofs for `0044`: restored pre-migration copy, rerun, clean
-  build of all 44, and dev. Nine constraints exercised against real MySQL.
-- Backup `~/erp-backups/phonestore-d-20260816-003152.sql` — 426 888 bytes,
-  62 tables, 10 triggers, 0 raw `_binary`, **restore proven before migrating**.
-- Scratch databases `prisma_d1`, `prisma_d2` dropped.
-- **Mobile untouched** at `a4379c8` — no half-built screen.
-- **No live HTTP run for D yet.** No fixtures on dev, no probe used, no port
-  opened.
+- Backend **77 suites / 1252 tests** (was 75/1207 at the end of D), `tsc`
+  clean, `prisma validate` valid, **45 migrations** through `0046`, schema up
+  to date, **13 triggers**.
+- Mobile `tsc` and `expo lint` both clean, **8 of 8** pure suites, EN and AR
+  **1323 keys each**, zero raw hex in the new screens.
+- **E live 72/72** over real HTTP on port 3099, now released.
+- `0045` proven before touching the shared database: restored a copy into
+  `prisma_e1`, applied there first, and exercised **26 constraint cases**
+  against real MySQL. The three append-only ledger cases were re-run against
+  the REAL database as the REAL application user, because `phonestore_app` has
+  no grants on a scratch schema and "access denied" had been scoring as a
+  trigger refusal.
+- Backups: `~/erp-backups/phonestore-e-20260816-200953.sql` (437 052 bytes,
+  62 tables, 11 triggers, 0 raw `_binary`, **restore proven**) and
+  `~/erp-backups/phonestore-e46-20260816-203542.sql` before `0046`.
+- Scratch database `prisma_e1` dropped. Probes deactivated. No fixtures left.
 
+**Demo restored to baseline exactly:** sales **7 / 10 051.00**, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, payments **7 / 10 051.00**, expenses back
+to its **1** seeded row, **zero** channel-count, discrepancy or ledger rows,
+audit **528 → 545** (grown, never trimmed), Owner permissions **44**.
 
 ### Exact state at handoff
 
 | | |
 |---|---|
-| **backend HEAD** | `6d91fc5` |
-| **mobile HEAD** | `a4379c8` |
+| **backend HEAD** | `bf448f2` |
+| **mobile HEAD** | `dd27254` |
 | **docs HEAD** | this commit |
-| **Migrations** | **43** (0001–0043, `0005` unused); latest `0043_company_tac_mapping` |
-| **Backend tests** | **73 suites / 1150 tests**, 0 failures |
+| **Migrations** | **45** (0001–0046, `0005` unused); latest `0046_counting_fields_constraint` |
+| **Backend tests** | **77 suites / 1252 tests**, 0 failures |
 | **Mobile pure suites** | **8 of 8**, 0 failures |
-| **Live checks** | **B: 41/41** · **C: 41/41** (37 + 4 cross-company) |
-| **Audit-row growth** | **485 → 510** (+25), append-only, preserved |
-| **Triggers** | 10 |
-| **EN / AR keys** | **1200 each** |
-| **Routes exported** | **40** |
+| **Live checks** | **B: 41/41** · **C: 41/41** · **D: 45/45** · **E: 72/72** |
+| **Audit-row growth** | **510 → 545**, append-only, preserved |
+| **Triggers** | 13 |
+| **EN / AR keys** | **1323 each** |
+| **Screen files** | **42** (39 routes + 3 layouts) |
+| **Owner permissions** | **44** |
 
 ### Milestones A, B and C — all COMPLETE
 

@@ -4391,3 +4391,57 @@ rollup residue. Audit 510 → 528, preserved. Port 3099 released, probes
 deactivated, no scratch databases.
 
 **Not done: E's implementation and all of F.**
+
+---
+
+## Milestone E — the closing becomes progressive, per-channel and answerable (CLAUDE-B)
+
+**Commits:** backend `b7fc620`, `1cdac9a`, `bf448f2` · mobile `dd27254` · docs (this).
+
+The E0 audit found three things and all three were real. `closing.perform`
+recorded the count AND locked the day, so the Employee holding the drawer could
+not report what was in it. The closing was a single cash figure, so an account
+could drift indefinitely with nothing noticing. And a difference was a number on
+a locked row — no investigation, no decision, no record of who was responsible.
+
+Fixing the second required fixing an asymmetry first: money going out was
+attributed to an account, money coming in was not. `payments` gained
+`receiving_account_id` in `0045` and the sell flow now sets it. Payments taken
+before that stay NULL and are reported as unattributed rather than guessed into
+an account.
+
+**The live run earned its place again.** `ck_closings_counted_fields`, written
+in `0045`, said a day still being counted has nobody's count on it. It reads
+plausibly and it is wrong — a shop that counted the drawer but has not checked
+its Bankily balance is legitimately both. The first live count against a
+multi-channel day failed with MySQL 3819. The rule only breaks once a real
+second channel exists, which is precisely what a unit test does not supply.
+`0046` replaces it with the two rules actually meant.
+
+Two other failures in the same run were defects in the test script, and one was
+correct product behaviour the script had not accounted for. All three are
+recorded in the handoff rather than quietly patched, because the distinction
+between "the product is wrong" and "my test is wrong" is the whole value of
+running it.
+
+**What E-CP2 protects.** A discrepancy opens unassigned and stays that way
+until an Owner decides. A surplus can never become a debt. A charge can never be
+posted directly, only as the consequence of resolving a real shortage. Settling
+more than is owed is refused. Forgiving writes both the charge and the waiver,
+so the history survives the mercy. The balance is derived from the ledger every
+time and stored nowhere, and the ledger is append-only by trigger.
+
+`GET /debt/me` is deliberately ungated: being asked to repay money and not being
+allowed to see the record of it is exactly the situation this replaces.
+
+**Removed** the inline expense form the old closing screen carried. Milestone D
+gave expenses a reviewed workflow with class, method and account; a second entry
+point that set none of them was a way to produce records nobody could reconcile.
+
+**Verification.** Backend 77 suites / 1252 tests, `tsc` clean, 45 migrations,
+13 triggers. Mobile `tsc` and lint clean, 8 pure suites, EN/AR 1323 each. E live
+72/72. Demo restored to baseline exactly — sales 7 / 10 051.00, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, expenses back to one seeded row, no residue,
+audit 528 → 545 preserved, port 3099 released, `prisma_e1` dropped.
+
+**Milestone F is not started.**
