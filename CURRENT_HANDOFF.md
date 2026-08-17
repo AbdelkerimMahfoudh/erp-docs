@@ -16,7 +16,7 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `2effbf3` |
+| `erp-backend` | `424410e` |
 | `erp-mobile` | `ad5a185` |
 | `erp-docs` | *this commit* |
 
@@ -123,7 +123,7 @@ migration file.
    a settled payment showed as still in the air forever and the shop would chase
    money it already had. Found while checking a response shape, not by a test.
    Answered-ness now comes from the explicit `refersToId` link; three tests pin
-   it. Backend `2effbf3`.
+   it. Backend `2effbf3`, with the response field the screens need in `424410e`.
 
 **One gap closed on the way past:** `consignments/new` was linked from the H list
 screen but never built — the button reached an unmatched route. It exists now,
