@@ -6,11 +6,20 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B** · closed `2026-08-17T21:58Z`
-- Completed this session: **Milestones H and I**, both shipped and verified.
-- **Milestone J was not begun**, as instructed.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- started_at_utc: `2026-08-17T22:31Z`
+- Authorised task: **Milestone J — the safe offline foundation**. **Do not begin K.**
+- Takeover verified: 87 suites / 1485 tests · 49 migrations · 19 triggers ·
+  EN/AR 1575 · mobile tsc and pure suites clean · all three trees clean and
+  pushed at backend `424410e`, mobile `ad5a185`, docs `37a8dbc`.
+  **One discrepancy:** the handoff said API 3010 and Metro 8081 were still
+  running; **neither is listening**. They stopped between sessions. Nothing
+  depends on them until live replay testing, when they will be restarted.
+- Previously completed: **Milestones A–I**, all shipped and verified.
+- Next intended action: **J0 audit** — classify every mobile mutation into local
+  draft / queueable submission / online-only authority, and pin the matrix with
+  tests before any queue code is written.
 
 ### Repository state — all three clean and pushed
 
