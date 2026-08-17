@@ -746,3 +746,51 @@ the progress bar's fill is distinguishable from its track in bright sunlight ·
 whether "128 a day over the 21 days left" is understood without explanation by
 somebody in their first week · whether the Arabic bar direction reads as
 progress rather than as depletion.
+
+---
+
+## 9l. Bringing in a stock list (Milestone G) — **never run on a device**
+
+Server behaviour is proven by 41 live checks including a real `.xlsx` with
+Arabic headers. What follows is only what a device can answer, and the file
+picker is the part most likely to disappoint.
+
+### The picker
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open **More → Bring in stock** as a Store Employee | **Absent** — this is `import.run` |
+| 2 | As Owner or Manager, tap **Choose a file** | The system picker opens |
+| 3 | Pick a `.xlsx` from Google Drive / OneDrive | It uploads — cloud providers are where shop files actually live |
+| 4 | Pick a `.xlsx` from WhatsApp downloads | Same. This is the single most common real path |
+| 5 | Pick a file the picker reports as `application/octet-stream` | Still accepted — some Android providers report spreadsheets this way |
+| 6 | Cancel the picker | Nothing happens, no error appears |
+| 7 | Pick a large file on a slow connection | The button disables while it uploads and does not double-submit |
+
+### The preview
+
+| # | Check | Why it matters |
+|---|---|---|
+| 8 | The summary sentence is read before the numbers | The whole screen is worthless if "197 will be added" is not the first thing seen |
+| 9 | A file with 200 rows | Still scrollable and responsive; the problem rows are at the top |
+| 10 | The line numbers match the shop's own spreadsheet | Off by one here and every fix goes to the wrong row |
+| 11 | The same screen in **Arabic** | Reasons, line numbers and counts all read right-to-left correctly |
+| 12 | An Arabic product name from a `.xlsx` | Renders correctly — this is the reason `.xlsx` is recommended over CSV |
+| 13 | The same list exported as **CSV from an Arabic Excel** | Likely mangled. Confirm the app does not pretend otherwise |
+
+### Committing
+
+| # | Do this | Expect |
+|---|---|---|
+| 14 | Tap **Add N to stock** | The phones appear in Inventory immediately afterwards |
+| 15 | Go back and tap it again | Refused, in plain language |
+| 16 | Import the same file a second time | Every row refused as already in stock |
+| 17 | Import an accessory sheet twice | The quantity adds up on one row, not two rows |
+
+### What only a device can answer
+
+Whether the picker can actually reach the file a shop keeps in WhatsApp ·
+whether a 200-row preview scrolls acceptably on a low-end Android · whether the
+summary sentence is understood without explanation by somebody in their first
+week · whether an Arabic `.xlsx` from a real shop's real Excel round-trips
+intact.

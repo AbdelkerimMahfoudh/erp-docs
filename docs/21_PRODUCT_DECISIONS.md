@@ -1550,3 +1550,94 @@ metric and period cannot both exist — "am I on target" has one answer.
 > 34 live checks, green on the first run. `0047` carries the schema reasoning
 > and was proven on a restored copy first: 14 constraint cases against real
 > MySQL, including all four half-scoped goals refused.
+
+---
+
+## Milestone G — bringing a shop's stock list in
+
+### What the G0 audit found
+
+1. **The schema existed; the feature did not.** `import_batches` and
+   `import_rows` already modelled a proper parse → preview → commit flow with
+   per-row `valid`/`warning`/`error`. Nothing was ever built on them.
+2. **`import.run` guarded nothing.** Granted to Owner, Manager and the legacy
+   warehouse roles, labelled "Run Excel/CSV inventory import", and present in
+   zero `@RequirePermissions`. A permission that guards nothing is a promise the
+   app does not keep.
+3. **No spreadsheet parser was installed.**
+
+### The dependency, and why it was asked about
+
+`exceljs` (MIT) was added with approval, because the rulebook makes a new
+dependency a major change. The deciding argument was not convenience: **Excel in
+an Arabic locale exports CSV as windows-1256**, which silently mangles Arabic
+product names into characters a shopkeeper can neither recognise nor fix. A
+`.xlsx` carries UTF-8 natively and avoids the whole class of problem.
+
+CSV is still supported, through a **hand-written** RFC 4180 reader. The format
+is small enough that a correct implementation is shorter than the argument for
+another dependency, and the cases that break real files are exactly what
+`split(',')` gets wrong: a comma inside a product name, a newline inside a
+quoted note, and the byte-order mark Excel writes — which, left in place,
+becomes part of the first header and makes the IMEI column invisible.
+
+**The delimiter is detected, never configured.** "Is your file comma or
+semicolon separated" is not a question a shop can answer.
+
+### Columns are guessed, then shown
+
+A shop's list was written by the shop: `imei`, `IMEI No`, `الرقم التسلسلي`.
+Making somebody map twelve columns by hand before importing anything is the
+step where people give up and go back to the notebook. So the mapping is
+guessed and displayed for confirmation; nobody builds one from nothing.
+
+Arabic headers normalise alef, ya, ta-marbuta, diacritics and Arabic-Indic
+digits, because `الماركه` and `الماركة` are the same word to everybody except a
+string comparison, and which one appears depends on the keyboard.
+
+**What kind of stock a sheet describes is decided by its identifier column**, not
+asked. A column of IMEIs is phones. Asking again is asking somebody to restate
+their own file.
+
+**Three columns are required** — an identifier, a product name, and a cost — and
+every missing one is reported at once. Cost is required as a product decision:
+stock imported without it reports infinite margin on every sale, and the shop
+finds out only once the profit figures are already wrong.
+
+### A bad row fails alone
+
+200 phones with three mistyped IMEIs gives **197 phones and three things to
+fix**. All-or-nothing sounds safer and is, in practice, what sends somebody back
+to the notebook. What makes it safe rather than sloppy is that **nothing is
+written until the shop has seen the count**.
+
+| Case | Verdict | Why |
+|---|---|---|
+| IMEI fails its check digit | **error** | The worst outcome of an import is a phone that looks imported and can never be found by scanning the real one |
+| No cost | **error** | Infinite margin on every sale |
+| Cost is zero | **warning** | Free stock is real; a whole column of zeros is more likely an empty column |
+| Price below cost | **warning** | Clearance is a real decision, and also what a swapped column looks like |
+| Already in stock / twice in the file | **error**, worded differently | The two need different fixes |
+
+A **warning imports**. A warning that blocks is an error with a friendlier
+colour, and it teaches people to ignore both.
+
+### Other decisions
+
+- **The uploaded file is never written to disk.** A stock list is commercially
+  sensitive; keeping a copy nobody asked us to keep is a liability with no
+  matching benefit. What persists is the parsed result.
+- **A file whose columns cannot be understood is recorded as `failed`, not
+  refused.** The shop can then see which columns were found and which were
+  missing.
+- **Quantity stock merges.** 50 cables imported onto an existing 20 makes 70,
+  not two rows nobody can reconcile.
+- **Forty A15s make one product**, matched on brand + model + variant, or they
+  could never be reported on together.
+- **Row numbers are the shop's own** — the first data row is line 2, because
+  line 1 is the header they can see.
+- **A committed batch is never deleted.** It is the record of where the stock
+  came from.
+
+> 41 live checks, green on the first run, including a real `.xlsx` with Arabic
+> headers and an empty leading worksheet. `0048` carries the schema reasoning.
