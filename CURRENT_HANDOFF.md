@@ -85,8 +85,8 @@ reconciliation equation instead of forking it.
 | **H-CP2** discovery, connections, blocking, counterparties | ✅ | backend `b91f8f1` |
 | **H-CP3** lifecycle: request, reserve, propose/counter, custody | ✅ | backend `9c8ad2b` |
 | **H-CP4** resale accounting, payments, forgiveness, returns | ✅ | backend `c5cdf22` |
-| **H-CP5** mobile | ❌ **NEXT** | — |
-| **H-CP6** two-company live verification | ❌ | — |
+| **H-CP5** mobile: stores, connections, consignments | ✅ | mobile `8db05d5` |
+| **H-CP6** two-company live verification | ❌ **NEXT** | — |
 
 **The binding architecture decision is implemented.** Consignment does not
 extend `StockTransfer` in model, route, permission or lifecycle. `0049` creates
@@ -149,29 +149,56 @@ debt back rather than deleting the payment. **Forgiveness is not cash.** A
 returned phone reaches stock only when the OWNER confirms, and a damaged one
 routes to `faulty`.
 
-### Next exact action — H-CP5 (mobile)
+### H-CP5 — what shipped
 
-Screens, in the order a shop meets them:
+Screens for store search, connections and blocking, the three consignment tabs,
+and a detail screen carrying every action. **Privacy is structural**: the API
+never sends the other side's cost, resale price, customer or margin, so a screen
+cannot leak what it never receives.
 
-1. `lib/consignment.ts` — hooks for search, connections, consignments, ledger.
-2. **Store search + public preview** — name, city, logo, "Verified badge coming
-   soon" literal. Nothing else, ever.
-3. **Connections**: request, accept/reject, block/unblock, manual counterparty.
-4. **Consignments list** with the three tabs the lifecycle already groups:
-   Pending / Accepted / Confirmed. Use `row.group`, never re-derive it.
-5. **Detail**: timeline, lines, counter/dispute, custody send/receive, payment
-   report/confirm, return, Owner forgiveness.
-6. Privacy-safe by construction: the API never sends the other side's cost,
-   resale price or customer, so the screens cannot leak what they never receive.
-7. EN/AR, RTL, offline honesty. A payment reference must never be presented as
-   proof of anything.
+The language rules the screens own: a payment report is shown separately and
+never deducted; a reference is labelled "a note, not proof of payment"; the
+verification line is plain text rather than a badge; and one empty state covers
+every search miss so blocked and nonexistent stay indistinguishable.
 
-Then **H-CP6**: two temporary companies over real HTTP — discovery privacy,
-double claim, proposal concurrency, custody mismatch, private resale, accounting
-once, partial payments, correction, forgiveness, unsold and damaged returns,
-cross-company failures, complete cleanup leaving no permanent company.
+### Next exact action — H-CP6 (two-company live)
 
-Milestone I follows H. **Do not begin J.**
+The only checkpoint that can prove the cross-tenant rules. Create **two
+temporary companies** over real HTTP against real MySQL, and remove both
+completely afterwards — no permanent company or identity may survive.
+
+Prove, in roughly this order:
+
+1. **Discovery privacy** — a non-discoverable store, a blocked store and a
+   nonexistent one all return the SAME empty result. The binary company id
+   appears in no response.
+2. **Connection** — request, accept; only the addressee may decide; the phone
+   number is absent before acceptance and present after.
+3. **Blocking** — stops new requests, leaves history and any outstanding
+   balance untouched, and only the blocker may lift it.
+4. **Reservation and double claim** — two concurrent requests for the same unit;
+   exactly one wins, and the loser's message names the phone.
+5. **Proposal concurrency** — accepting your own offer refused; a stale version
+   409s; two simultaneous accepts produce one winner.
+6. **Custody** — send, confirm; a mismatched identifier refused with BOTH
+   values; a partial scan refused.
+7. **Private resale** — Store 1 cannot read Store 2's sale, customer or resale
+   price; Store 2 cannot read Store 1's unit cost, supplier or purchase. Use
+   direct id probes, and assert **404 not 403** everywhere enumeration is
+   possible.
+8. **Accounting once** — profit recognised at disposition; the later payment
+   moves cash and liability and does NOT change profit again.
+9. **Payments** — report changes no balance, confirm does, double confirm 409s,
+   over-payment refused, idempotent replay.
+10. **Forgiveness** — Owner only, mandatory reason, reduces the balance, is not
+    cash.
+11. **Returns** — unsold returns to `in_stock` only after the SOURCE confirms;
+    damaged routes to `faulty`.
+12. **Malformed ids and cross-company ids** — fail closed, identically.
+13. **Cleanup** — both companies, users, connections, consignments and ledger
+    rows removed; demo fingerprint back to baseline; audit rows preserved.
+
+Then **Milestone I** (money loans). **Do not begin J.**
 
 ### Milestone F — COMPLETE
 
