@@ -76,7 +76,7 @@ approve/ship/receive/cancel). H should almost certainly EXTEND that rather than
 build a parallel movement system — the same reasoning that made E extend the
 reconciliation equation instead of forking it.
 
-### Milestone H — IN PROGRESS
+### Milestone H — COMPLETE
 
 | Step | State | Commit |
 |---|---|---|
@@ -86,7 +86,7 @@ reconciliation equation instead of forking it.
 | **H-CP3** lifecycle: request, reserve, propose/counter, custody | ✅ | backend `9c8ad2b` |
 | **H-CP4** resale accounting, payments, forgiveness, returns | ✅ | backend `c5cdf22` |
 | **H-CP5** mobile: stores, connections, consignments | ✅ | mobile `8db05d5` |
-| **H-CP6** two-company live verification | ❌ **NEXT** | — |
+| **H-CP6** two-company live **71/71** | ✅ | backend `5372b78` |
 
 **The binding architecture decision is implemented.** Consignment does not
 extend `StockTransfer` in model, route, permission or lifecycle. `0049` creates
@@ -149,56 +149,56 @@ debt back rather than deleting the payment. **Forgiveness is not cash.** A
 returned phone reaches stock only when the OWNER confirms, and a damaged one
 routes to `faulty`.
 
-### H-CP5 — what shipped
+### H-CP6 — 71 checks, two real companies, both removed
 
-Screens for store search, connections and blocking, the three consignment tabs,
-and a detail screen carrying every action. **Privacy is structural**: the API
-never sends the other side's cost, resale price, customer or margin, so a screen
-cannot leak what it never receives.
+The only checkpoint that could prove the cross-tenant rules, and it found a real
+bug immediately: `create()` wrote the consignment LINES before the parent row,
+so `fk_cline_consignment` refused every proposal at the first phone. No unit
+test could have caught it — the foreign key exists only in the database.
 
-The language rules the screens own: a payment report is shown separately and
-never deducted; a reference is labelled "a note, not proof of payment"; the
-verification line is plain text rather than a badge; and one empty state covers
-every search miss so blocked and nonexistent stay indistinguishable.
+What the run proves that nothing else could:
 
-### Next exact action — H-CP6 (two-company live)
+- A store that opted OUT of discovery returns a response byte-identical to one
+  that does not exist.
+- Discovery carries five fields and never the binary company id.
+- The requester cannot accept their own connection request.
+- A phone is reserved the moment it is proposed; a second claim names the IMEI.
+- Nobody answers their own offer, in either direction.
+- Accepting takes the COUNTER, not the original.
+- Custody confirmation with a different phone is refused, reporting both values.
+- The destination sees the phone and there is **no cost field on it at all**.
+- **Exactly one unit exists** for the sold IMEI, in one company.
+- A payment report moves the balance by nothing; the debtor can neither confirm
+  their own payment nor forgive their own debt.
+- A phone in transit is not back in stock; a damaged return goes to `faulty`.
 
-The only checkpoint that can prove the cross-tenant rules. Create **two
-temporary companies** over real HTTP against real MySQL, and remove both
-completely afterwards — no permanent company or identity may survive.
+Three failures during the run were defects in the TEST, each recorded in the
+script where it happened: a mnemonic Store Account ID that `normalizeStoreCode`
+correctly rejected as non-hex, random hex used where UUIDv7 was required, and a
+`j()` helper that returned undefined and aborted instead of reporting.
 
-Prove, in roughly this order:
+**Demo restored exactly** — companies back to 1, sales 7 / 10 051.00, units
+checksum `2a1dc9bf284afde32b402ad108d38a76`, products 13, zero consignment,
+connection, counterparty or ledger rows, audit preserved.
 
-1. **Discovery privacy** — a non-discoverable store, a blocked store and a
-   nonexistent one all return the SAME empty result. The binary company id
-   appears in no response.
-2. **Connection** — request, accept; only the addressee may decide; the phone
-   number is absent before acceptance and present after.
-3. **Blocking** — stops new requests, leaves history and any outstanding
-   balance untouched, and only the blocker may lift it.
-4. **Reservation and double claim** — two concurrent requests for the same unit;
-   exactly one wins, and the loser's message names the phone.
-5. **Proposal concurrency** — accepting your own offer refused; a stale version
-   409s; two simultaneous accepts produce one winner.
-6. **Custody** — send, confirm; a mismatched identifier refused with BOTH
-   values; a partial scan refused.
-7. **Private resale** — Store 1 cannot read Store 2's sale, customer or resale
-   price; Store 2 cannot read Store 1's unit cost, supplier or purchase. Use
-   direct id probes, and assert **404 not 403** everywhere enumeration is
-   possible.
-8. **Accounting once** — profit recognised at disposition; the later payment
-   moves cash and liability and does NOT change profit again.
-9. **Payments** — report changes no balance, confirm does, double confirm 409s,
-   over-payment refused, idempotent replay.
-10. **Forgiveness** — Owner only, mandatory reason, reduces the balance, is not
-    cash.
-11. **Returns** — unsold returns to `in_stock` only after the SOURCE confirms;
-    damaged routes to `faulty`.
-12. **Malformed ids and cross-company ids** — fail closed, identically.
-13. **Cleanup** — both companies, users, connections, consignments and ledger
-    rows removed; demo fingerprint back to baseline; audit rows preserved.
+### Milestone I — money loans — NOT STARTED
 
-Then **Milestone I** (money loans). **Do not begin J.**
+Nothing in any working tree belongs to it.
+
+**I0 must audit first** what H leaves reusable. `docs/31` already records the
+answer, written before H was built so the primitives were designed to be shared:
+
+- **Reusable:** `counterparties` (already carries `manual_person` and
+  `employee` kinds for exactly this), the immutable ledger shape, report →
+  confirm → correct, forgiveness with a mandatory reason.
+- **Not reusable:** custody, shipment, condition, return, disposition. A loan
+  has no phone in it, and modelling one as "a consignment with no unit" would
+  put custody states on a record that can never have custody.
+- **Direction is explicit data, never a sign.** `they_owe_us` /
+  `we_owe_them` as a column, because a negative amount becomes ambiguous the
+  moment somebody corrects a payment.
+
+Back up and restore-prove before the schema change. **Do not begin J.**
 
 ### Milestone F — COMPLETE
 
