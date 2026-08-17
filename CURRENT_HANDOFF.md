@@ -181,24 +181,52 @@ correctly rejected as non-hex, random hex used where UUIDv7 was required, and a
 checksum `2a1dc9bf284afde32b402ad108d38a76`, products 13, zero consignment,
 connection, counterparty or ledger rows, audit preserved.
 
-### Milestone I — money loans — NOT STARTED
+### Milestone I — IN PROGRESS
 
-Nothing in any working tree belongs to it.
+| Step | State | Commit |
+|---|---|---|
+| **I0** audit — answered in `docs/31` before H was built | ✅ | docs `5a40889` |
+| **I-CP1** migration `0050`, models, pure rules, permissions | ✅ | backend `6db9e06` |
+| **I-CP2** service + controller: propose, decide, pay, forgive | ❌ **NEXT** | — |
+| **I-CP3** mobile: tabs, proposal, ledger, closing reminders | ❌ | — |
+| **I-CP4** live verification | ❌ | — |
 
-**I0 must audit first** what H leaves reusable. `docs/31` already records the
-answer, written before H was built so the primitives were designed to be shared:
+**A loan is not a consignment with no phone.** Custody, shipment, condition,
+disposition and return exist on a consignment because something physical moves.
+A loan has none of that.
 
-- **Reusable:** `counterparties` (already carries `manual_person` and
-  `employee` kinds for exactly this), the immutable ledger shape, report →
-  confirm → correct, forgiveness with a mandatory reason.
-- **Not reusable:** custody, shipment, condition, return, disposition. A loan
-  has no phone in it, and modelling one as "a consignment with no unit" would
-  put custody states on a record that can never have custody.
-- **Direction is explicit data, never a sign.** `they_owe_us` /
-  `we_owe_them` as a column, because a negative amount becomes ambiguous the
-  moment somebody corrects a payment.
+**Direction is an explicit column**, stored relative to the creating company and
+inverted for the counterparty, so one row serves both sides. A negative amount
+would become ambiguous the moment somebody corrects a payment.
 
-Back up and restore-prove before the schema change. **Do not begin J.**
+**The principal is structural**: `ck_loans_principal` refuses a proposed loan
+that carries one and an accepted loan that lacks one, so "immutable once agreed"
+is enforced rather than intended.
+
+**A Store Employee holds no loan permission at all** — a loan can be against an
+employee, and the list would show them their colleagues' debts. Owner 56 → 61.
+
+### Next exact action — I-CP2
+
+`LoansService`, on the **unscoped** client with the same two-column filter
+`companyId = me OR counterpartyCompanyId = me`, and a 404 for strangers:
+
+1. `propose()` — direction, counterparty, amount, note. Idempotent
+   `clientUuid`. Manual counterparties are allowed and need no connection;
+   connected stores must not be blocked.
+2. `decide()` — accept / counter / dispute / reject / cancel through
+   `assertDecision`, which already refuses answering your own offer. On accept,
+   write `principal` AND a `principal_accepted` ledger row in one transaction.
+3. `payment()` — report then confirm, creditor decided by `creditorIs()` and
+   the direction, NOT by who created the row. Correction reuses Milestone B's
+   workflow shape: a new `payment_corrected` entry, never an edit.
+4. `forgive()` — creditor's Owner only, mandatory reason, not cash.
+5. **Closing reminders**: surface loan proposals awaiting action, payment
+   reports awaiting confirmation and accepted balances due, on the closing
+   screen. A reminder must NOT alter expected cash or profit — add it beside the
+   equation, never inside it.
+
+Then I-CP3 (mobile) and I-CP4 (live). **Do not begin J.**
 
 ### Milestone F — COMPLETE
 
