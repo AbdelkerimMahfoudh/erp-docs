@@ -794,3 +794,77 @@ whether a 200-row preview scrolls acceptably on a low-end Android · whether the
 summary sentence is understood without explanation by somebody in their first
 week · whether an Arabic `.xlsx` from a real shop's real Excel round-trips
 intact.
+
+---
+
+## Milestone H — stock with another shop
+
+Needs **two accounts on two devices**, or two shops' Store Account IDs. Most of
+this cannot be answered from a simulator, because the whole point is what two
+different people see.
+
+### Finding each other
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Search a shop by its **Store Account ID** | Name, city, logo, and a badge that openly says it is coming |
+| 2 | Search two characters | Nothing, and a line telling you three are needed |
+| 3 | Search a shop that does not exist | The same empty answer as one that blocked you — no difference at all |
+| 4 | Look hard at the preview | No branches, staff, stock, prices or phone number anywhere |
+
+### Sending stock
+
+| # | Do this | Expect |
+|---|---|---|
+| 5 | **Scan** a phone into a consignment | Added with its model, from the camera, without typing |
+| 6 | Scan a phone that is already sold | Refused while you are still holding it |
+| 7 | Scan the same phone twice | Refused as already on the list |
+| 8 | Send it, then check Inventory | Shown as out with another shop, not as gone |
+| 9 | On the **other** device, open the request | The phones and the asking price. **No cost, no margin** |
+
+### The money
+
+| # | Do this | Expect |
+|---|---|---|
+| 10 | Sell a consigned phone on device 2 | Device 1 is told it sold, and never sees the price it went for |
+| 11 | Report a payment on device 2 | Device 1 sees it as reported, and the balance has **not** moved |
+| 12 | Confirm it on device 1 | Now the balance drops |
+| 13 | Return a phone as **damaged** | It goes to faulty for inspection, never straight back on the shelf |
+| 14 | Block the other shop, then look at what is owed | Still owed. Blocking stopped new business and erased nothing |
+
+### What only a device can answer
+
+Whether scanning into a consignment is fast enough to do with a customer
+waiting · whether "Waiting / Agreed / Settled" reads correctly to somebody who
+has never used the app · whether the sender genuinely cannot find a resale price
+anywhere on their screen · whether the Arabic RTL layout of the two-party
+timeline is followable.
+
+---
+
+## Milestone I — money owed
+
+Again **two accounts**, and the second half needs both.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Record "they owe us 20,000" | Proposed. Not yet a debt |
+| 2 | Open it on the other device | Reads as **we owe them**, same amount |
+| 3 | Try to accept your own proposal | Refused |
+| 4 | Counter with 18,000, then accept on the first device | Agreed at 18,000, and the amount can no longer be edited |
+| 5 | On the debtor's device, say you paid 5,000 | Reported. The balance still says 18,000 |
+| 6 | Look for a confirm button on the debtor's device | There isn't one |
+| 7 | Confirm on the creditor's device | 13,000 remaining |
+| 8 | Reverse that payment with a reason | Back to 18,000, and both entries still in the history |
+| 9 | Write off 8,000 | 10,000 remaining, and no money moved |
+| 10 | Add a loan to somebody **not** on the app | Recorded by name. No account is created for them |
+| 11 | Open the daily closing | The loan reminder appears, and says plainly it changes no figure |
+| 12 | Count the drawer | The expected cash is unchanged by any of the above |
+
+### What only a device can answer
+
+Whether "they owe us" and "we owe them" are unambiguous at a glance in both
+languages · whether the RTL rendering keeps the direction chip beside the right
+number · whether somebody in their first week understands that reporting a
+payment is not the same as being paid · whether the closing reminder is read as
+a nudge rather than as something they failed to count.

@@ -156,3 +156,74 @@ have custody — the kind of shortcut that reads as clever and becomes unmaintai
 **Direction is explicit data, never a sign.** `they_owe_us` / `we_owe_them` as a
 column, because a negative amount is ambiguous the moment somebody corrects a
 payment, and a sign flip is a silent reversal of who owes whom.
+
+---
+
+## What was built, and what verification actually proved
+
+*Closed at the end of the H–I session. The audit above was written before either
+milestone existed; this records how the predictions held up.*
+
+### Schema
+
+| Migration | Adds |
+|---|---|
+| `0049_consignment` | `store_connections` (generated `pair_key`), `counterparties`, `consignments`, `consignment_lines` (generated `active_unit_id`), `consignment_ledger`; `units.status` gains `consigned_out`; 11 permissions |
+| `0050_money_loans` | `loans` (explicit `direction`, `ck_loans_principal` binding the principal to acceptance in both directions), `loan_ledger` (append-only triggers); 5 permissions |
+
+The prediction held: **the counterparty concept and the ledger shape were reused
+unchanged**, and no custody or disposition table was touched by loans.
+
+### Where the tenant boundary is enforced
+
+`consignments` and `loans` deliberately sit **outside** the automatic Prisma
+tenant scoping — they are the only tables in the system a second company may
+legitimately read. That exemption is paid for by a single rule, applied in one
+helper per module: every read carries an explicit two-column filter
+(`source` OR `destination`; `company` OR `counterparty_company`), and a stranger
+receives **404, never 403**.
+
+`sideOf()` throws `NotFoundException` rather than `ForbiddenException` for the
+same reason: a 403 is an admission that the record exists.
+
+### What the live runs proved that unit tests could not
+
+Both suites ran over real HTTP against real MySQL, with two temporary companies
+created and removed inside the run.
+
+| | Checks | Result |
+|---|---|---|
+| H — consignment | 71 | green |
+| I — money loans | 53 | green |
+
+Properties that only a two-company live run can establish:
+
+- The same loan row reads `they_owe_us` to one shop and `we_owe_them` to the
+  other, from two separate authenticated sessions.
+- The debtor's confirmation attempt is refused (403) while holding every
+  permission — proving the creditor is derived from direction, not authorship.
+- A store that blocked you is indistinguishable from one that does not exist:
+  the answer set has exactly one member, and it is empty.
+- Cleanup restored the demo company byte-for-byte — sales 7 / 10,051.00, unit ID
+  checksum unchanged, one company remaining, zero rows left in any new table.
+
+### Defects the live runs found
+
+1. **`consignments.service.create()` wrote lines before the parent row**, so the
+   FK failed on every real request. Every unit test passed, because none of them
+   used a real database. Fixed by creating the parent first inside the same
+   transaction; reserve-first is preserved because a losing compare-and-swap
+   rolls the parent back with it.
+2. **`awaitingConfirmation` counted confirmed reports**, so a settled payment
+   showed as still awaiting forever and the shop would chase money it already
+   had. Found while checking a response shape, not by any test. Answered-ness now
+   comes from the explicit `refersToId` link; three tests pin it.
+
+A recurring lesson, now twice over: **the failures that survive a green unit
+suite are the ones that need a database or a second company to exist.**
+
+### One gap this session also closed
+
+`consignments/new` was linked from the H list screen but never built — the
+button reached an unmatched route. It exists now, camera-first, resolving every
+scanned code against the server before it joins the list.

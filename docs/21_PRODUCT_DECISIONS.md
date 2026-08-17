@@ -1641,3 +1641,168 @@ colour, and it teaches people to ignore both.
 
 > 41 live checks, green on the first run, including a real `.xlsx` with Arabic
 > headers and an empty leading worksheet. `0048` carries the schema reasoning.
+
+---
+
+## Milestone H — inter-store consignment
+
+*Approved and implemented. Schema `0049`. 71 live checks across two temporary
+companies, green.*
+
+### The binding architectural decision
+
+**Consignment does not extend `StockTransfer`.** Not the model, not the routes,
+not the permissions, not the lifecycle. A transfer moves stock between two
+branches of one company; a consignment moves it between two companies that must
+never see each other's books. Reusing the transfer would have put a
+cross-company row inside a structure whose every query assumes one tenant — the
+kind of reuse that looks economical until the day it leaks.
+
+What *was* reused is the thinking: compare-and-swap reservation, idempotency
+keys, optimistic versioning, immutable money ledgers, notifications and audit.
+
+### Privacy is structural, not careful
+
+The rule is not "the screens are careful not to show cost". It is that **the
+other side's cost never reaches the client at all** — `consignment_lines` has no
+cost column, and the API for the receiving company cannot select what does not
+exist. A screen cannot leak what it never receives.
+
+| Store 1 (sender) never learns | Store 2 (holder) never learns |
+|---|---|
+| Store 2's resale price | Store 1's cost |
+| Store 2's customer | Store 1's margin |
+| Store 2's own stock, staff or sales | Store 1's suppliers or settings |
+
+### Discovery cannot be used as a directory
+
+A public preview is exactly four things: **name, city, logo, and a badge that
+says "Verified badge coming soon"** — worded so nobody mistakes it for an
+achieved status. Never the internal company ID, branches, users, inventory,
+sales, suppliers, or detailed contact data before a connection is accepted.
+
+Search needs three characters and is bounded. Crucially, **every reason a store
+is absent produces the identical answer**: no such store, not discoverable,
+inactive, blocked you, or is you — all simply absent. Distinguishing them would
+turn the search box into an oracle for who exists and who has blocked whom.
+
+### Blocking stops new business, and touches nothing owed
+
+Blocking prevents new requests and suppresses non-essential notifications. It
+**never** deletes history and **never** erases an outstanding liability. A debt
+does not disappear because the two shops stopped speaking; pretending otherwise
+would make blocking a way to escape money owed.
+
+### "Confirmed" means the money moved
+
+The three tabs are Waiting, Agreed and Settled, and the boundary is deliberate:
+**accepting a proposal is not final confirmation.** Final confirmation means the
+money was received, or the phone physically came back. The grouping lives on the
+server so the client cannot drift away from it.
+
+Two-party integrity throughout: nobody answers their own offer; the debtor
+cannot confirm their own payment; a custody mismatch is refused rather than
+silently rewriting the expected IMEI; and a damaged return goes to faulty for
+inspection, never straight back onto the shelf.
+
+### A person is a counterparty, never a company
+
+Somebody who does not use the app is recorded as a **counterparty**. No
+fabricated `Company`, branch or user — an invented company would appear in
+searches, be able to own inventory, and quietly become a tenant nobody created.
+
+### Accounting, counted once
+
+Profit is recognised at **disposition** — when the consigned phone is sold — and
+a payment moves cash and liability only. Counting it twice is the failure this
+exists to prevent. Forgiveness is the creditor's Owner alone, requires a reason,
+and is never treated as cash.
+
+---
+
+## Milestone I — money loans
+
+*Approved and implemented. Schema `0050`. 53 live checks across two temporary
+companies, green.*
+
+### A loan is not a consignment with the phone left out
+
+Separate module, separate tables. A consignment with no unit would carry custody,
+shipment, condition and disposition states that can never apply — a shortcut
+that reads as clever and becomes unmaintainable. Loans reuse the counterparty
+concept and the ledger *shape*, both designed to be shared in `0049` rather than
+retrofitted here.
+
+### Direction is data. Never a sign.
+
+`they_owe_us` and `we_owe_them` are an explicit column. A negative amount becomes
+ambiguous the instant somebody corrects a payment, and a sign flip is a silent
+reversal of who owes whom.
+
+One row, read from both ends: what Alpha sees as `they_owe_us`, Beta sees as
+`we_owe_them`. Both are correct, and the server does the flipping — verified
+live from both sides.
+
+**Who may act follows the direction, not authorship.** The creditor is derived
+from which way the debt points, so the debtor cannot confirm their own
+repayment even holding every permission. The live run confirms the 403.
+
+### Nothing becomes a debt by default
+
+No debt is ever accepted automatically. The worked example, verified live:
+
+> 20,000 MRU proposed → countered at 18,000 → **the original proposer decides**.
+> The accepted principal is 18,000, and from that moment it is immutable.
+
+A proposer cannot accept their own offer, and a counter-offerer cannot accept
+their own counter — both refused with 409.
+
+### A report is a claim; only the creditor turns it into a payment
+
+`payment_reported` has a balance effect of **zero**. It is shown prominently,
+beside the balance, and never subtracted. Only the person owed the money can
+confirm it arrived, and that is what moves the figure.
+
+An optional evidence reference may be attached. It is labelled as something
+somebody attached by hand and is **never** presented as verification — no
+payment API is called, and no provider has confirmed anything.
+
+### The balance is derived, always
+
+The ledger is append-only, enforced by database triggers. **No mutable balance is
+stored as the authority**; every figure is calculated from the entries. A
+correction puts the debt back rather than erasing the claim, and both entries
+stay in the history.
+
+### A loan is neither revenue nor expense
+
+Principal does not create profit. A repayment moves cash and reduces a liability,
+touching profit never, and **never modifies a prior closing**. Forgiveness is the
+creditor's Owner alone, requires a reason, and is not cash.
+
+Closing reminders are counts and a nudge — the payload states
+`affectsExpectedCash: false`, and the screen reads that rather than asserting it.
+
+### Permissions
+
+| Role | Loan permissions |
+|---|---|
+| Owner | view, manage, payment.report, payment.confirm, forgive |
+| Store manager | view, payment.report |
+| Employee | **none** |
+
+Separate keys from consignment: lending money is a different decision from
+lending stock, and a shop may reasonably want somebody who can do one but not
+the other. No role below Owner may write a debt off.
+
+### Cross-company reads fail closed
+
+`loans` sits outside the automatic tenant scoping by design, so every read goes
+through one helper applying an explicit two-column filter. A stranger gets
+**404, never 403** — a 403 would confirm the record exists.
+
+> A defect found during final verification, not by a test:
+> `awaitingConfirmation` totalled every payment ever reported, including the
+> confirmed ones, so a settled payment kept showing as still in the air and the
+> shop would chase money it had already received. Answered-ness now comes from
+> the explicit `refersToId` link, and three tests pin it.

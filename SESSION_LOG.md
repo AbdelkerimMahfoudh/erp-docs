@@ -4550,3 +4550,71 @@ properly would leave a half-built financial feature behind. Recorded in the
 handoff with the one decision worth making before H begins — consignment should
 almost certainly extend the existing `StockTransfer` lifecycle rather than build
 a parallel movement system.
+
+---
+
+## 2026-08-17 · CLAUDE-B · Milestones H and I
+
+Consignment between shops, and money owed. Both shipped, both verified live
+across two temporary companies, both cleaned up completely.
+
+**The decision that shaped H.** The previous session's log recommended that
+consignment extend the existing `StockTransfer` lifecycle. The brief overruled
+it, and the brief was right. A transfer moves stock between two branches of one
+company; a consignment moves it between two companies that must never see each
+other's books. Reusing a structure whose every query assumes a single tenant is
+the kind of economy that works until the day it leaks. What was reused is the
+thinking — compare-and-swap reservation, idempotency, optimistic versioning,
+immutable ledgers — not the tables.
+
+**Privacy that does not depend on care.** The receiving company never sees the
+sender's cost or margin, not because the screens are careful, but because
+`consignment_lines` has no cost column and the API cannot select what does not
+exist. Discovery works the same way: a store that blocked you, one that is not
+discoverable, one that does not exist and one that is you all produce the
+identical empty answer. Distinguishing them would turn a search box into an
+oracle for who exists and who has blocked whom.
+
+**The rule that shaped I.** Direction is data, never a sign. `they_owe_us` and
+`we_owe_them` are a column, because a negative amount stops meaning anything the
+moment somebody corrects a payment. One row is read from both ends — what Alpha
+sees as owed to it, Beta sees as owed by it — and **who may act follows the
+direction, not authorship**. The debtor cannot confirm their own repayment while
+holding every permission in the system. That is the property the live run exists
+to prove, and it does: 403, from a second real authenticated session.
+
+**A report is a claim.** `payment_reported` has a balance effect of zero. It is
+shown beside the balance and never subtracted, because telling a shop its debt
+had shrunk on somebody's say-so is telling it that it has money it does not have.
+
+**Live 71/71 for H and 53/53 for I.** Neither was green first time, and both
+failures were the interesting kind. H's `create()` wrote consignment lines
+before the parent row, so the foreign key failed on every real request — the
+entire unit suite passed, because none of it touches a database. I's
+`awaitingConfirmation` totalled every payment ever reported, including the
+confirmed ones, so a settled payment kept showing as still in the air and the
+shop would go and chase money it already had; that one was found by reading a
+response shape, not by any test at all.
+
+Twice now, the same lesson: **the failures that survive a green unit suite are
+the ones that need a database, or a second company, to exist.**
+
+**A gap in H's own shipped work.** `consignments/new` was linked from the list
+screen but never built — the button landed on an unmatched route. Built now,
+camera-first, with every scanned code resolved against the server so a phone
+that is not in stock is refused while somebody is still holding it. Worth saying
+plainly: I built the loan live test before noticing I had skipped the loan
+screens entirely. The verification pass caught it, which is what a verification
+pass is for, but it should not have needed to.
+
+**Verification.** Backend 87 suites / 1485 tests, `tsc` clean, 49 migrations, 19
+triggers. Mobile `tsc` and lint clean, 8 pure suites, EN/AR 1575 keys each at
+parity, web export bundles every route. Demo data back at baseline — sales
+7 / 10 051.00, unit checksum unchanged, one company, nothing left in any of the
+five new tables, audit rows preserved rather than deleted.
+
+**J, K and L are not started.** J is the offline foundation and is comparable in
+size to H; the idempotency keys both H and I use were built with write queuing in
+mind, so the primitive is already there. What is undecided is whether queuing
+covers only the sell path or every mutation, and that is worth settling before
+any code is written.
