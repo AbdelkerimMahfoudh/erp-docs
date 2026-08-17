@@ -84,8 +84,8 @@ reconciliation equation instead of forking it.
 | **H-CP1** migration `0049`, models, cross-tenant scope guard, permissions | ✅ | backend `ce2a135` |
 | **H-CP2** discovery, connections, blocking, counterparties | ✅ | backend `b91f8f1` |
 | **H-CP3** lifecycle: request, reserve, propose/counter, custody | ✅ | backend `9c8ad2b` |
-| **H-CP4** consigned resale accounting, payments, forgiveness, returns | ❌ **NEXT** | — |
-| **H-CP5** mobile | ❌ | — |
+| **H-CP4** resale accounting, payments, forgiveness, returns | ✅ | backend `c5cdf22` |
+| **H-CP5** mobile | ❌ **NEXT** | — |
 | **H-CP6** two-company live verification | ❌ | — |
 
 **The binding architecture decision is implemented.** Consignment does not
@@ -129,31 +129,49 @@ working. It is **not terminal**: the phone is still ours, so it may return to
 `in_stock`, go to `sold` when the holder sells it, or to `faulty` if it comes
 back damaged. No path to `reserved` or `in_transit`.
 
-### Next exact action — H-CP4
+### H-CP4 — what shipped
 
-The money, and the return of goods:
+**Profit is recognised once, at disposition.** Source books revenue = agreed
+amount, COGS = its own unit cost. The payment that follows moves cash and
+liability only; `paymentAffectsProfit()` is a named function rather than a
+comment because it is the thing most likely to be "fixed" by somebody who sees
+cash arriving and assumes income.
 
-1. **Consigned resale.** Destination reports the sale through an explicit
-   consigned path. `SaleItem.cost` = the agreed amount (Store 2's cost basis),
-   and `SaleItem.unitId` is deliberately **NOT set** — that unit belongs to
-   Store 1, and setting it would create a foreign key from one tenant's sale
-   into another tenant's inventory. Store 1 learns only that it sold.
-2. **Accounting, once.** Source: revenue = agreed amount, COGS = its own
-   immutable unit cost, profit recognised at disposition. Later payment moves
-   cash and liability ONLY — it must not create a second profit effect. Add
-   explicit consignment components to the rollup rather than disguising it as a
-   customer sale.
-3. **Payments.** Two-party report → confirm, reusing the refund/settlement
-   pattern. Ledger kinds already exist in `0049`. Partial amounts, idempotency,
-   account label snapshot, remaining balance DERIVED from the ledger.
-4. **Forgiveness.** Creditor's Owner only (`consignment.forgive`), mandatory
-   reason, immutable entry. Reduces the receivable; never fabricates cash.
-5. **Return.** destination initiates → ships → **source confirms receipt and
-   condition** → unit becomes `in_stock` only then. Damaged returns route to
-   `faulty`, never straight back to sellable.
+**No `Sale` and no `unitId`** are created on the source side — that unit
+belongs to Store 1, and referencing it from Store 2's sale would put a foreign
+key from one tenant's sale into another tenant's inventory. Store 2's cost basis
+is the agreed amount, so its margin is right by construction and Store 1's real
+cost never enters Store 2's database.
 
-Then H-CP5 (mobile) and H-CP6 (two-company live). Milestone I follows.
-**Do not begin J.**
+A **report is not a payment** (`BALANCE_EFFECT.payment_reported === 0`), so a
+debtor cannot clear their own debt by asserting they paid. A correction ADDS the
+debt back rather than deleting the payment. **Forgiveness is not cash.** A
+returned phone reaches stock only when the OWNER confirms, and a damaged one
+routes to `faulty`.
+
+### Next exact action — H-CP5 (mobile)
+
+Screens, in the order a shop meets them:
+
+1. `lib/consignment.ts` — hooks for search, connections, consignments, ledger.
+2. **Store search + public preview** — name, city, logo, "Verified badge coming
+   soon" literal. Nothing else, ever.
+3. **Connections**: request, accept/reject, block/unblock, manual counterparty.
+4. **Consignments list** with the three tabs the lifecycle already groups:
+   Pending / Accepted / Confirmed. Use `row.group`, never re-derive it.
+5. **Detail**: timeline, lines, counter/dispute, custody send/receive, payment
+   report/confirm, return, Owner forgiveness.
+6. Privacy-safe by construction: the API never sends the other side's cost,
+   resale price or customer, so the screens cannot leak what they never receive.
+7. EN/AR, RTL, offline honesty. A payment reference must never be presented as
+   proof of anything.
+
+Then **H-CP6**: two temporary companies over real HTTP — discovery privacy,
+double claim, proposal concurrency, custody mismatch, private resale, accounting
+once, partial payments, correction, forgiveness, unsold and damaged returns,
+cross-company failures, complete cleanup leaving no permanent company.
+
+Milestone I follows H. **Do not begin J.**
 
 ### Milestone F — COMPLETE
 
