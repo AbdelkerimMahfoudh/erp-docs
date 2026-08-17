@@ -6,10 +6,15 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
+- Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-B**
-- Authorised task: the remaining overnight queue. **D, E, F and G are
-  complete.** H, I, J, K and L are **not started**.
+- Authorised task: **Milestones H and I**. G accepted as complete and not to be
+  revisited. **Do not begin J.**
+- Takeover verified: 82 suites / 1366 tests · 47 migrations · 15 triggers ·
+  EN/AR 1395 · products 13 · sales 7 / 10 051.00 · checksum
+  `2a1dc9bf284afde32b402ad108d38a76` · all three trees clean and pushed.
+  **One discrepancy:** owner read `CLAUDE-B`, not `NONE` — left over from the
+  previous session close. Corrected by this takeover.
 - Approved this session: **exceljs** for `.xlsx` (asked, because the rulebook
   makes a new dependency a major change). **expo-document-picker** added without
   asking — first-party Expo, ships inside Expo Go, and the mechanical
