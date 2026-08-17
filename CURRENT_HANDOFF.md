@@ -76,6 +76,52 @@ approve/ship/receive/cancel). H should almost certainly EXTEND that rather than
 build a parallel movement system — the same reasoning that made E extend the
 reconciliation equation instead of forking it.
 
+### Milestone H — IN PROGRESS
+
+| Step | State | Commit |
+|---|---|---|
+| **H0** truth audit — `docs/31` | ✅ | docs `5a40889` |
+| **H-CP1** migration `0049`, models, cross-tenant scope guard, permissions | ✅ | backend `ce2a135` |
+| **H-CP2** discovery + connections/blocking | ❌ **NEXT** | — |
+| **H-CP3** lifecycle: request, reserve, propose/counter, custody | ❌ | — |
+| **H-CP4** consigned resale accounting, payments, forgiveness, returns | ❌ | — |
+| **H-CP5** mobile | ❌ | — |
+| **H-CP6** two-company live verification | ❌ | — |
+
+**The binding architecture decision is implemented.** Consignment does not
+extend `StockTransfer` in model, route, permission or lifecycle. `0049` creates
+`store_connections`, `counterparties`, `consignments`, `consignment_lines` and
+`consignment_ledger`, and adds `consigned_out` to `units.status`.
+
+**The one thing that must not be forgotten:** `consignments` is the first table
+outside the tenant extension's automatic scoping. Every read goes through
+`src/consignment/consignment-scope.ts`, which filters
+`source = me OR destination = me`. A stranger gets **404, never 403** — a 403
+would confirm the record exists and let ids be enumerated to learn who trades
+with whom.
+
+`counterparties` is deliberately shared with Milestone I. A loan and a
+consignment can be against the same shop, and duplicating the concept would make
+"who owes us money" two different lists.
+
+### Next exact action — H-CP2
+
+1. `ConnectionsService`: bounded store discovery by Store Account ID (exact),
+   phone (exact) and name (prefix, hard-capped). Only companies with
+   `is_discoverable = 1`. Expose ONLY name, logo, city and the literal
+   "Verified badge coming soon". **Identical fail-closed response** whether a
+   store does not exist, is not discoverable, or has blocked the searcher —
+   otherwise the difference between those answers is itself an oracle.
+2. Connection request / accept / reject / block / unblock, gated on
+   `connection.manage` (Owner only). A Manager may READ accepted connections
+   where operationally needed, and may not manage company-level trust.
+3. Counterparty creation for manual stores and people — never a fake Company.
+4. Contact details (`public_phone`) visible only once the connection is
+   `accepted`.
+
+Then H-CP3 (lifecycle), H-CP4 (money), H-CP5 (mobile), H-CP6 (two-company live).
+Milestone I follows H and must not start before it. **Do not begin J.**
+
 ### Milestone F — COMPLETE
 
 | Step | State | Commit |
