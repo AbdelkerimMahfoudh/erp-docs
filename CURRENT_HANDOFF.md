@@ -83,8 +83,8 @@ reconciliation equation instead of forking it.
 | **H0** truth audit — `docs/31` | ✅ | docs `5a40889` |
 | **H-CP1** migration `0049`, models, cross-tenant scope guard, permissions | ✅ | backend `ce2a135` |
 | **H-CP2** discovery, connections, blocking, counterparties | ✅ | backend `b91f8f1` |
-| **H-CP3** lifecycle: request, reserve, propose/counter, custody | ❌ **NEXT** | — |
-| **H-CP4** consigned resale accounting, payments, forgiveness, returns | ❌ | — |
+| **H-CP3** lifecycle: request, reserve, propose/counter, custody | ✅ | backend `9c8ad2b` |
+| **H-CP4** consigned resale accounting, payments, forgiveness, returns | ❌ **NEXT** | — |
 | **H-CP5** mobile | ❌ | — |
 | **H-CP6** two-company live verification | ❌ | — |
 
@@ -104,45 +104,56 @@ with whom.
 consignment can be against the same shop, and duplicating the concept would make
 "who owes us money" two different lists.
 
-### H-CP2 — what shipped
+### H-CP2 and H-CP3 — what shipped
 
-`ConnectionsService` uses the **unscoped** Prisma client, because discovery's
-whole purpose is to look at companies that are not yours. It is therefore the
-narrowest service in the codebase: four published columns, `isDiscoverable`
-rows only, everything shaped by `toPublicPreview`.
+**Discovery** uses the unscoped Prisma client and is the narrowest service in
+the codebase: four published columns, `isDiscoverable` rows only. Not
+discoverable, inactive and "they blocked you" all collapse to *absent*, asserted
+by a spec that puts all three through `isVisibleInSearch` and checks the answer
+set has one member.
 
-**The anti-oracle property is asserted, not assumed.** Not discoverable,
-inactive, and "they blocked you" all collapse to *absent*, and a spec puts all
-three through `isVisibleInSearch` and asserts the answer set has exactly one
-member. Asking to connect to a store that blocked you returns the identical 404
-a nonexistent store returns.
+**The lifecycle** is fifteen states in one table. Two guarantees are pinned:
 
-### Next exact action — H-CP3
+- *Confirmed means the money arrived or the phone came back.* Accepting a
+  proposal is `pending`; so is custody awaiting confirmation.
+- *One party cannot complete a two-party deal alone.* You may not accept or
+  counter your own offer — otherwise the source could propose and immediately
+  accept at a price the destination never saw.
 
-The consignment lifecycle, source side first:
+**A phone can be claimed once**, twice over: the compare-and-swap on
+`units.status` and the generated `active_unit_id`. Reservation happens FIRST,
+which is the lesson `transfers.service.ts` records.
 
-1. `ConsignmentsService.request()` — build a proposal from one or more units.
-   **Reserve each unit with the compare-and-swap already proven in
-   `transfers.service.ts`**: `updateMany({ where: { id, status: 'in_stock' },
-   data: { status: 'consigned_out' } })`, `count === 0` means somebody claimed
-   it first. The generated `active_unit_id` on `consignment_lines` is the
-   second half of that guarantee.
-2. Snapshot onto each line: brand, model, variant, identifier, condition and
-   explicitly disclosed defects. **Never cost, never margin** — the columns do
-   not exist on the line, so a leak would require a migration rather than a
-   forgotten filter.
-3. Proposal flow: `requested` → `counter_proposed` → `accepted_awaiting_custody`,
-   plus `disputed` (mandatory reason) and `cancelled` before custody.
-   Optimistic version guard, idempotent `clientUuid`, one concurrent winner.
-4. Custody: source records hand-over (`custody_awaiting_confirmation`),
-   destination confirms receipt and the identifier (`in_custody`). **A mismatch
-   must not silently change the expected IMEI** — refuse and report both values.
-5. `agreed_amount` becomes immutable at custody confirmation;
-   `ck_cons_custody_agreed` already makes a confirmation without one impossible.
+Adding `consigned_out` made `unit-state-machine.ts` fail to compile — the guard
+working. It is **not terminal**: the phone is still ours, so it may return to
+`in_stock`, go to `sold` when the holder sells it, or to `faulty` if it comes
+back damaged. No path to `reserved` or `in_transit`.
 
-Every read goes through `consignment-scope.ts`. Then H-CP4 (resale accounting,
-payments, forgiveness, returns), H-CP5 (mobile), H-CP6 (two-company live).
-Milestone I follows. **Do not begin J.**
+### Next exact action — H-CP4
+
+The money, and the return of goods:
+
+1. **Consigned resale.** Destination reports the sale through an explicit
+   consigned path. `SaleItem.cost` = the agreed amount (Store 2's cost basis),
+   and `SaleItem.unitId` is deliberately **NOT set** — that unit belongs to
+   Store 1, and setting it would create a foreign key from one tenant's sale
+   into another tenant's inventory. Store 1 learns only that it sold.
+2. **Accounting, once.** Source: revenue = agreed amount, COGS = its own
+   immutable unit cost, profit recognised at disposition. Later payment moves
+   cash and liability ONLY — it must not create a second profit effect. Add
+   explicit consignment components to the rollup rather than disguising it as a
+   customer sale.
+3. **Payments.** Two-party report → confirm, reusing the refund/settlement
+   pattern. Ledger kinds already exist in `0049`. Partial amounts, idempotency,
+   account label snapshot, remaining balance DERIVED from the ledger.
+4. **Forgiveness.** Creditor's Owner only (`consignment.forgive`), mandatory
+   reason, immutable entry. Reduces the receivable; never fabricates cash.
+5. **Return.** destination initiates → ships → **source confirms receipt and
+   condition** → unit becomes `in_stock` only then. Damaged returns route to
+   `faulty`, never straight back to sellable.
+
+Then H-CP5 (mobile) and H-CP6 (two-company live). Milestone I follows.
+**Do not begin J.**
 
 ### Milestone F — COMPLETE
 
