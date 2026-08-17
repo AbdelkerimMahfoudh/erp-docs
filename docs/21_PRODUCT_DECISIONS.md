@@ -1460,3 +1460,93 @@ No unit test could have caught it: the rule only breaks once a real second
 channel exists, which is exactly what the live run supplies. `0046` replaces it
 with the two rules actually meant - the *who* and the *when* travel together,
 and `counted` implies somebody counted.
+
+---
+
+## Milestone F — goals
+
+### What the F0 audit found
+
+Nothing. No goal model, no service, no screen. But two things already existed
+and neither may be duplicated.
+
+`daily_rollups` already carries revenue, gross profit, sales count and units
+sold per branch-day, and already accounts for returns. A goal asks a different
+question — progress toward a target over a period — but it asks it of the
+**same figures**. Recomputing them would create a second definition of gross
+profit, which is exactly the drift Milestone E spent a checkpoint pinning shut.
+
+`sales.user_id` is immutable, so per-person attribution needs no new column. A
+sale belongs to whoever made it, permanently — credit cannot be reassigned after
+the fact, which is what makes a personal target trustworthy.
+
+### Progress is derived, never stored
+
+Recomputed on every read, the same rule the employee debt balance follows. A
+stored figure can disagree with the sales it claims to summarise, and it would
+need invalidating on every sale, return, refund and correction. `0047` has no
+progress column at all, and `goals-source.spec.ts` asserts it never gains one.
+
+### What a goal may measure, and what it may not
+
+| Metric | Reads |
+|---|---|
+| `gross_profit` | `daily_rollups.gross_profit` (returns already deducted) |
+| `revenue` | `daily_rollups.revenue` |
+| `sales_count` | `daily_rollups.sales_count` |
+| `units_sold` | `daily_rollups.qty_sold` |
+
+**There is deliberately no `net_profit`.** Expenses are not the salesperson's
+doing, and a target somebody cannot influence is not a goal, it is a grievance.
+Enforced in the mapping, the DTO validator and the database enum — all three.
+
+Per person, `sales_count` counts **sales, not lines**. Three phones on one
+receipt is one sale, which is what "how many sales did you make" means to the
+person being measured; summing lines would flatter whoever sells in bundles.
+
+### The words a goal answers in
+
+`not_started` · `on_track` · `behind` · `met` · `missed`
+
+Two of these carry a decision:
+
+- **A target reached reads as `met`, not as ahead of pace.** Somebody who hit
+  their month on the 8th should be told they made it — that is the news.
+- **A closed period that fell short is `missed`, not `behind`.** Nothing can be
+  done about it, and calling it "behind" asks somebody to catch up on days that
+  no longer exist.
+
+Pace is `null` before a period starts, because pace against zero elapsed days is
+not a number. The percentage is uncapped — 103% is worth knowing — while the
+progress bar caps visually, since a fill that overflows its track just looks
+broken.
+
+### Scope, and who may see what
+
+A personal goal is **branch-scoped**: somebody working across two shops has two
+jobs, and one merged number would hide which is going badly.
+
+| Action | Who |
+|---|---|
+| Set or archive a goal | `goal.manage` — Owner and Manager |
+| Read a goal | **Ungated** |
+
+Reading is ungated on purpose. An employee with a personal target must be able
+to see it, and `report.view` — the obvious-looking gate — would hand them the
+shop's profit reporting at the same time. That is exactly the split `cost.view`
+and `report.view` already keep apart.
+
+Somebody else's personal target answers **404, not 403**, so the existence of
+another person's number is not itself disclosed.
+
+### Archived, never deleted
+
+With a mandatory reason. A goal that was missed is a fact about the shop's
+history, and deleting it would make every past period look met. Archived goals
+are out of the way by default and still readable on request; the active-row
+uniqueness is on a generated column, so two live targets for the same person,
+metric and period cannot both exist — "am I on target" has one answer.
+
+> 34 live checks, green on the first run. `0047` carries the schema reasoning
+> and was proven on a restored copy first: 14 constraint cases against real
+> MySQL, including all four half-scoped goals refused.

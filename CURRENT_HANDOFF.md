@@ -6,14 +6,47 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
+- Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **CLAUDE-B**
 - `started_at_utc`: **2026-08-16**
-- Authorised task: **Milestones D, E and F**, sequentially. Do **not** begin G.
+- Authorised task: **Milestones D, E and F**, sequentially — **all three
+  complete**. G was explicitly not authorised and has not been begun.
 - Takeover verified (every value matched): docs `c3067b6` · backend `6d91fc5`
   · mobile `a4379c8` · 73 suites / 1150 tests · 43 migrations · 10 triggers ·
   sales 7 / 10 051.00 · units checksum `2a1dc9bf284afde32b402ad108d38a76`.
   A, B and C stand as complete; `BC_COMPLETE` is recorded in `SESSION_LOG.md`.
+
+### Milestone F — COMPLETE
+
+| Step | State | Commit |
+|---|---|---|
+| **F0** audit — nothing existed, and two things must not be duplicated | ✅ | — |
+| **F-CP1** migration `0047`, goal model, derived progress, permission | ✅ | backend `12ebd7d` |
+| **F-CP2** mobile targets list and set-a-target form | ✅ | mobile `2400a90` |
+| **F-CP3** live lifecycle **34/34**, green on the first run | ✅ | — |
+| **F fix** the closing screen was still hidden from the people E enabled | ✅ | mobile `42683a8` |
+
+**Progress is derived on every read and stored nowhere** — `0047` has no
+progress column, and `goals-source.spec.ts` asserts it never gains one. Branch
+and company scope read `daily_rollups` (which already deducts returns); a
+personal goal reads sale lines attributed through the immutable
+`sales.user_id`. The live run asserts the branch figure equals the rollup for
+the same period, exactly.
+
+**There is deliberately no `net_profit` metric.** Expenses are not the
+salesperson's doing, and a target somebody cannot influence is not a goal.
+Enforced in the mapping, the DTO validator and the database enum.
+
+**Reading a goal is ungated**; setting one is `goal.manage` (Owner + Manager).
+Somebody else's personal target answers 404, not 403, so its existence is not
+disclosed. Owner permission count **44 → 45**.
+
+**A gap this milestone exposed and fixed:** the More menu still gated the daily
+closing on `closing.perform`. Milestone E split counting from signing off
+precisely so an Employee could report the drawer — and the only way into the
+screen stayed behind the permission they do not have, leaving the feature
+reachable by URL and nothing else. Now gated on `closing.count`; the screen
+itself still gates the sign-off, so widening the door grants no authority.
 
 ### Milestone D — COMPLETE
 
@@ -138,18 +171,33 @@ audit **528 → 545** (grown, never trimmed), Owner permissions **44**.
 
 | | |
 |---|---|
-| **backend HEAD** | `bf448f2` |
-| **mobile HEAD** | `dd27254` |
+| **backend HEAD** | `12ebd7d` |
+| **mobile HEAD** | `42683a8` |
 | **docs HEAD** | this commit |
-| **Migrations** | **45** (0001–0046, `0005` unused); latest `0046_counting_fields_constraint` |
-| **Backend tests** | **77 suites / 1252 tests**, 0 failures |
+| **Migrations** | **46** (0001–0047, `0005` unused); latest `0047_goals` |
+| **Backend tests** | **79 suites / 1280 tests**, 0 failures |
 | **Mobile pure suites** | **8 of 8**, 0 failures |
-| **Live checks** | **B: 41/41** · **C: 41/41** · **D: 45/45** · **E: 72/72** |
-| **Audit-row growth** | **510 → 545**, append-only, preserved |
-| **Triggers** | 13 |
-| **EN / AR keys** | **1323 each** |
-| **Screen files** | **42** (39 routes + 3 layouts) |
-| **Owner permissions** | **44** |
+| **Live checks** | **B: 41/41** · **C: 41/41** · **D: 45/45** · **E: 72/72** · **F: 34/34** |
+| **Audit-row growth** | **510 → 551**, append-only, preserved |
+| **Triggers** | 14 |
+| **EN / AR keys** | **1362 each** |
+| **Screen files** | **44** |
+| **Owner permissions** | **45** |
+
+**Demo restored to baseline exactly:** sales **7 / 10 051.00**, units checksum
+`2a1dc9bf284afde32b402ad108d38a76`, payments **7 / 10 051.00**, expenses back
+to its **1** seeded row, and **zero** goal, closing, channel-count, discrepancy
+or ledger rows. Probes deactivated, port 3099 released, scratch databases
+`prisma_e1` and `prisma_f1` dropped.
+
+Backups taken and restore-proven before each migration:
+`phonestore-e-20260816-200953.sql`, `phonestore-e46-20260816-203542.sql`,
+`phonestore-f-20260816-210051.sql`.
+
+### Next work — NOT authorised
+
+**Milestone G has not been begun**, as instructed. Nothing in the working trees
+belongs to it.
 
 ### Milestones A, B and C — all COMPLETE
 

@@ -4445,3 +4445,54 @@ point that set none of them was a way to produce records nobody could reconcile.
 audit 528 → 545 preserved, port 3099 released, `prisma_e1` dropped.
 
 **Milestone F is not started.**
+
+---
+
+## Milestone F — goals (CLAUDE-B)
+
+**Commits:** backend `12ebd7d` · mobile `2400a90`, `42683a8` · docs (this).
+
+The F0 audit found nothing existed, and two things that did and must not be
+duplicated. `daily_rollups` already computes revenue, gross profit, sales count
+and units sold, and already deducts returns. `sales.user_id` is immutable, so
+per-person attribution needed no new column.
+
+So goals read those figures rather than recomputing them, and progress is
+derived on every read and stored nowhere. `0047` has no progress column at all,
+and a source-level spec asserts it never gains one — the same discipline that
+kept the reconciliation equation from forking in E.
+
+**Live 34/34, green on the first run** — the first milestone this session where
+it was. What it proved that unit tests could not: reading a goal is genuinely
+ungated while setting one is not, an employee gets a 404 rather than a 403 on
+somebody else's personal target, and the branch figure equals the rollup for
+the same period exactly.
+
+**Two of my own test defects, found and fixed rather than worked around.** A
+spec asserted `rollup.service.ts` contained the string `gross_profit`; it does
+not, because the service writes through Prisma's camelCase fields and the
+snake_case name lives only in the model's `@map`. It was asserting on the wrong
+artifact and would have passed for the wrong reason. A second asserted the DTO
+file did not contain `net_profit` — and tripped on the doc comment explaining
+why it is absent. Both now assert on the actual metric lists.
+
+**A gap the milestone exposed elsewhere.** The More menu still gated the daily
+closing on `closing.perform`. Milestone E split counting from signing off
+precisely so an Employee could report the drawer, and the only way into that
+screen stayed behind the permission they do not have — the feature was
+reachable by URL and nothing else. Now gated on `closing.count`.
+
+**Decisions worth their reasons:** no `net_profit` metric, because a target
+somebody cannot influence is a grievance rather than a goal. A target reached
+reads as `met`, not as ahead of pace. A closed period that fell short is
+`missed`, not `behind` — nothing can be done about it, and "behind" asks
+somebody to catch up on days that no longer exist. `sales_count` per person
+counts sales, not lines, because three phones on one receipt is one sale.
+
+**Verification.** Backend 79 suites / 1280 tests, `tsc` clean, 46 migrations,
+14 triggers. Mobile `tsc` and lint clean, 8 pure suites, EN/AR 1362 each, design
+tokens only. Demo restored to baseline exactly — sales 7 / 10 051.00, units
+checksum `2a1dc9bf284afde32b402ad108d38a76`, no residue in any new table, audit
+510 → 551 preserved, port released, `prisma_e1` and `prisma_f1` dropped.
+
+**Milestones D, E and F are all complete. G has not been begun.**

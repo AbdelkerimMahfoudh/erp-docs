@@ -708,3 +708,41 @@ whether the keypad obscures the save button on a small screen · whether the
 skip reason field is reachable one-handed · whether an Employee understands
 from the screen alone that they have not closed anything · whether the Arabic
 layout of a signed difference is unambiguous at a glance.
+
+---
+
+## 9k. Targets (Milestone F) — **never run on a device**
+
+Server behaviour is proven by 34 live checks. What follows is only what a device
+can answer.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open **More** as a Store Employee | **Targets** is there — reading a goal is ungated |
+| 2 | Open it | The shop's targets, plus any personal one set for you |
+| 3 | Look for somebody else's personal target | Absent, and nothing hints it exists |
+| 4 | Look for **Set a target** | Absent — that is `goal.manage` |
+| 5 | Open the same screen as Owner or Manager | Every personal target, and the set button |
+| 6 | Set one: leave the amount blank | Submit stays disabled |
+| 7 | Choose **One person**, pick nobody | Still disabled |
+| 8 | Set a target for this shop, this month | Appears immediately with progress already computed |
+| 9 | Switch to **Including finished** | Archived targets appear; the reason is readable |
+
+### The parts most likely to be wrong on a real phone
+
+| # | Check | Why it matters |
+|---|---|---|
+| 10 | The state word next to the bar, at arm's length | The whole screen is worthless if the word is not the first thing read |
+| 11 | A goal at **over 100%** | The bar must stop at full while the figure still says 103% |
+| 12 | A goal with a very long person name | The name must not push the state chip off the card |
+| 13 | The same screen in **Arabic** | The bar must fill from the right, and the percentage must sit correctly |
+| 14 | A `sales_count` goal | Formatted as a plain number, never as money |
+| 15 | Six or more active targets | Still scannable, or the screen becomes the dense grid the rules forbid |
+
+### What only a device can answer
+
+Whether the state word actually reads before the number at a glance · whether
+the progress bar's fill is distinguishable from its track in bright sunlight ·
+whether "128 a day over the 21 days left" is understood without explanation by
+somebody in their first week · whether the Arabic bar direction reads as
+progress rather than as depletion.
