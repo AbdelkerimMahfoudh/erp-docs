@@ -82,8 +82,8 @@ reconciliation equation instead of forking it.
 |---|---|---|
 | **H0** truth audit — `docs/31` | ✅ | docs `5a40889` |
 | **H-CP1** migration `0049`, models, cross-tenant scope guard, permissions | ✅ | backend `ce2a135` |
-| **H-CP2** discovery + connections/blocking | ❌ **NEXT** | — |
-| **H-CP3** lifecycle: request, reserve, propose/counter, custody | ❌ | — |
+| **H-CP2** discovery, connections, blocking, counterparties | ✅ | backend `b91f8f1` |
+| **H-CP3** lifecycle: request, reserve, propose/counter, custody | ❌ **NEXT** | — |
 | **H-CP4** consigned resale accounting, payments, forgiveness, returns | ❌ | — |
 | **H-CP5** mobile | ❌ | — |
 | **H-CP6** two-company live verification | ❌ | — |
@@ -104,23 +104,45 @@ with whom.
 consignment can be against the same shop, and duplicating the concept would make
 "who owes us money" two different lists.
 
-### Next exact action — H-CP2
+### H-CP2 — what shipped
 
-1. `ConnectionsService`: bounded store discovery by Store Account ID (exact),
-   phone (exact) and name (prefix, hard-capped). Only companies with
-   `is_discoverable = 1`. Expose ONLY name, logo, city and the literal
-   "Verified badge coming soon". **Identical fail-closed response** whether a
-   store does not exist, is not discoverable, or has blocked the searcher —
-   otherwise the difference between those answers is itself an oracle.
-2. Connection request / accept / reject / block / unblock, gated on
-   `connection.manage` (Owner only). A Manager may READ accepted connections
-   where operationally needed, and may not manage company-level trust.
-3. Counterparty creation for manual stores and people — never a fake Company.
-4. Contact details (`public_phone`) visible only once the connection is
-   `accepted`.
+`ConnectionsService` uses the **unscoped** Prisma client, because discovery's
+whole purpose is to look at companies that are not yours. It is therefore the
+narrowest service in the codebase: four published columns, `isDiscoverable`
+rows only, everything shaped by `toPublicPreview`.
 
-Then H-CP3 (lifecycle), H-CP4 (money), H-CP5 (mobile), H-CP6 (two-company live).
-Milestone I follows H and must not start before it. **Do not begin J.**
+**The anti-oracle property is asserted, not assumed.** Not discoverable,
+inactive, and "they blocked you" all collapse to *absent*, and a spec puts all
+three through `isVisibleInSearch` and asserts the answer set has exactly one
+member. Asking to connect to a store that blocked you returns the identical 404
+a nonexistent store returns.
+
+### Next exact action — H-CP3
+
+The consignment lifecycle, source side first:
+
+1. `ConsignmentsService.request()` — build a proposal from one or more units.
+   **Reserve each unit with the compare-and-swap already proven in
+   `transfers.service.ts`**: `updateMany({ where: { id, status: 'in_stock' },
+   data: { status: 'consigned_out' } })`, `count === 0` means somebody claimed
+   it first. The generated `active_unit_id` on `consignment_lines` is the
+   second half of that guarantee.
+2. Snapshot onto each line: brand, model, variant, identifier, condition and
+   explicitly disclosed defects. **Never cost, never margin** — the columns do
+   not exist on the line, so a leak would require a migration rather than a
+   forgotten filter.
+3. Proposal flow: `requested` → `counter_proposed` → `accepted_awaiting_custody`,
+   plus `disputed` (mandatory reason) and `cancelled` before custody.
+   Optimistic version guard, idempotent `clientUuid`, one concurrent winner.
+4. Custody: source records hand-over (`custody_awaiting_confirmation`),
+   destination confirms receipt and the identifier (`in_custody`). **A mismatch
+   must not silently change the expected IMEI** — refuse and report both values.
+5. `agreed_amount` becomes immutable at custody confirmation;
+   `ck_cons_custody_agreed` already makes a confirmation without one impossible.
+
+Every read goes through `consignment-scope.ts`. Then H-CP4 (resale accounting,
+payments, forgiveness, returns), H-CP5 (mobile), H-CP6 (two-company live).
+Milestone I follows. **Do not begin J.**
 
 ### Milestone F — COMPLETE
 
