@@ -17,13 +17,41 @@
   running; **neither is listening**. They stopped between sessions. Nothing
   depends on them until live replay testing, when they will be restarted.
 - Previously completed: **Milestones A–I**, all shipped and verified.
-- Progress: **J0 audit complete** (docs/32) · **J-CP1** the classification module
-  and its 34 tests · **J-CP2** server hardening, migration `0051`.
-- Backup before 0051: `phonestore-20260818-033659.sql` (496 KB, 19 triggers).
-- Next intended action: **J-CP3** — the durable queue on `expo-file-system`
-  (no new dependency), keyed by user/company/branch, versioned schema, failing
-  closed on corruption; then J-CP4 the Sync centre and per-screen states,
-  J-CP5 live replay over real HTTP/MySQL, J-CP6 docs. **Do not begin K.**
+- Progress: **J0 audit** (docs/32) · **J-CP1** classification module, 34 tests ·
+  **J-CP2** server hardening, migration `0051` · **J-CP3** durable queue,
+  request timeout, replay engine · **J-CP4** Sync centre and session wiring.
+- Backup before 0051:  (496 KB, 19 triggers).
+- Verified at this checkpoint: backend 87 suites / **1495 tests**, tsc clean,
+  **50 migrations**, Prisma valid · mobile tsc and lint clean, **10 pure
+  suites**, EN/AR **1616** at parity, web export bundles .
+- Commits: backend , mobile , docs — this one.
+
+### Next action, exactly
+
+**J-CP5 — live replay verification.** Nothing has yet been proven over real
+HTTP against real MySQL. Restart the API on 3010 ( in
+) — it is **not currently running**, and Metro on 8081 is not either.
+Then write  in the scratchpad, modelled on , proving:
+same-UUID replay returns the original rather than creating a second row;
+**changed-payload replay is refused with 409** on all three queueable endpoints
+(expense, loan payment report, consignment payment report) — this is the
+property  exists for and it has only been unit-tested so far; permission
+revoked before replay; branch and company changed before replay; deactivated
+user; no duplicate audit or notification row; and that a queued report leaves
+the balance untouched until confirmed. Clean up both temporary companies.
+
+Then **J-CP6**: the remaining test cases the brief lists that are not yet
+written (cold start offline, process restart, queue corruption, logout/login as
+another user, attachment cleanup), then docs/21 product decisions, docs/24
+device QA for J, session log, and  with owner .
+
+**Known gap, deliberately not started:** the Sell cart is still React state, so
+it survives backgrounding but **not** an app kill. Charge is correctly disabled
+offline and the wording is honest, but "preserve the cart across a restart" is
+not yet implemented. Do this in J-CP6 or record it as deferred — do not claim
+it works.
+
+**Do not begin K.**
 
 ### Repository state — all three clean and pushed
 
