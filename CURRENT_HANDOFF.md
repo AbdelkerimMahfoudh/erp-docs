@@ -33,37 +33,47 @@
   Import preparation deliberately NOT drafted — nothing local to lose, and the
   spreadsheet bytes are exactly what must never persist. 19 new tests,
   11 pure suites, EN/AR 1622.
-- **K in progress.** K0 audit written (docs/33). Migration **0052** applied:
-  `subscriptions` + append-only `subscription_events`, **21 triggers** now
-  (was 19). Every existing company backfilled with a year so no tenant locks on
-  deploy — demo verified backfilled. Entitlement rules are pure and
-  clock-injected; the guard is central and blocks by default, refusing when no
-  company resolves so a guard reordering fails loudly. Seats pooled, Owner
-  exempt, nobody auto-deactivated. Provisioning is platform-key only and not a
-  tenant route. Mobile: /subscription screen, stale-cache honesty,
-  ENTITLEMENT_WRITE_BLOCKED as its own non-looping queue error kind.
+- **K COMPLETE and live-verified.** K0 audit in docs/33. Migration **0052**
+  (`subscriptions` + append-only `subscription_events`); **51 migrations**,
+  **21 triggers**. Every existing company backfilled with a year so no tenant
+  locks on deploy. Grace is 72h, derived from the period. Writes continue
+  through grace; reads and exports are never blocked. Seats pool across the
+  company, the Owner consumes none, and nobody is ever auto-deactivated.
+  Provisioning is platform-key only and unreachable by any tenant token.
+  Mobile: /subscription screen with no price or payment control, stale-cache
+  honesty, and ENTITLEMENT_WRITE_BLOCKED as its own non-looping queue kind.
+- **The live run found a real defect unit tests could not:** entitlement was a
+  global guard and ran BEFORE the JWT guard, so no company was resolved and
+  every write hit the fail-closed branch. Moved to an interceptor, which the
+  request lifecycle guarantees runs after every guard. Fixed in backend
+  `516ab35`. **Live K: 59/59.**
 - Backend **88 suites / 1530 tests**; mobile tsc+lint clean, 11 pure suites,
   EN/AR **1645**, /subscription exports.
-- Commits so far: backend `75b30ae`, mobile `b0bd672`.
+- Commits: backend `516ab35`, mobile `b0bd672`.
 
 ### Next action, exactly
 
-**K live verification.** Start the API (`npm run start:dev` in `backend/`; it
-is NOT running). Write `k-live.js` in the scratchpad on the pattern of
-`j-live.js`, proving over real HTTP: active writes; the instant before and
-after period end; both grace boundaries; the instant after grace; reads and
-exports still work when expired; a business write refused with
-`ENTITLEMENT_WRITE_BLOCKED`; a queued report hitting it becomes needs_attention
-rather than looping; complimentary grants write; a tenant Owner CANNOT
-self-grant (no tenant route reaches provisioning); cross-company isolation;
-missing/spoofed tenant context; Owner excluded from seats; all non-Owner roles
-counted; pooled seats across branches; concurrent final-seat activation;
-over-limit reduction without deactivation; backfill. Manipulate
-`current_period_end` directly in SQL to move boundaries — **do not touch the
-host clock**. Clean up both temporary companies.
+**Milestone L — analytics polish.** Start with **L0**: inventory every existing
+reporting source (daily rollups, closings and per-channel reconciliation,
+sales and corrections, approved returns and confirmed refund payouts, expenses,
+supplier payables and settlements, consignment balances, money loans, inventory
+and faulty-held value, goals, outstanding liabilities and receivables, and the
+cost/margin permission gating) and document where each number comes from, its
+timing basis, and whether it is profit, cash, liability, receivable, inventory
+or workflow state. Write it as `docs/34_ANALYTICS_AUDIT.md`.
 
-Then **L** (analytics polish: L0 audit, semantics, API, mobile, tests), then
-the **final A–L gate**, including attempting the Expo Doctor patch bump.
+**Do not build a competing accounting system.** Reuse the canonical services;
+if a metric has no canonical source, omit it and record the gap rather than
+manufacturing a zero. Keep profit, cash, liability, receivable, inventory,
+discrepancy and provisional-vs-confirmed workflow visibly separate. Return
+comparison values from the server, and for a zero denominator return an
+explicit unavailable state rather than infinity or a misleading percentage.
+
+Then the **final A–L gate**, including attempting the Expo Doctor patch bump
+(three patch shortfalls, recorded above) and reporting the outcome either way.
+
+**The API is currently RUNNING on 3010** (watch mode), started by this session
+for live verification. Metro is not running. Stop the API at the final gate.
 
 ### Repository state — all three clean and pushed
 
