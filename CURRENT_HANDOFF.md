@@ -19,7 +19,8 @@
 - Previously completed: **Milestones A–I**, all shipped and verified.
 - Progress: **J0 audit** (docs/32) · **J-CP1** classification module, 34 tests ·
   **J-CP2** server hardening, migration `0051` · **J-CP3** durable queue,
-  request timeout, replay engine · **J-CP4** Sync centre and session wiring.
+  request timeout, replay engine · **J-CP4** Sync centre and session wiring ·
+  **J-CP5** live replay verification, **35/35** over real HTTP and MySQL.
 - Backup before 0051: `phonestore-20260818-033659.sql` (496 KB, 19 triggers).
 - Verified at this checkpoint: backend 87 suites / **1495 tests**, tsc clean,
   **50 migrations**, Prisma valid · mobile tsc and lint clean, **10 pure
