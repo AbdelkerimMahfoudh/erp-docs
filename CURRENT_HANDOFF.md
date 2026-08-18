@@ -6,112 +6,58 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- started_at_utc: `2026-08-17T22:31Z`
-- Authorised task: **Milestone J — the safe offline foundation**. **Do not begin K.**
-- Takeover verified: 87 suites / 1485 tests · 49 migrations · 19 triggers ·
-  EN/AR 1575 · mobile tsc and pure suites clean · all three trees clean and
-  pushed at backend `424410e`, mobile `ad5a185`, docs `37a8dbc`.
-  **One discrepancy:** the handoff said API 3010 and Metro 8081 were still
-  running; **neither is listening**. They stopped between sessions. Nothing
-  depends on them until live replay testing, when they will be restarted.
-- Previously completed: **Milestones A–I**, all shipped and verified.
-- Progress: **J0 audit** (docs/32) · **J-CP1** classification module, 34 tests ·
-  **J-CP2** server hardening, migration `0051` · **J-CP3** durable queue,
-  request timeout, replay engine · **J-CP4** Sync centre and session wiring ·
-  **J-CP5** live replay verification, **35/35** over real HTTP and MySQL.
-- Backup before 0051: `phonestore-20260818-033659.sql` (496 KB, 19 triggers).
-- Verified at this checkpoint: backend 87 suites / **1495 tests**, tsc clean,
-  **50 migrations**, Prisma valid · mobile tsc and lint clean, **10 pure
-  suites**, EN/AR **1616** at parity, web export bundles `/sync`.
-- Commits: backend `53bf545`, mobile `33cfeb9`, docs — this one.
-
-### Next action, exactly
-
-**J-CP5 — live replay verification.** Nothing has yet been proven over real
-HTTP against real MySQL. Restart the API on 3010 (`npm run start:dev` in
-`backend/`) — it is **not currently running**, and Metro on 8081 is not either.
-Then write `j-live.js` in the scratchpad, modelled on `i-live.js`, proving:
-same-UUID replay returns the original rather than creating a second row;
-**changed-payload replay is refused with 409** on all three queueable endpoints
-(expense, loan payment report, consignment payment report) — this is the
-property `0051` exists for and it has only been unit-tested so far; permission
-revoked before replay; branch and company changed before replay; deactivated
-user; no duplicate audit or notification row; and that a queued report leaves
-the balance untouched until confirmed. Clean up both temporary companies.
-
-Then **J-CP6**: the remaining test cases the brief lists that are not yet
-written (cold start offline, process restart, queue corruption, logout/login as
-another user, attachment cleanup), then docs/21 product decisions, docs/24
-device QA for J, session log, and `READY_FOR_HANDOFF` with owner `NONE`.
-
-**Known gap, deliberately not started:** the Sell cart is still React state, so
-it survives backgrounding but **not** an app kill. Charge is correctly disabled
-offline and the wording is honest, but "preserve the cart across a restart" is
-not yet implemented. Do this in J-CP6 or record it as deferred — do not claim
-it works.
-
-**Do not begin K.**
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B** · closed `2026-08-18T04:53Z`
+- Completed this session: **Milestone J — the safe offline foundation.**
+- **Milestone K was not begun**, as instructed.
 
 ### Repository state — all three clean and pushed
 
 | Repository | HEAD |
 |---|---|
 | `erp-backend` | `53bf545` |
-| `erp-mobile` | `33cfeb9` |
+| `erp-mobile` | `e73dff9` |
 | `erp-docs` | *this commit* |
 
----
-
-## Milestone H — inter-store consignment: COMPLETE
-
-| Step | State | Commit |
-|---|---|---|
-| **H0** truth audit — what may cross a tenant boundary | ✅ | docs `31` |
-| **H-CP1** migration `0049`, 11 permissions, scope helper | ✅ | backend |
-| **H-CP2** discovery and connections | ✅ | backend |
-| **H-CP3** lifecycle, reservation, custody | ✅ | backend |
-| **H-CP4** money, disposition and the return | ✅ | backend |
-| **H-CP5** mobile: stores, consignments, detail | ✅ | mobile `8db05d5` |
-| **H-CP6** live **71/71** across two temporary companies | ✅ | — |
-
-**The architectural decision the brief made binding:** consignment does **not**
-extend `StockTransfer` — not the model, routes, permissions or lifecycle. The
-previous session's log had recommended the opposite; that recommendation was
-overruled, correctly. A transfer moves stock between two branches of one
-company. A consignment moves it between two companies that must never see each
-other's books, and reusing a structure whose every query assumes a single tenant
-is the kind of economy that leaks.
-
-**Privacy is structural.** `consignment_lines` has no cost column at all, so the
-receiving company's API cannot select what does not exist. A screen cannot leak
-what it never receives.
-
-**Discovery cannot be used as a directory.** Every reason a store is absent from
-search — not discoverable, inactive, blocked you, does not exist, is you —
-produces the identical empty answer.
+Milestones **A–J** are complete.
 
 ---
 
-## Milestone I — money loans: COMPLETE
+## Milestone J — COMPLETE
 
-| Step | State | Commit |
-|---|---|---|
-| **I0** audit of reusable primitives | ✅ | docs `31` |
-| **I-CP1** migration `0050`, `loan-rules.ts` (31 tests) | ✅ | backend |
-| **I-CP2** service, DTOs, controller, module | ✅ | backend `b35dce3` |
-| **I-CP3** mobile loan screens + the closing reminder | ✅ | mobile `ad5a185` |
-| **I-CP4** live **53/53** across two temporary companies | ✅ | — |
+| Step | State |
+|---|---|
+| **J0** audit of cache, auth, storage, AppState, errors, idempotency and every mutation | ✅ [`docs/32`](docs/32_OFFLINE_AUDIT.md) |
+| **J-CP1** the classification as an enforced module, 34 tests | ✅ |
+| **J-CP2** server hardening, migration `0051` | ✅ |
+| **J-CP3** durable queue, request timeout, replay engine | ✅ |
+| **J-CP4** Sync centre, session wiring, per-screen states | ✅ |
+| **J-CP5** live replay verification, **35/35** | ✅ |
+| **J-CP6** Sell cart survives an app kill; docs | ✅ |
 
-**Loans are a separate module**, not a consignment with the unit left out.
+### The binding decision
 
-**Direction is explicit data, never a sign.** One row reads `they_owe_us` to one
-shop and `we_owe_them` to the other, and who may act follows the direction
-rather than authorship — so the debtor cannot confirm their own repayment even
-holding every permission. Verified live from two authenticated sessions.
+**There is no server-issued inventory lease.** Nothing can promise a
+disconnected device that an IMEI is still unsold. A sale may be *prepared*
+offline and may never be *finalized* offline — **Charge is online-only**, and
+the same reasoning governs every authoritative stock and money operation.
 
-**A report moves nothing.** `payment_reported` has a balance effect of zero.
+### Only four operations may be queued
+
+`expense.submit` · `loan.payment.report` · `consignment.payment.report` ·
+`notification.read`. All are claims or flags; none moves stock, settles money or
+grants authority. Everything else is online-only, and `classify()` returns
+`online_only` for anything it does not recognise — a future milestone that adds
+a mutation and forgets the file fails closed.
+
+### The gap the audit found, and closed
+
+`loan_ledger` and `consignment_ledger` replayed on the client UUID alone. Behind
+a queue, an edited report would have been answered with the *original* amount
+while the phone showed **synced**. Migration `0051` adds `client_request_hash`
+to both; all three queueable endpoints now refuse a changed payload with 409,
+**proven live on each**.
 
 ---
 
@@ -119,88 +65,79 @@ holding every permission. Verified live from two authenticated sessions.
 
 | Check | Result |
 |---|---|
-| Backend suites | **87 suites / 1485 tests**, green |
+| Backend suites | **87 suites / 1495 tests**, green |
 | Backend `tsc` | clean |
-| Prisma validate / migrate status | valid · **49 migrations**, up to date |
+| Prisma validate / migrate status | valid · **50 migrations**, up to date |
 | Database triggers | **19** |
 | Mobile `tsc` | clean |
-| Mobile lint | clean *(one warning remains in Expo's generated, git-ignored `.expo/types/router.d.ts`)* |
-| Mobile pure suites | **8/8** — run with `node lib/<name>.test.ts`, **not jest** |
-| Expo web export | all routes bundle, including `/loans`, `/loans/new`, `/loans/[id]`, `/consignments/new` |
-| Expo Doctor | 17/18 · three **patch** version drifts (`expo`, `expo-constants`, `expo-file-system`), pre-existing, not introduced here |
-| EN/AR parity | **1575 / 1575**, no key missing either way, no duplicates |
-| Live H | **71/71** |
-| Live I | **53/53** |
+| Mobile lint | clean *(one warning in Expo's generated, git-ignored `.expo/types/router.d.ts`)* |
+| Mobile pure suites | **10/10** — run with `node lib/<name>.test.ts`, **not jest** |
+| Expo web export | every route bundles, including `/sync` |
+| Expo Doctor | 17/18 · three **patch** drifts (`expo`, `expo-constants`, `expo-file-system`), pre-existing |
+| EN/AR parity | **1616 / 1616**, nothing missing either way, no duplicates |
+| Live J replay | **35/35** over real HTTP and MySQL |
 
-### Demo data, after full cleanup
+### Demo data, after cleanup
 
 Sales **7 / 10 051.00** · unit checksum **`2a1dc9bf284afde32b402ad108d38a76`**
 (unchanged) · **1** company · zero rows left in `loans`, `loan_ledger`,
 `consignments`, `consignment_lines` or `store_connections`. Audit rows were
-**preserved, not deleted** — the count only grows.
+**preserved, not deleted**.
 
 Both temporary companies were removed. **No permanent company or identity was
-left behind.**
+left behind.** No scratch database was created; all live testing used temporary
+companies inside the shared database, created and removed within each run.
 
-### Loan permissions as actually granted in the database
+### Backup
 
-| Role | Keys |
-|---|---|
-| Owner | view, manage, payment.report, payment.confirm, forgive |
-| Store manager | view, payment.report |
-| Employee | **none** |
-
-No role below Owner holds `loan.forgive`. Verified against the database, not the
-migration file.
+`phonestore-20260818-033659.sql` — 496 KB, 19 triggers captured, taken before
+migration `0051` per [`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md).
 
 ---
 
-## Two defects found during this session, both fixed
+## What is NOT done, stated plainly
 
-1. **`consignments.service.create()` wrote lines before the parent row**, so the
-   foreign key failed on every real request. The entire unit suite passed,
-   because none of it touches a database. Fixed by creating the parent first
-   inside the same transaction.
-2. **`awaitingConfirmation` counted reports that had already been confirmed**, so
-   a settled payment showed as still in the air forever and the shop would chase
-   money it already had. Found while checking a response shape, not by a test.
-   Answered-ness now comes from the explicit `refersToId` link; three tests pin
-   it. Backend `2effbf3`, with the response field the screens need in `424410e`.
+- **Every device check in [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) under
+  Milestone J is unrun.** Airplane mode, Wi-Fi without internet, a real Android
+  low-memory kill, background/foreground, the shared counter phone, Arabic RTL,
+  and whether a first-week employee reads "waiting to send" as anything other
+  than "sent". **No claim is made about any of them.** They need hardware.
+- **React Query caches are still memory-only.** A cold start offline shows empty
+  lists rather than stale ones. A persister is a real improvement *and* a real
+  risk — stale prices and stale stock shown confidently are their own kind of
+  lie — so it was deliberately left to a milestone that can think about
+  staleness properly rather than bolted on here.
+- **No attachment bytes are ever queued.** The evidence reference on a payment
+  is a short string, not a file, so there is no attachment lifecycle to clean
+  up. If images are ever queued, that needs its own audit.
 
-**One gap closed on the way past:** `consignments/new` was linked from the H list
-screen but never built — the button reached an unmatched route. It exists now,
-camera-first, resolving every scanned code against the server before it joins
-the list. Two stale lint warnings from G and G2A were also cleared.
+## Ports and processes
 
----
+**Nothing is left running.** The API on 3010 was started by this session purely
+for live verification and stopped again; Metro was never started. Note that the
+*previous* handoff claimed 3010 and 8081 were running for the user's device
+testing — both were already down at takeover, which was the one discrepancy
+found.
 
-## Known state and risks
+To run the app for device testing:
 
-- **Device testing is outstanding.** Everything in
-  [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) under Milestones H and I needs two
-  accounts on two devices, and none of it can be answered from a simulator. The
-  properties most worth a human eye: whether "they owe us" / "we owe them" are
-  unambiguous at a glance in Arabic RTL, and whether a first-week employee
-  understands that reporting a payment is not the same as being paid.
-- **Servers were left running for the user's own testing** — backend on `3010`
-  (watch mode), Metro on `8081` (`exp://192.168.100.3:8081`). These are the
-  user's processes and were deliberately **not** stopped. Stop them yourself if
-  you need the ports.
-- No scratch database was created this session. All live testing ran against the
-  shared database using temporary companies, created and removed within each run.
-- Test scripts live outside every repository working tree, in the OS temporary
-  directory, per the G2A-CP4.5 rule.
+```bash
+cd backend && npm run start:dev
+```
+
+```bash
+cd mobile && npx expo start
+```
 
 ## Next action
 
-**Milestone J — the offline foundation.** Not started, and not to be started
-without the user's go-ahead. It is comparable in size to E or H and touches
-architecture rather than a single feature, so it wants a session with room to
-finish it.
+**Milestone K — subscription entitlement.** Not started, and not to be started
+without the user's go-ahead.
 
-Before J begins, the open question worth settling: whether offline write queuing
-covers only the sell path or every mutation. The idempotency keys (`clientUuid`)
-that H and I both use were built with queuing in mind, so the primitive exists —
-what is undecided is the scope.
+Before K begins, the question worth settling: whether entitlement gates at the
+**company** level or the **feature** level, and what a shop whose subscription
+lapses can still do. The honest default — reads keep working, writes stop — is
+worth confirming rather than assuming, because a shop locked out of its own
+sales history mid-day would reach for the notebook immediately.
 
-K (subscription entitlement) and L (analytics polish) remain untouched.
+**L** (analytics polish) also remains untouched.

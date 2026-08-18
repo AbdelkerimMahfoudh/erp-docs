@@ -4683,7 +4683,7 @@ safety argument. Drafts survive sign-out — an employee whose shift ended has n
 abandoned their half-built sale — and are readable again only by the same person
 in the same branch.
 
-**Verification.** Backend 87 suites / 1495 tests, tsc clean, 51 migrations, 19
+**Verification.** Backend 87 suites / 1495 tests, tsc clean, 50 migrations, 19
 triggers, Prisma valid. Mobile tsc and lint clean, 10 pure suites, EN/AR 1616
 each at parity, web export bundles every route. Demo data back at baseline.
 
