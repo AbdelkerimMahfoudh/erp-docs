@@ -53,27 +53,38 @@
 
 ### Next action, exactly
 
-**Milestone L — analytics polish.** Start with **L0**: inventory every existing
-reporting source (daily rollups, closings and per-channel reconciliation,
-sales and corrections, approved returns and confirmed refund payouts, expenses,
-supplier payables and settlements, consignment balances, money loans, inventory
-and faulty-held value, goals, outstanding liabilities and receivables, and the
-cost/margin permission gating) and document where each number comes from, its
-timing basis, and whether it is profit, cash, liability, receivable, inventory
-or workflow state. Write it as `docs/34_ANALYTICS_AUDIT.md`.
+- **L in progress.** L0 audit in `docs/34` (accounting dictionary + timing
+  table + recorded gaps). **L-CP1** `accounting-rules.ts`, 25 tests pinning the
+  identities. **L-CP2** `GET /analytics/summary?from&to`, reading
+  `daily_rollups` and the ledgers rather than recomputing. Backend now
+  **89 suites / 1555 tests**. Commits: backend `8b5c180`, mobile `b0bd672`.
 
-**Do not build a competing accounting system.** Reuse the canonical services;
-if a metric has no canonical source, omit it and record the gap rather than
-manufacturing a zero. Keep profit, cash, liability, receivable, inventory,
-discrepancy and provisional-vs-confirmed workflow visibly separate. Return
-comparison values from the server, and for a zero denominator return an
-explicit unavailable state rather than infinity or a misleading percentage.
+**L-CP3 — the mobile analytics screen.** Rework `mobile/app/analytics.tsx` to
+the hierarchy the brief sets: today/period first, then profit, cash movement,
+amounts owed and owing, inventory position, discrepancies and attention items,
+then goals/trend. Consume `/analytics/summary`; render nothing the server did
+not send, and show anything in its `unavailable` array as genuinely
+unavailable rather than as zero. Tabular money values, EN/AR parity, RTL-safe,
+proper loading/empty/error/offline/permission states, no colour-only meaning,
+no chart library. A shareable summary may build text/HTML locally but must not
+send WhatsApp messages or claim delivery.
 
-Then the **final A–L gate**, including attempting the Expo Doctor patch bump
-(three patch shortfalls, recorded above) and reporting the outcome either way.
+**L-CP4 — live analytics checks** against real MySQL with fixtures across
+several dates and channels: return counted once, refund payout affecting cash
+once and profit zero times, supplier settlement moving cash but not profit,
+expense timing, correction replacement, per-channel attribution, branch and
+company isolation, cost/margin gating, equal-period comparison boundaries,
+timezone boundaries, empty and zero-denominator periods, and agreement between
+the summary and the closing/rollup sources. Clean deletable fixtures; preserve
+audit rows.
 
-**The API is currently RUNNING on 3010** (watch mode), started by this session
-for live verification. Metro is not running. Stop the API at the final gate.
+**Then the final A–L gate** exactly as the brief lists it — including
+attempting the Expo Doctor patch bump (three patch shortfalls recorded above)
+and reporting the outcome either way, plus docs/21, docs/24, session log, and
+`A_L_COMPLETE` in the final handoff.
+
+**The API is RUNNING on 3010** (watch mode), started by this session for live
+verification. Metro is not running. Stop the API at the final gate.
 
 ### Repository state — all three clean and pushed
 
