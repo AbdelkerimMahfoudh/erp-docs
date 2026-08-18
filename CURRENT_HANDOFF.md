@@ -33,7 +33,37 @@
   Import preparation deliberately NOT drafted — nothing local to lose, and the
   spreadsheet bytes are exactly what must never persist. 19 new tests,
   11 pure suites, EN/AR 1622.
-- Next intended action: **K0 truth audit**, then migration `0052`.
+- **K in progress.** K0 audit written (docs/33). Migration **0052** applied:
+  `subscriptions` + append-only `subscription_events`, **21 triggers** now
+  (was 19). Every existing company backfilled with a year so no tenant locks on
+  deploy — demo verified backfilled. Entitlement rules are pure and
+  clock-injected; the guard is central and blocks by default, refusing when no
+  company resolves so a guard reordering fails loudly. Seats pooled, Owner
+  exempt, nobody auto-deactivated. Provisioning is platform-key only and not a
+  tenant route. Mobile: /subscription screen, stale-cache honesty,
+  ENTITLEMENT_WRITE_BLOCKED as its own non-looping queue error kind.
+- Backend **88 suites / 1530 tests**; mobile tsc+lint clean, 11 pure suites,
+  EN/AR **1645**, /subscription exports.
+- Commits so far: backend `75b30ae`, mobile `b0bd672`.
+
+### Next action, exactly
+
+**K live verification.** Start the API (`npm run start:dev` in `backend/`; it
+is NOT running). Write `k-live.js` in the scratchpad on the pattern of
+`j-live.js`, proving over real HTTP: active writes; the instant before and
+after period end; both grace boundaries; the instant after grace; reads and
+exports still work when expired; a business write refused with
+`ENTITLEMENT_WRITE_BLOCKED`; a queued report hitting it becomes needs_attention
+rather than looping; complimentary grants write; a tenant Owner CANNOT
+self-grant (no tenant route reaches provisioning); cross-company isolation;
+missing/spoofed tenant context; Owner excluded from seats; all non-Owner roles
+counted; pooled seats across branches; concurrent final-seat activation;
+over-limit reduction without deactivation; backfill. Manipulate
+`current_period_end` directly in SQL to move boundaries — **do not touch the
+host clock**. Clean up both temporary companies.
+
+Then **L** (analytics polish: L0 audit, semantics, API, mobile, tests), then
+the **final A–L gate**, including attempting the Expo Doctor patch bump.
 
 ### Repository state — all three clean and pushed
 
