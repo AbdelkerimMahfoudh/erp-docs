@@ -24,8 +24,16 @@
   The only greps that hit are doc comments saying a Store Account ID is *not* a
   subscription id. K starts from nothing.
 - Previously completed: **Milestones A–J**.
-- Next intended action: **J.1 audit** — inspect every long form and determine
-  which already survive process death and which lose meaningful work.
+- **J.1 COMPLETE** (mobile `3efb063`): six more forms now survive a process
+  kill — receiving, consignment proposal, expense, return request, loan
+  proposal, goal. Scope is the filename (user/company/branch/form/record);
+  binary and credential fields refused before any write; restores are visible
+  and offer to start fresh; drafts clear only on confirmed acceptance. A
+  restored consignment re-asks the server about every phone before proposing.
+  Import preparation deliberately NOT drafted — nothing local to lose, and the
+  spreadsheet bytes are exactly what must never persist. 19 new tests,
+  11 pure suites, EN/AR 1622.
+- Next intended action: **K0 truth audit**, then migration `0052`.
 
 ### Repository state — all three clean and pushed
 
