@@ -17,9 +17,13 @@
   running; **neither is listening**. They stopped between sessions. Nothing
   depends on them until live replay testing, when they will be restarted.
 - Previously completed: **Milestones A–I**, all shipped and verified.
-- Next intended action: **J0 audit** — classify every mobile mutation into local
-  draft / queueable submission / online-only authority, and pin the matrix with
-  tests before any queue code is written.
+- Progress: **J0 audit complete** (docs/32) · **J-CP1** the classification module
+  and its 34 tests · **J-CP2** server hardening, migration `0051`.
+- Backup before 0051: `phonestore-20260818-033659.sql` (496 KB, 19 triggers).
+- Next intended action: **J-CP3** — the durable queue on `expo-file-system`
+  (no new dependency), keyed by user/company/branch, versioned schema, failing
+  closed on corruption; then J-CP4 the Sync centre and per-screen states,
+  J-CP5 live replay over real HTTP/MySQL, J-CP6 docs. **Do not begin K.**
 
 ### Repository state — all three clean and pushed
 
