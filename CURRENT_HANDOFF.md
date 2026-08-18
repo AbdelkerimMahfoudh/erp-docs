@@ -6,11 +6,26 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B** · closed `2026-08-18T04:53Z`
-- Completed this session: **Milestone J — the safe offline foundation.**
-- **Milestone K was not begun**, as instructed.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- started_at_utc: `2026-08-18T05:20Z`
+- Authorised task: **J.1 offline-draft coverage, then Milestones K and L, then
+  the final A–L verification gate.** Do not begin another feature milestone.
+- Takeover verified against the previous handoff, **no discrepancies**: 87
+  suites / 1495 tests · 50 migrations · 19 triggers · Prisma valid and current ·
+  mobile tsc clean · 10 pure suites · EN/AR 1616 · all three trees clean and
+  level at backend `53bf545`, mobile `e73dff9`, docs `7847e82`.
+- **Expo Doctor, precisely:** the failing check is *packages match versions
+  required by installed Expo SDK*. Three **patch** shortfalls, each installed
+  BELOW the floor: `expo` 54.0.36 vs ~54.0.37, `expo-constants` 18.0.13 vs
+  ~18.0.14, `expo-file-system` 19.0.23 vs ~19.0.24. Not a new dependency, so a
+  patch bump will be attempted at the final gate and reported either way.
+- **K0 note:** no subscription, billing, plan or entitlement remnant exists.
+  The only greps that hit are doc comments saying a Store Account ID is *not* a
+  subscription id. K starts from nothing.
+- Previously completed: **Milestones A–J**.
+- Next intended action: **J.1 audit** — inspect every long form and determine
+  which already survive process death and which lose meaningful work.
 
 ### Repository state — all three clean and pushed
 
