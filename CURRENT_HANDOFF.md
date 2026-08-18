@@ -20,22 +20,22 @@
 - Progress: **J0 audit** (docs/32) · **J-CP1** classification module, 34 tests ·
   **J-CP2** server hardening, migration `0051` · **J-CP3** durable queue,
   request timeout, replay engine · **J-CP4** Sync centre and session wiring.
-- Backup before 0051:  (496 KB, 19 triggers).
+- Backup before 0051: `phonestore-20260818-033659.sql` (496 KB, 19 triggers).
 - Verified at this checkpoint: backend 87 suites / **1495 tests**, tsc clean,
   **50 migrations**, Prisma valid · mobile tsc and lint clean, **10 pure
-  suites**, EN/AR **1616** at parity, web export bundles .
-- Commits: backend , mobile , docs — this one.
+  suites**, EN/AR **1616** at parity, web export bundles `/sync`.
+- Commits: backend `53bf545`, mobile `33cfeb9`, docs — this one.
 
 ### Next action, exactly
 
 **J-CP5 — live replay verification.** Nothing has yet been proven over real
-HTTP against real MySQL. Restart the API on 3010 ( in
-) — it is **not currently running**, and Metro on 8081 is not either.
-Then write  in the scratchpad, modelled on , proving:
+HTTP against real MySQL. Restart the API on 3010 (`npm run start:dev` in
+`backend/`) — it is **not currently running**, and Metro on 8081 is not either.
+Then write `j-live.js` in the scratchpad, modelled on `i-live.js`, proving:
 same-UUID replay returns the original rather than creating a second row;
 **changed-payload replay is refused with 409** on all three queueable endpoints
 (expense, loan payment report, consignment payment report) — this is the
-property  exists for and it has only been unit-tested so far; permission
+property `0051` exists for and it has only been unit-tested so far; permission
 revoked before replay; branch and company changed before replay; deactivated
 user; no duplicate audit or notification row; and that a queued report leaves
 the balance untouched until confirmed. Clean up both temporary companies.
@@ -43,7 +43,7 @@ the balance untouched until confirmed. Clean up both temporary companies.
 Then **J-CP6**: the remaining test cases the brief lists that are not yet
 written (cold start offline, process restart, queue corruption, logout/login as
 another user, attachment cleanup), then docs/21 product decisions, docs/24
-device QA for J, session log, and  with owner .
+device QA for J, session log, and `READY_FOR_HANDOFF` with owner `NONE`.
 
 **Known gap, deliberately not started:** the Sell cart is still React state, so
 it survives backgrounding but **not** an app kill. Charge is correctly disabled
@@ -57,8 +57,8 @@ it works.
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `424410e` |
-| `erp-mobile` | `ad5a185` |
+| `erp-backend` | `53bf545` |
+| `erp-mobile` | `33cfeb9` |
 | `erp-docs` | *this commit* |
 
 ---
