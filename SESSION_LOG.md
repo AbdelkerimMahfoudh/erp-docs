@@ -4618,3 +4618,81 @@ size to H; the idempotency keys both H and I use were built with write queuing i
 mind, so the primitive is already there. What is undecided is whether queuing
 covers only the sell path or every mutation, and that is worth settling before
 any code is written.
+
+---
+
+## 2026-08-18 · CLAUDE-B · Milestone J
+
+The offline foundation. The whole milestone turns on one fact: **there is no
+server-issued inventory lease**, so nothing can promise a disconnected phone
+that an IMEI is still unsold. A sale may be prepared offline and may never be
+finalized offline. Everything else followed from that sentence.
+
+**The classification is code, not prose.** Every mutation in the app appears
+exactly once in `policy.ts` with the reason it is where it is, and 34 tests hold
+the line — including one asserting that the queueable set is exactly four, so
+widening it is a deliberate act with a diff. An operation nobody classified
+resolves to `online_only`, because the realistic failure is a future milestone
+adding a mutation and forgetting this file, and the convenient default would
+silently queue something that moves stock.
+
+**Four operations may wait**: expense submission, the two payment reports, and
+notification read. All four are claims or flags; none moves stock, settles money
+or grants authority. A queued payment report means *waiting to tell the server*
+and never *confirmed*.
+
+**The gap the audit found.** `loan_ledger` and `consignment_ledger` carried a
+client UUID but no payload fingerprint, and replayed on the key alone. Harmless
+while every request is online and immediate. Not harmless behind a queue: edit a
+queued 5,000 report to 8,000, keep the key, and the server would answer about
+the original while the phone showed *synced* — the shop believing it had
+reported a number the server never saw. Migration `0051` closes it, and the
+live run proves the 409 on all three queueable endpoints.
+
+**A timeout is not a failure.** `fetch` had no timeout at all, so a request on a
+dying connection could hang forever and "the server did not answer" was not a
+state the app could represent. It is bounded now and treated as *uncertain*:
+retried under the same client UUID before anybody is told to create a second
+record, and deliberately not counted as the shop being offline, since the server
+was in fact reached.
+
+**No `failed` state.** A conflict is a question for a person, not something to
+retry. Validation, authorization and conflict failures stop; only transient ones
+back off, capped and bounded. The payload is never quietly edited to make one
+pass.
+
+**No new dependency.** `expo-file-system` was already installed;
+`expo-secure-store` was the wrong tool for something unbounded. The queue is
+keyed by user, company and branch — that triple *is* the filename — and nothing
+carrying a credential-shaped field may be written at all. Corrupt data is
+quarantined with its bytes intact rather than binned.
+
+**Live 35/35**, and three assertions in it were wrong — all three mine, not the
+product's. Notifications are delivered inside the emitting tenant, so I asked
+the wrong company. Reporting a payment is deliberately open to both sides, and
+my test asserted a rule the product never claimed — only *confirmation* is the
+creditor's alone. The third failure was a straight consequence of the second.
+Two of the three looked like product bugs at first glance and were not, which is
+worth remembering the next time a live run goes red.
+
+**The cart now survives an app kill**, which is the milestone's most visible
+promise and was the last thing still missing. Drafts are a separate store from
+the queue on purpose: a queued item is something the shop decided to send, a
+draft may never be sent at all, and confusing the two would undo the entire
+safety argument. Drafts survive sign-out — an employee whose shift ended has not
+abandoned their half-built sale — and are readable again only by the same person
+in the same branch.
+
+**Verification.** Backend 87 suites / 1495 tests, tsc clean, 51 migrations, 19
+triggers, Prisma valid. Mobile tsc and lint clean, 10 pure suites, EN/AR 1616
+each at parity, web export bundles every route. Demo data back at baseline.
+
+**Deliberately not done, and recorded rather than glossed:** React Query caches
+are still memory-only, so a cold start offline shows empty lists rather than
+stale ones. A persister is a real improvement and a real risk — stale prices
+shown confidently are their own kind of lie — and it belongs in a milestone that
+can think about staleness properly. And **every device check in `docs/24` under
+J is unrun**: airplane mode, Wi-Fi without internet, a real Android low-memory
+kill, the shared counter phone, Arabic RTL. No claim is made about any of them.
+
+**K is not started.**
