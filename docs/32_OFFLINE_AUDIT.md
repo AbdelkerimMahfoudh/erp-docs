@@ -194,3 +194,79 @@ first-party Expo, which the audit preferred over introducing a queue library.
 
 Whether unsynced drafts survive logout, and how the same authenticated user
 recovers them, is documented alongside the implementation.
+
+---
+
+## What was built, and what verification proved
+
+*Closed at the end of J. The audit above was written before any of it existed.*
+
+### Files
+
+| Where | What |
+|---|---|
+| `mobile/lib/offline/policy.ts` | The classification. Every mutation, once, with its reason |
+| `mobile/lib/offline/queue-rules.ts` | Retry, backoff, ordering, session identity — pure |
+| `mobile/lib/offline/queue-schema.ts` | What may reach the disk — pure, so it is testable |
+| `mobile/lib/offline/queue-store.ts` | The file itself, on `expo-file-system` |
+| `mobile/lib/offline/queue.ts` | The engine, deliberately thin |
+| `mobile/lib/offline/classify.ts` | What actually went wrong, including the timeout |
+| `mobile/lib/offline/drafts.ts`, `use-draft.ts` | Half-finished work, kept apart from the queue |
+| `mobile/lib/offline/use-sync.ts` | Three triggers, no polling timer |
+| `mobile/app/sync.tsx` | The Sync centre |
+| `backend/prisma/migrations/0051_report_payload_fingerprint` | The gap this audit found |
+
+### What the live run established that unit tests could not
+
+35 checks, over real HTTP against real MySQL, with two temporary companies
+created and removed inside the run.
+
+- An idempotent replay returns **the original record**, and exactly one row
+  exists afterwards — proven for expenses and both ledgers.
+- A replay carrying the same key with a **changed payload is refused with 409**
+  on all three queueable endpoints. This is the property `0051` exists for, and
+  it had only ever been unit-tested.
+- A refused replay **writes nothing** — the amount, the ledger and the awaiting
+  balance are all unchanged afterwards.
+- A changed *reference* is refused as readily as a changed amount: it is a
+  different report, not a retry.
+- A permission revoked while an item waited refuses the replay; so does a
+  deactivated user, and a branch the user is not assigned to.
+- One audit row per expense and one ledger entry per report, after replays.
+- The fingerprint `0051` adds is actually persisted (64 hex characters).
+
+### Three assertions the live run corrected
+
+All three were the **test** being wrong, not the product:
+
+1. **Notifications are delivered inside the emitting tenant.** The test asked
+   the wrong company whether it had a notification.
+2. **Reporting a payment is open to both sides.** The test asserted a rule the
+   product never claimed. A creditor recording "they paid me" is legitimate and
+   useful; only *confirmation* is the creditor's alone, and that was already
+   proven in Milestone I.
+3. **A second ledger entry** — a straight consequence of the second assertion,
+   not an independent finding.
+
+Worth recording, because two of the three looked like product bugs at first
+glance and were not.
+
+### Still only verifiable on hardware
+
+Everything in [`docs/24`](24_DEVICE_QA_CHECKLIST.md) under Milestone J: airplane
+mode, Wi-Fi without internet, a real Android low-memory kill, background and
+foreground, the shared counter phone, Arabic RTL, and whether a first-week
+employee reads "waiting to send" as anything other than sent.
+
+**These have not been run.** No claim is made about them.
+
+### Deliberately not done
+
+- **React Query caches are still in memory only.** A cold start offline shows
+  empty lists rather than stale ones. Adding a persister is a real improvement
+  and a real risk — stale prices and stale stock shown confidently are their own
+  kind of lie — so it was left for a milestone that can think about staleness
+  properly rather than bolted on here.
+- **No attachment bytes are ever queued.** The evidence reference on a payment
+  is a short string, not a file, so there is no attachment lifecycle to clean up.
+  If images are ever queued, that decision needs its own audit.

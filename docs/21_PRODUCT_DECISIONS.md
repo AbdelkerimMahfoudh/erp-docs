@@ -1806,3 +1806,126 @@ through one helper applying an explicit two-column filter. A stranger gets
 > confirmed ones, so a settled payment kept showing as still in the air and the
 > shop would chase money it had already received. Answered-ness now comes from
 > the explicit `refersToId` link, and three tests pin it.
+
+---
+
+## Milestone J — the safe offline foundation
+
+*Approved and implemented. Schema `0051`. 35 live checks over real HTTP and
+MySQL, green. The classification itself is pinned by 34 unit tests.*
+
+### The decision everything else follows from
+
+**There is no server-issued inventory lease.**
+
+Nothing in this system can promise a disconnected device that an IMEI is still
+unsold. Another phone, another browser, another branch may sell it while this
+device is dark, and neither side would know until the connection returned.
+
+Therefore:
+
+- an offline cart **may** be preserved;
+- a sale **may** be prepared offline;
+- the customer **must not** be charged, and the sale **must not** be shown as
+  completed, until the server accepts it;
+- **Charge is online-only.**
+
+This is not a limitation waiting for better engineering. It is what the absence
+of a lease actually means, and the same reasoning governs every authoritative
+stock and money operation.
+
+### Three classes, and an unclassified operation is authority
+
+Every mutation in the app appears exactly once in
+`mobile/lib/offline/policy.ts`, with the reason it is where it is. A test fails
+the build if the two disagree, because prose cannot.
+
+| Class | Meaning |
+|---|---|
+| **Local draft** | The shop's own unfinished work. Kept here, never sent by itself, never called sent, reserved, paid, approved, confirmed or completed |
+| **Queueable** | An append-only *report* of something that already happened |
+| **Online-only** | Anything that decides something |
+
+`classify()` returns `online_only` for anything it does not recognise. A future
+milestone that adds a mutation and forgets this file gets the safe answer rather
+than the convenient one.
+
+### Only four operations may wait
+
+An operation may be queued only if it is a report, carries a stable client UUID,
+is idempotent server-side, moves no stock, settles no money, grants no authority,
+and can fail later without corrupting business truth.
+
+| Operation | Why it is safe to send late |
+|---|---|
+| `expense.submit` | Money already spent. Grants nothing — somebody still confirms it |
+| `loan.payment.report` | Says "I paid you". **Balance effect zero** until confirmed |
+| `consignment.payment.report` | The same claim, same zero effect |
+| `notification.read` | A flag on the reader's own notification |
+
+**A queued payment report means one thing: waiting to tell the server.** It never
+means the payment was confirmed.
+
+Reporting is deliberately open to **both** sides of a debt — a creditor who
+receives cash should be able to record it without waiting for the debtor. What
+is restricted is *confirmation*, which remains the creditor's alone.
+
+### The gap the audit found, and closed
+
+`loan_ledger` and `consignment_ledger` carried `client_uuid` but no payload
+fingerprint, and replayed on the key alone. Harmless while every request is made
+online and immediately; **not** harmless behind a queue — edit a queued 5,000
+report to 8,000, keep the key, and the server would silently answer about the
+original while the phone displayed *synced*. The shop would believe it had
+reported a figure the server never saw.
+
+Migration `0051` adds `client_request_hash` to both, matching what `expenses`
+already did. All three queueable endpoints now refuse a changed payload with a
+409. **Verified live**, on each of the three.
+
+### No `failed` state
+
+The queue's states are `draft`, `waiting_for_connection`, `sending`, `synced`,
+`needs_attention`, `cancelled`. A conflict is not a failure — it is a question
+for a person: the amount changed, the permission went away, the branch moved.
+Calling it "failed" invites the app to retry it and invites an employee to
+ignore it.
+
+Validation, authorization and conflict failures stop and wait for somebody. Only
+transient network and server failures back off — exponentially, capped at five
+minutes, bounded at eight attempts. **The payload is never quietly edited to
+make one pass.**
+
+### A timeout is not a failure
+
+`fetch` had no timeout at all, so a request on a dying connection could hang
+indefinitely and "the server did not answer" was not a state the app could
+represent. It is now bounded, and treated as **uncertain** rather than failed:
+the request arrived and only the answer was lost, so it is retried under the
+same client UUID before anybody is told to create a second record.
+
+A timeout also does not mark the shop offline — the server was reached, and
+saying otherwise would hide a server that is merely slow.
+
+### Session identity is re-checked at replay
+
+Not merely at enqueue. A shared counter phone changes hands, branches switch,
+roles are revoked. The queue is keyed by user, company and branch — that triple
+*is* the filename — and permissions are refreshed before every pass.
+
+Drafts **survive sign-out** rather than being destroyed: an employee whose shift
+ended has not abandoned the sale they were building. They become readable again
+only to the same person in the same branch, because the next person to sign in
+opens a different file.
+
+### No new dependency
+
+The queue and drafts are built on `expo-file-system`, which was already
+installed. `expo-secure-store` was the wrong tool — Android warns above roughly
+2 KB per value, and a queue is unbounded by nature. Nothing carrying a
+credential-shaped field may be written at all, checked recursively.
+
+Corrupted or foreign-versioned queue data is **quarantined with its bytes
+intact**, not deleted: a queue that silently drops what it cannot parse is worse
+than one that admits it lost something. Drafts, which are evidence of nothing
+owed, are simply discarded.

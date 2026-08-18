@@ -868,3 +868,78 @@ languages · whether the RTL rendering keeps the direction chip beside the right
 number · whether somebody in their first week understands that reporting a
 payment is not the same as being paid · whether the closing reminder is read as
 a nudge rather than as something they failed to count.
+
+---
+
+## Milestone J — working without a connection
+
+**None of this can be answered from a simulator or a web export.** It needs a
+real phone, real airplane mode, and Android's real willingness to kill a
+backgrounded app.
+
+### The sale, which is the point
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Build a cart of three phones, then turn on **airplane mode** | The cart is still there. The banner says there is no connection |
+| 2 | Look at **Charge** | Disabled, and the line above says why — the cart is safe but nothing can promise the phone is still unsold |
+| 3 | **Kill the app** from the recents list, reopen it | The cart is still there |
+| 4 | Turn the connection back on | Charge becomes available. Nothing was sent while you were dark |
+| 5 | Complete the sale, then kill and reopen | The cart is **empty** — a finished sale must not come back |
+
+### Counting the day
+
+| # | Do this | Expect |
+|---|---|---|
+| 6 | Enter counts for two channels, then go offline | The counts stay |
+| 7 | Try to close the day | Refused, in plain language |
+| 8 | Reconnect | The day can be closed, and the figures are the ones you typed |
+
+### The four things that may wait
+
+| # | Do this | Expect |
+|---|---|---|
+| 9 | Offline, report an expense | "Waiting to send". Never "sent" |
+| 10 | Open **Waiting to send** from the More menu | It is listed, with a count |
+| 11 | Reconnect and watch | It goes on its own. Only then does it read as sent |
+| 12 | Offline, report a loan payment | "Waiting to report to the server", and explicitly not confirmed |
+| 13 | Reconnect, then check the loan | The balance is **unchanged** until the other side confirms |
+
+### Wi-Fi that lies
+
+| # | Do this | Expect |
+|---|---|---|
+| 14 | Join a Wi-Fi network with **no internet** | The app still says there is no connection — it tests the server, not the radio |
+| 15 | Stop the API server while the phone is on good Wi-Fi | Same answer. Reaching the router is not reaching the shop's data |
+| 16 | Leave a request hanging (throttle the server) | It gives up after 20 seconds and says the server did not answer in time — **not** that it failed |
+
+### The shared counter phone
+
+| # | Do this | Expect |
+|---|---|---|
+| 17 | Offline, start an expense as user A. Sign out | The draft is not lost |
+| 18 | Sign in as user B on the same phone | B sees **none** of A's work |
+| 19 | Sign back in as A | A's work is there again |
+| 20 | Switch branch as the same user | The queue changes with the branch |
+
+### Losing the connection is not a security event
+
+| # | Do this | Expect |
+|---|---|---|
+| 21 | Go offline for ten minutes, then come back | No OTP, no re-login, and the trusted device is still trusted |
+| 22 | Background the app for an hour, then foreground it | Anything waiting is sent. Still no OTP |
+
+### Arabic
+
+| # | Do this | Expect |
+|---|---|---|
+| 23 | Switch to Arabic and repeat 9–13 | The state chips read correctly right-to-left, and "waiting" is never mistakable for "sent" |
+
+### What only a device can answer
+
+Whether a first-week employee understands that "waiting to send" is not "sent" ·
+whether Android actually restores the cart after a real low-memory kill rather
+than a manual swipe · whether the 20-second timeout feels right on a slow
+Mauritanian mobile connection or merely feels broken · whether the Sync centre is
+somewhere people think to look, or whether the count needs to appear on the tab
+bar · whether an employee who sees "needs your attention" knows what to do next.
