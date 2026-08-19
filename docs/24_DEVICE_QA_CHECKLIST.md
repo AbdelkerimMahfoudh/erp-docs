@@ -943,3 +943,62 @@ than a manual swipe · whether the 20-second timeout feels right on a slow
 Mauritanian mobile connection or merely feels broken · whether the Sync centre is
 somewhere people think to look, or whether the count needs to appear on the tab
 bar · whether an employee who sees "needs your attention" knows what to do next.
+
+---
+
+## Milestone J.1 — drafts on a real phone
+
+Every one of these needs a real Android low-memory kill, not a simulator.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Scan ten phones into a receiving session, kill the app, reopen | All ten still there, with the supplier still chosen |
+| 2 | Look for the notice | It says when the work was saved and offers to start fresh |
+| 3 | Start an expense, kill, reopen | Every field back as typed |
+| 4 | Build a consignment proposal, wait a day, submit | Any phone sold in between is dropped by name; the rest still submit |
+| 5 | Take a return at the counter, kill, reopen | Reason and condition notes back; the **sale** is looked up fresh |
+| 6 | Submit successfully, then reopen the form | Empty — a finished job must not come back |
+| 7 | Submit and get refused, then reopen | Still there. A failure must not destroy the work |
+| 8 | Sign out, sign in as somebody else | None of the first person's drafts are visible |
+| 9 | Sign back in as the first person | Their drafts are there again |
+| 10 | Pick an import file, kill, reopen | Nothing restored, and nothing implies stock was added |
+
+## Milestone K — subscription, on a device
+
+Needs a platform operator to move the period; the app cannot do it.
+
+| # | Do this | Expect |
+|---|---|---|
+| 11 | Open **Subscription** while active | Days remaining, and the website-via-WhatsApp wording. **No price, no button, no link** |
+| 12 | Move the period to just past its end | Grace, with exact hours left. Everything still works |
+| 13 | Sell something during grace | It goes through |
+| 14 | Move past 72 hours | Read-only. The message says nothing was deleted |
+| 15 | Try to sell | Refused, in plain language, naming the subscription rather than a permission |
+| 16 | Open sales history, exports, closings | All still readable |
+| 17 | Sign out and back in | Works — authentication is never blocked |
+| 18 | Queue an expense offline, then let it send while expired | It becomes **needs attention** and stops. It must not retry forever |
+| 19 | Fill every staff place, then re-enable somebody | Refused, naming seats. Nobody is switched off automatically |
+| 20 | Go offline and open Subscription | Says it is showing what the phone last knew — never claims to be current |
+| 21 | Repeat 11–20 in Arabic | Reads correctly right-to-left; urgency is not carried by colour alone |
+
+## Milestone L — where the money is
+
+| # | Do this | Expect |
+|---|---|---|
+| 22 | Open **Where the money is** for today, 7 and 30 days | Profit first, then cash, then owed, then differences |
+| 23 | Read the cash block | It says outright that it is not profit |
+| 24 | Approve a return, then pay the refund the next day | Profit moves once, on the approval day. The payout shows as cash only |
+| 25 | Look at "owed and owing" | Labelled as standing right now, not for the period |
+| 26 | Find a figure that is not tracked | Named as unavailable — never drawn as zero |
+| 27 | Open a period with no trading before it | Says there is nothing to compare with, rather than a percentage |
+| 28 | Switch branch | The figures change to that branch alone |
+| 29 | Sign in as somebody without `report.view` | The screen says it is a role boundary, not an empty shop |
+| 30 | Repeat in Arabic | Money aligns correctly in RTL; every trend has a sign and words, not just colour |
+
+### What only a device can answer, across all three
+
+Whether a first-week employee reads "saved on this phone" as *not sent* ·
+whether the grace warning is urgent enough to act on without being alarming ·
+whether "where the money is" answers the question a shopkeeper actually opens it
+with · whether Arabic numerals and money alignment survive RTL on a small screen
+· whether any of it is legible in daylight on a cheap handset.
