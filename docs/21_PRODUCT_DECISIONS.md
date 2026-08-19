@@ -1929,3 +1929,154 @@ Corrupted or foreign-versioned queue data is **quarantined with its bytes
 intact**, not deleted: a queue that silently drops what it cannot parse is worse
 than one that admits it lost something. Drafts, which are evidence of nothing
 owed, are simply discarded.
+
+---
+
+## Milestone J.1 — offline drafts for every long form
+
+*Approved and implemented. 19 tests.*
+
+J proved the Sell cart survives a process kill. Six other forms did not, and
+each was losing work somebody had typed or scanned: a receiving session of
+twenty phones, a consignment proposal, an expense report, a return taken at the
+counter, a loan proposal, a goal.
+
+**Scope is the filename** — user, company, branch, form and record — so
+isolation is structural rather than a check somebody could forget. An
+investigation note about one return can never surface on another.
+
+**Nothing binary or secret reaches the disk**, refused *before* any write. A
+refusal afterwards would be an apology rather than a guarantee. Oversized
+payloads are refused too: that is somebody persisting a server response by
+accident, which is both a privacy problem and a way to fill a cheap phone.
+
+**Restores are visible.** Silently repopulating a form is how somebody submits
+yesterday's numbers believing they typed them today, so the notice says when the
+work was saved and offers to start fresh. Drafts clear only on confirmed
+acceptance or explicit discard — never on a failed submission, and never because
+a restored draft turned out to be stale.
+
+**Server state is re-read, never restored.** A restored consignment re-asks
+about every phone before proposing; one another branch sold is dropped from the
+list and named, rather than the whole draft being thrown away.
+
+**Import preparation is deliberately not drafted.** The file is uploaded to a
+server-side preview immediately, so there is nothing local to lose — and the
+spreadsheet bytes are exactly what must never be persisted.
+
+---
+
+## Milestone K — subscription entitlement
+
+*Approved and implemented. Schema `0052`. 59 live checks, green.*
+
+### One plan, no tiers
+
+A shop either has a live subscription or it does not, and the only thing that
+changes when it lapses is whether the server accepts writes. No feature flags in
+business services, and nothing that would make a role change a billing event.
+
+| Rule | Value |
+|---|---|
+| Base | 500 MRU per subscribed branch per month |
+| Included seats | 2 non-Owner staff per subscribed branch, **pooled company-wide** |
+| Owner | Consumes no seat |
+| Additional seats | 100 MRU each, not prorated |
+| Free trial | None · Annual billing deferred |
+| Complimentary | Supported, audited, never self-grantable |
+
+**Prices live in provisioning, not in the app.** The mobile client shows no
+amount, no checkout, no payment link and no Bankily claim — nothing that would
+have to be kept in step with a price list the app has no business knowing.
+
+### States, from a server clock
+
+`active` · `grace` (exactly 72 hours, **derived** from the period so the two
+cannot drift) · `expired` · `complimentary`.
+
+**Writes continue through grace.** A shop three hours past renewal is still open;
+refusing its sales over an administrative boundary would cost it real money.
+
+**Expiry never hides anything.** Authentication works, history reads, exports
+work, branch selection and sign-out work. Only new business truth stops. A shop
+locked out of yesterday's sales reaches for the notebook immediately.
+
+### Nobody is deactivated to balance an invoice
+
+A company over its seat limit keeps every employee. It is told, blocked from
+adding more, and left to decide who stays. Seats are checked at the moment of
+activation, so two Owners filling the last place at once cannot both succeed —
+and deactivating is never blocked, or a company would be trapped over its limit.
+
+### Enforcement is central, and fails closed
+
+One interceptor, not a check in twenty-eight controllers. A mutation nobody
+classified is **refused** for a lapsed shop, so an endpoint added in a later
+milestone fails closed rather than conveniently.
+
+> It was written as a global guard first. The live run refused **every** write
+> through the fail-closed branch, because global guards run in registration
+> order and this one ran before authentication. Interceptors are guaranteed by
+> the request lifecycle to run after every guard. The fail-closed default is
+> exactly why the wrong answer was impossible to miss — had it defaulted to
+> allowing, every shop would have kept writing and nothing would have looked
+> wrong.
+
+A tenant Owner cannot reach provisioning at all: it skips the tenant JWT guard
+and is gated on a platform key no tenant holds. An unset key **closes** the
+surface rather than opening it.
+
+`ENTITLEMENT_WRITE_BLOCKED` is stable and machine-readable; the app never parses
+English. The error is non-transient, so a queued report stops rather than
+looping against a condition retrying cannot resolve.
+
+---
+
+## Milestone L — analytics that keep their categories apart
+
+*Approved and implemented. 30 tests, 41 live checks.*
+
+### Do not build a competing accounting system
+
+Every figure already had a canonical owner. L consolidates and presents them and
+recomputes nothing: two ways of computing profit is how a shop ends up with two
+answers and trusts neither.
+
+### The timing that matters
+
+| Event | Profit | Cash |
+|---|---|---|
+| Sale | ✔ | ✔ |
+| **Return approved** | ✔ (revenue out, COGS credited) | — |
+| Refund reported | — | — |
+| **Refund confirmed** | **✗ — already counted at approval** | ✔ |
+| Supplier payment confirmed | ✗ | ✔ |
+| Loan / consignment principal | **✗ — never revenue or expense** | ✔ |
+| Closing discrepancy | **✗ — a question, not a loss** | ✗ |
+
+The two mistakes this prevents: counting a return twice, and treating lending as
+earning. Both make a shop look dramatically wrong, and both are easy to write.
+
+### Never manufacture a figure
+
+A metric with no canonical source is **named as unavailable**, not defaulted to
+zero — a shop cannot tell a measured zero from a number nobody calculated, and
+the difference matters when it is what they owe a supplier. Refund liability,
+supplier liability, commissions and unattributed legacy payments are all
+reported this way.
+
+A comparison against a zero base returns **unavailable**, not infinity and not a
+percentage. "Up 100%" from nothing is a division nobody checked.
+
+### On screen
+
+Profit first, then what actually moved, then who owes whom, then what did not
+add up — the order the questions actually arrive in a shop. Profit and cash are
+never mixed: a shop can be profitable and short of cash in the same week, and
+presenting one as the other is the most misleading thing a retail report can do.
+
+> Two bugs the live run found and unit tests could not: the requested window was
+> ignored (a regex whose escaping had been lost matched the literal
+> `dddd-dd-dd`, so every request silently reported **today** while answering 200
+> with a perfectly shaped body), and the summary reported every branch whichever
+> branch was selected. Both are now pinned by tests.
