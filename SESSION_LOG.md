@@ -4696,3 +4696,81 @@ J is unrun**: airplane mode, Wi-Fi without internet, a real Android low-memory
 kill, the shared counter phone, Arabic RTL. No claim is made about any of them.
 
 **K is not started.**
+
+---
+
+## 2026-08-18/19 · CLAUDE-B · J.1, K and L — A–L complete
+
+Three pieces of work, and the thing they have in common is that the live runs
+found what the unit suites could not.
+
+**J.1 — drafts.** J had proved the Sell cart survives a process kill; six other
+forms did not, and each was losing work somebody had typed or scanned. The
+scope is now the filename — user, company, branch, form, record — so isolation
+is structural rather than a check somebody could forget. Nothing binary or
+secret can reach the disk, refused before any write rather than after. Restores
+are visible, because silently repopulating a form is how somebody submits
+yesterday's numbers believing they typed them today. Import preparation is
+deliberately not drafted, and the reason is recorded rather than left as an
+apparent oversight: the file goes straight to a server-side preview, so there is
+nothing local to lose, and the spreadsheet bytes are exactly what must never
+persist. Its own test caught a hole in the credential check — the normaliser
+stripped digits, so `base64` became `base` and never matched itself.
+
+**K — entitlement.** One plan, no tiers, no feature flags in business services.
+Grace is 72 hours and derived from the period so the two cannot drift, and
+writes continue through it: a shop three hours past renewal is still open, and
+refusing its sales over an administrative boundary would cost it real money.
+Expiry stops new business truth and hides nothing — a shop locked out of
+yesterday's sales reaches for the notebook immediately. Seats pool across the
+company, the Owner consumes none, and nobody is ever deactivated automatically,
+because an app that fires somebody to make an invoice add up is not a tool
+anybody should trust.
+
+**The live run earned its keep.** The entitlement check was written as a global
+guard, and the run refused *every* write through its fail-closed branch: global
+guards run in registration order and this one ran before authentication, so no
+company was resolved. Moved to an interceptor, which the request lifecycle
+guarantees runs after every guard. The fail-closed default is precisely why the
+mistake was impossible to miss — had it defaulted to allowing, every shop would
+have kept writing regardless of subscription and nothing would have looked
+wrong. Two other failures in that run were my test's fault, not the product's:
+`localhost` resolving to a dead IPv6 path while the server was up, and a
+`RoleKey` enum value I invented that MySQL stored as an empty string.
+
+**L — analytics.** The audit found every figure already had a canonical owner,
+so the work was consolidation rather than computation: two ways of computing
+profit is how a shop ends up with two answers and trusts neither. The identities
+that cost money are pinned — a return moves profit at approval and never again
+when the refund is paid, and a loan principal is never revenue or expense. A
+metric with no canonical source is named as unavailable rather than defaulted to
+zero, and I had to correct myself on that: I wrote `refundLiability: 0` into the
+summary, which broke the rule the audit had just stated.
+
+**Two more real bugs, both found live.** The requested window was ignored — the
+date guard shipped as an inline regex whose escaping had been lost, so it
+matched the literal text `dddd-dd-dd` and every request silently reported
+*today* while answering 200 with a perfectly shaped body. That is the worst way
+for a report to be wrong: nothing looks broken, and a shop reads last month's
+decision off today's numbers. And the summary reported every branch whichever
+branch was selected, so a two-shop owner would have seen both shops' figures on
+one shop's screen. Both are now pinned by tests.
+
+**The Expo Doctor blocker is cleared.** Three patch shortfalls, each installed
+below the SDK floor, carried as a known failure since before this session and
+reported as such rather than described as green. `expo install --fix` brings all
+three up; Doctor now reports 18/18 with no issues.
+
+**Verification.** Backend 89 suites / 1560 tests, tsc clean, 51 migrations, 21
+triggers, Prisma valid and current. Mobile tsc and lint clean, 11 pure suites,
+EN/AR 1690 at parity, web export bundles every route. Live J 35/35, K 59/59,
+L 41/41. Demo data at baseline — sales 7 / 10 051.00, unit checksum unchanged,
+one company, no orphaned rows, audit preserved at 554.
+
+**What is still unproven.** Every device check in `docs/24` under J, J.1, K and
+L is unrun and needs hardware. React Query caches remain memory-only, so a cold
+start offline shows empty lists rather than stale ones — deliberately left,
+because a persister that shows stale prices confidently is its own kind of lie.
+
+**A–L is complete.** The recommended next activity is a physical-device QA and
+release-candidate pass, not more feature development.
