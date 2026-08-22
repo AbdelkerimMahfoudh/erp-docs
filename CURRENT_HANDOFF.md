@@ -39,8 +39,40 @@
      `01A027B0ACC87B99897E008F6B192ECD`). **Delete it.**
 - ⚠️ The user's own Expo dev server is running on **8081** (`--host lan`).
   **Do not stop it.** My web preview uses **8090**; the API on 3010 is mine.
-- Next intended action: **CP2** — move the complete Money hub into the bottom
-  tab bar between Sell and Inventory, via `lib/navigation/registry.ts`.
+- **CP2 COMPLETE** (mobile `f488829`): bar is Home · Sell · Money · Inventory ·
+  More, Money adjacent to Sell. The whole hub moved — Cash & accounts,
+  Expenses, Daily closing, Loans — with unchanged permissions. Visible on ANY
+  child permission, not Owner-only; removed entirely when none. No header, so
+  no `(tabs)` back label. `/hub/money` redirects to the tab; Cash & accounts
+  keeps `/money` so no existing link changes meaning (the tab took
+  `/money-hub`). **Browser-verified**: bar order, four rows, More down to five
+  business hubs, deep link redirecting. 42 registry assertions · 17 pure
+  suites · EN/AR/FR 1722 · **62 routes** (a tab emits both a group and a bare
+  route, so one new file adds two — 60 → 62 is expected).
+
+### Next action, exactly — CP3, the login redesign
+
+The largest checkpoint, and **not started**. Order of work:
+
+1. **Audit before schema.** Does a personal-ID column or global identity model
+   already exist? Are phone numbers globally unique, or can one phone belong to
+   two companies? Report duplicates and ambiguous data BEFORE enforcing
+   uniqueness. Do not create a second User model unless the audit proves it.
+2. **Backup and restore-prove** per `docs/22` before any migration.
+3. Migration: minimum surface, collision-safe backfill for every existing user,
+   DB-level uniqueness, never expose binary ids as personal IDs.
+4. Server: one `identifier` field, normalise and classify (phone vs personal
+   ID), resolve securely, verify password, THEN establish tenant context.
+   Generic invalid-credentials response; ignore company/branch headers from an
+   unauthenticated request; keep rate limiting and audit.
+5. Multi-company phone: chooser only AFTER password verification, behind a
+   short-lived continuation token. Never reveal company names before that.
+6. Mobile: remove the Store ID field, the demo-prefilled store id and the
+   hardcoded `owner` login (both seen live in the browser at CP1). One
+   identifier field + password + Sign in. EN/AR/FR, RTL-safe.
+7. Show the personal ID in Account & security, copyable.
+8. Compatibility: audit whether any deployed client still sends Store ID.
+9. Tests + live HTTP/MySQL checks per the brief, then docs and the final gate.
 - `started_at_utc:` `2026-08-22T03:30Z`
 - **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
   Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
