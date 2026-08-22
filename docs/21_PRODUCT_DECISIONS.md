@@ -2137,3 +2137,59 @@ Arabic already carried this warning; French now carries it too. The keys,
 placeholders and plumbing are final and verified. **The wording is not
 reviewed**, and this is a shop that handles other people's money in a
 francophone and arabophone market.
+
+
+---
+
+## 6i. Navigation architecture — N, SHIPPED
+
+### ✅ APPROVED — More holds containers, not features
+
+Six business hubs, in a fixed order: **Sales & returns · Stock & purchasing ·
+Money · Store network · Performance · Team & business**. Then a visually quieter
+**Account & security**, and sign out kept apart and destructive-toned.
+
+Twenty-one equally-loud rows made nothing findable because nothing was
+subordinate to anything else. Every feature is now **at most two taps** from
+More: one to its hub, one to itself. No third level, and Home still exposes
+urgent work directly.
+
+### ✅ APPROVED — the four bottom tabs do not change
+
+Home · Sell · Inventory · More. No fifth tab.
+
+### ✅ APPROVED — one typed registry owns route, permission and membership
+
+`lib/navigation/registry.ts` is the only place a destination's route is paired
+with its permission. A drift test fails the build when a route is added without
+being classified, when a child lands in two hubs, when a hub would render empty,
+or when a permission does not exist.
+
+That test exists because this has already gone wrong: **Suppliers shipped and
+stayed unreachable from More for a whole milestone** (`docs/29` S2).
+
+### ✅ APPROVED — hubs are navigation only
+
+They fetch nothing, count nothing and add no endpoint. A count shown in two
+places eventually disagrees with itself.
+
+### ✅ APPROVED — user-facing renames, with routes untouched
+
+"Where the money is" → **Cash & accounts** · "Money spent" → **Expenses** ·
+"Money owed" → **Loans** · "Other stores" → **Partner stores** · "Stock with
+other stores" → **Consignments** · "Bring in stock" → **Import stock** ·
+"Waiting to send" → **Sync center**.
+
+Values of existing translation keys only. **No route, file or backend concept
+was renamed.** Loans keeps its direction distinction — money owed *to* the shop
+is never merged with money the shop owes.
+
+Arabic keeps the term it already had where that term was better: المصروفات for
+expenses, الأهداف for targets, and بضاعة الأمانة for consignments rather than
+the literal description.
+
+### 🔴 FOUND, NOT FIXED — the web build crashes on sign-in
+
+Pre-existing and unrelated to navigation: the offline queue asks
+`expo-file-system` for a document directory that does not exist on web. See
+`docs/29` §12.

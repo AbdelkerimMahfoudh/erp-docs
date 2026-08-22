@@ -7,7 +7,20 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- `started_at_utc:` `2026-08-22T02:10Z`
+- Previous account: **CLAUDE-A** · milestone M complete, clean handoff.
+- **Last authorised task (COMPLETE) — N: More-screen information architecture.**
+  Regroup ~20 flat More rows into six business hubs plus a quieter Account
+  section, behind one typed navigation registry. **Navigation organisation
+  only** — no backend, no migration, no dependency, no route renames, no
+  permission changes, no feature rewrites.
+- HEADs at takeover — `erp-backend` `79c8e01` · `erp-mobile` `55f6873` ·
+  `erp-docs` `cf7036b`. All three clean and level with origin.
+- Takeover verification: 89 suites / 1560 tests · **52 migrations** (not 51 —
+  `0053` came with M) · 21 triggers · tsc, lint clean · Doctor 18/18 · 11 pure
+  suites · EN/AR/**FR** 1690 each · **59 routes export**.
+- Commits: `erp-mobile` `bb5a279` · `erp-docs` this commit. **Backend untouched.**
 - `started_at_utc:` `2026-08-22T00:45Z`
 - Previous account: **CLAUDE-B** · closed `2026-08-19T00:15Z` (clean, complete)
 - **Last authorised task (COMPLETE) — M: navigation gesture and trilingual UI.**
@@ -26,12 +39,96 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `61d7e14` |
-| `erp-mobile` | `308685a` |
+| `erp-backend` | `79c8e01` (unchanged by N) |
+| `erp-mobile` | `bb5a279` |
 | `erp-docs` | *this commit* |
+
+> Corrected at the N takeover: this table still held the `A_L_COMPLETE`
+> snapshot (`61d7e14` / `308685a`) after milestone M updated only the block
+> above it. The handoff disagreed with Git; Git wins.
 
 ---
 
+
+
+### Milestone N — More-screen information architecture: COMPLETE
+
+**Navigation organisation only.** No backend, no migration, no dependency, no
+route renamed, no file moved, no permission changed, no feature screen
+rewritten. `erp-backend` is byte-identical at `79c8e01`.
+
+| | Before | After |
+|---|---|---|
+| Destinations on the More landing screen | **21**, one flat list | **6** business hubs + **1** account hub + sign out |
+| Longest path to any feature | 1 tap | **2 taps** |
+| Route/permission pairings | scattered through the screen's JSX | **1** typed registry |
+| Routes exported | 59 | **60** — `hub/[id]` added, **none removed** |
+
+### Final hub membership
+
+| Hub | Children |
+|---|---|
+| Sales & returns | Sales history · Returns |
+| Stock & purchasing | Catalog · Transfers · Suppliers · Import stock |
+| Money | Cash & accounts · Expenses · Daily closing · Loans |
+| Store network | Partner stores · Consignments |
+| Performance | Analytics · Targets |
+| Team & business | Team · Subscription · Business settings |
+| Account & security | Devices · Sync center · Language |
+
+Branch is a context control at the top; Notifications is a header bell with **no
+badge** (the contract supplies no count); Sync is raised only when the queue
+holds something and stays reachable when empty; Subscription is lifted out of
+its hub only in the four server-reported states.
+
+### Permission behaviour
+
+Every `perm` was copied verbatim from the old screen — **no role gained or lost
+an entry point**. A hub shows only when a child is reachable, inaccessible
+children are hidden, an empty hub is never rendered, and hub order is identical
+for every role with hidden hubs simply absent.
+
+### Verification at handoff (end of N)
+
+- Mobile `tsc` clean · `expo lint` clean · **Expo Doctor 18/18**.
+- **Pure suites 13/13** — the 11 that existed plus `registry.test.ts` (27
+  assertions) and `notices.test.ts` (16).
+- **EN / AR / FR 1709 keys each**, identical order, zero missing or extra.
+  (1690 before N; 19 keys added for the hubs and notices.)
+- **Web export 60 routes**, exit 0. Diffed against the 59 captured before the
+  change: **nothing removed**, `hub/[id]` added.
+- Raw-colour audit: no hex, no `rgba`, no gradient in any new or changed file.
+- Hardcoded-copy audit: no user-facing English outside `t()`.
+- Backend suite re-run at takeover: **89 suites / 1560 tests** green.
+
+### 🔴 Found, pre-existing, NOT fixed
+
+**The web build crashes on sign-in.** `lib/offline/queue-store.ts` calls
+`new Directory(Paths.document, …)` unconditionally, and `expo-file-system` has
+no such path on web; it is mounted from `AuthProvider` via `useSyncEngine`.
+Both files are untouched by N and the crash fires before More renders. Out of
+scope here — it is J's offline queue storage — but it means **the web runtime
+cannot be used signed-in**, and the optional structural renders for this
+milestone could not be captured.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device.** Compact row heights, Arabic RTL
+appearance, small-phone layout and large-text behaviour are structural in the
+tests and unproven visually. `docs/24` §9g and §9h remain outstanding from
+earlier milestones.
+
+### Next exact action
+
+**A device pass is now the highest-value work** — three milestones (J1
+suppliers, M language/gesture, N navigation) have shipped without one, and N in
+particular changed what every screen is reached through.
+
+The pre-existing web sign-in crash above is worth a small separate fix, since it
+currently blocks every browser-based check.
+
+Still open and unchanged: **no post-confirmation correction** for a confirmed
+refund or supplier payment (`docs/21` §6g).
 
 ### Milestone M — gesture and trilingual UI: COMPLETE
 

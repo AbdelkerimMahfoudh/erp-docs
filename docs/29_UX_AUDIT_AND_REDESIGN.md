@@ -395,3 +395,82 @@ below-cost warning via `InlineNotice`, and the checkout action in `Screen`'s
 existing sticky footer. Then Inventory, Supplier, and Return detail — where
 `WorkflowTimeline` finally replaces the hand-rolled lifecycle and A10 can be
 claimed for real.
+
+
+---
+
+## 12. Milestone N — the More screen, regrouped
+
+This closes §5's finding word for word: *"It needs grouping, not reordering."*
+
+### Before / after
+
+| | Before | After |
+|---|---|---|
+| Rows on the More landing screen | **21** destinations, one flat list | **6** business hubs + **1** account hub + sign out |
+| Longest path to a feature | 1 tap | 2 taps (hub → feature) |
+| Route/permission pairings | scattered across the screen's JSX | **1** typed registry |
+| Routes exported | 59 | **60** (`hub/[id]` added, none removed) |
+
+### Final membership
+
+| Hub | Children |
+|---|---|
+| **Sales & returns** | Sales history · Returns |
+| **Stock & purchasing** | Catalog · Transfers · Suppliers · Import stock |
+| **Money** | Cash & accounts · Expenses · Daily closing · Loans |
+| **Store network** | Partner stores · Consignments |
+| **Performance** | Analytics · Targets |
+| **Team & business** | Team · Subscription · Business settings |
+| **Account & security** | Devices · Sync center · Language |
+
+Internal branch transfers stay under **Stock & purchasing**; only external-store
+relationships live in **Store network**. Business settings stays in **Team &
+business** and was deliberately not moved into Account & security — it is a
+company rule, not a personal preference.
+
+### The three things that were not rows
+
+- **Branch** became a context control at the top, because everything below it is
+  scoped by that choice. Reading the menu without knowing which shop it refers
+  to is how somebody closes the wrong day. It says *branch*, never company, and
+  switching still goes through `select-branch`, which only ever lists branches
+  this signed-in user was granted.
+- **Notifications** became a bell in the screen's own header. **No badge** — the
+  notifications contract supplies no unread count, and estimating one would be
+  worse than showing none. A native stack header was rejected: this tab renders
+  its own title, so adding one would mean two competing headers.
+- **Sync center** (renamed from "Waiting to send") is raised on the landing
+  screen only when the queue holds something, and distinguishes *waiting* from
+  *needs attention* — a draining queue must never hide a conflict. It stays
+  reachable through Account & security when empty, so its history can be
+  inspected. The wording never says sent and never says confirmed.
+
+### Subscription
+
+Stays in Team & business during normal operation, and is lifted out only in the
+four states the **server** reports: approaching expiry, grace, expired, over the
+seat limit. The one client-side number is a 7-day display threshold that decides
+when to surface a countdown the server already calculated — it decides nothing
+about entitlement.
+
+### Permission behaviour
+
+A hub appears only when at least one child is reachable; inaccessible children
+are hidden; an empty hub is never rendered. **Hub order never changes** — hidden
+hubs are simply absent, because a menu that rearranges itself by role is a menu
+nobody can learn.
+
+Visibility mirrors what each screen and the server already enforce. Every
+`perm` was copied verbatim from the old screen, so no role gained or lost an
+entry point, and hiding a row still protects nothing on its own.
+
+### Discovered, pre-existing, not fixed
+
+**The web build crashes on sign-in**, before any of this renders:
+`queue-store.ts` calls `new Directory(Paths.document, …)` unconditionally and
+`expo-file-system` has no such path on web. It is mounted from `AuthProvider`
+via `useSyncEngine`. Both files are untouched by N. Out of scope here — it is
+J's offline queue storage — but it means the **web runtime cannot be used
+signed-in**, and the optional structural renders for this milestone could not be
+captured.

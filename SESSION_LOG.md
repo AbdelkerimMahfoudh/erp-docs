@@ -4863,3 +4863,87 @@ plumbing are final; the wording is not.
 **Commits:** backend `79c8e01` · mobile `b6eb129`, `55f6873` · docs the commit
 carrying this entry. All three trees clean and level with `origin`.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-22 — CLAUDE-B — **Milestone N: the More screen, regrouped**
+
+**Takeover.** Clean, from `READY_FOR_HANDOFF`/NONE (last account CLAUDE-A).
+Verified before touching anything: backend `79c8e01`, mobile `55f6873`, docs
+`cf7036b`, all clean and level · 89 suites / 1560 tests · 21 triggers · tsc,
+lint clean · Doctor 18/18 · 11 pure suites · 59 routes export.
+
+**Three discrepancies against the brief's expectations, all traced to milestone
+M landing after the A–L record they were written against:**
+
+1. **52 migrations, not 51** — `0053_summary_language_fr`.
+2. **The handoff contradicted itself on HEADs.** Its "Repository state" table
+   still held the `A_L_COMPLETE` snapshot (`61d7e14` / `308685a`) while the
+   block above it and Git said `79c8e01` / `55f6873`. M updated one and not the
+   other. Git wins; the table was corrected at takeover.
+3. **Three locales, not two** — French joined in M. Parity is now held at
+   EN/AR/FR rather than EN/AR.
+
+### What was actually wrong
+
+More was 21 destinations in one flat list. `docs/29` §5 had already reached the
+conclusion and stated it exactly: *"It needs grouping, not reordering."*
+
+But the grouping is the visible half. The real defect was that **route and
+permission were paired inside the screen's JSX**, twenty-one times, with nothing
+checking the set was complete. That is how **Suppliers shipped and stayed
+unreachable from More for an entire milestone** (§S2) — no test could have
+noticed, because there was nothing to compare against.
+
+### What shipped (mobile `bb5a279`)
+
+Six business hubs and a quieter Account & security, every feature at most two
+taps away. `lib/navigation/registry.ts` now owns hub membership, order, icons,
+translation keys and the permission rule for every destination.
+
+The registry is **data only** — every import is `import type` and therefore
+erased — so `registry.test.ts` loads it under plain `node` with no bundler and
+no new dependency. Icons are named and resolved through a
+`Record<IconName, …>`, which turns a missing icon into a compile error.
+
+Branch became a context control rather than a row: everything below it is
+scoped by that choice, and reading the menu without knowing which shop it refers
+to is how somebody closes the wrong day. Notifications became a header bell with
+**no badge**, because the notifications contract supplies no unread count and
+estimating one is worse than showing none.
+
+### Two things worth recording
+
+**The drift test caught a real trap while being written.** Parsing the
+permission catalogue out of `lib/permissions.ts` naively pairs an apostrophe in
+a doc comment — "an older session's permission set", "the Owner's alone" — with
+the next real quote and silently swallows the entries between. Comments are
+stripped first and the parser now asserts it found a plausible number. **Third
+time this project has been bitten by reading prose as code.**
+
+**The optional renders could not be captured, for an honest reason.** The web
+build crashes on sign-in: `queue-store.ts` calls
+`new Directory(Paths.document, …)` unconditionally and `expo-file-system` has
+no such path on web, mounted from `AuthProvider`. Both files are untouched by N
+and the crash fires before More renders — **pre-existing, and left alone**
+because it is J's queue storage and out of this checkpoint's scope.
+
+- **Files changed:** `app/(tabs)/more.tsx` (rewritten), `app/hub/[id].tsx`,
+  `components/navigation/{hub-icons.ts,LanguageRow.tsx}`,
+  `lib/navigation/{registry.ts,registry.test.ts,notices.ts,notices.test.ts}`,
+  `lib/i18n/{en,ar,fr}.ts`. Docs — `21`, `29`, handoff, this log.
+- **Migrations:** none. **Backend:** untouched, `79c8e01`.
+- **Tests:** tsc, lint, Doctor 18/18 clean · **13 pure suites** (11 + 2 new,
+  43 assertions) · EN/AR/FR **1709 each**, identical order · web export
+  **59 → 60 routes, none removed** · no raw hex, no gradient, no hardcoded copy.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device**, and this milestone changed what every
+screen is reached through. Row heights, Arabic RTL appearance, small-phone
+layout and large-text behaviour are structural in the tests and unproven
+visually.
+
+**Commits:** mobile `bb5a279` · docs the commit carrying this entry. All three
+trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner `NONE`.
