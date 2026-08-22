@@ -4947,3 +4947,82 @@ visually.
 
 **Commits:** mobile `bb5a279` · docs the commit carrying this entry. All three
 trees clean and level with `origin`. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-22 — CLAUDE-B — **Milestone O: OCR retired, IMEI intake corrected**
+
+**Takeover.** Clean, from `READY_FOR_HANDOFF`/NONE. Backend `79c8e01`, mobile
+`bb5a279`, docs `1caf2b4`, all clean and level. 89 suites / 1560 tests · tsc,
+lint clean · Doctor 18/18 · 13 pure suites · EN/AR/FR 1709 identical · 21
+triggers · 60 routes. **No discrepancies** — everything matched the handoff.
+Milestone N preserved, not revisited.
+
+### The reported defect had a one-line cause
+
+The camera guard was a ref released in a `finally`, so scanning resumed the
+moment the lookup returned and the result never rendered in the sheet. The fix
+is not a bigger guard but a state machine where **the state is the lock**, held
+in a ref because the camera fires faster than React renders.
+
+### What the audit found that the brief did not predict
+
+**`0042` is real and live** — the cross-column triggers exist and the duplicate
+audit is 0, so the §7 defect this document worried about is genuinely closed.
+
+**But four lookup paths never searched `imei_secondary`.** A dual-SIM phone
+scanned by its second identifier could not be found, sold or priced, and an
+import claiming it passed duplicate detection only to hit the trigger later.
+Proven live: lookup by secondary returned **404** before, and the same unit
+after. Fixed as queries — **no migration needed, and none added**.
+
+The imports fix had a second half easy to miss: the query selected rows BY
+`imei_secondary` while the `select` omitted that column, so a duplicate found
+through it was immediately forgotten.
+
+### Why the new parser is not the old one
+
+`lib/imei.ts` slides a fifteen-digit window and reinterprets `O` as `0`. Both
+are defensible from a photograph a human then confirms. **Neither is defensible
+from a barcode.** A 19-digit ICCID contains fifteen-digit substrings and one
+passes Luhn roughly one time in ten — window sliding turns a SIM card into a
+phone. And a barcode payload is exact: an `O` is an `O`.
+
+`lib/scan/payload.ts` matches whole tokens, normalises presentation only
+(Arabic-Indic digits, printed spaces and dashes), and never replaces a digit.
+It is authoritative about one thing — whether the payload is an IMEI — and hands
+everything else to the server's existing classifier, because guessing locally
+that an alphanumeric code is a product barcode is how a device serial ends up
+prefilling the Product barcode field.
+
+### The detour that used to lose the scan
+
+`onCreateProduct` did `setPending(null)` and pushed the form. The identifier
+was simply dropped, so the user returned to an empty screen and scanned the
+phone again. Pending intake is now typed and scoped by company, user and
+branch, and **an IMEI has no path into `productBarcode`** — the shortcut this
+milestone explicitly refused, since it would poison recognition for every unit
+of that model. `ProductForm` already refused an IMEI as a barcode; that rule
+was preserved, not rebuilt.
+
+- **Files changed:** mobile — `lib/scan/*` (6 new), `components/scanner/ScannerSheet.tsx`
+  (rewritten), `app/receive.tsx`, `app/catalog/new.tsx`, `lib/imei.ts`,
+  `lib/imei.test.ts`, `lib/i18n/{en,ar,fr}.ts`, `package.json`; `lib/ocr.ts`
+  deleted. Backend — `inventory`, `sales`, `pricing`, `imports` services and
+  `imei-lookup.spec.ts` (new). Docs — `21`, `24`, `30`, handoff, this log.
+- **Migrations:** none.
+- **Tests:** backend **89 suites / 1566** · mobile **16 pure suites**, 49 new
+  scan assertions · EN/AR/FR **1720 each**, identical · export **60 routes**,
+  none added or removed · Doctor **18/18**.
+- **Live 11/11**, fixtures cleaned, audit rows preserved at 559, demo units 11.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device — and this milestone is entirely about a
+camera.** `docs/24` §9i lists 20 checks that only a phone can answer, including
+whether the shop's own stock shows a scannable code on `*#06#` at all, which is
+the premise the whole design rests on.
+
+**Commits:** backend `03a73e9` · mobile `283b5d7` · docs the commit carrying
+this entry. All three trees clean and level. `READY_FOR_HANDOFF`, owner `NONE`.

@@ -1036,3 +1036,40 @@ Whether the edge-swipe genuinely fights the horizontal filter rows · whether
 French text overflows buttons sized for English · whether Arabic still mirrors
 correctly now that a third language shares the picker · how the language row
 reads to somebody who cannot read the rest of the menu.
+
+
+## 9i. IMEI intake by barcode and QR (O) — **never touched on a device**
+
+Nothing below has been performed. O was verified by a type checker, a linter,
+pure tests, a web export and live HTTP calls. **A camera is exactly what none of
+those exercise**, and this milestone is entirely about a camera.
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | A phone whose `*#06#` screen shows a scannable code | Reads it, result appears at once |
+| 2 | A phone whose screen shows only digits | Manual entry is visible without hunting, and works |
+| 3 | A raw IMEI barcode on a box label | One phone, IMEI 1 filled |
+| 4 | A QR carrying both labelled IMEIs | **One** phone with two identifiers — never two units |
+| 5 | Hold the camera steady on one code for 5 seconds | **One** result, one haptic; no repeats |
+| 6 | Poor focus | Either nothing, or a refusal — never a wrong number accepted |
+| 7 | Glare on the screen | Same |
+| 8 | Deny camera permission | Explains, and offers typing |
+| 9 | Background the app mid-scan, return | No stuck lock; scanning resumes or the result is still there |
+| 10 | Scan, then tap **Add second IMEI** | IMEI 1 stays visible while the camera resumes |
+| 11 | Scan the SAME number as IMEI 2 | Refused in words; IMEI 1 survives |
+| 12 | Remove IMEI 2, then accept | Saves as a single-IMEI phone |
+| 13 | Scan an unknown product, tap **Create product** | Product form opens; **Product barcode is EMPTY** for an IMEI scan |
+| 14 | Scan a product barcode, tap **Create product** | Product barcode **is** prefilled |
+| 15 | Complete product creation | Returns to intake automatically with the IMEI still held |
+| 16 | Cancel product creation | Returns to intake with the scan still present |
+| 17 | Scan a dual-SIM phone by its FIRST IMEI, later by its SECOND | Same phone both times |
+| 18 | A phone already in inventory | Says so; no duplicate is created |
+| 19 | The whole flow in Arabic | Result and confirmation read naturally and mirror correctly |
+| 20 | Large text | Result panel does not clip |
+
+### What only a device can answer
+
+Whether the camera genuinely stops between the first detection and `Scan
+again` · haptics firing once · whether `*#06#` on the shop's actual stock shows
+a code at all · focus and glare in real shop lighting · whether the result panel
+fits a small screen with two IMEIs and a TAC line.

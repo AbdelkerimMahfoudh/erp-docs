@@ -2193,3 +2193,65 @@ the literal description.
 Pre-existing and unrelated to navigation: the offline queue asks
 `expo-file-system` for a document directory that does not exist on web. See
 `docs/29` §12.
+
+
+---
+
+## 6j. IMEI intake — O, SHIPPED
+
+### ✅ APPROVED — OCR is retired
+
+Reading a `*#06#` screen with on-device text recognition is gone: the mode, the
+module, the native dependency. The supported intake methods are now:
+
+1. scan an **IMEI barcode or QR code**;
+2. scan an ordinary **product barcode**;
+3. **type the IMEI**.
+
+### ✅ APPROVED — typing is permanent, and that is not a fallback apology
+
+**Whether a phone shows a scannable code beside its IMEI is up to its
+manufacturer.** Many print only digits. Manual entry is therefore a first-class
+route, always reachable, and the screen says so in words rather than leaving
+somebody to discover it while a customer waits.
+
+Nothing in the product may describe barcode availability as universal.
+
+### ✅ APPROVED — one IMEI is enough
+
+Primary is required for an IMEI-tracked phone. **Secondary is optional.** A
+single-SIM phone, an eSIM phone, or any device exposing one identifier is never
+blocked, and nothing requires two scans before continuing.
+
+### ✅ APPROVED — two IMEIs are ONE phone
+
+A dual-SIM handset is one physical inventory unit carrying two identifiers.
+Both are stored when both are available, **either one finds the same unit**, and
+neither may belong to another unit — enforced by `0042`'s cross-column triggers.
+
+### ✅ APPROVED — IMEI and Product barcode are different things
+
+An **IMEI** identifies one individual phone and populates a unit's identifier
+fields. A **product barcode** identifies a reusable model and populates the
+product.
+
+An IMEI may **never** be written into the Product barcode field — not even to
+solve lost state across the Create-product detour, which is the shortcut this
+milestone explicitly refused. Doing so would poison recognition for every unit
+of that model.
+
+### ✅ APPROVED — the scanner shows its result immediately
+
+An explicit state machine (`idle → scanning → validating → result → accepted`,
+with `cancelled` always reachable). The first valid detection takes a
+synchronous lock, the camera is detached, and the result appears **inside the
+sheet** — not when the user closes it. Only an explicit `Scan again` releases
+the lock. Invalid data is explained and never submitted silently.
+
+### 🔴 FIXED — either IMEI now finds the phone
+
+Four lookup paths searched `imei_primary` and `serial_no` only, so a dual-SIM
+phone scanned by its second identifier could not be **found, sold, priced, or
+detected as a duplicate on import**. Proven live, fixed, and pinned by a drift
+test. No migration was needed — `0042` already guaranteed the uniqueness these
+widened lookups depend on.

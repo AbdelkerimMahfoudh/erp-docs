@@ -8,6 +8,22 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- `started_at_utc:` `2026-08-22T03:30Z`
+- **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
+  Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
+  state machine, result shown in-sheet, IMEI never written to Product barcode,
+  pending intake preserved across the Create-product detour. **Milestone N
+  navigation is preserved, not revisited.**
+- HEADs at takeover — `erp-backend` `79c8e01` · `erp-mobile` `bb5a279` ·
+  `erp-docs` `1caf2b4`. All three clean and level. **No discrepancies.**
+- Takeover verification: 89 suites / 1560 tests · tsc, lint clean · Doctor 18/18
+  · 13 pure suites · EN/AR/FR 1709 each, identical order · 21 triggers.
+- **Defect proven at takeover:** `imei_secondary` is written and indexed, and
+  `0042`’s cross-column triggers are live, but **four lookup paths ignore it** —
+  `inventory.findByIdentifier`, `sales` line resolution, `pricing` by identifier
+  and `imports` duplicate detection. A dual-SIM phone scanned by its second
+  IMEI cannot be found, priced or sold. Query fix, no migration.
+- Commits: `erp-backend` `03a73e9` · `erp-mobile` `283b5d7` · `erp-docs` this commit.
 - `started_at_utc:` `2026-08-22T02:10Z`
 - Previous account: **CLAUDE-A** · milestone M complete, clean handoff.
 - **Last authorised task (COMPLETE) — N: More-screen information architecture.**
@@ -39,8 +55,8 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `79c8e01` (unchanged by N) |
-| `erp-mobile` | `bb5a279` |
+| `erp-backend` | `03a73e9` |
+| `erp-mobile` | `283b5d7` |
 | `erp-docs` | *this commit* |
 
 > Corrected at the N takeover: this table still held the `A_L_COMPLETE`
@@ -50,6 +66,86 @@
 ---
 
 
+
+
+### Milestone O — OCR retired, IMEI intake corrected: COMPLETE
+
+**Milestone N's navigation is untouched** — web export is still 60 routes with
+none added or removed.
+
+### The defect, and its cause
+
+A valid IMEI was detected, the camera kept scanning, and nothing appeared until
+the sheet was closed by hand. **Cause:** `ScannerSheet` set a ref guard and
+released it in a `finally`, so the camera resumed the instant the lookup
+returned; the result was handed to the parent and nothing rendered in the sheet.
+
+### Final scanner flow
+
+`idle → scanning → validating → result → accepted`, with `cancelled` reachable
+throughout and `scanAgain` the only way back to `scanning`.
+
+The lock **is** the state: a detection is accepted only in `scanning`. It is
+held in a **ref as well as** React state, because the camera fires again before
+React re-renders — a `useState` value read inside the callback is stale exactly
+when it matters. The camera handler is *detached* during `validating` and
+`result`, so nothing scans behind a result.
+
+### OCR artifacts removed
+
+The `imei` scanner mode · `lib/ocr.ts` · the
+`@infinitered/react-native-mlkit-text-recognition` dependency · the camera
+capture and temporary-image path · `mergeFrames` and its tests · **9 i18n keys
+in all three locales**. Proven absent: no module, native import, package or
+config entry, mode switch or unreachable route. Only prose remains, in
+`lib/imei.ts`, explaining Luhn.
+
+**Kept deliberately:** Luhn · `isValidImei` · `tacOf` and the whole TAC path
+including the company overlay · `extractImeis` / `readDualSim` (the dual-SIM
+rule) · barcode/QR scanning · manual entry.
+
+### Backend contract — verified, not assumed
+
+`0042`'s cross-column triggers are **live** and the pre-existing duplicate audit
+is **0**. But **four lookup paths ignored `imei_secondary`** —
+`inventory.findByIdentifier`, sale line resolution, pricing by identifier and
+import duplicate detection. A dual-SIM phone scanned by its second IMEI could
+not be found, sold or priced. Fixed as queries; **no migration was needed**, and
+none was added.
+
+### Verification at handoff (end of O)
+
+- Backend **89 suites / 1566 tests** green (+6), `tsc` clean.
+- Mobile `tsc` clean · `expo lint` clean · **Expo Doctor 18/18**.
+- **Pure suites 16/16**, including **49 new scan assertions**: 18 classification,
+  19 lock/state, 12 detour.
+- **EN / AR / FR 1720 keys each**, identical order (1709 before; −9 OCR, +20).
+- **Web export 60 routes**, none added or removed.
+- **Live 11/11** over HTTP against real MySQL — including *lookup by SECONDARY
+  IMEI, which returned 404 before this milestone*. Fixtures deleted, **audit
+  rows preserved (559)**, demo units back to **11**.
+- No raw colours, no gradients, no hardcoded user-facing copy in new files.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device, and this milestone is entirely about a
+camera.** TypeScript, Expo Doctor and a web export cannot see a camera at all.
+`docs/24` §9i lists **20 device checks** — repeated callbacks, focus, glare,
+permission denial, backgrounding mid-scan, and whether the shop's actual stock
+shows a scannable code on `*#06#`.
+
+Unchanged from earlier milestones: §9g (suppliers, 23 checks) and §9h
+(language/gesture, 16 checks) are still outstanding, and the **web build still
+crashes on sign-in** (`docs/29` §12), which blocks browser-based checking.
+
+### Next exact action
+
+**A device pass is now overdue** — four milestones (J1, M, N, O) have shipped
+without one, and O cannot be called correct until a camera has been pointed at a
+real phone.
+
+Still open: **no post-confirmation correction** for a confirmed refund or
+supplier payment (`docs/21` §6g).
 
 ### Milestone N — More-screen information architecture: COMPLETE
 

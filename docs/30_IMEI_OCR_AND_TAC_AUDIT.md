@@ -287,3 +287,46 @@ Four deployment proofs: restored pre-migration copy, rerun, a clean build of all
 `tac_catalog` remains **empty**, so the global fallback has nothing to offer
 until it is populated from reviewed data. And **the OCR camera path remains
 device-unverified** — see §5 and `docs/24` §9i.
+
+
+---
+
+## 9. RETIRED — the OCR layer is gone (milestone O)
+
+§4 and §5 described an on-device text-recognition layer for reading a `*#06#`
+screen. **The product decision changed: it is removed.** Intake is barcode/QR
+plus permanent manual entry (`docs/21` §6j).
+
+### What was removed
+
+The scanner's `imei` mode · `lib/ocr.ts` · the
+`@infinitered/react-native-mlkit-text-recognition` dependency · the camera
+capture and temporary-image deletion path · `mergeFrames` and its tests · nine
+i18n keys in all three locales.
+
+**Proven absent afterwards:** no OCR module, no native import, no package or
+config entry, no mode switch and no unreachable route. What remains is prose —
+comments in `lib/imei.ts` explaining why Luhn matters and which characters a
+recogniser confuses.
+
+### What was deliberately kept
+
+Luhn and `isValidImei` · `tacOf` and the whole TAC recognition path, including
+the company overlay of §8 · `extractImeis` and `readDualSim`, which carry the
+dual-SIM rule this document argued for.
+
+### One thing that changed shape, and why it matters
+
+`extractImeis` slides a fifteen-digit window across a line and will reinterpret
+`O` as `0`. From a photograph both are reasonable — a human confirms the
+substitution, and Luhn catches most bad reads.
+
+**From a barcode neither is acceptable.** A 19-digit ICCID contains fifteen-digit
+substrings, one of which passes Luhn roughly one time in ten, so window sliding
+turns a SIM card into a phone. And a barcode payload is exact: an `O` is an
+`O`, not a digit the scanner was unsure about.
+
+So `lib/scan/payload.ts` matches **whole tokens** and normalises presentation
+only — Arabic-Indic digits, printed spaces and dashes. It never replaces a digit
+with a different digit. §7's concern about `imei_secondary` being written at
+scale is now closed by `0042` *and* by four lookup fixes (`docs/21` §6j).
