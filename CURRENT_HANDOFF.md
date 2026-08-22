@@ -26,8 +26,21 @@
   A second nit: the handoff's own O section says 89 suites; the real count is 90.
 - Demo verified at takeover: sales 7 / 10 051.00 · units 11 ·
   checksum `2a1dc9bf284afde32b402ad108d38a76` · audit 559.
-- Next intended action: **CP1** — audit `queue-store.ts` and `AuthProvider`,
-  then isolate native file-system access behind a platform boundary.
+- **CP1 COMPLETE** (mobile `9e665c7`): every filesystem entry point asks the
+  platform before constructing anything native; web is explicitly online-only
+  and `enqueue` refuses there rather than accepting work it cannot keep. No
+  fallback store, no new dependency. **Proven in a real browser** — sign-in,
+  branch selection and the full app shell all render.
+- ⚠️ **TWO TEMPORARY LOCAL CHANGES TO UNDO AT THE FINAL GATE:**
+  1. `backend/.env` `CORS_ORIGINS` gained `http://localhost:8090` and
+     `http://127.0.0.1:8090` so the browser preview could reach the API.
+     Backup: `scratchpad/env.backup`. **Restore it.**
+  2. Probe user `cp1probe` in the demo company (uid
+     `01A027B0ACC87B99897E008F6B192ECD`). **Delete it.**
+- ⚠️ The user's own Expo dev server is running on **8081** (`--host lan`).
+  **Do not stop it.** My web preview uses **8090**; the API on 3010 is mine.
+- Next intended action: **CP2** — move the complete Money hub into the bottom
+  tab bar between Sell and Inventory, via `lib/navigation/registry.ts`.
 - `started_at_utc:` `2026-08-22T03:30Z`
 - **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
   Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
