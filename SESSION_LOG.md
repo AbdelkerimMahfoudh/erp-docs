@@ -4774,3 +4774,92 @@ because a persister that shows stale prices confidently is its own kind of lie.
 
 **A–L is complete.** The recommended next activity is a physical-device QA and
 release-candidate pass, not more feature development.
+
+
+---
+
+## 2026-08-22 — CLAUDE-A — **Milestone M: the back gesture, and a trilingual UI**
+
+**Takeover.** Clean, from `READY_FOR_HANDOFF`/NONE (last account CLAUDE-B).
+Verified before touching anything: backend `61d7e14`, mobile `308685a`, docs
+`5549307`, all three clean and level, 51 migrations, schema up to date.
+
+Started from two reports: the iOS back-swipe was missing, and the app was
+"only in English".
+
+### Neither report described the bug that existed
+
+**Arabic was never missing.** `lib/i18n/ar.ts` has been complete for
+milestones — 1690 keys, exact parity, same order, correct RTL plumbing. What
+was missing was any way to choose it: the only switcher in the codebase lives
+in `app/dev/gallery.tsx`, a developer screen not linked from navigation. The
+app was Arabic-capable and English-only in practice. **A translation nobody can
+reach is not a feature**, and no amount of translating would have fixed it.
+
+**The gesture was suppressed by a single line.** The root Stack asked for
+`animation: 'slide_from_right'`. On iOS that replaces UINavigationController's
+own push transition, and the interactive pop gesture belongs to that
+transition, so it went with it. The screens still slid — which is exactly why
+this looked fine and simply did not respond to the swipe.
+
+### What shipped
+
+- **mobile `b6eb129`** — iOS uses its own transition again; Android keeps the
+  explicit slide, having no edge-swipe to lose. Deliberately **not** the
+  full-screen variant: four screens carry horizontal filter rows it would
+  fight, and edge-swipe is what iOS itself does.
+- **mobile `55f6873`** — `lib/i18n/fr.ts` (1690 keys) and a language row at the
+  top of More's Account section, ungated, every language named in its own
+  words. Settings would have been wrong: Owner-only, and language is a personal
+  preference rather than a company rule.
+- **backend `79c8e01`** — migration `0053` widens `SummaryLanguage` to include
+  French. Additive only.
+
+Receipts needed no work of their own: `lib/receipt.ts` and
+`lib/refund-receipt.ts` compose from `t()`, so they follow the chosen language.
+
+### Three things worth recording
+
+**The OTP template was deliberately left at `['en','ar']`.** That registry
+mirrors what a provider has approved, and no French one-time-code template has
+been approved anywhere. Declaring it would let the app try to send a message
+that does not exist. Only the request *type* widened;
+`assertLanguageSupported` still refuses French until there is a real approval.
+
+**An existing assertion had to flip.** A test pinned `'fr'` as invalid for the
+summary language. It now pins all three as valid and `'es'` as not — so the
+field did not quietly become a free-text box, and the flip is the record that
+this was a decision rather than an accident.
+
+**`tsc` was green on both sides of the `types/api.ts` widening**, because
+`api.get<T>` is an assertion rather than a check. Same class as the J1 paged-
+list defect. The contract was corrected by hand and commented, because the type
+checker was never the thing protecting it.
+
+- **Files changed:** mobile — `app/_layout.tsx`, `app/(tabs)/more.tsx`,
+  `app/settings.tsx`, `lib/i18n/fr.ts` (new), `lib/i18n/index.ts`,
+  `types/api.ts`. Backend — `prisma/schema.prisma`,
+  `prisma/migrations/0053_summary_language_fr/`, `src/messaging/templates.ts`,
+  `src/settings/settings.service.spec.ts`. Docs — `21`, `24`, handoff, this log.
+- **Migrations:** `0053_summary_language_fr` (additive ENUM widening).
+- **Tests:** backend **89 suites / 1560 tests**; mobile `tsc` and `expo lint`
+  clean, pure suites **11/11**; EN/AR/FR **1690 each**, zero placeholder
+  mismatches; iOS bundle grep confirms French compiles in.
+- **Live:** **7/7** over HTTP against real MySQL. Demo setting restored to
+  `en` — verified by reading it back, not assumed.
+- **Backup:** `phonestore-m-lang-20260822-010901.sql`, 518 798 bytes, 75
+  tables, 0 raw `_binary`.
+
+### 🔴 Not verified, and not claimed
+
+**Nothing was exercised on a device.** For this milestone that gap is unusually
+sharp: a gesture and the way words fit on a screen are precisely what a type
+checker cannot judge. The gesture fix in particular is **reasoned from the
+navigation config and unconfirmed**. `docs/24` §9h lists 16 checks.
+
+**No native-speaker review** of French or Arabic. Keys, placeholders and
+plumbing are final; the wording is not.
+
+**Commits:** backend `79c8e01` · mobile `b6eb129`, `55f6873` · docs the commit
+carrying this entry. All three trees clean and level with `origin`.
+`READY_FOR_HANDOFF`, owner `NONE`.

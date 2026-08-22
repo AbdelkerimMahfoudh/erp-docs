@@ -1002,3 +1002,37 @@ whether the grace warning is urgent enough to act on without being alarming ·
 whether "where the money is" answers the question a shopkeeper actually opens it
 with · whether Arabic numerals and money alignment survive RTL on a small screen
 · whether any of it is legible in daylight on a cheap handset.
+
+
+## 9h. Language and the back gesture (M) — **never touched on a device**
+
+Nothing below has been performed. M was verified by a type checker, a linter, a
+key/placeholder parity script, a bundle grep and live HTTP calls. **The two
+things this milestone is actually about — a gesture and how words look on a
+screen — are exactly the two a device is required to judge.**
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Push into any screen, swipe from the **left edge** | Goes back, and follows your finger rather than snapping |
+| 2 | Swipe from the **middle** of the screen | Nothing. That is intended — see `docs/21` §6h |
+| 3 | On `inventory`, `sales`, `returns`, `transfers`, drag the filter chips sideways | Chips scroll; the screen does **not** start going back |
+| 4 | Swipe back mid-transition, then reverse | No stuck or blank screen |
+| 5 | Open More as an **Employee** | Language row is present — it is never gated |
+| 6 | The row's value | The current language, in its own words |
+| 7 | Tap it, choose **Français** | Whole app is French immediately, no restart asked for |
+| 8 | Read Sell, Closing and Suppliers in French | Nothing clipped, nothing overflowing a button |
+| 9 | Choose **العربية** | Words change, and a restart notice appears |
+| 10 | Force-close and reopen | Layout is now genuinely right-to-left |
+| 11 | Swipe back in Arabic | The gesture follows the RTL direction |
+| 12 | Switch back to English from Arabic | Restart notice again; layout returns after relaunch |
+| 13 | Kill and reopen | The chosen language persisted |
+| 14 | A phone whose system language is French, signed in fresh | App starts in French on its own |
+| 15 | Share a receipt in French | Headings and totals read naturally |
+| 16 | Settings → WhatsApp summary language as Owner | Three options; French saves and reloads |
+
+### What only a device can answer
+
+Whether the edge-swipe genuinely fights the horizontal filter rows · whether
+French text overflows buttons sized for English · whether Arabic still mirrors
+correctly now that a third language shares the picker · how the language row
+reads to somebody who cannot read the rest of the menu.

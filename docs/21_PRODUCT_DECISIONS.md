@@ -2080,3 +2080,60 @@ presenting one as the other is the most misleading thing a retail report can do.
 > `dddd-dd-dd`, so every request silently reported **today** while answering 200
 > with a perfectly shaped body), and the summary reported every branch whichever
 > branch was selected. Both are now pinned by tests.
+
+
+---
+
+## 6h. Language, and the back gesture — M, SHIPPED
+
+### ✅ APPROVED — the app speaks English, French and Arabic
+
+French joins a catalogue set that was already complete in Arabic. Every locale
+covers the **entire** key set — `Catalogue = Record<TranslationKey, string>`
+makes a missing key a build failure, so a half-translated screen cannot ship.
+
+### ✅ APPROVED — the language switcher belongs to every role, in More
+
+Not in Business settings. Settings is Owner-only, and language is a **personal
+preference, not a company rule** — an employee reading Arabic and an owner
+reading French share one shop.
+
+It sits **first in the Account section** and is never permission-gated.
+Somebody who has landed in a language they cannot read must be able to get out,
+so every language is written **in its own words** — `English`, `Français`,
+`العربية`. "Arabic" spelled in French helps nobody who only reads Arabic.
+
+> **This was the actual bug.** Arabic had been complete for milestones, but the
+> only switcher in the codebase was in `app/dev/gallery.tsx`, a developer
+> screen not linked from navigation. The app was Arabic-capable and
+> English-only in practice. A translation nobody can reach is not a feature.
+
+### ✅ APPROVED — French follows the shop voice, not accounting French
+
+"Argent encaissé", never "chiffre d'affaires", wherever a shop assistant reads
+it. Reported money is never worded as paid. The wording rules that separate
+*owed* / *reported* / *confirmed* hold in all three languages.
+
+### ✅ APPROVED — the Owner summary language may be French too
+
+Separate setting, separate question, widened in migration `0053`. The two are
+chosen independently on purpose — an Owner may read the app in one language and
+want the nightly message in another — but neither may be unable to express what
+the other can.
+
+### ✅ APPROVED — the back gesture is edge-swipe, not full-screen
+
+Restored on iOS by letting the platform own its transition. Deliberately **not**
+the full-screen variant: `inventory`, `sales`, `returns` and `transfers` carry
+horizontal filter rows a full-screen swipe would fight, and edge-swipe is what
+iOS itself does.
+
+**Android has no equivalent gesture** in a native stack and keeps its system
+back button. That is a platform difference, not a gap to paper over.
+
+### 🔴 REQUIRED, NOT DONE — a native-speaker review of both translations
+
+Arabic already carried this warning; French now carries it too. The keys,
+placeholders and plumbing are final and verified. **The wording is not
+reviewed**, and this is a shop that handles other people's money in a
+francophone and arabophone market.
