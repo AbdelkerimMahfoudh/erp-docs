@@ -31,12 +31,6 @@
   and `enqueue` refuses there rather than accepting work it cannot keep. No
   fallback store, no new dependency. **Proven in a real browser** — sign-in,
   branch selection and the full app shell all render.
-- ⚠️ **TWO TEMPORARY LOCAL CHANGES TO UNDO AT THE FINAL GATE:**
-  1. `backend/.env` `CORS_ORIGINS` gained `http://localhost:8090` and
-     `http://127.0.0.1:8090` so the browser preview could reach the API.
-     Backup: `scratchpad/env.backup`. **Restore it.**
-  2. Probe user `cp1probe` in the demo company (uid
-     `01A027B0ACC87B99897E008F6B192ECD`). **Delete it.**
 - ⚠️ The user's own Expo dev server is running on **8081** (`--host lan`).
   **Do not stop it.** My web preview uses **8090**; the API on 3010 is mine.
 - **CP2 COMPLETE** (mobile `f488829`): bar is Home · Sell · Money · Inventory ·
@@ -50,29 +44,52 @@
   suites · EN/AR/FR 1722 · **62 routes** (a tab emits both a group and a bare
   route, so one new file adds two — 60 → 62 is expected).
 
-### Next action, exactly — CP3, the login redesign
+- **CP3 BACKEND COMPLETE** (backend `751730c`). Audit in `docs/35`.
+  **The finding that decided the design: 0 of 10 users have a phone number.**
+  A phone-only login would have locked every account out on the day it
+  shipped, so the personal ID is currently the only usable identifier here.
+  Migration **0054** adds ONE column (`users.personal_id`), backfilled
+  deterministically then made NOT NULL + UNIQUE. No second User model.
+  Password hashes were not moved. Format `U-` + 8 characters with I, L, O, U,
+  0 and 1 removed; classified BEFORE the phone rules so an ID is never mangled
+  as a number. The tenant is now resolved from the CREDENTIAL — nothing about
+  the company is trusted from an unauthenticated request. A phone matching two
+  shops produces a chooser AFTER the password, behind a two-minute
+  purpose-bound continuation token (`POST /auth/choose-account`).
+  Non-enumeration preserved. **91 suites / 1585 tests**, **53 migrations**.
+  Backup `phonestore-cp3-20260822-052409.sql`, **restore-proven** into
+  `prisma_restore_cp3` — 10 users, 11 units, 7 sales, 559 audit, 21 triggers.
 
-The largest checkpoint, and **not started**. Order of work:
+### Next action, exactly — CP3 mobile, live checks, docs
 
-1. **Audit before schema.** Does a personal-ID column or global identity model
-   already exist? Are phone numbers globally unique, or can one phone belong to
-   two companies? Report duplicates and ambiguous data BEFORE enforcing
-   uniqueness. Do not create a second User model unless the audit proves it.
-2. **Backup and restore-prove** per `docs/22` before any migration.
-3. Migration: minimum surface, collision-safe backfill for every existing user,
-   DB-level uniqueness, never expose binary ids as personal IDs.
-4. Server: one `identifier` field, normalise and classify (phone vs personal
-   ID), resolve securely, verify password, THEN establish tenant context.
-   Generic invalid-credentials response; ignore company/branch headers from an
-   unauthenticated request; keep rate limiting and audit.
-5. Multi-company phone: chooser only AFTER password verification, behind a
-   short-lived continuation token. Never reveal company names before that.
-6. Mobile: remove the Store ID field, the demo-prefilled store id and the
-   hardcoded `owner` login (both seen live in the browser at CP1). One
-   identifier field + password + Sign in. EN/AR/FR, RTL-safe.
-7. Show the personal ID in Account & security, copyable.
-8. Compatibility: audit whether any deployed client still sends Store ID.
-9. Tests + live HTTP/MySQL checks per the brief, then docs and the final gate.
+1. **Mobile sign-in.** Remove the Store ID field, the demo-prefilled store id
+   and the hardcoded `owner` login — both seen live in the browser at CP1 as
+   the placeholders `F62B8-D1EEB` and `owner`. Leave ONE identifier field,
+   password, Sign in. Label means "Phone number or personal ID"; helper means
+   "Use either one." EN/AR/FR, RTL-safe. A general keyboard, NOT a phone pad —
+   the same field must accept an alphanumeric ID. Autofill username/password.
+2. Send `{ identifier, password, device... }`. Handle a `choose_account`
+   response with a shop picker. Never send a Store ID.
+3. **Account & security**: show this user’s personal ID, copyable, explained
+   as usable instead of the phone. Store ID may stay, labelled support info.
+4. **Compatibility**: decide explicitly whether any deployed client still
+   sends `storeAccountId`/`login`. The old fields are already gone from the
+   DTO, so record that decision rather than leaving it implicit.
+5. Add the drift test proving the login UI cannot regress to requiring a Store
+   ID, plus a credential audit proving no hardcoded login ships in the bundle.
+6. **Live HTTP/MySQL**: the 14 checks the brief lists.
+7. Docs (21, 24, 35), session log, then the final gate.
+
+### Undo at the gate — three temporary changes
+
+1. `backend/.env` `CORS_ORIGINS` gained `http://localhost:8090` and
+   `http://127.0.0.1:8090`. Backup: `scratchpad/env.backup`. **Restore it.**
+2. Probe user `cp1probe` in the demo company
+   (uid `01A027B0ACC87B99897E008F6B192ECD`). **Delete it.**
+3. Scratch database **`prisma_restore_cp3`** from the restore-prove. **Drop it.**
+
+⚠️ The user’s own Expo dev server runs on **8081** (`--host lan`). Do not stop
+it. My web preview uses **8090**; the API on 3010 is mine.
 - `started_at_utc:` `2026-08-22T03:30Z`
 - **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
   Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
