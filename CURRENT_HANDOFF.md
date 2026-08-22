@@ -6,8 +6,28 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-22T06:05Z`
+- **Authorised task — two approved product corrections.**
+  **CP1** fix the web sign-in crash (native FS constructed from AuthProvider).
+  **CP2** promote the COMPLETE Money hub to bottom navigation beside Sell.
+  **CP3** replace Store-ID login with ONE identifier field (phone OR personal ID).
+  Preserve every completed workflow, milestone N's More reorganisation, and the
+  pending IMEI scanner requirements. **Do not begin the scanner patch.**
+- HEADs at takeover — `erp-backend` `03a73e9` · `erp-mobile` `283b5d7` ·
+  `erp-docs` `3e876a4`. All three clean and level.
+- **Discrepancy reported:** the brief's expected baseline (`79c8e01` /
+  `bb5a279` / `1caf2b4`, 1560 tests, 13 pure suites, ~1709 keys) is the state at
+  the **O takeover**, not current. Milestone O has since completed and pushed.
+  Actual: **90 suites / 1566 tests**, **16 pure suites**, **1720 keys** in each
+  of EN/AR/FR with identical order. 52 migrations · 21 triggers · tsc, lint
+  clean · Doctor 18/18 · 60 routes — all as expected.
+  A second nit: the handoff's own O section says 89 suites; the real count is 90.
+- Demo verified at takeover: sales 7 / 10 051.00 · units 11 ·
+  checksum `2a1dc9bf284afde32b402ad108d38a76` · audit 559.
+- Next intended action: **CP1** — audit `queue-store.ts` and `AuthProvider`,
+  then isolate native file-system access behind a platform boundary.
 - `started_at_utc:` `2026-08-22T03:30Z`
 - **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
   Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
