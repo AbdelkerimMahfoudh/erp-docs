@@ -1073,3 +1073,43 @@ Whether the camera genuinely stops between the first detection and `Scan
 again` · haptics firing once · whether `*#06#` on the shop's actual stock shows
 a code at all · focus and glare in real shop lighting · whether the result panel
 fits a small screen with two IMEIs and a TAC line.
+
+---
+
+## Signing in, and the Money tab (CP1–CP3)
+
+Verified in a real browser at 1280×720 and at 375×812 (phone width), in
+English, Arabic and French, signed in as an Owner, a Manager and an Employee.
+**None of this was run on a physical device** — the rows below are what a
+device still has to answer.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open sign-in | **Two** fields: the identifier and the password. No Store ID |
+| 2 | Look at the fields before typing | Both **empty**. No store code, no `owner` |
+| 3 | Sign in with a phone number | Works |
+| 4 | Sign in with the personal ID from Settings | Works |
+| 5 | Type the personal ID in lower case | Works |
+| 6 | Type a phone number with spaces | Works |
+| 7 | Type a Store Account ID as the identifier | Refused, in the same words as any wrong credential |
+| 8 | A wrong password | Refused — same wording as an unknown identifier |
+| 9 | A disabled account | Refused — same wording again |
+| 10 | Settings → Your personal ID | Shown, copyable, described as **not** a password |
+| 11 | Settings → Store Account ID | Described as a support reference, **not** something to type at sign-in |
+| 12 | The bottom bar | Home · Sell · **Money** · Inventory · More |
+| 13 | Open Money | Cash & accounts, Expenses, Daily closing, Loans — no back arrow, no `(tabs)` label |
+| 14 | Open More | Money is **not** there |
+| 15 | As an Employee | The Money tab is still present, showing only what they may open |
+| 16 | Open an old `/hub/money` link | Lands on the Money tab |
+| 17 | The whole bar in Arabic | Mirrors correctly; no label clipped |
+| 18 | Large text, small screen | Five labels still readable; nothing scrolls sideways |
+| 19 | Sign in on the web build | The page **renders** — Sync Center says queuing is unavailable there |
+
+### What only a device can answer
+
+Whether a password manager actually offers the saved credential into the single
+identifier field · whether the phone keyboard makes an alphanumeric personal ID
+awkward in practice · whether five tabs stay comfortably thumb-reachable on a
+small phone · whether the Arabic tab bar mirrors correctly under the native
+`I18nManager` (the web build cannot flip direction without a relaunch) · how
+the shop picker reads to somebody who genuinely works at two shops.

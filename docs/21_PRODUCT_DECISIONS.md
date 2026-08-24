@@ -2255,3 +2255,89 @@ phone scanned by its second identifier could not be **found, sold, priced, or
 detected as a duplicate on import**. Proven live, fixed, and pinned by a drift
 test. No migration was needed — `0042` already guaranteed the uniqueness these
 widened lookups depend on.
+
+---
+
+## Two approved product corrections (CP1–CP3)
+
+### ✅ APPROVED — Money is a bottom tab, beside Sell
+
+The bar is **Home · Sell · Money · Inventory · More**, with Money adjacent to
+Sell because the two are the same errand: taking money and accounting for it.
+The **complete** hub moved — Cash & accounts, Expenses, Daily closing, Loans —
+and the duplicate card in More was removed in the same edit, so no state exists
+where both are present.
+
+Money is **not** an Owner-only tab. It appears whenever the person has
+permission for at least one child, and shows only the children they may open.
+Verified live: an Owner and a Manager see four, an Employee sees two (Expenses,
+Daily closing) — and still gets the tab.
+
+Placement is one field on the hub (`placement: 'tab'`), not a second copy of the
+menu, so the registry stays the single source of truth and the drift tests keep
+covering it. `/hub/money` still resolves — old deep links were not broken.
+
+### 🔴 FIXED — the web sign-in crash was structural, not cosmetic
+
+`queue-store.ts` built a native `Directory(Paths.document, …)` at import time,
+and `AuthProvider` imports it, so the login page crashed on web before it could
+render. The fix is not an early return bolted on afterwards: the platform check
+now precedes **every** native construction, and a source-shape test enforces
+that ordering rather than trusting a guard to stay in front.
+
+**Web is explicitly online-only.** `enqueue` refuses rather than accepting work
+a closed tab would erase, and Sync Center says so. No `localStorage` fallback
+was invented — a test refuses one — because "durably queued" must never be
+claimed for storage a browser can drop.
+
+### ✅ APPROVED — nobody types a Store ID to sign in
+
+Sign-in is **one identifier and a password**. The identifier is a phone number
+**or** a generated personal ID; the app deliberately does not guess which, since
+guessing could refuse something the server would accept.
+
+Two identifiers now exist and are not interchangeable:
+
+| | Store Account ID | Personal login ID |
+|---|---|---|
+| Who holds it | the business | the person |
+| Typed at sign-in | **never** | yes |
+| Purpose | support reference | half a credential |
+| Example | `F62B8D1EEB` | `U-R6H5NWRY` |
+
+`U-` + 8 characters from a 30-glyph alphabet with `0 1 I L O U` removed, so it
+survives being read aloud and written down. Not sequential, not the binary UUID,
+case-insensitive, and it cannot be mistaken for a phone number. Every existing
+user was backfilled by migration `0054`; the database enforces uniqueness.
+
+**The decision was made by an audit, not an assumption.** 0 of 10 users had a
+phone number on file — so a phone-only design would have locked every one of
+them out. See [`docs/35`](35_AUTHENTICATION_IDENTITY_AUDIT.md).
+
+Tenant resolution moved from the client to the credential. An unauthenticated
+request no longer names the company at all, which is strictly stronger than a
+Store ID selecting the tenant *before* any password was checked.
+
+### ✅ APPROVED — one phone, two shops: ask, but only after the password
+
+A phone number is unique within a company, not across them. When one genuinely
+matches a verified password at more than one shop, the server returns a
+short-lived, purpose-bound continuation token and the shop names, and the app
+shows a picker.
+
+The order matters and is tested: **no company name is returned before the
+credential is proven.** A wrong password on an ambiguous phone produces the same
+generic failure as an unknown identifier. The rejected alternative was asking
+everybody for a Store ID up front — paying for a rare case on every sign-in.
+
+### 🔴 FIXED — the login screen shipped real credentials
+
+It carried a real store code (`F62B8-D1EEB`) and the login `owner` as
+placeholders: readable in the bundle, and read straight off the running page in
+a browser. Both are gone, and a drift test now fails the build if a
+credential-shaped placeholder returns.
+
+Settings was telling Owners that "your staff type this when they sign in" about
+the Store ID — caught in the browser, corrected in all three languages. The one
+screen an Owner reads while setting up must not teach the habit this change
+removes.

@@ -84,3 +84,48 @@ shop out of its own product.
 - **Phone verification** is not claimed. `phone_verified_at` exists and stays
   `NULL`; nothing in this change asserts a number was verified, because no
   verification process runs.
+
+---
+
+## What was verified, live
+
+Against a running API and MySQL, on **2026-08-24**: 35 checks, all passing.
+The harness created its own probe users and a second company, then removed
+every one of them; nothing it made survives.
+
+**Signing in** — by phone; by personal ID; a personal ID in lower case; a phone
+typed with spaces. All resolve.
+
+**Nothing is enumerable** — an unknown identifier, a real identifier with the
+wrong password, and a disabled account produce a byte-identical failure. No
+response names a shop or a person. A Store Account ID offered as an identifier
+is refused like anything else. Rate limiting still bites (10/minute per IP), and
+the successful-login record (`last_login_at`, plus the session row carrying IP
+and user agent) survived the rewrite.
+
+**Headers are not trusted** — a login carrying a forged `x-company-id` for a
+different company resolves to the credential's own company, not the header's.
+
+**One phone, two shops** — returns a chooser and no tokens; offers exactly the
+two real memberships; names no user or company id; and a **wrong** password on
+the same number reveals no shop names at all. The continuation token expires in
+120s, is refused when tampered with, is refused for an account outside the
+offered list, and is rejected outright as an access token.
+
+**The resulting session is real** — `/auth/me` identifies the right person and
+returns the personal ID; entitlement resolves; logout revokes the refresh token.
+No password hash appears in any response.
+
+**Identifiers** — all users well-formed and distinct; no ambiguous glyph in any
+of them; the unique index exists in the database; 40 concurrent creations
+produced 40 distinct IDs.
+
+## Known gaps
+
+- **No physical-device run.** Everything above is HTTP, MySQL, and a browser.
+- **The chooser has never been exercised by a real person**, only by probes —
+  no user in this database has a phone number yet, so the path is unreachable
+  in practice today.
+- **`settingsprobe` and three `i2p9b1b04_*_spent` accounts** remain in the demo
+  database from earlier sessions. All are inactive. They pre-date this work and
+  were left alone rather than deleted without authorisation.

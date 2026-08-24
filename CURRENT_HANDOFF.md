@@ -6,408 +6,113 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-22T06:05Z`
-- **Authorised task — two approved product corrections.**
-  **CP1** fix the web sign-in crash (native FS constructed from AuthProvider).
-  **CP2** promote the COMPLETE Money hub to bottom navigation beside Sell.
-  **CP3** replace Store-ID login with ONE identifier field (phone OR personal ID).
-  Preserve every completed workflow, milestone N's More reorganisation, and the
-  pending IMEI scanner requirements. **Do not begin the scanner patch.**
-- HEADs at takeover — `erp-backend` `03a73e9` · `erp-mobile` `283b5d7` ·
-  `erp-docs` `3e876a4`. All three clean and level.
-- **Discrepancy reported:** the brief's expected baseline (`79c8e01` /
-  `bb5a279` / `1caf2b4`, 1560 tests, 13 pure suites, ~1709 keys) is the state at
-  the **O takeover**, not current. Milestone O has since completed and pushed.
-  Actual: **90 suites / 1566 tests**, **16 pure suites**, **1720 keys** in each
-  of EN/AR/FR with identical order. 52 migrations · 21 triggers · tsc, lint
-  clean · Doctor 18/18 · 60 routes — all as expected.
-  A second nit: the handoff's own O section says 89 suites; the real count is 90.
-- Demo verified at takeover: sales 7 / 10 051.00 · units 11 ·
-  checksum `2a1dc9bf284afde32b402ad108d38a76` · audit 559.
-- **CP1 COMPLETE** (mobile `9e665c7`): every filesystem entry point asks the
-  platform before constructing anything native; web is explicitly online-only
-  and `enqueue` refuses there rather than accepting work it cannot keep. No
-  fallback store, no new dependency. **Proven in a real browser** — sign-in,
-  branch selection and the full app shell all render.
-- ⚠️ The user's own Expo dev server is running on **8081** (`--host lan`).
-  **Do not stop it.** My web preview uses **8090**; the API on 3010 is mine.
-- **CP2 COMPLETE** (mobile `f488829`): bar is Home · Sell · Money · Inventory ·
-  More, Money adjacent to Sell. The whole hub moved — Cash & accounts,
-  Expenses, Daily closing, Loans — with unchanged permissions. Visible on ANY
-  child permission, not Owner-only; removed entirely when none. No header, so
-  no `(tabs)` back label. `/hub/money` redirects to the tab; Cash & accounts
-  keeps `/money` so no existing link changes meaning (the tab took
-  `/money-hub`). **Browser-verified**: bar order, four rows, More down to five
-  business hubs, deep link redirecting. 42 registry assertions · 17 pure
-  suites · EN/AR/FR 1722 · **62 routes** (a tab emits both a group and a bare
-  route, so one new file adds two — 60 → 62 is expected).
-
-- **CP3 BACKEND COMPLETE** (backend `751730c`). Audit in `docs/35`.
-  **The finding that decided the design: 0 of 10 users have a phone number.**
-  A phone-only login would have locked every account out on the day it
-  shipped, so the personal ID is currently the only usable identifier here.
-  Migration **0054** adds ONE column (`users.personal_id`), backfilled
-  deterministically then made NOT NULL + UNIQUE. No second User model.
-  Password hashes were not moved. Format `U-` + 8 characters with I, L, O, U,
-  0 and 1 removed; classified BEFORE the phone rules so an ID is never mangled
-  as a number. The tenant is now resolved from the CREDENTIAL — nothing about
-  the company is trusted from an unauthenticated request. A phone matching two
-  shops produces a chooser AFTER the password, behind a two-minute
-  purpose-bound continuation token (`POST /auth/choose-account`).
-  Non-enumeration preserved. **91 suites / 1585 tests**, **53 migrations**.
-  Backup `phonestore-cp3-20260822-052409.sql`, **restore-proven** into
-  `prisma_restore_cp3` — 10 users, 11 units, 7 sales, 559 audit, 21 triggers.
-
-### Next action, exactly — CP3 mobile, live checks, docs
-
-1. **Mobile sign-in.** Remove the Store ID field, the demo-prefilled store id
-   and the hardcoded `owner` login — both seen live in the browser at CP1 as
-   the placeholders `F62B8-D1EEB` and `owner`. Leave ONE identifier field,
-   password, Sign in. Label means "Phone number or personal ID"; helper means
-   "Use either one." EN/AR/FR, RTL-safe. A general keyboard, NOT a phone pad —
-   the same field must accept an alphanumeric ID. Autofill username/password.
-2. Send `{ identifier, password, device... }`. Handle a `choose_account`
-   response with a shop picker. Never send a Store ID.
-3. **Account & security**: show this user’s personal ID, copyable, explained
-   as usable instead of the phone. Store ID may stay, labelled support info.
-4. **Compatibility**: decide explicitly whether any deployed client still
-   sends `storeAccountId`/`login`. The old fields are already gone from the
-   DTO, so record that decision rather than leaving it implicit.
-5. Add the drift test proving the login UI cannot regress to requiring a Store
-   ID, plus a credential audit proving no hardcoded login ships in the bundle.
-6. **Live HTTP/MySQL**: the 14 checks the brief lists.
-7. Docs (21, 24, 35), session log, then the final gate.
-
-### Undo at the gate — three temporary changes
-
-1. `backend/.env` `CORS_ORIGINS` gained `http://localhost:8090` and
-   `http://127.0.0.1:8090`. Backup: `scratchpad/env.backup`. **Restore it.**
-2. Probe user `cp1probe` in the demo company
-   (uid `01A027B0ACC87B99897E008F6B192ECD`). **Delete it.**
-3. Scratch database **`prisma_restore_cp3`** from the restore-prove. **Drop it.**
-
-⚠️ The user’s own Expo dev server runs on **8081** (`--host lan`). Do not stop
-it. My web preview uses **8090**; the API on 3010 is mine.
-- `started_at_utc:` `2026-08-22T03:30Z`
-- **Last authorised task (COMPLETE) — O: retire OCR, correct the IMEI intake workflow.**
-  Barcode/QR + permanent manual entry replace native OCR. Explicit scanner
-  state machine, result shown in-sheet, IMEI never written to Product barcode,
-  pending intake preserved across the Create-product detour. **Milestone N
-  navigation is preserved, not revisited.**
-- HEADs at takeover — `erp-backend` `79c8e01` · `erp-mobile` `bb5a279` ·
-  `erp-docs` `1caf2b4`. All three clean and level. **No discrepancies.**
-- Takeover verification: 89 suites / 1560 tests · tsc, lint clean · Doctor 18/18
-  · 13 pure suites · EN/AR/FR 1709 each, identical order · 21 triggers.
-- **Defect proven at takeover:** `imei_secondary` is written and indexed, and
-  `0042`’s cross-column triggers are live, but **four lookup paths ignore it** —
-  `inventory.findByIdentifier`, `sales` line resolution, `pricing` by identifier
-  and `imports` duplicate detection. A dual-SIM phone scanned by its second
-  IMEI cannot be found, priced or sold. Query fix, no migration.
-- Commits: `erp-backend` `03a73e9` · `erp-mobile` `283b5d7` · `erp-docs` this commit.
-- `started_at_utc:` `2026-08-22T02:10Z`
-- Previous account: **CLAUDE-A** · milestone M complete, clean handoff.
-- **Last authorised task (COMPLETE) — N: More-screen information architecture.**
-  Regroup ~20 flat More rows into six business hubs plus a quieter Account
-  section, behind one typed navigation registry. **Navigation organisation
-  only** — no backend, no migration, no dependency, no route renames, no
-  permission changes, no feature rewrites.
-- HEADs at takeover — `erp-backend` `79c8e01` · `erp-mobile` `55f6873` ·
-  `erp-docs` `cf7036b`. All three clean and level with origin.
-- Takeover verification: 89 suites / 1560 tests · **52 migrations** (not 51 —
-  `0053` came with M) · 21 triggers · tsc, lint clean · Doctor 18/18 · 11 pure
-  suites · EN/AR/**FR** 1690 each · **59 routes export**.
-- Commits: `erp-mobile` `bb5a279` · `erp-docs` this commit. **Backend untouched.**
-- `started_at_utc:` `2026-08-22T00:45Z`
-- Previous account: **CLAUDE-B** · closed `2026-08-19T00:15Z` (clean, complete)
-- **Last authorised task (COMPLETE) — M: navigation gesture and trilingual UI.**
-  (1) restore the iOS interactive back-swipe, absent on device;
-  (2) add a **French** catalogue and a language switcher reachable outside the
-  dev gallery — Arabic is complete at 1690 keys but unreachable in the real UI;
-  (3) widen the Owner WhatsApp summary language to French.
-- HEADs at takeover — `erp-backend` `61d7e14` · `erp-mobile` `308685a` ·
-  `erp-docs` `5549307`. All three clean and level with origin.
-- Commits: `erp-backend` `79c8e01` · `erp-mobile` `b6eb129`, `55f6873` · `erp-docs` this commit.
-- **`A_L_COMPLETE`** — Milestones **A through L** are done.
-- Completed this session: **J.1** (offline drafts), **K** (subscription
-  entitlement), **L** (analytics), and the full A–L verification gate.
-
-### Repository state — all three clean and pushed
-
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `03a73e9` |
-| `erp-mobile` | `283b5d7` |
-| `erp-docs` | *this commit* |
-
-> Corrected at the N takeover: this table still held the `A_L_COMPLETE`
-> snapshot (`61d7e14` / `308685a`) after milestone M updated only the block
-> above it. The handoff disagreed with Git; Git wins.
-
----
-
-
-
-
-### Milestone O — OCR retired, IMEI intake corrected: COMPLETE
-
-**Milestone N's navigation is untouched** — web export is still 60 routes with
-none added or removed.
-
-### The defect, and its cause
-
-A valid IMEI was detected, the camera kept scanning, and nothing appeared until
-the sheet was closed by hand. **Cause:** `ScannerSheet` set a ref guard and
-released it in a `finally`, so the camera resumed the instant the lookup
-returned; the result was handed to the parent and nothing rendered in the sheet.
-
-### Final scanner flow
-
-`idle → scanning → validating → result → accepted`, with `cancelled` reachable
-throughout and `scanAgain` the only way back to `scanning`.
-
-The lock **is** the state: a detection is accepted only in `scanning`. It is
-held in a **ref as well as** React state, because the camera fires again before
-React re-renders — a `useState` value read inside the callback is stale exactly
-when it matters. The camera handler is *detached* during `validating` and
-`result`, so nothing scans behind a result.
-
-### OCR artifacts removed
-
-The `imei` scanner mode · `lib/ocr.ts` · the
-`@infinitered/react-native-mlkit-text-recognition` dependency · the camera
-capture and temporary-image path · `mergeFrames` and its tests · **9 i18n keys
-in all three locales**. Proven absent: no module, native import, package or
-config entry, mode switch or unreachable route. Only prose remains, in
-`lib/imei.ts`, explaining Luhn.
-
-**Kept deliberately:** Luhn · `isValidImei` · `tacOf` and the whole TAC path
-including the company overlay · `extractImeis` / `readDualSim` (the dual-SIM
-rule) · barcode/QR scanning · manual entry.
-
-### Backend contract — verified, not assumed
-
-`0042`'s cross-column triggers are **live** and the pre-existing duplicate audit
-is **0**. But **four lookup paths ignored `imei_secondary`** —
-`inventory.findByIdentifier`, sale line resolution, pricing by identifier and
-import duplicate detection. A dual-SIM phone scanned by its second IMEI could
-not be found, sold or priced. Fixed as queries; **no migration was needed**, and
-none was added.
-
-### Verification at handoff (end of O)
-
-- Backend **89 suites / 1566 tests** green (+6), `tsc` clean.
-- Mobile `tsc` clean · `expo lint` clean · **Expo Doctor 18/18**.
-- **Pure suites 16/16**, including **49 new scan assertions**: 18 classification,
-  19 lock/state, 12 detour.
-- **EN / AR / FR 1720 keys each**, identical order (1709 before; −9 OCR, +20).
-- **Web export 60 routes**, none added or removed.
-- **Live 11/11** over HTTP against real MySQL — including *lookup by SECONDARY
-  IMEI, which returned 404 before this milestone*. Fixtures deleted, **audit
-  rows preserved (559)**, demo units back to **11**.
-- No raw colours, no gradients, no hardcoded user-facing copy in new files.
-
-### 🔴 Not verified, and not claimed
-
-**Nothing was exercised on a device, and this milestone is entirely about a
-camera.** TypeScript, Expo Doctor and a web export cannot see a camera at all.
-`docs/24` §9i lists **20 device checks** — repeated callbacks, focus, glare,
-permission denial, backgrounding mid-scan, and whether the shop's actual stock
-shows a scannable code on `*#06#`.
-
-Unchanged from earlier milestones: §9g (suppliers, 23 checks) and §9h
-(language/gesture, 16 checks) are still outstanding, and the **web build still
-crashes on sign-in** (`docs/29` §12), which blocks browser-based checking.
-
-### Next exact action
-
-**A device pass is now overdue** — four milestones (J1, M, N, O) have shipped
-without one, and O cannot be called correct until a camera has been pointed at a
-real phone.
-
-Still open: **no post-confirmation correction** for a confirmed refund or
-supplier payment (`docs/21` §6g).
-
-### Milestone N — More-screen information architecture: COMPLETE
-
-**Navigation organisation only.** No backend, no migration, no dependency, no
-route renamed, no file moved, no permission changed, no feature screen
-rewritten. `erp-backend` is byte-identical at `79c8e01`.
-
-| | Before | After |
-|---|---|---|
-| Destinations on the More landing screen | **21**, one flat list | **6** business hubs + **1** account hub + sign out |
-| Longest path to any feature | 1 tap | **2 taps** |
-| Route/permission pairings | scattered through the screen's JSX | **1** typed registry |
-| Routes exported | 59 | **60** — `hub/[id]` added, **none removed** |
-
-### Final hub membership
-
-| Hub | Children |
-|---|---|
-| Sales & returns | Sales history · Returns |
-| Stock & purchasing | Catalog · Transfers · Suppliers · Import stock |
-| Money | Cash & accounts · Expenses · Daily closing · Loans |
-| Store network | Partner stores · Consignments |
-| Performance | Analytics · Targets |
-| Team & business | Team · Subscription · Business settings |
-| Account & security | Devices · Sync center · Language |
-
-Branch is a context control at the top; Notifications is a header bell with **no
-badge** (the contract supplies no count); Sync is raised only when the queue
-holds something and stays reachable when empty; Subscription is lifted out of
-its hub only in the four server-reported states.
-
-### Permission behaviour
-
-Every `perm` was copied verbatim from the old screen — **no role gained or lost
-an entry point**. A hub shows only when a child is reachable, inaccessible
-children are hidden, an empty hub is never rendered, and hub order is identical
-for every role with hidden hubs simply absent.
-
-### Verification at handoff (end of N)
-
-- Mobile `tsc` clean · `expo lint` clean · **Expo Doctor 18/18**.
-- **Pure suites 13/13** — the 11 that existed plus `registry.test.ts` (27
-  assertions) and `notices.test.ts` (16).
-- **EN / AR / FR 1709 keys each**, identical order, zero missing or extra.
-  (1690 before N; 19 keys added for the hubs and notices.)
-- **Web export 60 routes**, exit 0. Diffed against the 59 captured before the
-  change: **nothing removed**, `hub/[id]` added.
-- Raw-colour audit: no hex, no `rgba`, no gradient in any new or changed file.
-- Hardcoded-copy audit: no user-facing English outside `t()`.
-- Backend suite re-run at takeover: **89 suites / 1560 tests** green.
-
-### 🔴 Found, pre-existing, NOT fixed
-
-**The web build crashes on sign-in.** `lib/offline/queue-store.ts` calls
-`new Directory(Paths.document, …)` unconditionally, and `expo-file-system` has
-no such path on web; it is mounted from `AuthProvider` via `useSyncEngine`.
-Both files are untouched by N and the crash fires before More renders. Out of
-scope here — it is J's offline queue storage — but it means **the web runtime
-cannot be used signed-in**, and the optional structural renders for this
-milestone could not be captured.
-
-### 🔴 Not verified, and not claimed
-
-**Nothing was exercised on a device.** Compact row heights, Arabic RTL
-appearance, small-phone layout and large-text behaviour are structural in the
-tests and unproven visually. `docs/24` §9g and §9h remain outstanding from
-earlier milestones.
-
-### Next exact action
-
-**A device pass is now the highest-value work** — three milestones (J1
-suppliers, M language/gesture, N navigation) have shipped without one, and N in
-particular changed what every screen is reached through.
-
-The pre-existing web sign-in crash above is worth a small separate fix, since it
-currently blocks every browser-based check.
-
-Still open and unchanged: **no post-confirmation correction** for a confirmed
-refund or supplier payment (`docs/21` §6g).
-
-### Milestone M — gesture and trilingual UI: COMPLETE
-
-| Part | State |
-|---|---|
-| iOS interactive back-swipe | ✅ mobile `b6eb129` — **not device-verified** |
-| French catalogue, 1690 keys | ✅ mobile `55f6873` |
-| Reachable language switcher | ✅ mobile `55f6873` |
-| Owner summary language `fr` (`0053`) | ✅ backend `79c8e01` |
-
-**The reported bug was not the one that existed.** Arabic was never missing —
-`lib/i18n/ar.ts` has been complete for milestones at exact parity. The only
-language switcher in the codebase was in `app/dev/gallery.tsx`, a developer
-screen not linked from navigation, so the app was Arabic-capable and
-English-only in practice. **A translation nobody can reach is not a feature.**
-
-The back-swipe was suppressed by `animation: 'slide_from_right'` on the root
-Stack: on iOS that replaces UINavigationController's push transition, and the
-interactive pop gesture belongs to that transition. The screens still slid,
-which is why it looked correct and simply did not respond.
-
-### Verification at handoff (end of M)
-
-- Backend **89 suites / 1560 tests** green, `tsc` clean, **52 migrations**
-  (0001–0053), schema up to date.
-- Mobile `tsc` clean, `expo lint` clean, **pure suites 11/11**.
-- **EN / AR / FR all 1690 keys** — no missing, no extra, no duplicates, same
-  order in all three.
-- **Zero placeholder mismatches** in French. The checker reports zero against
-  the shipped Arabic too, so it is known to work rather than merely silent.
-- 26 French values identical to English, all verified correct: `Total`,
-  `Note`, `Stock`, `IMEI`, brand names, `5 minutes`.
-- **iOS bundle grep**: 17 651 379 bytes, containing `Clôture du jour`,
-  `Fournisseurs`, `Français`, Arabic strings, and the LAN API host — French
-  genuinely compiles into the app rather than merely existing on disk.
-- **Live 7/7** over HTTP against real MySQL: French accepted and read back, an
-  unsupported language still refused **400**, demo setting restored to `en`.
-- Backup before migrating:
-  `~/erp-backups/phonestore-m-lang-20260822-010901.sql` — 518 798 bytes,
-  75 tables, 0 raw `_binary`.
-- Migration `0053` is **additive only**: an ENUM widened, no row changed value,
-  default untouched. The reverse statement and the condition that makes it safe
-  are recorded in the migration file.
-
-### 🔴 Not verified, and not claimed
-
-**Nothing was exercised on a device or in a visible browser** — and for this
-milestone that gap is unusually sharp, because a gesture and the way words fit
-on a screen are exactly what only a device can judge. `docs/24` §9h lists 16
-checks.
-
-**Neither translation has had a native-speaker review.** Arabic already carried
-that warning; French now carries it too. Keys, placeholders and plumbing are
-final and verified; the wording is not reviewed.
-
-**Android has no back-swipe** in a native stack and keeps its system back
-button. A platform difference, not a gap that was papered over.
-
-### Next exact action
-
-**A device pass is the highest-value next step** — `docs/24` §9g (suppliers,
-23 checks) and §9h (language and gesture, 16 checks) are both outstanding, and
-§9h covers work that cannot honestly be called done until somebody swipes.
-
-Still open from earlier milestones, unchanged: **no post-confirmation
-correction** exists for a confirmed refund or a confirmed supplier payment
-(`docs/21` §6g). That remains the largest gap in the financial workflows.
-
----
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- `closed_at_utc:` `2026-08-24T00:00Z` (session ran 2026-08-22 → 2026-08-24)
+- **Authorised task — two approved product corrections. COMPLETE.**
+  **CP1** the web sign-in crash · **CP2** the Money hub into bottom navigation ·
+  **CP3** Store-ID login replaced by one identifier field. Every completed
+  workflow, milestone N's More reorganisation, and the pending IMEI scanner
+  requirements were preserved. **The scanner patch was not begun**, per the brief.
+- HEADs at close — `erp-backend` `29f052d` · `erp-mobile` `ae712e9` ·
+  `erp-docs` the commit carrying this snapshot. All three clean and pushed.
+- HEADs at takeover were `03a73e9` / `283b5d7` / `3e876a4`.
+
+### What shipped
+
+- **CP1** (mobile `9e665c7`) — every filesystem entry point asks the platform
+  before constructing anything native, and a source-shape test enforces that
+  ordering rather than trusting a guard to stay in front. Web is **explicitly
+  online-only**: `enqueue` refuses rather than accepting work a closed tab would
+  erase, and Sync Center says so in words. No fallback store was invented (a
+  test refuses one), and no dependency was added.
+- **CP2** (mobile `f488829`) — the bar is Home · Sell · **Money** · Inventory ·
+  More. The complete hub moved (Cash & accounts, Expenses, Daily closing,
+  Loans) via one registry field, so the More card disappears in the same edit
+  that creates the tab. Permission-driven, **not** Owner-only. No header, so no
+  `(tabs)` back label. `/hub/money` redirects; Cash & accounts keeps `/money`.
+- **CP3** (backend `751730c`, `29f052d`; mobile `82dbda4`, `ae712e9`) — sign-in
+  is one identifier (phone **or** generated personal ID) and a password. Tenant
+  resolution moved from the client to the credential. Migration `0054` adds
+  `users.personal_id CHAR(10) NOT NULL UNIQUE` and backfills every user. One
+  phone at two shops returns a 120s purpose-bound continuation token and a
+  picker — **only after the password matches**.
+- **Two defects found by looking, not by testing.** The login screen shipped a
+  real store code (`F62B8-D1EEB`) and the login `owner` as placeholders, both
+  readable in the bundle; and Settings told Owners "your staff type this when
+  they sign in" about the Store ID, caught in the browser. Both fixed, the
+  first now pinned by a drift test.
+
+### Verification
+
+- **Backend** 184/184 in the auth and users suites; `tsc -p tsconfig.build.json`
+  clean.
+- **Mobile** tsc clean · eslint clean apart from the pre-existing generated
+  `.expo/types/router.d.ts` warning · **18 pure suites** · **1731 i18n keys** in
+  EN/AR/FR with identical order · web export **62 routes**.
+- **35 live checks** against the running API and MySQL, all passing — sign-in by
+  both identifier kinds, non-enumeration, ignored spoofed headers, the chooser
+  ordering, session/logout, identifier uniqueness under 40 concurrent creations,
+  and rate limiting. Detailed in [`docs/35`](docs/35_AUTHENTICATION_IDENTITY_AUDIT.md).
+- **Browser** — Money tab and login screen in EN, AR and FR, at 1280×720 and
+  375×812, as Owner (4 children), Manager (4) and Employee (2, and still gets
+  the tab). Five labels survive 130% text with no sideways scroll.
+- ⚠️ **None of this is physical-device verified.** `docs/24` lists 19 new rows
+  and what still needs real hardware.
+
+### Temporary changes — all undone
+
+- `backend/.env` `CORS_ORIGINS`: the `:8090` entries removed; the line is now
+  byte-identical to the pre-session backup.
+- Probe users `cp1probe`, `cp3own`, `cp3emp`, `cp3off`, `cp3twin`, `cp3mgr`,
+  `cp3emp2` and the probe company `CP3 Probe Shop`: deleted.
+- Scratch database `prisma_restore_cp3`: dropped. No `prisma_*` database remains.
+- ℹ️ `settingsprobe` and three `i2p9b1b04_*_spent` accounts remain in the demo
+  database. They **pre-date this session**, are inactive, and were left alone
+  rather than deleted without authorisation.
+- ⚠️ The user's own Expo dev server on **8081** was never touched. The API on
+  3010 and the web preview on 8090 were mine.
 
 ## Verification at close
 
 | Check | Result |
 |---|---|
-| Backend suites | **89 suites / 1560 tests**, green |
-| Backend `tsc` | clean |
-| Prisma validate / migrate status | valid · **51 migrations**, up to date |
+| Backend suites | **91 suites / 1585 tests**, green |
+| Backend `tsc -p tsconfig.build.json` | clean |
+| Prisma validate / migrate status | valid · **53 migrations**, up to date |
 | Database triggers | **21** |
 | Mobile `tsc` | clean |
-| Mobile lint | clean *(one warning in Expo's generated, git-ignored `.expo/types/router.d.ts`)* |
-| Mobile pure suites | **11/11** — run with `node lib/<name>.test.ts`, **not jest** |
-| **Expo Doctor** | **18/18, no issues** — the three patch shortfalls are fixed |
-| Web export | every route bundles, including `/money`, `/sync`, `/subscription`, `/loans`, `/consignments/new` |
-| EN/AR parity | **1690 / 1690**, nothing missing either way, no duplicates |
-| Live J · K · L | **35/35** · **59/59** · **41/41** |
+| Mobile lint | clean *(one warning in Expo's generated `.expo/types/router.d.ts` — pre-existing)* |
+| Mobile pure suites | **18/18** — run with `node lib/<name>.test.ts`, **not jest** |
+| **Expo Doctor** | **18/18, no issues** |
+| Web export | **62 routes**, including `/money-hub`, `/money`, `/login`, `/sync` |
+| EN/AR/FR parity | **1731 / 1731 / 1731**, identical order, nothing missing either way |
+| Live CP3 (HTTP + MySQL) | **35/35** — see [`docs/35`](docs/35_AUTHENTICATION_IDENTITY_AUDIT.md) |
+| Browser (EN/AR/FR, 1280×720 and 375×812) | Money tab and sign-in verified as Owner, Manager, Employee |
+
+A tab route emits both a group and a bare route, so CP2's one new file added
+two: 60 → 62 is expected, not drift.
 
 ### Demo integrity
 
-Sales **7 / 10 051.00** · unit checksum **`2a1dc9bf284afde32b402ad108d38a76`**
-(unchanged) · **1** company · **0** orphaned rows in any table · audit **554**
-rows, preserved and grown, never deleted. Every temporary company from every
-live run was removed; **no permanent company or identity was left behind**.
+Sales **7 / 10 051.00** — unchanged from the recorded baseline · **1** company ·
+**9** users · **0** orphaned rows · audit **559** rows, grown and never deleted.
 
-No scratch database was created. All live testing used temporary companies
-inside the shared database, created and removed within each run.
+Every probe user and the probe company this session created were removed. The
+scratch database `prisma_restore_cp3` was dropped; **no `prisma_*` database
+remains**. `settingsprobe` and three `i2p9b1b04_*_spent` accounts survive from
+earlier sessions — inactive, pre-existing, and left alone rather than deleted
+without authorisation.
 
-**Backup:** `phonestore-k-20260818-061410.sql` — 496 KB, 19 triggers captured,
-taken before migration `0052` per [`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md).
+**Backup:** `phonestore-cp3-20260822-052409.sql` (in `~/erp-backups`), taken before migration `0054` and
+restore-proven into `prisma_restore_cp3` per
+[`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md). The restore target had to be a
+`prisma_*` name: the migrator account holds `ALL` on `phonestore` and
+`prisma\_%` only.
 
-**Ports:** nothing is running. The API on 3010 was started by this session for
-live verification and has been stopped; Metro was never started.
+**Ports:** the API on 3010 and the web preview on 8090 were started by this
+session and have been stopped. The user's own Expo dev server on **8081** was
+never touched.
 
 ---
 
@@ -523,10 +228,22 @@ Milestones H, I, J, J.1, K and L is unrun.** They need real hardware:
 
 ## Next action
 
-**A physical-device QA and release-candidate pass.** Not more feature
-development — A–L is complete, and what the product now needs is somebody
+**The IMEI scanner patch**, which this brief deliberately deferred, followed by
+a physical-device QA and release-candidate pass. A–L is complete and the two
+approved corrections have landed; what the product needs next is somebody
 holding a cheap Android phone in a real shop, working through
-[`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) from the top.
+[`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) from the top — the scanner rows and
+the new sign-in rows especially.
+
+Two things a next session should know before touching authentication:
+
+1. **No user in the demo database has a phone number.** The account chooser is
+   therefore unreachable in normal use and has only ever been exercised by
+   probes. If it matters, give two users the same phone in different companies
+   before testing it.
+2. **`login` is still on the `users` table** and still used by the legacy
+   lookups. Removing it is a separate migration and was deliberately not folded
+   into a login change.
 
 To run the app:
 

@@ -5026,3 +5026,82 @@ the premise the whole design rests on.
 
 **Commits:** backend `03a73e9` · mobile `283b5d7` · docs the commit carrying
 this entry. All three trees clean and level. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-22 → 2026-08-24 — CLAUDE-B — two approved product corrections (CP1–CP3)
+
+**CP1 — the web sign-in crash.** `queue-store.ts` constructed a native
+`Directory(Paths.document, …)` at module scope, and `AuthProvider` imports it,
+so the login page threw on web before rendering. Fixed structurally: the
+platform decision was split into a pure rules module and a `Platform`-aware
+wrapper, and the check now runs **before** every native construction. A
+source-shape test enforces that ordering, so an early return cannot drift
+behind a `new Directory(...)` later.
+
+Web is **explicitly online-only**, not silently degraded. `enqueue` refuses
+before the `mayQueue` check rather than accepting work a closed tab would lose,
+`SaveResult` gained an `unsupported` reason, and Sync Center shows the state in
+words. A test refuses any `localStorage`/`indexedDB` fallback: durable queuing
+must not be claimed for storage a browser can drop.
+
+**CP2 — Money is a bottom tab.** One field on the registry (`placement: 'tab'`)
+moves the hub, so the More card disappears in the same edit that creates the
+tab — there is no state where both exist. The route is `/money-hub` so that
+`/money` keeps meaning Cash & accounts, and `/hub/money` redirects, preserving
+old deep links. Visibility is permission-driven, not role-hardcoded: verified
+live, an Employee sees the tab with two children while an Owner and a Manager
+see four.
+
+**CP3 — nobody types a Store ID.** An audit decided the design rather than an
+assumption: **0 of 10 users had a phone number**, so a phone-only identifier
+would have locked out every existing user. Migration `0054` adds
+`users.personal_id CHAR(10)`, backfills deterministically, then makes it `NOT
+NULL UNIQUE`. Sign-in takes one identifier — phone or personal ID — and the
+server resolves the tenant from the **credential**, so an unauthenticated
+request no longer names a company at all.
+
+Where one phone matches a verified password at two shops, the server returns a
+120s purpose-bound continuation token and the shop names, and the client shows a
+picker. Order is the security property and is tested: no company name is
+returned before the password matches.
+
+The login screen also stopped shipping a real store code (`F62B8-D1EEB`) and the
+login `owner` as placeholders — both were readable in the bundle and off the
+running page. A drift test now fails the build if either returns.
+
+**Two defects found by looking rather than by testing.** The credential
+placeholders above, and — caught in the browser during verification — Settings
+still telling Owners "your staff type this when they sign in" about the Store
+ID. Corrected in all three languages.
+
+**Migration incidents, recorded because they cost time.** `0054` failed twice
+before it applied: first on `///` (Prisma doc syntax, not SQL), then on a
+`DELIMITER` block — Prisma's runner splits statements on `;` and cannot execute
+stored procedures. The backfill was rewritten as a single deterministic
+`UPDATE`. Partial state was cleaned by dropping the column through Prisma, the
+procedure through the CLI, then `migrate resolve --rolled-back`. The
+restore-prove had to target `prisma_restore_cp3`, because the migrator account
+holds `ALL` on `phonestore` and `prisma\_%` only.
+
+**Verification.** Backend 184/184 in the auth and users suites. Mobile: tsc
+clean, eslint clean apart from the pre-existing generated `.expo` artifact, 18
+pure suites, 1731 i18n keys in identical order across EN/AR/FR, web export 62
+routes. **35 live checks** against the running API and MySQL, all passing —
+recorded in `docs/35`. Browser verification of the Money tab and the login
+screen in all three languages, at 1280×720 and 375×812, as Owner, Manager and
+Employee. **None of this was run on a physical device**; `docs/24` lists what
+still needs one.
+
+**Temporary changes, all undone.** The `:8090` CORS origins were removed from
+`backend/.env` (now byte-identical to the pre-session backup); probe users
+`cp1probe`, `cp3own/emp/off/twin`, `cp3mgr`, `cp3emp2` and the probe company
+`CP3 Probe Shop` were deleted; the scratch database `prisma_restore_cp3` was
+dropped. `settingsprobe` and three `i2p9b1b04_*_spent` accounts remain — they
+pre-date this session, are inactive, and were left alone rather than deleted
+without authorisation.
+
+**Not started, deliberately:** the IMEI scanner patch, per the brief.
+
+**Commits:** backend `29f052d` · mobile `ae712e9` · docs the commit carrying
+this entry. All three trees clean and level. `READY_FOR_HANDOFF`, owner `NONE`.
