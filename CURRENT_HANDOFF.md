@@ -13,7 +13,7 @@
   the real public/customer/administration website, and mobile account creation
   and subscription-state handling. **The IMEI scanner milestone was not begun.**
 - HEADs at close — `erp-backend` `7f12a08` · `erp-mobile` `d9d912d` ·
-  `erp-docs` this commit · **`retail-erp-control-web` `ef71085` — local only.**
+  `erp-docs` this commit · **`retail-erp-control-web` `593b0b8` — local only.**
 - HEADs at takeover were `cb69e0d` / `4728d5a` / `2004912`.
 
 ### 🔴 The one discrepancy, and it was mine

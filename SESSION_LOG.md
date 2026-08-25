@@ -5368,5 +5368,4 @@ users, sales 7 / 10 051.00.
 **Not begun:** the IMEI scanner milestone, Bankily, login 2FA, deployment,
 impersonation.
 
-**Commits:** backend `7f12a08` · mobile `d9d912d` · control-web `ef71085`
-(local only) · docs the commit carrying this entry.
+**Commits:** backend `7f12a08` · mobile `d9d912d` · control-web `593b0b8` (local only) · docs the commit carrying this entry.
