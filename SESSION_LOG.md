@@ -5105,3 +5105,90 @@ without authorisation.
 
 **Commits:** backend `29f052d` · mobile `ae712e9` · docs the commit carrying
 this entry. All three trees clean and level. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-25 — CLAUDE-B — login by contact, and app-wide dark mode (CP1–CP3)
+
+**Takeover found no discrepancy.** Every claim in the brief checked out, several
+exactly: 91 suites / 1585 tests, tsc and lint clean, Doctor 18/18, 18 pure
+suites, 1731 keys in identical order, `0054` present, Money a bottom tab, three
+trees clean and level.
+
+Two things nobody had asked about yet, both recorded before anything changed:
+**all five active users had neither an email nor a phone**, and `users.email`
+carried no uniqueness constraint at all. The first meant CP1 as written would
+have locked out 100% of the people using the system; the second meant email
+could not become a login identifier without a migration.
+
+**CP1 — sign in with an email or a WhatsApp number.** One field, one password.
+Migration `0055` gives email the per-company uniqueness phone already had — not
+global, so one address at two shops still reaches the password-first chooser.
+The email case rule is the database's, not an invention: the column is
+`ai_ci`, so `Owner@Shop.mr` and `owner@shop.mr` were already one row. Enrolment
+and sign-in now share one phone parser, because two normalisers either side of
+a column mean a number enrolled one way cannot be typed the other.
+
+Changing a login contact became a security event: the **actor** re-types their
+own password (not the target's — an Owner does not know an employee's, and
+demanding it pushes shops toward sharing passwords), the target's sessions end,
+the last contact cannot be stripped, and the change is audited.
+
+The personal ID stays **accepted and unadvertised**, because of the audit above.
+`docs/36` records the exact condition for removing it.
+
+**CP2 — no fake two-step verification.** Direction recorded, nothing shipped. A
+test refuses any 2FA UI until it is real.
+
+**CP3 — dark mode, and the layer that made it possible.** The palette was a
+frozen object read inside a module-scope `StyleSheet.create` in 46 files, which
+captures the light values once at import. Swapping the object at runtime would
+have changed nothing, silently. Colour now resolves during render through
+`makeStyles`/`makeTokens`, memoised per theme, converted by codemod and pinned
+by a source audit that refuses a module-scope colour sheet, a static palette
+import, a raw hex or `rgba`, a ramp step used as a surface, a colour utility
+class, or an `isDark ?` branch in a screen.
+
+Appearance & language moved under Account & security as one screen; the
+language selector **moved** rather than being copied, and a test asserts exactly
+one screen may render it.
+
+**Nine defects found, six of them pre-existing in light mode.** A warning
+button at 4.23:1. A placeholder at 1.8:1, invisible in sunlight. Hint text at
+2.9:1 that the contrast test missed because it only checked the card, not the
+canvas. React Navigation's own `rgb(242,242,242)` behind every screen — the
+largest surface in the app, invisible to a token audit because it is not in the
+token layer. Colour classes chosen at runtime, marking selected state. A
+Tailwind class map interpolated into a template, putting `text-slate-700` on the
+analytics figure at 1.7:1 on dark. React Native Web's Material teal on an
+unstyled `Switch`. And one this change would have introduced: `text.inverse`
+redefined for dark as "on a light fill" when all five callers mean "on a brand
+button" — dark text on indigo would have shipped.
+
+**Verification.** Backend 91 suites / 1604 tests (up from 1585), tsc and Prisma
+clean, migrations up to date. Mobile tsc clean, lint clean but for the
+pre-existing generated `.expo` warning, **19 pure suites**, **1738 keys** in
+identical order across EN/AR/FR, Doctor 18/18, web export **63 routes**.
+**22 live CP1 checks** against the running API and MySQL, all passing, fixtures
+removed. Browser: **19 routes swept in dark** with no light surface and no text
+under 3:1, light mode swept clean, AR→FR with the theme surviving and the theme
+toggled with the language surviving, French at 375px with no overflow.
+
+**None of it is physical-device verified.** `docs/24` lists 22 new rows and what
+still needs real hardware — cold-start flash, OLED, sunlight, camera overlay,
+keyboard appearance, and native RTL, which the web build cannot evidence.
+
+**Temporary changes, all undone.** The `:8090` CORS origins were removed from
+`backend/.env`, now byte-identical to the pre-session backup; every probe user
+and the probe company were deleted; no `prisma_*` database remains. Demo
+integrity unchanged: sales 7 / 10 051.00, 1 company, 9 users, audit grown to
+559 and never deleted.
+
+**Ports.** The API on 3010 and the web preview on 8090 were mine and are
+stopped. I issued no command against **8081**; it was listening at takeover and
+is not now, and I cannot account for that.
+
+**Not started, deliberately:** the IMEI scanner milestone.
+
+**Commits:** backend `6347f96` · mobile `4728d5a` · docs the commit carrying
+this entry. All three trees clean and pushed. `READY_FOR_HANDOFF`, owner `NONE`.

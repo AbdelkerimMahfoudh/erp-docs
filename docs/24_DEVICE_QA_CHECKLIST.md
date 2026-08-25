@@ -1113,3 +1113,50 @@ awkward in practice · whether five tabs stay comfortably thumb-reachable on a
 small phone · whether the Arabic tab bar mirrors correctly under the native
 `I18nManager` (the web build cannot flip direction without a relaunch) · how
 the shop picker reads to somebody who genuinely works at two shops.
+
+---
+
+## Signing in by contact, and dark mode (CP1–CP3)
+
+Verified in a real browser at 1280×720 and 375×812, in English, Arabic and
+French, signed in as Owner, Manager and Employee. **None of it was run on a
+physical device** — the rows below are what a device still has to answer.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open sign-in | **Two** fields: "Email or WhatsApp number", and Password |
+| 2 | Read the helper line | "Enter either your email or WhatsApp number." |
+| 3 | Sign in with an email | Works, whatever the capitalisation |
+| 4 | Sign in with a WhatsApp number typed as it is printed | Works — `43 21 09 87` and `+22243210987` are one number |
+| 5 | Let the password manager fill it | Offers the saved credential into the single field |
+| 6 | A wrong email, a wrong number, a wrong password, a disabled account | All four refused in **identical** words |
+| 7 | Type a Store ID as the identifier | Refused like any wrong credential |
+| 8 | Settings → your contact details | Shown, per existing permissions |
+| 9 | Change somebody's email or number | Asks for **your** password, then signs that person out |
+| 10 | Try to clear the only contact somebody has | Refused, in words |
+| 11 | Look for a two-step-verification switch | There is **none** — deliberately |
+| 12 | Account & security → Appearance & language | Dark-mode switch and Language, together |
+| 13 | Look for a second language selector anywhere | There is **none** |
+| 14 | Turn dark mode on | The whole app changes at once, no reload |
+| 15 | Force-quit and reopen | Still dark — and **no white flash** before it appears |
+| 16 | Look at the status bar in each theme | Light glyphs on dark, dark glyphs on light |
+| 17 | Open Sell, Money, Inventory, More, the scanner and a sheet in dark | No light panel anywhere; no text you have to squint at |
+| 18 | Switch language while dark | Language changes, **theme stays dark** |
+| 19 | Switch theme while in Arabic | Theme changes, **language stays Arabic** |
+| 20 | Arabic in dark | Mirrors correctly; nothing clipped |
+| 21 | Large text on a small screen | Nothing clipped, nothing scrolls sideways |
+| 22 | A shared counter phone: sign out, sign in as somebody else | The theme stays as the shop set it |
+
+### What only a device can answer
+
+Whether the splash-to-app handoff is genuinely flash-free on a **cold start**
+on a cheap Android — the web build cannot show a native splash at all · whether
+the dark palette is legible on a real **OLED** panel, and whether the near-black
+canvas smears on scroll · whether either theme survives **direct sunlight** on a
+shop counter · whether the **camera** overlay is still readable in dark mode
+with a live preview behind it · whether the **keyboard** appears in the right
+appearance for the theme · what happens to the theme across **background and
+foreground** and a low-memory kill · whether Arabic **RTL** mirrors correctly
+under the native `I18nManager` — the web build cannot flip direction without a
+relaunch, so its RTL is not evidence · whether the language-change restart
+notice is understood, and whether unsaved drafts survive it.

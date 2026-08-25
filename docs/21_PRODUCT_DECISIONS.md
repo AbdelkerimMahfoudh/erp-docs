@@ -2341,3 +2341,111 @@ Settings was telling Owners that "your staff type this when they sign in" about
 the Store ID — caught in the browser, corrected in all three languages. The one
 screen an Owner reads while setting up must not teach the habit this change
 removes.
+
+---
+
+## Login by contact, and app-wide dark mode (CP1–CP3)
+
+### ✅ APPROVED — sign in with an email address or a WhatsApp number
+
+One field, one password. The identifier is something the person **already
+knows**, rather than a code the product invented and asked them to keep. No
+Store ID, branch, company, personal ID, username, and never both an email and a
+phone at once.
+
+The app deliberately does not guess which of the two was typed. Guessing lets
+the client refuse an identifier the server would have accepted, and the person
+holding the phone has no way to argue with it. The keyboard stays general for
+the same reason: a phone pad cannot type an email.
+
+Migration `0055` gives email the **per-company** uniqueness phone already had —
+not global, so one address used at two shops still reaches the password-first
+account chooser instead of being refused at enrolment.
+
+**"WhatsApp number" is a label, not a claim.** Nothing verifies the number is
+registered with WhatsApp; no verification service exists. Technically it is a
+normalised phone identifier. See [`docs/36`](36_LOGIN_CONTACT_TRANSITION.md).
+
+### 🔴 FIXED — the change would have locked out every active user
+
+Audited before any code changed: **five of five** active users had neither an
+email nor a phone. Restricting sign-in to contacts would have locked 100% of
+them out of their own shop.
+
+So the generated personal ID is **still accepted by the server and offered by
+nothing** — not a field, not a hint, not a documented way in, and a drift test
+fails the build if it reappears on the login screen. It is a ramp, not a
+feature, and `docs/36` records the exact condition for removing it.
+
+### ✅ APPROVED — every new user needs a contact, and changing one is guarded
+
+At least one of email or phone is required to create a user — enforced in the
+service, not a DTO, so the seed and the CLI cannot walk around it.
+
+Changing a login contact asks the **actor** to re-type their own password, ends
+the **target's** sessions, cannot strip somebody's last way in, and is audited.
+The actor's password rather than the target's: an Owner correcting an
+employee's number does not know theirs, and demanding it would push shops
+toward sharing passwords.
+
+### ✅ APPROVED — two-step verification is a direction, not a switch
+
+2FA does not exist and **no toggle pretends otherwise**. A switch that saved a
+preference and protected nothing would be worse than its absence, because
+somebody would trust it. A test refuses any 2FA UI until it is real. The
+approved shape — optional per user, under Account & security, delivered by a
+verified contact — is recorded in `docs/36`.
+
+### ✅ APPROVED — dark mode, from a single semantic layer
+
+An on/off switch. Off is Light, on is Dark; existing users default to Light so
+nobody's app changes appearance after an update.
+
+**No "System" option.** With it selected the switch shows the *current*
+appearance, so a shopkeeper toggling it at dusk cannot tell whether they
+changed the setting or the sun did.
+
+The preference is stored **on the device, not against the account**. A shop's
+counter phone is shared, and the person who prefers dark is choosing for that
+handset in that lighting. It is not sensitive — it reveals nothing about the
+account — so signing out deliberately leaves it alone.
+
+**Dark is not an inversion.** Every token means what it meant in light: success
+stays green, danger stays red, warning stays amber. Only the lightness
+relationship flips. Elevation is carried by lightness rather than shadow,
+because a shadow on near-black is invisible, and text is never dimmed with
+opacity — stacking translucent layers is how secondary text quietly falls below
+readable contrast on one surface while passing on another.
+
+### 🔴 FIXED — the palette could not have followed a theme at all
+
+`colors` was a frozen object read inside a module-scope `StyleSheet.create` in
+46 files. That captures the light values **once, at import**, so swapping the
+object at runtime would have changed nothing — silently, with no error. Colour
+now resolves during render through `makeStyles`/`makeTokens`, memoised per
+theme.
+
+Six defects were found and fixed along the way, three of them pre-existing in
+light mode:
+
+- a warning button at 4.23:1 with white text, under the 4.5 bar;
+- an input placeholder at 1.8:1, invisible on a sunlit shop counter;
+- hint text at 2.9:1 on the canvas — the contrast test had only checked it
+  against the card, passed, and shipped it;
+- React Navigation's own `rgb(242,242,242)` behind every screen, the largest
+  surface in the app and not in the token layer at all;
+- colour utility classes chosen at runtime, marking **selected** state — the
+  thing a shopkeeper looks at;
+- `text.inverse` redefined for dark as "on a light fill" when all five callers
+  mean "on a brand button", which would have shipped dark text on indigo.
+
+### ✅ APPROVED — Appearance & language is one screen, under Account & security
+
+Dark mode and the language selector together, because both are **personal
+preferences, not business configuration**: two people sharing a shop can
+disagree about them without either being wrong. They are not in store-wide
+Settings, where a change means "this is how the shop works".
+
+The language selector **moved**; it is not a second copy. A test asserts exactly
+one screen may render it. Theme and language are independent — verified live in
+both directions.

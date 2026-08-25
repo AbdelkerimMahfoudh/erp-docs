@@ -6,92 +6,143 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-25T00:00Z`
-- **Authorised task — two approved changes.**
-  **CP1** finalize login around **email or WhatsApp number** + password. No Store
-  ID, no personal ID in the normal login experience.
-  **CP2** record the two-step-verification direction — **build no fake toggle**.
-  **CP3** complete app-wide **dark mode** from Settings, and move the language
-  selector into the same preferences area.
-  **Do not begin the IMEI scanner milestone.**
-- HEADs at takeover — `erp-backend` `29f052d` · `erp-mobile` `ae712e9` ·
-  `erp-docs` `f142d36`. All three clean and level with their remotes.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- `closed_at_utc:` `2026-08-25T12:00Z`
+- **Authorised task — two approved changes. COMPLETE.**
+  **CP1** login finalised around email or WhatsApp number · **CP2** the
+  two-step-verification direction recorded with **no fake toggle** · **CP3**
+  complete app-wide dark mode with the language selector moved beside it.
+  **The IMEI scanner milestone was not begun**, per the brief.
+- HEADs at close — `erp-backend` `6347f96` · `erp-mobile` `4728d5a` ·
+  `erp-docs` the commit carrying this snapshot. All three clean and pushed.
+- HEADs at takeover were `29f052d` / `ae712e9` / `f142d36`.
 
-### Takeover verification — every claim checked
+### The finding that shaped CP1
 
-| Claim | Found |
-|---|---|
-| Store ID absent from the login screen | ✅ 2 `<Field>`s, no `storeId`/`storeAccountId` |
-| Login accepts phone or personal ID | ✅ `classifyIdentifier` in `src/auth/identifier.ts` |
-| Migration `0054` exists | ✅ `0054_personal_login_id`, 54 migration folders, 53 applied |
-| Money is a bottom tab | ✅ `app/(tabs)/_layout.tsx` line 112 |
-| Backend ≈91 suites / 1585 tests | ✅ **exactly** 91 / 1585, green |
-| Mobile tsc + lint clean | ✅ tsc clean; lint clean but for the generated `.expo` warning |
-| Expo Doctor 18/18 | ✅ |
-| 18 pure suites | ✅ |
-| 62 routes | ⏳ re-checked at close (export takes minutes) |
-| EN/AR/FR ≈1731 keys | ✅ **exactly** 1731/1731/1731, identical order |
-| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
-| Trees clean and level | ✅ all three, 0 dirty, 0/0 vs remote |
+🔴 **All five active users had neither an email nor a phone.** Audited before
+any code changed. Login restricted to contacts would have locked out 100% of
+the people using this system.
 
-**No discrepancy between the handoff and reality.** Two findings the handoff did
-not contain, because nobody had asked the question yet:
+So the generated personal ID is **still accepted by the server and offered by
+nothing** — not a field, hint, placeholder or documented way in, and a drift
+test fails the build if it reappears on the login screen. It is a ramp, not a
+feature. [`docs/36`](docs/36_LOGIN_CONTACT_TRANSITION.md) records the exact
+condition for removing it:
 
-1. 🔴 **Every active user would be locked out by CP1 as written.** All **5**
-   active users (`owner`, `seller`, `Test`, `sales`, `warehouse`) have
-   **neither an email nor a phone**. 0 of 5. Login restricted to email-or-phone
-   locks out 100% of them. The four remaining accounts are inactive.
-2. ⚠️ **`users.email` has no uniqueness constraint.** `phone` has
-   `@@unique([companyId, phone])`; email has nothing. It cannot become a login
-   identifier until it does — that is a migration.
+```sql
+SELECT COUNT(*) FROM users WHERE is_active = 1 AND deleted_at IS NULL AND email IS NULL AND phone IS NULL;
+```
 
-### Next intended action
+**Still 5 at close.** While it is above zero, removing the `personal_id` branch
+from `classifyIdentifier` locks somebody out.
 
-Present the plan, the files, and the risks for approval, per the rulebook's
-"BEFORE EVERY MAJOR IMPLEMENTATION". Nothing is modified until then.
+### What shipped
+
+- **CP1** (backend `6347f96`, mobile `f86f61f`) — one field, "Email or WhatsApp
+  number", plus a password. Migration `0055` gives email the **per-company**
+  uniqueness phone already had, so one address at two shops still reaches the
+  password-first chooser. Email case is the database's rule (`ai_ci`), not an
+  invention. Enrolment and sign-in share one phone parser. Changing a login
+  contact now asks the **actor** for their own password, ends the target's
+  sessions, cannot strip a last contact, and is audited. New users need at least
+  one contact — enforced in the service, so the seed and CLI cannot bypass it.
+- **CP2** — nothing shipped, deliberately. A switch that saved a preference and
+  protected nothing would be worse than its absence. A test refuses any 2FA UI.
+- **CP3** (mobile `9a0b22a`, `1a12e5b`, `4728d5a`) — the palette was frozen and
+  read inside module-scope `StyleSheet.create` in 46 files, so a runtime swap
+  would have changed nothing, silently. Colour now resolves during render via
+  `makeStyles`/`makeTokens`. Dark is not an inversion: success stays green,
+  danger red, warning amber. Appearance & language is one screen under Account &
+  security; the language selector **moved**, and a test asserts exactly one
+  screen may render it.
+
+### Nine defects found — six pre-existing in light mode
+
+A warning button at 4.23:1 · a placeholder at 1.8:1, invisible in sunlight ·
+hint text at 2.9:1 that the contrast test missed by only checking the card, not
+the canvas · React Navigation's own `rgb(242,242,242)` behind every screen, the
+largest surface in the app and invisible to a token audit because it is not in
+the token layer · colour utility classes chosen at runtime, marking **selected**
+state · a Tailwind class map interpolated into a template, putting
+`text-slate-700` on the analytics figure at 1.7:1 on dark · React Native Web's
+Material teal on an unstyled `Switch` · and one this change would have
+introduced: `text.inverse` redefined for dark as "on a light fill" when all five
+callers mean "on a brand button" — dark text on indigo would have shipped.
+
+### Verification
+
+- **Backend** 91 suites / **1604 tests** (up from 1585) · `tsc` clean · Prisma
+  valid · **54 migrations**, up to date.
+- **Mobile** tsc clean · lint clean but for the pre-existing generated
+  `.expo/types/router.d.ts` warning · **19 pure suites** · **1738 keys** in
+  EN/AR/FR with identical order · **Doctor 18/18** · web export **63 routes**.
+- **22 live CP1 checks** against the running API and MySQL, all passing —
+  sign-in by email and by number, non-enumeration across four failure kinds,
+  ignored spoofed tenant headers, the shared-email chooser, the legacy path,
+  per-company email uniqueness enforced by the database, and rate limiting.
+- **Browser** — **19 routes swept in dark** with no light surface and no text
+  under 3:1; light mode swept clean; AR→FR with the theme surviving, and the
+  theme toggled with the language surviving; French at 375px with no overflow.
+- ⚠️ **None of it is physical-device verified.** `docs/24` lists 22 new rows,
+  and what still needs real hardware: cold-start flash, OLED legibility,
+  sunlight, the camera overlay, keyboard appearance, and native RTL — which the
+  web build cannot evidence, since it needs a relaunch to flip direction.
+
+### Temporary changes — all undone
+
+- `backend/.env` `CORS_ORIGINS`: the `:8090` entries removed; byte-identical to
+  the pre-session backup.
+- Probe users `cp1p*`, `cp3*` and the probe companies: deleted. **No `prisma_*`
+  database remains.**
+- Demo integrity unchanged: sales **7 / 10 051.00** · 1 company · 9 users ·
+  audit **559** rows, grown and never deleted.
+- ℹ️ `settingsprobe` and three `i2p9b1b04_*_spent` accounts still pre-date these
+  sessions; inactive, left alone rather than deleted without authorisation.
+
+### Ports
+
+The API on **3010** and the web preview on **8090** were mine and are stopped.
+I issued no command against **8081**: it was listening at takeover and is not
+now, and I cannot account for that.
+
+### Backup
+
+`phonestore-cp1-20260825-035922.sql` in `~/erp-backups` — 514 KB, verified
+("Dump completed"), taken before migration `0055` per
+[`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md).
 
 ## Verification at close
 
 | Check | Result |
 |---|---|
-| Backend suites | **91 suites / 1585 tests**, green |
+| Backend suites | **91 suites / 1604 tests**, green |
 | Backend `tsc -p tsconfig.build.json` | clean |
-| Prisma validate / migrate status | valid · **53 migrations**, up to date |
+| Prisma validate / migrate status | valid · **54 migrations**, up to date |
 | Database triggers | **21** |
 | Mobile `tsc` | clean |
 | Mobile lint | clean *(one warning in Expo's generated `.expo/types/router.d.ts` — pre-existing)* |
-| Mobile pure suites | **18/18** — run with `node lib/<name>.test.ts`, **not jest** |
+| Mobile pure suites | **19/19** — run with `node lib/<name>.test.ts`, **not jest** |
 | **Expo Doctor** | **18/18, no issues** |
-| Web export | **62 routes**, including `/money-hub`, `/money`, `/login`, `/sync` |
-| EN/AR/FR parity | **1731 / 1731 / 1731**, identical order, nothing missing either way |
-| Live CP3 (HTTP + MySQL) | **35/35** — see [`docs/35`](docs/35_AUTHENTICATION_IDENTITY_AUDIT.md) |
-| Browser (EN/AR/FR, 1280×720 and 375×812) | Money tab and sign-in verified as Owner, Manager, Employee |
-
-A tab route emits both a group and a bare route, so CP2's one new file added
-two: 60 → 62 is expected, not drift.
+| Web export | **63 routes** — 62 plus `/appearance` |
+| EN/AR/FR parity | **1738 / 1738 / 1738**, identical order |
+| Live CP1 (HTTP + MySQL) | **22/22** — see [`docs/36`](docs/36_LOGIN_CONTACT_TRANSITION.md) |
+| Browser, dark | **19 routes** swept: no light surface, no text under 3:1 |
+| Browser, light | swept clean |
+| Browser, languages | AR→FR with the theme surviving; theme toggled with the language surviving |
 
 ### Demo integrity
 
-Sales **7 / 10 051.00** — unchanged from the recorded baseline · **1** company ·
-**9** users · **0** orphaned rows · audit **559** rows, grown and never deleted.
+Sales **7 / 10 051.00** — unchanged · **1** company · **9** users · audit **559**
+rows, grown and never deleted. Every probe user and probe company this session
+created was removed; **no `prisma_*` database remains**.
 
-Every probe user and the probe company this session created were removed. The
-scratch database `prisma_restore_cp3` was dropped; **no `prisma_*` database
-remains**. `settingsprobe` and three `i2p9b1b04_*_spent` accounts survive from
-earlier sessions — inactive, pre-existing, and left alone rather than deleted
-without authorisation.
+**Backup:** `phonestore-cp1-20260825-035922.sql` in `~/erp-backups` — 514 KB,
+verified, taken before migration `0055` per
+[`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md).
 
-**Backup:** `phonestore-cp3-20260822-052409.sql` (in `~/erp-backups`), taken before migration `0054` and
-restore-proven into `prisma_restore_cp3` per
-[`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md). The restore target had to be a
-`prisma_*` name: the migrator account holds `ALL` on `phonestore` and
-`prisma\_%` only.
-
-**Ports:** the API on 3010 and the web preview on 8090 were started by this
-session and have been stopped. The user's own Expo dev server on **8081** was
-never touched.
+**Ports:** 3010 and 8090 were mine and are stopped. No command was issued
+against 8081.
 
 ---
 
@@ -207,22 +258,24 @@ Milestones H, I, J, J.1, K and L is unrun.** They need real hardware:
 
 ## Next action
 
-**The IMEI scanner patch**, which this brief deliberately deferred, followed by
-a physical-device QA and release-candidate pass. A–L is complete and the two
-approved corrections have landed; what the product needs next is somebody
-holding a cheap Android phone in a real shop, working through
-[`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) from the top — the scanner rows and
-the new sign-in rows especially.
+**The IMEI scanner milestone**, which this brief deliberately deferred, then a
+physical-device QA and release-candidate pass through
+[`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md).
 
-Two things a next session should know before touching authentication:
+Three things a next session should know:
 
-1. **No user in the demo database has a phone number.** The account chooser is
-   therefore unreachable in normal use and has only ever been exercised by
-   probes. If it matters, give two users the same phone in different companies
-   before testing it.
-2. **`login` is still on the `users` table** and still used by the legacy
-   lookups. Removing it is a separate migration and was deliberately not folded
-   into a login change.
+1. **Five active users still have no contact.** The legacy personal-ID sign-in
+   cannot be removed until that count reaches zero — the query is in
+   [`docs/36`](docs/36_LOGIN_CONTACT_TRANSITION.md). Enrol real contacts through
+   `PATCH /v1/users/:id`; **never invent an address for a real user**, because
+   one nobody owns is worse than none.
+2. **The theme audit is a source audit.** `node lib/design/theme.test.ts`
+   refuses a module-scope colour sheet, a static palette import, a raw hex or
+   `rgba`, a ramp step used as a surface, a colour utility class, and an
+   `isDark ?` branch in a screen. If it fails, the screen is stuck in one theme
+   — that is the point, not pedantry.
+3. **The web build cannot evidence RTL or a cold-start flash.** Direction needs
+   a relaunch there, and there is no native splash. Both need a device.
 
 To run the app:
 
