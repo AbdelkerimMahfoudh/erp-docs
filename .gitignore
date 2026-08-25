@@ -1,11 +1,12 @@
 # This repository holds the product documentation and the project rulebook.
 #
-# `backend/` and `mobile/` are their own git repositories with their own
+# `backend/`, `mobile/` and `retail-erp-control-web/` are their own git repositories with their own
 # history (erp-backend, erp-mobile) and are deliberately excluded here — a
 # nested repo would otherwise be committed as an opaque gitlink pointing at a
 # commit this repository cannot resolve.
 backend/
 mobile/
+retail-erp-control-web/
 
 # ── Local tooling & secrets ────────────────────────────────────────────────
 .claude/

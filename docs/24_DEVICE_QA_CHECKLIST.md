@@ -1182,3 +1182,44 @@ most device rows arrive with them. What already needs a device:
 The `Create account` link and the registration, customer-portal and
 administration websites. The link deliberately does not ship until there is a
 signup URL to point it at — dead UI would be worse than waiting.
+
+---
+
+## Create account, and subscription states (Phase 2)
+
+Browser-verified at 375×812 and desktop, in EN/AR/FR, light and dark.
+**Browser verification is not device verification** — the rows below are what a
+phone still has to answer.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Open sign-in with no account | A clear **Create account** action under Sign in |
+| 2 | Tap it twice, quickly | **One** browser opens, not two |
+| 3 | Tap it with no signup URL configured | A plain message, not a dead tap |
+| 4 | Tap it with no browser available | A different message — the two causes are distinct |
+| 5 | Complete registration on the phone's browser, then return | The account exists; the app still says pending |
+| 6 | Sign in as a **pending** Owner | "Waiting for activation", no till, a link to the account page |
+| 7 | Sign in as a **suspended** Owner | "Access suspended" — never "expired" |
+| 8 | Sign in as an **expired** Owner | Everything readable; new entries paused |
+| 9 | Have the business activated, then tap **Check again** | Straight into the app — no reinstall, no clearing storage |
+| 10 | The blocked screen in Arabic | Mirrors correctly; nothing clipped |
+| 11 | The blocked screen at large text | Both buttons still reachable |
+| 12 | Look anywhere for a Store ID or personal ID | There is none |
+
+### The website on a real phone browser
+
+| # | Do this | Expect |
+|---|---|---|
+| 13 | Register at 375px wide | Every field reachable; no sideways scrolling |
+| 14 | Register in Arabic | Form mirrors; the price breakdown reads correctly |
+| 15 | Open the administration portal on a phone | Tables become cards, not a squeezed grid |
+| 16 | Switch theme and language on the phone | Both persist across a reload, independently |
+
+### What only a device can answer
+
+Whether the browser handoff actually works from Expo Go and from a standalone
+build · whether the returning-from-browser path keeps the login screen's state ·
+whether a real phone keyboard covers the code field during verification ·
+whether the account page is readable on a cheap phone in sunlight · whether the
+`Check again` round trip is fast enough on a slow connection that somebody
+believes it worked.

@@ -1,9 +1,12 @@
 # 37 — Platform control: registration, subscriptions, administration
 
-> The backend contract for the platform-control product. The three web surfaces
-> — public registration, the customer portal and the administration portal —
-> are built on top of this and are **not** part of this checkpoint. See
-> "What is not built yet".
+> The backend contract for the platform-control product.
+>
+> **Phase 1 (this document) built the contract; Phase 2 built the website and
+> the pricing on top of it** — see "Phase 2 — what changed" at the end, and
+> [`docs/38`](38_CONTROL_WEBSITE.md). Where the two disagree, Phase 2 is
+> current; the Phase 1 text is kept because it records WHY each decision was
+> taken.
 
 ## The shape of it
 
@@ -243,3 +246,66 @@ Public deployment of the administration portal needs, at minimum:
 4. A physical and security review of the deployment itself — TLS termination,
    cookie `secure` in production, IP allow-listing, and where the portal is
    reachable from.
+
+---
+
+## Phase 2 — what changed
+
+The "not built yet" list above is now largely built. See
+[`docs/38`](38_CONTROL_WEBSITE.md) for the website itself.
+
+### Pricing exists, and it is the server's
+
+`docs/37` said "no money, deliberately", because no plan or price existed
+anywhere. The approved Standard plan now does: **500 MRU per active branch, two
+staff included per branch pooled company-wide, 100 MRU per additional active
+non-Owner account**, integer MRU, no prorating, no trial, 72-hour grace.
+
+Two models carry it, both additive (`0058`):
+
+- **`plan_versions`** — the plan's price over time, effective-dated. A version
+  may never start in the past.
+- **`billing_periods`** — an immutable snapshot per period. It **copies** the
+  unit prices rather than joining to the plan, so a new price scheduled tomorrow
+  cannot rewrite what a shop was told last March. It keeps a high-water mark
+  **per component**, which is what stops a branch added mid-period from
+  refunding an extra-staff charge already assessed.
+
+The dashboard still shows **no revenue figure**. Payment history is still
+incomplete by construction.
+
+### Contact verification exists
+
+`contact_verifications` was created in `0056`; the service and the routes are
+now real. Codes are purpose-bound to a destination, single-use, short-lived,
+attempt-limited, rate-limited, and stored only as a hash folded with the
+destination — so a code stolen for one contact cannot be replayed against
+another.
+
+**No provider is configured.** The development outbox handles delivery, the
+registration screen says plainly that nothing was sent, and production gets a
+provider that throws rather than one that lies.
+
+One bug worth recording: the outbox was provided with `useClass`, which made
+Nest build a **second instance** — so the outbox that stored a code and the one
+that was later read were different objects, and the code was silently never
+found. `useExisting` aliases the single registered instance. The browser found
+this; no test did.
+
+### The website exists
+
+Public registration, the customer portal and the administration portal, in one
+React + TypeScript application with three separately guarded route areas. Setup,
+security and operations are in [`docs/38`](38_CONTROL_WEBSITE.md).
+
+### Mobile integration exists
+
+A configured `Create account` action on the login screen, and pending,
+suspended and expired screens driven by the server's state with no date
+arithmetic on the device.
+
+### Still outstanding
+
+Administrator **MFA** · a real **contact-delivery provider** · a **payment
+provider** · **domain, DNS and TLS** · a deployment and security review. None is
+faked, and no toggle pretends otherwise.

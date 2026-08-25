@@ -2533,3 +2533,90 @@ platform. No impersonation.
 Different feature, different purpose. 2FA still does not exist and still has no
 toggle. No delivery provider is configured, so the boundary and a development
 outbox exist and production refuses rather than claiming a message was sent.
+
+---
+
+## Subscription pricing, and the control website (Phase 2)
+
+Architecture in [`docs/37`](37_PLATFORM_CONTROL.md); website setup and security
+in [`docs/38`](38_CONTROL_WEBSITE.md).
+
+### ✅ APPROVED — the Standard plan, verbatim
+
+- **One subscription per company.**
+- **500 MRU per month per active branch.**
+- **Two active staff accounts included per branch**, pooled **company-wide**.
+- **100 MRU per month per additional active non-Owner account.**
+- A user assigned to several branches **counts once**.
+- The **Owner is never charged**.
+- **No prorating.** An addition costs the complete month immediately; a removal
+  reduces only the **next** renewal.
+- **No free trial.**
+- **72-hour grace**, unchanged.
+- **Integer MRU** throughout. No float touches an amount.
+
+The five approved examples, verified against the live server:
+
+| Branches | Staff (excl. Owner) | Monthly |
+|---|---|---|
+| 1 | 0 | 500 MRU |
+| 1 | 2 | 500 MRU |
+| 1 | 3 | 600 MRU |
+| 2 | 4 | 1 000 MRU |
+| 2 | 5 | 1 100 MRU |
+
+The allowance is pooled rather than per-branch because a shop that hires its
+second person at the quieter branch has not changed what it owes, and a
+per-branch allowance would penalise exactly that sensible arrangement.
+
+### ✅ APPROVED — a period's price cannot be rewritten later
+
+Plan versions are **effective-dated**, and a scheduled price may never start in
+the past. Each billing period **copies** the unit prices in force when it opened
+rather than joining to the plan. A join would mean the figure a shop saw in
+March changes the day somebody schedules a new price — precisely what an
+immutable snapshot exists to prevent.
+
+The period keeps a **high-water mark per component**, not on the total. That
+matters for one case that is easy to get wrong: a shop with one branch and three
+staff has been charged 100 MRU for the third; adding a second branch raises the
+pool to four, and a naive recalculation would price the staff fee at zero and
+hand back money the no-prorating rule says is not refundable.
+
+A company that has never been billed reports **`available: false`**, not zero.
+Zero would read as "billed nothing", which is a different and untrue statement.
+**No billing history was fabricated for the demo tenant.**
+
+### ✅ APPROVED — one website, three areas, one security boundary
+
+`/public`, `/account` and `/admin` in a single React + TypeScript application.
+An Owner can never enter `/admin`: the areas read different credentials from
+different backend realms, so the refusal is structural.
+
+**No credential is ever written to browser storage.** The administrator session
+is an HttpOnly cookie; the Owner's tenant token lives in memory for a visit.
+Exactly two storage keys exist, both preferences.
+
+**The website computes no price.** Every figure is the server's, and a test
+refuses any component that multiplies a unit price.
+
+### ✅ APPROVED — contact verification, without pretending
+
+At least one contact is verified during registration. No provider is configured,
+so codes go to a development outbox, the screen says plainly that nothing was
+sent, and **production refuses rather than claiming delivery**. Codes are
+purpose-bound, single-use, short-lived, attempt-limited, rate-limited and stored
+only as a hash folded with the destination.
+
+This is **not** login 2FA, which still does not exist and still has no toggle.
+
+### ✅ APPROVED — the mobile app can now send somebody to sign up
+
+A clear secondary `Create account` action on the login screen, opening a
+**configured** URL — never a hardcoded localhost or production domain. A second
+tap cannot open two browser sessions, and a missing configuration is reported
+differently from a browser that will not open.
+
+Pending, suspended and expired each get their own screen, chosen by the
+**server's** state with no date arithmetic on the device. Re-checking lets a
+newly activated shop straight in, with no reinstall and no clearing storage.

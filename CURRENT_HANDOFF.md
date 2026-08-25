@@ -6,69 +6,113 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-27T00:00Z`
-- **Authorised task — platform control, Phase 2.** Approved subscription
-  pricing, the real public/customer/administration website, and mobile
-  account-creation and subscription-state handling. Reuse the Phase 1 backend
-  contract; do not rebuild it. **Do not begin the IMEI scanner milestone.**
-- HEADs at takeover — `erp-backend` `cb69e0d` · `erp-mobile` `4728d5a` ·
-  `erp-docs` `2004912`. All three clean and level with their remotes.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- `closed_at_utc:` `2026-08-27T12:00Z`
+- **Authorised task — platform control, Phase 2. COMPLETE.** Approved pricing,
+  the real public/customer/administration website, and mobile account creation
+  and subscription-state handling. **The IMEI scanner milestone was not begun.**
+- HEADs at close — `erp-backend` `7f12a08` · `erp-mobile` `d9d912d` ·
+  `erp-docs` this commit · **`retail-erp-control-web` `ef71085` — local only.**
+- HEADs at takeover were `cb69e0d` / `4728d5a` / `2004912`.
 
-### Baseline verified
+### 🔴 The one discrepancy, and it was mine
 
-| Expected | Found |
-|---|---|
-| Backend 93 suites / 1625 tests | ✅ exactly |
-| Mobile 19 pure suites | ✅ |
-| EN/AR/FR 1738 keys each | ✅ identical order |
-| Mobile tsc clean | ✅ |
-| Repos clean, pushed, level | ✅ all three |
-| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
-| Demo tenant unchanged | ✅ 1 company · 9 users · sales 7 / 10 051.00 |
+The prompt and my previous handoff both say **57 migrations**. There are **56**,
+numbered `0001`..`0057` — **`0005` does not exist** and has not for a long
+time. I wrote "57" last session by reading the highest number rather than
+counting. With `0058` applied this session the count is now **57**, numbered to
+`0058`. Nothing was ever missing.
 
-### 🔴 Discrepancy — the migration count was wrong, and it was mine
+### The website
 
-The prompt and my own previous handoff both say **57 migrations**. There are
-**56**, numbered `0001`..`0057` — **`0005` does not exist**, and has not for a
-long time.
+```
+C:\wamp64\www\PhoneStoreERP\retail-erp-control-web
+```
 
-I wrote "57" last session by reading the highest number rather than counting
-the folders. Corrected here and at close. The database is up to date and
-nothing is missing; only the figure was wrong.
+**No remote is configured.** Every commit is local. A remote was not invented —
+pushing product source to a repository nobody chose would be worse than waiting.
+Add one when ready:
 
-### Next intended action
+```bash
+git -C retail-erp-control-web remote add origin <url>
+```
 
-CP1 — the canonical pricing model, extending the existing subscription
-lifecycle rather than introducing competing records.
+Running it, and creating the first administrator, are in
+[`docs/38`](docs/38_CONTROL_WEBSITE.md).
 
-## Verification at close
+### The approved pricing, verbatim
+
+One subscription per company · **500 MRU** per month per active branch · **two**
+active staff accounts included per branch, **pooled company-wide** · **100 MRU**
+per additional active non-Owner account · a multi-branch user counts **once** ·
+the Owner is **never** charged · **no prorating** — an addition costs the whole
+month immediately, a removal reduces only the next renewal · **no free trial** ·
+**72-hour grace** · **integer MRU** throughout.
+
+All five approved examples verified against the live server: 500 / 500 / 600 /
+1 000 / 1 100 MRU.
+
+### Three bugs the browser found that no test did
+
+1. **Two outbox instances.** `useClass` made Nest build a second one, so the
+   outbox that stored a verification code and the one later read were different
+   objects — the code was silently never found. `useExisting` fixes it.
+2. **`localhost` vs `127.0.0.1`.** The site's API base defaulted to
+   `127.0.0.1` while the page was served from `localhost`, making the session
+   cookie cross-site; `SameSite=Lax` correctly withheld it and every request
+   came back 401 while the sign-in that set it looked fine. The base now follows
+   the page's own hostname.
+3. **A false claim in the copy.** "We sent a code to…" was shown while nothing
+   had been sent. Corrected in all three languages.
+
+### Verification
 
 | Check | Result |
 |---|---|
-| Backend suites | **93 suites / 1625 tests**, green |
-| Backend `tsc -p tsconfig.build.json` | clean |
-| Prisma validate / migrate status | valid · **57 migrations**, up to date |
-| Database tables / triggers | **81** / **24** |
-| Live platform lifecycle (HTTP + MySQL) | **36/36** — see [`docs/37`](docs/37_PLATFORM_CONTROL.md) |
-| Mobile | **untouched this session** — last verified 19 pure suites, 1738 keys, Doctor 18/18, 63 routes |
-| Control website | **not built** — scoped to the next session by agreement |
-| Browser verification | **none this checkpoint**, because no web surface exists yet |
+| Backend | **94 suites / 1650 tests** · tsc clean · Prisma valid · **57 migrations** |
+| Enum audit | **69** MySQL enum columns, all declared Prisma enums; `STRICT_ALL_TABLES` refuses a bad value with 1265 |
+| Mobile | tsc clean · lint clean *(pre-existing `.expo` warning)* · **19 pure suites** · **30 drift assertions** · Doctor **18/18** · **1752 keys** identical EN/AR/FR |
+| Website | tsc clean (app and tests separately) · lint clean · **14 contract tests** · production build green · `npm audit` **0 vulnerabilities** |
+| Live pricing | **16/16** against the real quote endpoint |
+| Browser | registration end to end · admin sign-in · pending queue · activation by grant with **no payment row** · dark · Arabic RTL · French · 375px |
+
+⚠️ **Browser verification is not device verification**, and nothing here was run
+on a phone.
+
+### Migration and backup
+
+`0058_billing_plans` — additive. Backup
+`phonestore-0058-20260825-091717.sql`, verified and restore-proven (81 tables,
+9 users). Scratch database dropped.
+
+### Dependencies added
+
+Website only: `react-router-dom` (a real router) and `vitest`,
+`@testing-library/react`, `@testing-library/user-event`, `jsdom` (tests).
+**`npm audit`: 0 vulnerabilities.** No query library, no form library, no admin
+template. Backend and mobile added **nothing** — `expo-linking` was already
+present.
 
 ### Demo integrity
 
-**1** company · **9** users · sales **7 / 10 051.00** · audit **559** rows ·
-demo subscription still `activated`. Every probe company and the probe
-administrator were removed; **platform audit rows were kept deliberately**.
+**1** company · **9** users · sales **7 / 10 051.00** · subscription still
+`activated` · **0 billing periods and 0 subscription payments** — no history was
+fabricated for it. The five contactless legacy users keep their hidden
+personal-ID path.
 
-The five contactless legacy users keep their hidden personal-ID path. The count
-is still **5**, and registration can no longer create a sixth — it requires a
-contact.
+### Cleanup
 
-**Ports:** 3010, 8090 and 8081 are all free. No `prisma_*` database remains.
+Probe companies, the probe administrator and verification rows removed; **audit
+rows kept deliberately** (24). CORS reverted. Ports **3010, 5173, 8090, 8081 all
+free**. No `prisma_*` database remains.
 
----
+### Unresolved production work
+
+Administrator **MFA** · a real **email/WhatsApp provider** · **Bankily** or
+another payment provider · **domain, DNS and TLS**, cookie `secure` in
+production · a deployment and security review. None is faked, and no toggle
+pretends otherwise.
 
 ## Entitlement and grace semantics (K)
 
@@ -182,47 +226,44 @@ Milestones H, I, J, J.1, K and L is unrun.** They need real hardware:
 
 ## Next action
 
-**Build the web project**, on the contract this checkpoint proved.
+**A remote for the website**, then a physical-device pass.
 
-One React + TypeScript application (Vite, npm — the workspace's package
-manager), three strictly separated areas: public registration, the customer
-portal, and platform administration. It will need its **own repository**, and
-will have **no configured remote** until one is created — record that rather
-than pushing anywhere else.
-
-The endpoints it consumes all exist and are live-verified:
-
-```
-POST /api/v1/platform/register            public, idempotent
-POST /api/v1/platform/admin/sign-in       public, rate-limited, sets HttpOnly cookie
-GET  /api/v1/platform/dashboard           admin
-GET  /api/v1/platform/businesses[/:id]    admin
-GET  /api/v1/platform/pending             admin
-POST /api/v1/platform/businesses/:id/{activate-grant,extend,suspend,reinstate,cancel,payments}
-GET  /api/v1/platform/audit               admin
-GET  /api/v1/entitlement                  tenant — readable in EVERY state
+```bash
+git -C retail-erp-control-web remote add origin <url>
+git -C retail-erp-control-web push -u origin master
 ```
 
-Four things the next session should know before starting:
+Then work [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) from the top on a real
+phone — the Create-account handoff, the three subscription-state screens, and
+the website in a phone browser have all been verified in a desktop browser and
+**none of it on a device**.
 
-1. **Show no money.** The server computes none, and the dashboard returns
-   `revenue: null` on purpose. Any figure on a screen would be invented.
-2. **High-impact actions need `confirmPassword`** in the body, and send
-   `expectedVersion` — a stale version returns **409** and the UI must refresh
-   to the winning state rather than retrying blindly.
-3. **Never put the admin session in `localStorage`.** It is an HttpOnly cookie;
-   the browser sends it. The bearer fallback exists only outside production.
-4. **Mobile integration waits for a signup URL.** The `Create account` link and
-   the pending/suspended status screens land once there is a site to point at —
-   shipping dead UI would be worse than waiting.
+Four things to know before touching this:
 
-To run the app:
+1. **The website computes no price.** Every figure is the server's, and a test
+   refuses any component that multiplies a unit price.
+2. **No credential may reach browser storage.** Exactly two keys are allowed,
+   both preferences; a test enforces it.
+3. **Plan versions are never retroactive**, and billing periods copy their unit
+   prices. Editing a past price is not possible by design, not by convention.
+4. **The five contactless legacy users still exist** and still rely on the
+   hidden personal-ID sign-in. `docs/36` has the query that says when it can go.
+
+To run everything:
 
 ```bash
 cd backend && npm run start:dev
 ```
 
-To create an administrator to sign in with:
+```bash
+cd retail-erp-control-web && npm run dev
+```
+
+```bash
+cd mobile && npx expo start
+```
+
+To create a platform administrator (never paste a real password anywhere):
 
 ```bash
 cd backend && PLATFORM_ADMIN_PASSWORD='…' npx ts-node prisma/create-platform-admin.ts you@example.com "Your Name"

@@ -5274,3 +5274,99 @@ contact-delivery provider, a payment provider, and a deployment review.
 
 **Commits:** backend `cb69e0d` · mobile unchanged at `4728d5a` · docs the commit
 carrying this entry.
+
+---
+
+## 2026-08-27 — CLAUDE-B — Phase 2: pricing, the website, and mobile integration
+
+**Takeover matched every expectation** — 93 suites / 1625 tests, 19 pure suites,
+1738 keys, Doctor 18/18, demo tenant untouched. **One discrepancy, and it was
+mine**: the handoff said 57 migrations by reading the highest number rather than
+counting. There are 56, numbered `0001`..`0057` — `0005` has not existed for a
+long time. Nothing missing; only the figure wrong.
+
+**CP1 — pricing.** The approved Standard plan: 500 MRU per active branch, two
+staff included per branch **pooled company-wide**, 100 MRU per additional active
+non-Owner account, integer MRU, no prorating, no trial, 72-hour grace. Pooled
+rather than per-branch because a shop that hires its second person at the
+quieter branch has not changed what it owes.
+
+No prorating cuts both ways, and the period snapshot keeps a high-water mark
+**per component** to make it so. That matters for one case that is easy to get
+wrong: one branch with three staff has been charged 100 for the third; adding a
+second branch raises the pool to four, and a naive recalculation would price the
+staff fee at zero and refund money the rule says is not refundable.
+
+`plan_versions` are effective-dated and never retroactive; `billing_periods`
+**copy** the unit prices rather than joining, so a price scheduled tomorrow
+cannot rewrite what a shop saw in March. A never-billed company reports
+`available: false`, not zero — zero would read as "billed nothing", which is a
+different and untrue statement. **No history was fabricated for the demo
+tenant**, verified live.
+
+**CP2 — contact verification.** Codes purpose-bound to a destination,
+single-use, short-lived, attempt-limited, rate-limited, stored only as a hash
+folded with the destination. No provider is configured, so the outbox handles
+delivery, the screen says plainly nothing was sent, and production refuses
+rather than lying.
+
+**CP3–CP6 — the website.** `retail-erp-control-web`, React + TypeScript + Vite,
+three separately guarded areas. **It has no remote**; every commit is local, and
+a remote was not invented. No credential reaches browser storage — the
+administrator session is an HttpOnly cookie (verified: `document.cookie` is
+empty on a signed-in page), the Owner's token is a module variable for a visit,
+and exactly two storage keys exist, both preferences. The site computes no
+price; a test refuses any component that multiplies a unit price.
+
+**CP7 — mobile.** A configured `Create account` action with a duplicate-tap
+guard and distinct messages for "not configured" and "no browser". Pending,
+suspended and expired screens chosen by the **server's** state with no date
+arithmetic on the device; re-checking lets a newly activated shop straight in.
+
+**Three bugs the browser found that no test did.**
+
+1. **Two outbox instances.** `useClass` made Nest build a second one, so the
+   outbox that stored a code and the one later read were different objects and
+   the code was silently never found. `useExisting` aliases the single instance.
+2. **`localhost` vs `127.0.0.1`.** The site's API base defaulted to
+   `127.0.0.1` while the page was served from `localhost`, making the session
+   cookie cross-site — `SameSite=Lax` correctly withheld it and every request
+   came back 401 while the sign-in that set it looked perfectly fine. The base
+   now follows the page's own hostname.
+3. **A false claim in the copy.** "We sent a code to…" was shown while the
+   outbox had sent nothing. Corrected in all three languages.
+
+**Verification.** Backend **94 suites / 1650 tests**, tsc clean, Prisma valid,
+**57 migrations** (`0058` applied), backup `phonestore-0058-20260825-091717.sql`
+taken and restore-proven. Every MySQL enum audited against the schema: **69 enum
+columns, all declared Prisma enums**, and under `STRICT_ALL_TABLES` a bad value
+is refused with 1265 rather than coerced to `''`.
+
+Mobile: tsc clean, lint clean but for the pre-existing generated `.expo`
+warning, **19 pure suites**, **30 drift assertions** (8 new), Doctor 18/18,
+**1752 keys** in identical order across EN/AR/FR.
+
+Website: tsc clean for app and tests separately, lint clean, **14 contract
+tests**, production build green, `npm audit` **0 vulnerabilities**.
+
+**16/16 live pricing checks** against the real quote endpoint — all five
+approved examples, the Manager-counts-as-staff rule, the Owner exclusion, the
+multi-branch-counts-once rule, disabled users and archived branches dropping out
+of the next renewal, integer arithmetic, and no fabricated demo history.
+
+**Browser verification**: registration end to end (four steps, "Activation
+pending", 500 MRU shown), administrator sign-in, the pending queue, activation
+through the high-friction dialog (days, reason, password) producing an
+`administrative_grant` and **no payment row**, dark mode, Arabic RTL, French,
+and 375px where wide tables become cards. **Not device verification.**
+
+**Cleanup.** Probe companies, the probe administrator and verification rows
+removed; audit rows kept deliberately. CORS reverted. Ports 3010, 5173, 8090 and
+8081 all free. No `prisma_*` database remains. Demo unchanged: 1 company, 9
+users, sales 7 / 10 051.00.
+
+**Not begun:** the IMEI scanner milestone, Bankily, login 2FA, deployment,
+impersonation.
+
+**Commits:** backend `7f12a08` · mobile `d9d912d` · control-web `ef71085`
+(local only) · docs the commit carrying this entry.
