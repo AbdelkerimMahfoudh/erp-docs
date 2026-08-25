@@ -6,113 +6,42 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- `closed_at_utc:` `2026-08-26T12:00Z`
-- **Authorised task — the first testable platform-control platform.**
-  Scoped, with the user's agreement, to the **backend contract first**; the three
-  web surfaces are built next session on a proven contract. Contact login, dark
-  mode, the Money tab and all A–L work are untouched. **The IMEI scanner
-  milestone was not begun.**
-- HEADs at close — `erp-backend` `cb69e0d` · `erp-mobile` `4728d5a`
-  (unchanged) · `erp-docs` the commit carrying this snapshot.
-- HEADs at takeover were `6347f96` / `4728d5a` / `0cb99da`.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-27T00:00Z`
+- **Authorised task — platform control, Phase 2.** Approved subscription
+  pricing, the real public/customer/administration website, and mobile
+  account-creation and subscription-state handling. Reuse the Phase 1 backend
+  contract; do not rebuild it. **Do not begin the IMEI scanner milestone.**
+- HEADs at takeover — `erp-backend` `cb69e0d` · `erp-mobile` `4728d5a` ·
+  `erp-docs` `2004912`. All three clean and level with their remotes.
 
-### 🔴 The brief assumed a subscription engine that did not exist
+### Baseline verified
 
-Audited in the schema and `entitlement-rules.ts` before any code changed.
-Milestone K deliberately built almost none of it:
-
-- no `pending_activation`, `suspended` or `cancelled` — only
-  `active | grace | expired | complimentary`, all derived from dates;
-- **no Plan model and no price anywhere on the server**;
-- `Payment` is a **till** payment carrying `sale_id`, not a subscription one;
-- platform administration was a shared `PLATFORM_ADMIN_KEY` on a `@Public()`
-  controller — no accounts, sessions or revocation;
-- no registration endpoint, and no contact-delivery adapter of any kind;
-- no web project, and npm as the package manager.
-
-**Two decisions were taken by the user before building:** show no money at all
-this checkpoint, and do the backend contract first.
-
-### What shipped
-
-- **Lifecycle** — `subscriptions.status` records where an administrator has
-  *put* a subscription. Default `activated` means "the dates decide", exactly
-  how every existing row behaved, so nothing changed for the demo tenant.
-  `pending` and `suspended` close the operational app; **expiry still hides
-  nothing**, and the account surface stays readable in every state.
-- **Registration** — company, branch, Owner and a pending subscription in one
-  transaction, idempotent on a client key, every identifier server-generated.
-  At least one contact required. No free trial.
-- **Administrators** — their own table with no `company_id`, HttpOnly-cookie
-  sessions, step-up password confirmation, revocation, CLI-only creation with
-  the password from the environment. No default credential in the repository.
-- **Grants vs payments** — separate tables, separate acts. A grant creates no
-  payment row; every payment response carries `providerVerified: false`.
-- **No money computed anywhere.** The dashboard returns `revenue: null`
-  deliberately.
-
-Full architecture, and why each deferred piece waits, in
-[`docs/37`](docs/37_PLATFORM_CONTROL.md).
-
-### The live check found four bugs no unit test could
-
-1. `recordFor` omitted `status`, so a **pending business read as EXPIRED**.
-2. **Every administrator route 401'd a valid session** — the global tenant guard
-   runs first and looks for a shop's JWT.
-3. **`/entitlement` blocked itself** — the endpoint that tells the app it is
-   pending.
-4. **`subscription_events.kind` is an ENUM** carrying only Milestone K's
-   vocabulary, while `schema.prisma` called it a `String`. With this server's
-   **empty `sql_mode`** every new kind was accepted by Prisma and silently
-   coerced to `''`. The row was created, the request succeeded, and only reading
-   it back showed the kind was gone.
-
-### Verification
-
-- **Backend** 93 suites / **1625 tests** (up from 1604) · tsc clean · Prisma
-  valid · **57 migrations**, up to date.
-- **Mobile** untouched this session; last verified at 19 pure suites, 1738 keys,
-  Doctor 18/18, 63 routes.
-- **36/36 live HTTP/MySQL checks** — the full lifecycle, isolation, the audit
-  timeline, redaction and revocation.
-- ⚠️ **Nothing is physical-device verified**, and there is **no browser
-  verification** this checkpoint because no web surface was built.
-
-### Migrations and backups
-
-| | |
+| Expected | Found |
 |---|---|
-| `0056_platform_control` | after `phonestore-platform-20260825-070312.sql` |
-| `0057_subscription_event_kinds` | after `phonestore-0057-20260825-083428.sql` |
+| Backend 93 suites / 1625 tests | ✅ exactly |
+| Mobile 19 pure suites | ✅ |
+| EN/AR/FR 1738 keys each | ✅ identical order |
+| Mobile tsc clean | ✅ |
+| Repos clean, pushed, level | ✅ all three |
+| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
+| Demo tenant unchanged | ✅ 1 company · 9 users · sales 7 / 10 051.00 |
 
-Both dumps verified. `0056` was restore-proven (75 tables, 9 users, 7 sales) and
-all 56 migrations were replayed from empty into a disposable database — 81
-tables, 24 triggers — with constraints exercised directly in MySQL. Every
-scratch database dropped.
+### 🔴 Discrepancy — the migration count was wrong, and it was mine
 
-### Dependencies
+The prompt and my own previous handoff both say **57 migrations**. There are
+**56**, numbered `0001`..`0057` — **`0005` does not exist**, and has not for a
+long time.
 
-**None added.** `cookie-parser` was considered and refused: reading one cookie
-is eight lines, and a dependency plus its types, advisories and global
-middleware is a worse trade.
+I wrote "57" last session by reading the highest number rather than counting
+the folders. Corrected here and at close. The database is up to date and
+nothing is missing; only the figure was wrong.
 
-### Cleanup and demo integrity
+### Next intended action
 
-Probe companies and the probe administrator removed. **Audit rows kept
-deliberately** — actor text survives the admin row. Ports 3010, 8090 and 8081
-all free. No `prisma_*` database remains.
-
-Demo unchanged: **1 company · 9 users · sales 7 / 10 051.00 · audit 559** ·
-demo subscription still `activated`. The five contactless legacy users keep
-their hidden personal-ID path; the count is still **5**.
-
-### Unresolved production-security work
-
-Administrator **MFA** · a real **contact-delivery provider** · a **payment
-provider** · a deployment review (TLS, cookie `secure`, where the portal is
-reachable from). None is faked, and no toggle pretends otherwise.
+CP1 — the canonical pricing model, extending the existing subscription
+lifecycle rather than introducing competing records.
 
 ## Verification at close
 
