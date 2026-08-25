@@ -6,113 +6,67 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- `closed_at_utc:` `2026-08-27T12:00Z`
-- **Authorised task — platform control, Phase 2. COMPLETE.** Approved pricing,
-  the real public/customer/administration website, and mobile account creation
-  and subscription-state handling. **The IMEI scanner milestone was not begun.**
-- HEADs at close — `erp-backend` `7f12a08` · `erp-mobile` `d9d912d` ·
-  `erp-docs` this commit · **`retail-erp-control-web` `593b0b8` — local only.**
-- HEADs at takeover were `cb69e0d` / `4728d5a` / `2004912`.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-28T00:00Z`
+- **Authorised task — a private staging environment** for the control website,
+  the API and the mobile account-creation integration, so the Owner can test the
+  whole workflow from a real browser and phone without exposing the
+  administration system or touching the demo database.
+  **Do not begin the IMEI scanner milestone.**
+- HEADs at takeover — `erp-backend` `7f12a08` · `erp-mobile` `d9d912d` ·
+  `erp-docs` `d375847` · `retail-erp-control-web` `593b0b8` (no remote).
 
-### 🔴 The one discrepancy, and it was mine
+### Baseline verified — every expectation matched
 
-The prompt and my previous handoff both say **57 migrations**. There are **56**,
-numbered `0001`..`0057` — **`0005` does not exist** and has not for a long
-time. I wrote "57" last session by reading the highest number rather than
-counting. With `0058` applied this session the count is now **57**, numbered to
-`0058`. Nothing was ever missing.
-
-### The website
-
-```
-C:\wamp64\www\PhoneStoreERP\retail-erp-control-web
-```
-
-**No remote is configured.** Every commit is local. A remote was not invented —
-pushing product source to a repository nobody chose would be worse than waiting.
-Add one when ready:
-
-```bash
-git -C retail-erp-control-web remote add origin <url>
-```
-
-Running it, and creating the first administrator, are in
-[`docs/38`](docs/38_CONTROL_WEBSITE.md).
-
-### The approved pricing, verbatim
-
-One subscription per company · **500 MRU** per month per active branch · **two**
-active staff accounts included per branch, **pooled company-wide** · **100 MRU**
-per additional active non-Owner account · a multi-branch user counts **once** ·
-the Owner is **never** charged · **no prorating** — an addition costs the whole
-month immediately, a removal reduces only the next renewal · **no free trial** ·
-**72-hour grace** · **integer MRU** throughout.
-
-All five approved examples verified against the live server: 500 / 500 / 600 /
-1 000 / 1 100 MRU.
-
-### Three bugs the browser found that no test did
-
-1. **Two outbox instances.** `useClass` made Nest build a second one, so the
-   outbox that stored a verification code and the one later read were different
-   objects — the code was silently never found. `useExisting` fixes it.
-2. **`localhost` vs `127.0.0.1`.** The site's API base defaulted to
-   `127.0.0.1` while the page was served from `localhost`, making the session
-   cookie cross-site; `SameSite=Lax` correctly withheld it and every request
-   came back 401 while the sign-in that set it looked fine. The base now follows
-   the page's own hostname.
-3. **A false claim in the copy.** "We sent a code to…" was shown while nothing
-   had been sent. Corrected in all three languages.
-
-### Verification
-
-| Check | Result |
+| Expected | Found |
 |---|---|
-| Backend | **94 suites / 1650 tests** · tsc clean · Prisma valid · **57 migrations** |
-| Enum audit | **69** MySQL enum columns, all declared Prisma enums; `STRICT_ALL_TABLES` refuses a bad value with 1265 |
-| Mobile | tsc clean · lint clean *(pre-existing `.expo` warning)* · **19 pure suites** · **30 drift assertions** · Doctor **18/18** · **1752 keys** identical EN/AR/FR |
-| Website | tsc clean (app and tests separately) · lint clean · **14 contract tests** · production build green · `npm audit` **0 vulnerabilities** |
-| Live pricing | **16/16** against the real quote endpoint |
-| Browser | registration end to end · admin sign-in · pending queue · activation by grant with **no payment row** · dark · Arabic RTL · French · 375px |
+| Backend 94 suites / 1650 tests | ✅ exactly |
+| 57 migrations, highest `0058` | ✅ |
+| Mobile 19 pure suites, 30 drift assertions | ✅ |
+| EN/AR/FR 1752 keys each | ✅ identical order |
+| Website 14 contract tests, build green | ✅ |
+| Website at `593b0b8`, no remote | ✅ |
+| Three repos clean, pushed, level | ✅ |
+| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
 
-⚠️ **Browser verification is not device verification**, and nothing here was run
-on a phone.
+One small thing fixed on the way in: the website's `vitest` config still used
+`poolOptions`, **removed in Vitest 4**. It was silently deprecated and the
+runner intermittently reported "no tests" instead of running them. Moved to the
+top-level `maxWorkers`/`minWorkers`; three consecutive runs now report 14/14.
 
-### Migration and backup
+### Read-only discovery — what already exists
 
-`0058_billing_plans` — additive. Backup
-`phonestore-0058-20260825-091717.sql`, verified and restore-proven (81 tables,
-9 users). Scratch database dropped.
+| Thing | Found |
+|---|---|
+| Git hosting | GitHub, authenticated as **AbdelkerimMahfoudh**, scopes include `repo` and `workflow`. The three existing repositories are already under it |
+| Hosting provider | **Railway CLI authenticated**, but as **abdelkerimtalebouldsidi@gmail.com** — a different identity from the GitHub account. One project exists: "Academie Navale", unrelated |
+| Domains / DNS | **None.** No DNS tooling, and no domain configured anywhere in any repository |
+| Containers | **No Docker, no Podman, no kubectl** |
+| Reverse proxy | **None installed** |
+| Secrets management | None beyond local `.env` files, which are git-ignored |
+| CI | **No workflows** in any repository |
 
-### Dependencies added
+### 🛑 Two external decisions are ambiguous — stopping before those mutations
 
-Website only: `react-router-dom` (a real router) and `vitest`,
-`@testing-library/react`, `@testing-library/user-event`, `jsdom` (tests).
-**`npm audit`: 0 vulnerabilities.** No query library, no form library, no admin
-template. Backend and mobile added **nothing** — `expo-linking` was already
-present.
+1. **Hosting.** Railway is authenticated, but under a different identity from
+   the GitHub account, and its billing state cannot be read without risking a
+   mutation. A staging stack there is an API service, a website service and a
+   **MySQL database** — enough that "no new unknown charge" cannot be promised.
+2. **`/admin` private access.** No identity-aware proxy, VPN or IP-allowlist
+   mechanism exists. The brief is explicit that an obscure URL is not
+   protection, and that administrator MFA does not exist — so `/admin` must not
+   be exposed to the internet in this state.
 
-### Demo integrity
+Per the brief: every provider-neutral artifact is being completed regardless,
+and a **local isolated staging environment** is being stood up so the workflow
+is genuinely testable now.
 
-**1** company · **9** users · sales **7 / 10 051.00** · subscription still
-`activated` · **0 billing periods and 0 subscription payments** — no history was
-fabricated for it. The five contactless legacy users keep their hidden
-personal-ID path.
+### Next intended action
 
-### Cleanup
-
-Probe companies, the probe administrator and verification rows removed; **audit
-rows kept deliberately** (24). CORS reverted. Ports **3010, 5173, 8090, 8081 all
-free**. No `prisma_*` database remains.
-
-### Unresolved production work
-
-Administrator **MFA** · a real **email/WhatsApp provider** · **Bankily** or
-another payment provider · **domain, DNS and TLS**, cookie `secure` in
-production · a deployment and security review. None is faked, and no toggle
-pretends otherwise.
+Create the private GitHub repository for the website (unambiguous), build the
+provider-neutral staging artifacts, stand up isolated local staging, then report
+the hosting decision.
 
 ## Entitlement and grace semantics (K)
 
