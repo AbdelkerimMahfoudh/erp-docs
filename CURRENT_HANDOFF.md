@@ -6,111 +6,70 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- `closed_at_utc:` `2026-08-25T12:00Z`
-- **Authorised task — two approved changes. COMPLETE.**
-  **CP1** login finalised around email or WhatsApp number · **CP2** the
-  two-step-verification direction recorded with **no fake toggle** · **CP3**
-  complete app-wide dark mode with the language selector moved beside it.
-  **The IMEI scanner milestone was not begun**, per the brief.
-- HEADs at close — `erp-backend` `6347f96` · `erp-mobile` `4728d5a` ·
-  `erp-docs` the commit carrying this snapshot. All three clean and pushed.
-- HEADs at takeover were `29f052d` / `ae712e9` / `f142d36`.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-26T00:00Z`
+- **Authorised task — the first testable platform-control website.** A public
+  registration site, a customer subscription portal, and a private
+  platform-administration portal, over the existing backend as the source of
+  truth. Preserve contact login, dark mode, the Money tab and all A–L work.
+  **Do not begin the IMEI scanner milestone.**
+- HEADs at takeover — `erp-backend` `6347f96` · `erp-mobile` `4728d5a` ·
+  `erp-docs` `0cb99da`. All three clean and level with their remotes.
 
-### The finding that shaped CP1
+### Baseline verified — every expectation matched exactly
 
-🔴 **All five active users had neither an email nor a phone.** Audited before
-any code changed. Login restricted to contacts would have locked out 100% of
-the people using this system.
+| Expected | Found |
+|---|---|
+| Backend 91 suites / 1604 tests | ✅ exactly |
+| Mobile tsc + lint clean | ✅ |
+| 19 pure suites | ✅ |
+| EN/AR/FR 1738 keys each | ✅ identical order |
+| Expo Doctor 18/18 | ✅ |
+| 63 routes | ✅ (re-checked at close) |
+| Schema through `0055` | ✅ 55 migration folders, up to date |
+| Clean, pushed, level | ✅ all three |
+| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
 
-So the generated personal ID is **still accepted by the server and offered by
-nothing** — not a field, hint, placeholder or documented way in, and a drift
-test fails the build if it reappears on the login screen. It is a ramp, not a
-feature. [`docs/36`](docs/36_LOGIN_CONTACT_TRANSITION.md) records the exact
-condition for removing it:
+### 🔴 The brief assumes a subscription contract that does not exist
 
-```sql
-SELECT COUNT(*) FROM users WHERE is_active = 1 AND deleted_at IS NULL AND email IS NULL AND phone IS NULL;
-```
+The task describes extending a subscription engine that has plans, prices,
+payments and a lifecycle. **Milestone K deliberately built almost none of that.**
+Audited in the schema and `entitlement-rules.ts`, not inferred:
 
-**Still 5 at close.** While it is above zero, removing the `personal_id` branch
-from `classifyIdentifier` locks somebody out.
+1. **There is no `pending_activation` state.** The states are
+   `active | grace | expired | complimentary`. A company with
+   `currentPeriodEnd = NULL` computes as **`expired`** — reads allowed, writes
+   blocked. Functionally that is close to "pending", but a brand-new business
+   would be told its subscription had *expired*, which is a lie about a shop
+   that never had one.
+2. **There is no `suspended` or `cancelled` state.** `Company.isActive` is the
+   only thing resembling suspension, and it is checked at login.
+3. **There is no Plan model and no pricing anywhere on the server.** The
+   canonical decision (`docs/21`, Milestone K) is *"there is one functional
+   plan… nothing here is a feature tier"*. So a **"server-calculated price
+   breakdown" has nothing to calculate from** — no plan price, no per-seat
+   charge, no currency amount exists in the subscription domain at all.
+4. **`Payment` is a SALE payment**, not a subscription payment — it carries
+   `sale_id` and belongs to the till. There is no subscription-payment model.
+5. **Platform administration is a shared KEY, not accounts.**
+   `provisioning.controller.ts` is `@Public()` plus a `PLATFORM_ADMIN_KEY`
+   check. There are no administrator accounts, sessions, revocation or step-up
+   confirmation — and the `administrator` `RoleKey` that does exist is
+   **tenant-scoped**, which is precisely what the brief forbids.
+6. **There is no registration endpoint** and **no contact-verification delivery
+   adapter** of any kind.
+7. **No web project exists.** Package manager is **npm** (`package-lock.json` in
+   both repos). A new repository will have **no configured remote**.
 
-### What shipped
+**Per the brief, current server behaviour stays canonical** until a separate
+product decision changes it. The gap is real and is a contract gap, not a
+missing screen — so it needs a written decision, not an invented price list.
 
-- **CP1** (backend `6347f96`, mobile `f86f61f`) — one field, "Email or WhatsApp
-  number", plus a password. Migration `0055` gives email the **per-company**
-  uniqueness phone already had, so one address at two shops still reaches the
-  password-first chooser. Email case is the database's rule (`ai_ci`), not an
-  invention. Enrolment and sign-in share one phone parser. Changing a login
-  contact now asks the **actor** for their own password, ends the target's
-  sessions, cannot strip a last contact, and is audited. New users need at least
-  one contact — enforced in the service, so the seed and CLI cannot bypass it.
-- **CP2** — nothing shipped, deliberately. A switch that saved a preference and
-  protected nothing would be worse than its absence. A test refuses any 2FA UI.
-- **CP3** (mobile `9a0b22a`, `1a12e5b`, `4728d5a`) — the palette was frozen and
-  read inside module-scope `StyleSheet.create` in 46 files, so a runtime swap
-  would have changed nothing, silently. Colour now resolves during render via
-  `makeStyles`/`makeTokens`. Dark is not an inversion: success stays green,
-  danger red, warning amber. Appearance & language is one screen under Account &
-  security; the language selector **moved**, and a test asserts exactly one
-  screen may render it.
+### Next intended action
 
-### Nine defects found — six pre-existing in light mode
-
-A warning button at 4.23:1 · a placeholder at 1.8:1, invisible in sunlight ·
-hint text at 2.9:1 that the contrast test missed by only checking the card, not
-the canvas · React Navigation's own `rgb(242,242,242)` behind every screen, the
-largest surface in the app and invisible to a token audit because it is not in
-the token layer · colour utility classes chosen at runtime, marking **selected**
-state · a Tailwind class map interpolated into a template, putting
-`text-slate-700` on the analytics figure at 1.7:1 on dark · React Native Web's
-Material teal on an unstyled `Switch` · and one this change would have
-introduced: `text.inverse` redefined for dark as "on a light fill" when all five
-callers mean "on a brand button" — dark text on indigo would have shipped.
-
-### Verification
-
-- **Backend** 91 suites / **1604 tests** (up from 1585) · `tsc` clean · Prisma
-  valid · **54 migrations**, up to date.
-- **Mobile** tsc clean · lint clean but for the pre-existing generated
-  `.expo/types/router.d.ts` warning · **19 pure suites** · **1738 keys** in
-  EN/AR/FR with identical order · **Doctor 18/18** · web export **63 routes**.
-- **22 live CP1 checks** against the running API and MySQL, all passing —
-  sign-in by email and by number, non-enumeration across four failure kinds,
-  ignored spoofed tenant headers, the shared-email chooser, the legacy path,
-  per-company email uniqueness enforced by the database, and rate limiting.
-- **Browser** — **19 routes swept in dark** with no light surface and no text
-  under 3:1; light mode swept clean; AR→FR with the theme surviving, and the
-  theme toggled with the language surviving; French at 375px with no overflow.
-- ⚠️ **None of it is physical-device verified.** `docs/24` lists 22 new rows,
-  and what still needs real hardware: cold-start flash, OLED legibility,
-  sunlight, the camera overlay, keyboard appearance, and native RTL — which the
-  web build cannot evidence, since it needs a relaunch to flip direction.
-
-### Temporary changes — all undone
-
-- `backend/.env` `CORS_ORIGINS`: the `:8090` entries removed; byte-identical to
-  the pre-session backup.
-- Probe users `cp1p*`, `cp3*` and the probe companies: deleted. **No `prisma_*`
-  database remains.**
-- Demo integrity unchanged: sales **7 / 10 051.00** · 1 company · 9 users ·
-  audit **559** rows, grown and never deleted.
-- ℹ️ `settingsprobe` and three `i2p9b1b04_*_spent` accounts still pre-date these
-  sessions; inactive, left alone rather than deleted without authorisation.
-
-### Ports
-
-The API on **3010** and the web preview on **8090** were mine and are stopped.
-I issued no command against **8081**: it was listening at takeover and is not
-now, and I cannot account for that.
-
-### Backup
-
-`phonestore-cp1-20260825-035922.sql` in `~/erp-backups` — 514 KB, verified
-("Dump completed"), taken before migration `0055` per
-[`docs/22`](docs/22_BACKUP_AND_ROLLBACK.md).
+Present the plan, the files, and the risks for approval, per the rulebook's
+"BEFORE EVERY MAJOR IMPLEMENTATION". Nothing is modified until then.
 
 ## Verification at close
 
