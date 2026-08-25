@@ -1160,3 +1160,25 @@ foreground** and a low-memory kill · whether Arabic **RTL** mirrors correctly
 under the native `I18nManager` — the web build cannot flip direction without a
 relaunch, so its RTL is not evidence · whether the language-change restart
 notice is understood, and whether unsaved drafts survive it.
+
+---
+
+## Platform control — what a device still has to answer
+
+The backend contract is verified by 36 live HTTP/MySQL checks. The three web
+surfaces and the mobile integration are **not built yet** (see `docs/37`), so
+most device rows arrive with them. What already needs a device:
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Sign in on a phone as the Owner of a **pending** business | Signs in; the operational app refuses; a status screen explains why |
+| 2 | Same, for a **suspended** business | Distinct state and wording — never "expired" |
+| 3 | Same, for **expired** | Everything still readable; writes refused |
+| 4 | Activate the business from the admin API, then pull to refresh | The app enters without reinstalling |
+| 5 | Watch the pending screen in Arabic and French | Reads naturally; RTL mirrors |
+
+### Not yet testable, because it is not built
+
+The `Create account` link and the registration, customer-portal and
+administration websites. The link deliberately does not ship until there is a
+signup URL to point it at — dead UI would be worse than waiting.

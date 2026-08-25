@@ -157,3 +157,25 @@ When it is built:
 
 The settings architecture has room for it. Nothing is shipped until all of that
 is.
+
+---
+
+## Registration now creates contacts from the start
+
+Self-service registration (`docs/37`) requires **at least one** of email or
+WhatsApp number, enforced in `RegistrationService` before anything is created.
+
+So the contactless population is closed: it is exactly the five accounts that
+pre-date contact login, and it can only shrink. No path creates another.
+
+The query that says when the legacy personal-ID path can be removed is
+unchanged, and **still returns 5**:
+
+```sql
+SELECT COUNT(*) FROM users WHERE is_active = 1 AND deleted_at IS NULL AND email IS NULL AND phone IS NULL;
+```
+
+Registration also generates a personal ID for every new Owner, as before. That
+is a support reference, not a login method: it is not shown during registration,
+not returned by the registration response as something to sign in with, and not
+mentioned anywhere in the new surfaces.

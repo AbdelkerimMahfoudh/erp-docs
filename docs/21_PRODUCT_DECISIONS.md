@@ -2449,3 +2449,87 @@ Settings, where a change means "this is how the shop works".
 The language selector **moved**; it is not a second copy. A test asserts exactly
 one screen may render it. Theme and language are independent — verified live in
 both directions.
+
+---
+
+## Platform control: registration, subscriptions, administration
+
+Full architecture in [`docs/37`](37_PLATFORM_CONTROL.md).
+
+### ✅ APPROVED — one backend, three areas, strict separation
+
+Public registration, a customer portal for Owners, and a private administration
+portal for us. The existing backend is the source of truth; there is **no second
+subscription engine**. Entitlement is still calculated by `entitlement-rules.ts`.
+
+### ✅ APPROVED — Store IDs are generated, never typed
+
+Not at login, and not at registration. No Store ID, company id, branch id,
+personal ID or tenant code is ever asked for. Every internal reference is
+generated server-side. Login remains **email or WhatsApp number, plus password**.
+
+### ✅ APPROVED — new businesses begin pending, and there is no free trial
+
+Registration creates the company, first branch, Owner and a `pending_activation`
+subscription in one transaction. Succeeding at registration grants nothing; a
+person decides activation and the decision is recorded.
+
+A `pending` business cannot reach the operational app at all — it has no history
+to withhold, and opening the till would be a free trial by accident. Its Owner
+keeps the limited account surface, so they can always find out where they stand.
+
+**Expiry still hides nothing.** That rule is unchanged and load-bearing.
+
+### 🔴 FIXED — the brief's subscription contract did not exist
+
+Milestone K deliberately built no plans, no prices, no subscription payments and
+no lifecycle. Recorded before any code changed, and it shaped everything: the
+lifecycle states, the payment table and the administrator realm are all new, and
+`Payment` was left alone because it is a *till* payment carrying a `sale_id`.
+
+### ✅ APPROVED — no money is shown, because the server computes none
+
+There is no plan price or per-seat charge anywhere on the server, and the
+canonical decision is that there is one functional plan. So the portal shows
+status, period, grace, branches and seats — and **no currency figure**. The
+dashboard returns `revenue: null` deliberately: payment history is incomplete by
+construction, and a total would look authoritative without being so.
+
+Pricing is a separate decision with a Plan model behind it. Inventing one here
+would have meant inventing numbers.
+
+### ✅ APPROVED — a manual activation is a grant, never a fabricated payment
+
+An **administrative grant** says we gave this shop access, for a reason, for a
+period, and creates no payment row. A **payment** is a separate append-only
+record of money a named person says they saw. Collapsing them would let a test
+activation look, months later, exactly like a shop that paid.
+
+Recording a payment does not extend anything — bundling them would mean a
+mistyped amount silently moved an expiry date.
+
+**Bankily and every other provider is deferred.** Nothing contacts a provider,
+and every payment response carries `providerVerified: false` explicitly.
+
+### ✅ APPROVED — platform administrators are not tenant Owners
+
+Their own table with no `company_id`. A `RoleKey` on `users` was rejected
+because a tenant role lives inside a company — a shop able to create roles would
+have a path to minting a platform administrator.
+
+Created only by CLI, with the password from the environment rather than an
+argument. No default credential exists anywhere in the repository. Sessions are
+HttpOnly cookies, never `localStorage`; high-impact actions re-verify the
+password; sign-out revokes.
+
+### ✅ APPROVED — the platform portal does not expose operational shop data
+
+No sales, IMEIs, cost prices, margins or expenses — not filtered out, but never
+queried. Being able to see a shop's takings is not part of administering a
+platform. No impersonation.
+
+### ✅ APPROVED — contact verification is not two-step login verification
+
+Different feature, different purpose. 2FA still does not exist and still has no
+toggle. No delivery provider is configured, so the boundary and a development
+outbox exist and production refuses rather than claiming a message was sent.

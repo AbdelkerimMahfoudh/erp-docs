@@ -5192,3 +5192,85 @@ is not now, and I cannot account for that.
 
 **Commits:** backend `6347f96` · mobile `4728d5a` · docs the commit carrying
 this entry. All three trees clean and pushed. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-08-26 — CLAUDE-B — the platform-control backend contract
+
+**Takeover matched every expectation exactly** — 91 suites / 1604 tests, tsc and
+lint clean, 19 pure suites, 1738 keys, Doctor 18/18, schema through `0055`, all
+three repos clean and level.
+
+**Then the audit found the brief's premise was wrong.** It describes extending a
+subscription engine with plans, prices, payments and a lifecycle. Milestone K
+deliberately built almost none of that: no `pending_activation`, no `suspended`
+or `cancelled`, **no Plan model and no price anywhere on the server**, `Payment`
+is a till payment carrying a `sale_id`, platform administration was a shared env
+key on a `@Public()` controller, and there was no registration endpoint and no
+contact-delivery adapter at all. Recorded before any code changed.
+
+**Two decisions were the user's**, and both were taken before building: show no
+money at all this checkpoint, and do the backend contract first with the web
+surfaces next session on a proven contract.
+
+**What shipped.** `subscriptions.status` gives the lifecycle states somebody
+*decides*, defaulting to `activated` — "the dates decide" — so no existing row
+changed behaviour and the demo tenant is untouched. Self-service registration
+creates company, branch, Owner and a pending subscription in one transaction,
+keyed by a client idempotency key, with every internal identifier generated
+server-side. Platform administrators became their own table with their own
+HttpOnly-cookie sessions, step-up confirmation and revocation; a `RoleKey` on
+`users` was rejected because a tenant role lives inside a company. Administrative
+grants and payments are separate tables and separate acts.
+
+**No money is computed anywhere**, and the dashboard returns `revenue: null`
+deliberately — payment history is incomplete by construction and a total would
+look authoritative without being so.
+
+**The live check earned its place: it found four things no unit test could.**
+`recordFor` built the entitlement record without `status`, so a pending business
+read as EXPIRED. Every administrator route 401'd a valid session, because the
+global tenant guard runs first and looks for a shop's JWT. `/entitlement`
+blocked itself — the endpoint that tells the app it is pending. And
+`subscription_events.kind` turned out to be an ENUM carrying only Milestone K's
+vocabulary while `schema.prisma` called it a `String`: with this server's **empty
+`sql_mode`**, every new lifecycle kind was accepted by Prisma and silently
+coerced to `''`. The row was created, the request succeeded, and only reading it
+back showed the kind was gone. `0057` adds the members and declares the enum in
+Prisma, which immediately caught a bare string in the existing provisioning
+controller.
+
+**Verification.** 93 suites / **1625 tests** (up from 1604), tsc clean, Prisma
+valid, **57 migrations** applied. **36/36 live HTTP/MySQL checks**: registration
+by email and by phone, refusal with neither, server-generated identifiers, no
+free trial, pending blocking the till, grant activation fabricating no payment,
+idempotent retry, a real payment kept separate, extend-once with a losing stale
+version, suspend, blocked operational access, the account page still answering,
+reinstate, isolation, no operational data in the platform view, the audit
+timeline, redaction, and session revocation.
+
+**Two migrations, both backed up and restore-proven.** `0056` after
+`phonestore-platform-20260825-070312.sql` (restore-proven: 75 tables, 9 users, 7
+sales; all 56 migrations replayed from empty into a disposable database — 81
+tables, 24 triggers; constraints exercised directly in MySQL). `0057` after
+`phonestore-0057-20260825-083428.sql`. Scratch databases dropped.
+
+**No dependency was added.** `cookie-parser` was considered and refused —
+reading one cookie is eight lines, and a dependency plus its types, advisories
+and global middleware is a worse trade.
+
+**Cleanup.** Probe companies and the probe administrator removed; audit rows
+kept deliberately, with actor text intact after the admin row went. Ports 3010,
+8090 and 8081 all free. Demo integrity unchanged: 1 company, 9 users, sales
+7 / 10 051.00, audit 559, demo subscription still `activated`.
+
+**Not built, and deliberately so:** the web project (public, customer and
+administration surfaces), mobile integration, contact verification end-to-end,
+and plans/pricing. `docs/37` says exactly why each waits. **The IMEI scanner
+milestone was not begun.**
+
+**Unresolved production-security work:** administrator MFA, a real
+contact-delivery provider, a payment provider, and a deployment review.
+
+**Commits:** backend `cb69e0d` · mobile unchanged at `4728d5a` · docs the commit
+carrying this entry.
