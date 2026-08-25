@@ -6,72 +6,51 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- `closed_at_utc:` `2026-08-24T00:00Z` (session ran 2026-08-22 → 2026-08-24)
-- **Authorised task — two approved product corrections. COMPLETE.**
-  **CP1** the web sign-in crash · **CP2** the Money hub into bottom navigation ·
-  **CP3** Store-ID login replaced by one identifier field. Every completed
-  workflow, milestone N's More reorganisation, and the pending IMEI scanner
-  requirements were preserved. **The scanner patch was not begun**, per the brief.
-- HEADs at close — `erp-backend` `29f052d` · `erp-mobile` `ae712e9` ·
-  `erp-docs` the commit carrying this snapshot. All three clean and pushed.
-- HEADs at takeover were `03a73e9` / `283b5d7` / `3e876a4`.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-25T00:00Z`
+- **Authorised task — two approved changes.**
+  **CP1** finalize login around **email or WhatsApp number** + password. No Store
+  ID, no personal ID in the normal login experience.
+  **CP2** record the two-step-verification direction — **build no fake toggle**.
+  **CP3** complete app-wide **dark mode** from Settings, and move the language
+  selector into the same preferences area.
+  **Do not begin the IMEI scanner milestone.**
+- HEADs at takeover — `erp-backend` `29f052d` · `erp-mobile` `ae712e9` ·
+  `erp-docs` `f142d36`. All three clean and level with their remotes.
 
-### What shipped
+### Takeover verification — every claim checked
 
-- **CP1** (mobile `9e665c7`) — every filesystem entry point asks the platform
-  before constructing anything native, and a source-shape test enforces that
-  ordering rather than trusting a guard to stay in front. Web is **explicitly
-  online-only**: `enqueue` refuses rather than accepting work a closed tab would
-  erase, and Sync Center says so in words. No fallback store was invented (a
-  test refuses one), and no dependency was added.
-- **CP2** (mobile `f488829`) — the bar is Home · Sell · **Money** · Inventory ·
-  More. The complete hub moved (Cash & accounts, Expenses, Daily closing,
-  Loans) via one registry field, so the More card disappears in the same edit
-  that creates the tab. Permission-driven, **not** Owner-only. No header, so no
-  `(tabs)` back label. `/hub/money` redirects; Cash & accounts keeps `/money`.
-- **CP3** (backend `751730c`, `29f052d`; mobile `82dbda4`, `ae712e9`) — sign-in
-  is one identifier (phone **or** generated personal ID) and a password. Tenant
-  resolution moved from the client to the credential. Migration `0054` adds
-  `users.personal_id CHAR(10) NOT NULL UNIQUE` and backfills every user. One
-  phone at two shops returns a 120s purpose-bound continuation token and a
-  picker — **only after the password matches**.
-- **Two defects found by looking, not by testing.** The login screen shipped a
-  real store code (`F62B8-D1EEB`) and the login `owner` as placeholders, both
-  readable in the bundle; and Settings told Owners "your staff type this when
-  they sign in" about the Store ID, caught in the browser. Both fixed, the
-  first now pinned by a drift test.
+| Claim | Found |
+|---|---|
+| Store ID absent from the login screen | ✅ 2 `<Field>`s, no `storeId`/`storeAccountId` |
+| Login accepts phone or personal ID | ✅ `classifyIdentifier` in `src/auth/identifier.ts` |
+| Migration `0054` exists | ✅ `0054_personal_login_id`, 54 migration folders, 53 applied |
+| Money is a bottom tab | ✅ `app/(tabs)/_layout.tsx` line 112 |
+| Backend ≈91 suites / 1585 tests | ✅ **exactly** 91 / 1585, green |
+| Mobile tsc + lint clean | ✅ tsc clean; lint clean but for the generated `.expo` warning |
+| Expo Doctor 18/18 | ✅ |
+| 18 pure suites | ✅ |
+| 62 routes | ⏳ re-checked at close (export takes minutes) |
+| EN/AR/FR ≈1731 keys | ✅ **exactly** 1731/1731/1731, identical order |
+| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
+| Trees clean and level | ✅ all three, 0 dirty, 0/0 vs remote |
 
-### Verification
+**No discrepancy between the handoff and reality.** Two findings the handoff did
+not contain, because nobody had asked the question yet:
 
-- **Backend** 184/184 in the auth and users suites; `tsc -p tsconfig.build.json`
-  clean.
-- **Mobile** tsc clean · eslint clean apart from the pre-existing generated
-  `.expo/types/router.d.ts` warning · **18 pure suites** · **1731 i18n keys** in
-  EN/AR/FR with identical order · web export **62 routes**.
-- **35 live checks** against the running API and MySQL, all passing — sign-in by
-  both identifier kinds, non-enumeration, ignored spoofed headers, the chooser
-  ordering, session/logout, identifier uniqueness under 40 concurrent creations,
-  and rate limiting. Detailed in [`docs/35`](docs/35_AUTHENTICATION_IDENTITY_AUDIT.md).
-- **Browser** — Money tab and login screen in EN, AR and FR, at 1280×720 and
-  375×812, as Owner (4 children), Manager (4) and Employee (2, and still gets
-  the tab). Five labels survive 130% text with no sideways scroll.
-- ⚠️ **None of this is physical-device verified.** `docs/24` lists 19 new rows
-  and what still needs real hardware.
+1. 🔴 **Every active user would be locked out by CP1 as written.** All **5**
+   active users (`owner`, `seller`, `Test`, `sales`, `warehouse`) have
+   **neither an email nor a phone**. 0 of 5. Login restricted to email-or-phone
+   locks out 100% of them. The four remaining accounts are inactive.
+2. ⚠️ **`users.email` has no uniqueness constraint.** `phone` has
+   `@@unique([companyId, phone])`; email has nothing. It cannot become a login
+   identifier until it does — that is a migration.
 
-### Temporary changes — all undone
+### Next intended action
 
-- `backend/.env` `CORS_ORIGINS`: the `:8090` entries removed; the line is now
-  byte-identical to the pre-session backup.
-- Probe users `cp1probe`, `cp3own`, `cp3emp`, `cp3off`, `cp3twin`, `cp3mgr`,
-  `cp3emp2` and the probe company `CP3 Probe Shop`: deleted.
-- Scratch database `prisma_restore_cp3`: dropped. No `prisma_*` database remains.
-- ℹ️ `settingsprobe` and three `i2p9b1b04_*_spent` accounts remain in the demo
-  database. They **pre-date this session**, are inactive, and were left alone
-  rather than deleted without authorisation.
-- ⚠️ The user's own Expo dev server on **8081** was never touched. The API on
-  3010 and the web preview on 8090 were mine.
+Present the plan, the files, and the risks for approval, per the rulebook's
+"BEFORE EVERY MAJOR IMPLEMENTATION". Nothing is modified until then.
 
 ## Verification at close
 
