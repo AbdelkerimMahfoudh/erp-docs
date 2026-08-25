@@ -12,6 +12,9 @@ retail-erp-control-web/
 .claude/
 .env
 .env.*
+# ...but the EXAMPLES are the documentation: names and safe descriptions,
+# never values. Committing them is the whole point.
+!.env.*.example
 
 # ── Editor & OS artifacts ──────────────────────────────────────────────────
 .vscode/
@@ -20,3 +23,6 @@ retail-erp-control-web/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Staging compose secrets. Only the example is committed.
+deploy/.env.staging

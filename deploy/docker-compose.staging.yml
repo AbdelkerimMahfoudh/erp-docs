@@ -1,0 +1,99 @@
+# Staging, as one stack.
+#
+# Provider-neutral on purpose: this runs on a laptop, a VPS, or anywhere that
+# speaks Docker, so choosing a host later is a decision rather than a rewrite.
+#
+# Three properties this file exists to guarantee:
+#
+#  1. **Same origin.** The browser talks only to the proxy; the API is not
+#     published to the host at all. That removes the cookie-withheld failure
+#     class rather than working around it.
+#  2. **Its own database.** A separate volume and a separate database name from
+#     development. Staging must never be able to reach the demo data.
+#  3. **No secret in this file.** Every value comes from `.env.staging`, which
+#     is git-ignored. Nothing is a build argument.
+
+name: retail-erp-staging
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    # STRICT mode, explicitly. The development server runs with an empty
+    # sql_mode, which silently coerced a bad ENUM to '' — staging must refuse
+    # rather than repeat that.
+    command:
+      - --sql-mode=STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${STAGING_DB_ROOT_PASSWORD:?set in .env.staging}
+      MYSQL_DATABASE: ${STAGING_DB_NAME:?set in .env.staging}
+      MYSQL_USER: ${STAGING_DB_USER:?set in .env.staging}
+      MYSQL_PASSWORD: ${STAGING_DB_PASSWORD:?set in .env.staging}
+    volumes:
+      # Its own volume. Never bind-mounted onto the development data directory.
+      - staging-db:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    # Not published to the host: nothing outside this stack needs the database,
+    # and an exposed port is an invitation.
+    expose:
+      - '3306'
+
+  api:
+    build:
+      context: ../backend
+      args:
+        APP_COMMIT: ${APP_COMMIT:-unknown}
+        APP_BUILT_AT: ${APP_BUILT_AT:-}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../backend/.env.staging
+    environment:
+      APP_ENV: staging
+      NODE_ENV: production
+    expose:
+      - '3010'
+    # Nest installs shutdown hooks; give in-flight requests time to finish.
+    stop_grace_period: 30s
+
+  web:
+    build:
+      context: ../retail-erp-control-web
+      args:
+        # A path, not a host — same origin through the proxy.
+        VITE_API_BASE: /api/v1
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    # The ONLY published port. Put TLS termination in front of this.
+    ports:
+      - '${STAGING_HTTP_PORT:-8088}:8080'
+
+  # Migrations as a one-shot, not something the API does at boot. An API that
+  # migrates on start races itself the moment there are two replicas.
+  migrate:
+    build:
+      context: ../backend
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../backend/.env.staging
+    environment:
+      APP_ENV: staging
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    restart: 'no'
+
+volumes:
+  staging-db:
+    name: retail-erp-staging-db

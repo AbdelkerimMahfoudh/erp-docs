@@ -5369,3 +5369,76 @@ users, sales 7 / 10 051.00.
 impersonation.
 
 **Commits:** backend `7f12a08` · mobile `d9d912d` · control-web `593b0b8` (local only) · docs the commit carrying this entry.
+
+---
+
+## 2026-08-25 — CLAUDE-B — a private staging environment
+
+**Task.** Create a secure private staging environment for the control website,
+the API and the mobile account-creation integration, so the Owner can test the
+whole workflow from a real browser and phone without exposing the unfinished
+administration system or touching the demo database. Phase 2 was complete in
+code. The IMEI scanner milestone was explicitly out of scope and was not begun.
+
+**Commits.** `erp-backend` `fd7e9e2`, `aad6141`, `bbb939c`, `837c63f` ·
+`erp-mobile` `c46193d`, `dad1d0f`, `b973f64` · `retail-erp-control-web`
+`f057bea`, `06c8465` · `erp-docs` this entry. All four repositories clean and
+pushed. Nothing force-pushed, no history rewritten.
+
+**What was built.** A separate `prisma_staging` database with all 57 migrations
+replayed from empty and only the minimum pricing configuration seeded; an edge
+on `:8088` putting the website and the API on one origin; a loopback-only
+boundary on `/admin` in front of platform-administrator authentication; guarded
+`staging-reset`, `staging-verification-code` and `staging-cleanup` commands;
+readiness and version endpoints that disclose nothing; container images and a
+compose file so the environment is described by files rather than by a provider
+account; and a mobile staging profile with a persistent build label.
+
+**The result that matters.** Staging found a blocking Phase 2 defect that no
+unit test could have caught: **self-service registration creates roles with zero
+`role_permissions` rows**, so a business that registers through the website gets
+an Owner who can sign in and then do nothing (`403 Missing permission(s):
+report.view`). The demo company works only because `prisma/seed.ts` separately
+applies the `ROLE_PERMISSIONS` matrix. Diagnosed and documented in `docs/39`
+§10 with a plan, files and risks — **not fixed**, because it changes how
+permissions are granted and `CLAUDE.md` puts that behind an approval gate, and
+because the authorised scope was the environment rather than application
+behaviour.
+
+**Verification.** Backend 95 suites / 1657 tests; `tsc` clean in all three code
+repositories; `prisma validate` valid; 57 migrations applied, 0 pending; mobile
+9 pure suites with 30 drift assertions; website 14/14, build clean, 0
+vulnerabilities, oxlint 0 errors. Staging acceptance 30/33 — the three failures
+were my test asserting `active` where the correct state after an administrative
+grant is `complimentary`, not product faults.
+
+**Isolation, measured rather than assumed.** After the run, `prisma_staging`
+held 2 companies / 1 grant / 1 billing period / 1 administrator while
+`phonestore` still held 1 company / 9 users / 0 grants / 0 billing periods / 0
+administrators. The demo database was never touched, and no demo record was
+copied into staging. Synthetic identities only, all `@example.invalid`.
+
+**Mistakes made and corrected.** The first version of
+`staging-verification-code` guarded on `NODE_ENV === 'production'`, which
+refused the exact environment it exists for, since staging sets that
+deliberately — re-keyed on `APP_ENV`. The website's `.env.*` ignore rule was
+swallowing the `.env.staging.example` files the brief requires committing — a
+negation now admits `*.example` only, with the real env files verified still
+ignored. A Git Bash path-mangled `VITE_API_BASE` was baked into a bundle and
+turned every API call into a blocked `file://` request; the CSP caught it.
+
+**Two external decisions were stopped before the mutation**, per the brief: the
+hosting destination, and the private-access layer for `/admin`. Both are written
+up in `CURRENT_HANDOFF.md` with options and a recommendation. **No cost of any
+kind was created** — nothing purchased, no subscription started, no DNS changed,
+no repository made public.
+
+**Not delivered, and said plainly.** No CI/CD pipeline (no CI provider is
+configured on the account); device QA was not re-run against a staging build on
+a physical phone; the three-language and light/dark sweep at 375px was not
+re-run against staging. **This is not a production readiness statement.**
+
+**Environment retained** and running for the Owner's acceptance testing,
+including the temporary administrator — deleting it now would leave the Owner
+unable to open the portal the environment exists to test. `staging-cleanup`
+removes it when testing is done.

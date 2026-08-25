@@ -6,219 +6,242 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-28T00:00Z`
-- **Authorised task — a private staging environment** for the control website,
-  the API and the mobile account-creation integration, so the Owner can test the
-  whole workflow from a real browser and phone without exposing the
-  administration system or touching the demo database.
-  **Do not begin the IMEI scanner milestone.**
-- HEADs at takeover — `erp-backend` `7f12a08` · `erp-mobile` `d9d912d` ·
-  `erp-docs` `d375847` · `retail-erp-control-web` `593b0b8` (no remote).
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- Completed task — **a private staging environment** for the control website,
+  the API and the mobile account-creation integration.
+- **Do not begin the IMEI scanner milestone.**
 
-### Baseline verified — every expectation matched
+### HEADs — all four repositories clean and pushed
 
-| Expected | Found |
+| Repository | HEAD |
 |---|---|
-| Backend 94 suites / 1650 tests | ✅ exactly |
-| 57 migrations, highest `0058` | ✅ |
-| Mobile 19 pure suites, 30 drift assertions | ✅ |
-| EN/AR/FR 1752 keys each | ✅ identical order |
-| Website 14 contract tests, build green | ✅ |
-| Website at `593b0b8`, no remote | ✅ |
-| Three repos clean, pushed, level | ✅ |
-| `READY_FOR_HANDOFF`, owner `NONE` | ✅ |
+| `erp-backend` | `837c63f` |
+| `erp-mobile` | `b973f64` |
+| `retail-erp-control-web` | `06c8465` |
+| `erp-docs` | *this commit* |
 
-One small thing fixed on the way in: the website's `vitest` config still used
-`poolOptions`, **removed in Vitest 4**. It was silently deprecated and the
-runner intermittently reported "no tests" instead of running them. Moved to the
-top-level `maxWorkers`/`minWorkers`; three consecutive runs now report 14/14.
-
-### Read-only discovery — what already exists
-
-| Thing | Found |
-|---|---|
-| Git hosting | GitHub, authenticated as **AbdelkerimMahfoudh**, scopes include `repo` and `workflow`. The three existing repositories are already under it |
-| Hosting provider | **Railway CLI authenticated**, but as **abdelkerimtalebouldsidi@gmail.com** — a different identity from the GitHub account. One project exists: "Academie Navale", unrelated |
-| Domains / DNS | **None.** No DNS tooling, and no domain configured anywhere in any repository |
-| Containers | **No Docker, no Podman, no kubectl** |
-| Reverse proxy | **None installed** |
-| Secrets management | None beyond local `.env` files, which are git-ignored |
-| CI | **No workflows** in any repository |
-
-### 🛑 Two external decisions are ambiguous — stopping before those mutations
-
-1. **Hosting.** Railway is authenticated, but under a different identity from
-   the GitHub account, and its billing state cannot be read without risking a
-   mutation. A staging stack there is an API service, a website service and a
-   **MySQL database** — enough that "no new unknown charge" cannot be promised.
-2. **`/admin` private access.** No identity-aware proxy, VPN or IP-allowlist
-   mechanism exists. The brief is explicit that an obscure URL is not
-   protection, and that administrator MFA does not exist — so `/admin` must not
-   be exposed to the internet in this state.
-
-Per the brief: every provider-neutral artifact is being completed regardless,
-and a **local isolated staging environment** is being stood up so the workflow
-is genuinely testable now.
-
-### Next intended action
-
-Create the private GitHub repository for the website (unambiguous), build the
-provider-neutral staging artifacts, stand up isolated local staging, then report
-the hosting decision.
-
-## Entitlement and grace semantics (K)
-
-States are derived from a **server clock**, never the device:
-
-| State | Meaning | Writes |
-|---|---|---|
-| `active` | Paid period running | ✅ |
-| `grace` | Exactly **72 hours** past the period end, **derived** from it so the two cannot drift | ✅ |
-| `expired` | Grace over | ❌ |
-| `complimentary` | Platform grant, audited, never self-grantable | ✅ |
-
-**Writes continue through grace** — a shop three hours past renewal is still
-open, and refusing its sales over an administrative boundary would cost it real
-money.
-
-### What expiry does and does not do
-
-Authentication works · history reads · exports work · branch selection and
-sign-out work · the subscription screen explains itself. **Nothing is deleted or
-hidden.** Only new business truth stops, refused with the stable code
-**`ENTITLEMENT_WRITE_BLOCKED`** — the app never parses English.
-
-### Queue behaviour after expiry
-
-The entitlement refusal is **non-transient**. A queued report that hits it moves
-straight to `needs_attention` and **stops**. It cannot loop, because retrying
-cannot resolve the condition, and a phone quietly retrying forever is both a
-battery problem and a lie about progress.
-
-### Seats
-
-500 MRU per subscribed branch · **2 included non-Owner seats per branch, pooled
-company-wide** · Owner consumes none · extra seats 100 MRU, not prorated · no
-trial · annual deferred.
-
-**Nobody is ever deactivated automatically.** A company over its limit keeps
-every employee, is told, is blocked from adding more, and decides for itself who
-stays. Seats are checked at the moment of activation, so two Owners filling the
-last place at once cannot both succeed. Deactivating is never blocked, or a
-company would be trapped over its limit.
-
-**A tenant Owner cannot self-grant.** Provisioning skips the tenant JWT guard
-and is gated on a platform key no tenant holds; an unset key **closes** the
-surface rather than opening it.
+`retail-erp-control-web` now has a remote and its full history is pushed.
+Nothing was force-pushed and no history was rewritten.
 
 ---
 
-## Analytics accounting dictionary (L)
+## ⚠ The most important result: self-service registration grants no permissions
 
-Seven categories, kept visibly apart: **profit · cash · liability · receivable ·
-inventory · discrepancy · workflow**.
+**A business that registers itself through the website gets an Owner who can
+sign in and then do nothing.** Every guarded route answers:
 
-| Event | Profit | Cash |
-|---|---|---|
-| Sale | ✔ | ✔ |
-| **Return approved** | ✔ revenue out **and** COGS credited | — |
-| Refund reported | — | — |
-| **Refund confirmed** | **✗ already counted at approval** | ✔ |
-| Purchase received | ✗ | — (creates a payable) |
-| Supplier payment confirmed | ✗ | ✔ |
-| Expense confirmed | ✔ | ✔ |
-| Consignment disposition | ✔ | — |
-| **Loan / consignment principal** | **✗ never revenue or expense** | ✔ |
-| **Closing discrepancy** | **✗ a question, not a loss** | ✗ |
+```
+403  {"error":"FORBIDDEN","message":"Missing permission(s): report.view"}
+```
 
-**Never manufacture a figure.** A metric with no canonical source is *named as
-unavailable*, not defaulted to zero — a shop cannot tell a measured zero from a
-number nobody calculated. Reported this way: refund liability, supplier
-liability, commissions and fees, per-channel expected movement, unattributed
-legacy payments.
+Measured in staging, both synthetic tenants:
 
-**Comparison** is against the immediately preceding period of equal length,
-sharing no day with it. A zero base returns **unavailable**, never infinity and
-never a percentage.
+```
+role owner  0 permissions · store_manager 0 · store_employee 0
+permissions catalogue: 44 rows
+```
+
+**Cause.** `AccessService.getEffectivePermissions` resolves authority only from
+`role_permissions`. `RegistrationService` creates the three roles with a key and
+a name and **no `role_permissions` rows**, so the union is empty. The demo
+company works only because `prisma/seed.ts` separately applies the
+`ROLE_PERMISSIONS` matrix — a step registration never performs.
+
+**Not fixed in this checkpoint, deliberately.** It changes how permissions are
+granted, which `CLAUDE.md` places behind an approval gate, and the authorised
+scope here was the staging environment rather than application behaviour. The
+full plan, files, risks and backfill note are in
+[`docs/39` §10](docs/39_STAGING_ENVIRONMENT.md).
+
+**This is the checkpoint working.** The defect was invisible until the whole
+workflow ran end to end, and it was found by staging rather than by a shop.
 
 ---
 
-## Unresolved — device-only, and unrun
+## What was built
 
-**Every device check in [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) under
-Milestones H, I, J, J.1, K and L is unrun.** They need real hardware:
+Full detail in **[`docs/39_STAGING_ENVIRONMENT.md`](docs/39_STAGING_ENVIRONMENT.md)**.
 
-- airplane mode, Wi-Fi with no internet, a stopped API
-- a real Android low-memory kill with drafts pending, and process eviction
-- reconnect, background/foreground, and that neither triggers OTP
-- two accounts on two devices for consignment, loans and privacy
-- the shared counter phone: sign out, sign in as somebody else, sign back
-- Arabic RTL across every new screen
-- whether a first-week employee reads "waiting to send" as anything but *sent*
+- **Isolation.** Staging runs on its own database, `prisma_staging`, with its
+  own credentials and its own session and signing secrets. Verified after the
+  acceptance run: `prisma_staging` has 2 companies / 1 grant / 1 billing period
+  / 1 administrator; `phonestore` still has 1 company / 9 users / **0** grants /
+  **0** billing periods / **0** administrators. **The demo database was never
+  touched.**
+- **One origin.** An edge on `:8088` serves the site and proxies `/api/*` to the
+  API on `:3011`. This removes the Phase 2 cookie failure by construction rather
+  than working around it. No hostname is hardcoded in application code.
+- **Two layers on `/admin`.** Platform-administrator authentication, plus a
+  network boundary that refuses any non-loopback peer with `404` before
+  application code runs. `/public` and `/account` stay reachable from the LAN so
+  a phone can test.
+- **Strict SQL.** The staging MySQL runs `STRICT_ALL_TABLES`. The development
+  server's `sql_mode` is empty, which silently coerces a bad ENUM to `''`.
+- **Guarded commands.** `staging-reset`, `staging-verification-code`,
+  `staging-cleanup` — each refuses outside staging, by `APP_ENV` rather than
+  `NODE_ENV` (staging sets `NODE_ENV=production` on purpose).
+- **Mobile.** `EXPO_PUBLIC_API_ORIGIN` / `_SIGNUP_URL` / `_PORTAL_URL` /
+  `_APP_ENV`, all overrides — production defaults unchanged. A staging build
+  carries a persistent `STAGING — test data only` strip mounted at the app root.
 
-**No claim is made about any of them.**
+### Secrets
 
-## Remaining product and release risks
+No secret is in any commit, image, build argument, mobile bundle or client
+variable. Only `.env.staging.example` files — names and safe descriptions — are
+committed. A `.env.*` rule had been swallowing the examples; a negation admits
+`*.example` only, and `.env`, `.env.staging` and `.env.local` were each verified
+still ignored. No secret value appears in this file, in any log, or in the
+session report.
 
-1. **React Query caches are memory-only.** A cold start offline shows empty
-   lists rather than stale ones. Deliberate: a persister showing stale prices
-   and stale stock confidently is its own kind of lie, and it belongs in a
-   milestone that can think about staleness properly.
-2. **No user-creation route exists** — only `PATCH /users/:id`. Seat enforcement
-   therefore binds on reactivation, which is the only seat-consuming path there
-   is. When invitations arrive, they must call the same check.
-3. **Refund and supplier liabilities have no single canonical total.** They are
-   reported as unavailable rather than computed a second way. If a shop needs
-   them as figures, they need a canonical owner first.
-4. **`npm audit` reports 24 vulnerabilities (10 moderate, 14 high)** in the
-   mobile dependency tree, pre-existing and untouched by this session. Not
-   assessed. Worth a look before a release candidate.
-5. **Commissions and fees have no model at all.** Nothing about them is
-   reported, and adding them is a schema decision, not a reporting one.
+---
 
-## Next action
+## Verification
 
-**A remote for the website**, then a physical-device pass.
+| Gate | Result |
+|---|---|
+| Backend suite | **95 suites / 1657 tests, all pass** |
+| Backend `tsc --noEmit` | clean |
+| `prisma validate` | valid |
+| Migration status | 57 applied, 0 pending |
+| Clean replay from empty | 57 migrations, 83 tables, 24 triggers |
+| Mobile `tsc --noEmit` | clean |
+| Mobile pure suites | 9 files, 0 failures; 30 drift assertions |
+| Website `tsc --noEmit` | clean |
+| Website tests | 14/14 |
+| Website build | clean, 301.87 kB (90.73 kB gzip) |
+| Website `npm audit --omit=dev` | 0 vulnerabilities |
+| Website lint (**oxlint**, not ESLint) | 0 errors, 4 warnings |
 
-```bash
-git -C retail-erp-control-web remote add origin <url>
-git -C retail-erp-control-web push -u origin master
-```
+**Staging acceptance: 30 of 33 checks passed.** The three failures were all my
+test's wrong expectations, not product faults, and are described below.
 
-Then work [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) from the top on a real
-phone — the Create-account handoff, the three subscription-state screens, and
-the website in a phone browser have all been verified in a desktop browser and
-**none of it on a device**.
+Confirmed by the run: a new business is `pending` until an administrator acts ·
+operational access is blocked before activation and the portal stays readable ·
+an administrative grant confers `complimentary` with `canWrite: true` and
+**fabricates no payment row** · suspension blocks operations while the portal
+stays readable · reinstatement restores access · a wrong administrator password
+(`403`) and a stale version (`409`) both refuse to move state · an Owner is
+refused by the administration API and cannot read another business · the
+timeline carries `registered`, `administrative_grant`, `suspended`,
+`reinstated` · the audit trail names the administrator and contains no password
+or code · a verification code never appears in a response · signing out revokes
+the administrator session · `/health/ready` discloses nothing.
 
-Four things to know before touching this:
+### The three "failures" were my test being wrong
 
-1. **The website computes no price.** Every figure is the server's, and a test
-   refuses any component that multiplies a unit price.
-2. **No credential may reach browser storage.** Exactly two keys are allowed,
-   both preferences; a test enforces it.
-3. **Plan versions are never retroactive**, and billing periods copy their unit
-   prices. Editing a past price is not possible by design, not by convention.
-4. **The five contactless legacy users still exist** and still rely on the
-   hidden personal-ID sign-in. `docs/36` has the query that says when it can go.
+All three came from asserting `state === 'active'` after a grant. The real state
+is **`complimentary`** (`canWrite: true`, `isComplimentary: true`,
+`status: 'activated'`), which is correct and is what "no payment row" implies.
+The accompanying `403` was `Missing permission(s): report.view` — the
+permissions defect above, not an entitlement failure.
 
-To run everything:
+---
 
-```bash
-cd backend && npm run start:dev
-```
+## ⛔ Two external decisions, both stopped before the mutation
 
-```bash
-cd retail-erp-control-web && npm run dev
-```
+Per the brief, no ambiguous external mutation was performed. **No cost of any
+kind was created. Nothing was purchased, no subscription started, no DNS
+changed, no repository made public.**
 
-```bash
-cd mobile && npx expo start
-```
+### 1. Where staging should be hosted
 
-To create a platform administrator (never paste a real password anywhere):
+- **Configured now:** four Git remotes on one authenticated account. **No
+  hosting account, no domain, no DNS zone, no container registry and no
+  reverse-proxy service** was found configured anywhere.
+- **Missing decision:** which hosting account to deploy to, and who accepts the
+  charge.
+- **Options.**
+  1. **Keep it local (what exists today).** Runs on the WAMP machine; a phone on
+     the same Wi-Fi can reach `/public` and `/account`. Cost **0**. Not reachable
+     off the LAN.
+  2. **A small VPS** (~US$5–7/month) with the committed compose file and a real
+     certificate. Reachable from anywhere; needs a hostname and a payment method.
+  3. **A managed container host** on an existing cloud account, if one exists
+     that I could not see. Cost depends on the account.
+- **Recommended: option 1 for now.** It already works, it costs nothing, and it
+  is enough for the Owner to walk the whole workflow from a browser and a phone.
+  Move to option 2 only when someone outside the LAN must test — and the
+  artifacts to do that are already committed.
+- **Minimum needed to proceed:** the provider and account to use, who pays, and
+  a hostname.
 
-```bash
-cd backend && PLATFORM_ADMIN_PASSWORD='…' npx ts-node prisma/create-platform-admin.ts you@example.com "Your Name"
-```
+### 2. The private-access layer for `/admin`
+
+- **Configured now:** nothing. No VPN, no identity-aware proxy, no IP allowlist,
+  and **administrator MFA is not implemented**.
+- **Consequence, stated plainly:** `/admin` is reachable **only from loopback on
+  the staging host**. To use it from elsewhere, tunnel over authenticated SSH
+  (`ssh -L 8088:127.0.0.1:8088 …`) so the request still arrives from loopback.
+- **Options.** (a) keep loopback-plus-SSH — costs nothing, works today;
+  (b) implement administrator MFA — the real fix, a milestone of its own;
+  (c) put an identity-aware proxy in front — needs the hosting decision first.
+- **Recommended: (a) now, (b) before any internet exposure.** **Do not remove
+  the loopback check to make `/admin` convenient.** Until MFA exists, one
+  administrator password is the only thing between the internet and every
+  tenant's subscription state.
+
+---
+
+## State of the staging environment
+
+**Retained and running**, as the brief requires, for the Owner's acceptance
+testing:
+
+- API `:3011` (`APP_ENV=staging`, `STAGING_CONTACT_OUTBOX=enabled`), edge
+  `:8088`, database `prisma_staging`.
+- Two synthetic tenants (`staging.owner@…` and `staging.second@…`, both
+  `@example.invalid` — RFC 2606, never a real domain) and one temporary
+  administrator.
+- **No real customer, employee or business information exists in staging.** No
+  demo record was copied.
+
+### Before the environment is retired
+
+Run `npx ts-node scripts/staging-cleanup.ts`, which removes the synthetic
+tenants, deletes the temporary administrator, revokes every administrator
+session and consumes every unexpired verification code — while **preserving the
+audit and subscription-event rows**, which are append-only by trigger.
+
+The temporary administrator is **still present**, deliberately: deleting it now
+would leave the Owner unable to open the administration portal for the
+acceptance testing this environment exists for. Its password lives only in a
+file outside every repository and appears in no commit and no log. Remove it
+with the cleanup command when testing is done; create a fresh one with
+`PLATFORM_ADMIN_PASSWORD=… npx ts-node prisma/create-platform-admin.ts <email> <name>`.
+
+---
+
+## Not done, and not started
+
+**This is not a production readiness statement.** Not begun, per the brief:
+production deployment · Bankily integration · real email or WhatsApp delivery ·
+optional login 2FA · administrator impersonation · **the IMEI scanner
+milestone**.
+
+Also outstanding from the brief's list, and honestly not delivered:
+
+- **A CI/CD pipeline.** Not built. The release path is the committed compose
+  file and Dockerfiles, run by hand. No CI provider is configured on the Git
+  account.
+- **Device QA** (`docs/24`) was not re-run against a staging build on a physical
+  phone — the staging mobile profile is committed but no device build was
+  produced.
+- **The three-language and light/dark sweep at 375px** was verified for the
+  website during Phase 2, not re-run against staging.
+
+---
+
+## Next exact action
+
+**Get a decision on the permissions defect above**, then implement the fix in
+`docs/39` §10: move `ROLE_PERMISSIONS` to `src/rbac/role-permissions.ts`,
+re-export it from `prisma/seed-data/permissions.ts`, and write the matching
+`role_permissions` rows inside the transaction in `RegistrationService` that
+already creates the roles. Pin **both** the Owner and the employee in a test —
+granting an employee too much would be a worse and quieter failure than the
+present one. No schema change and no migration are needed.
+
+Then reset staging (`scripts/staging-reset.ts`) so the synthetic tenants are
+re-created with correct permissions, and re-run the acceptance flow.
