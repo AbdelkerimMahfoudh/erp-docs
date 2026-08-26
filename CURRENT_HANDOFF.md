@@ -6,12 +6,22 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- Completed task — **the default tenant-role provisioning repair**: one
-  canonical provisioning source, atomic self-registration, a guarded restricted
-  backfill, and real staging verification.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-26T21:50Z`
+- **Authorised task — close the permission-catalogue deployment defect** with
+  reference-data migration `0059`, so a database built by `prisma migrate
+  deploy` alone holds all 61 catalogue keys without the demo seed.
+- Authorisation is limited to publishing the EXISTING 61-key catalogue. It does
+  not permit a new permission, changed role authority, a schema change, or
+  migration `0060`.
+- HEADs at takeover — `erp-backend` `44ceddd` · `erp-mobile` `b973f64` ·
+  `retail-erp-control-web` `ad923df` · `erp-docs` `849fca7`.
+- Baseline verified with no discrepancies: 98 suites / 1698 tests · 57 actual
+  migrations, highest `0058`, `0005` genuinely absent · 61/43/20 · full-canon
+  SHA-256 `0ddb8c04…` · staging healthy on 8088.
+- Next intended action: prove the 44-key pre-fix state on a disposable MySQL
+  database before writing anything.
 - **Do not begin** hosting, CI/CD, administrator MFA, payment-provider
   integration, or the IMEI scanner milestone.
 
