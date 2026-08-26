@@ -19,7 +19,7 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `dd9d4d0` |
+| `erp-backend` | `c05d04c` |
 | `erp-mobile` | `b973f64` (unchanged — no mobile change was needed) |
 | `retail-erp-control-web` | `ad923df` (unchanged — no website change was needed) |
 | `erp-docs` | *this commit* |

@@ -5582,7 +5582,7 @@ would make the control portal inaccessible. Staging remains healthy on 8088.
 narrowly — publish the EXISTING catalogue, no new permission, no changed role
 authority, no schema change, no `0060`.
 
-**Commits.** `erp-backend` `06f5efa` (handoff claim), `fd5555f`, `dd9d4d0`.
+**Commits.** `erp-backend` `06f5efa` (handoff claim), `fd5555f`, `dd9d4d0`, `c05d04c`.
 Mobile and the website needed no change and are unchanged at `b973f64` /
 `ad923df`. Docs: this entry. All four repositories clean and level; nothing
 force-pushed.
