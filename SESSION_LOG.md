@@ -5483,3 +5483,92 @@ after an administrative grant, when the right answer is `complimentary` — the
 same state that makes "no payment row was fabricated" true. With that fixed the
 run is **31/33**, and the two remaining failures are precisely and only the
 permissions defect, labelled as such in the output.
+
+---
+
+## 2026-08-26 — CLAUDE-B — repairing default tenant-role provisioning
+
+**Task.** Fix the defect staging found: self-registered tenants got roles with
+no permissions. One canonical provisioning source, atomic registration, a
+guarded restricted backfill, real staging verification. Explicitly not
+authorised: changing the permission catalogue, expanding any role, granting
+tenant users platform authority, or a schema migration.
+
+**Commits.** `erp-backend` `41d70ae`, `d8c46ff`, `44ceddd`. Mobile and the
+website needed no change and are unchanged at `b973f64` / `ad923df`. Docs: this
+entry. All four repositories clean and level; nothing force-pushed.
+
+**Root cause.** `AccessService` resolves authority only from
+`role_permissions`; `RegistrationService` created three `roles` rows and none of
+them. The demo company worked only because `prisma/seed.ts` carried its own
+separate copy of the provisioning loop — the second implementation is what hid
+the bug. Beneath that sat the real reason registration could not have done it
+right: the canonical matrix lived in `prisma/seed-data/`, which
+`tsconfig.build.json` **excludes from the production build**. The seed could
+read the matrix; the server could not.
+
+**Fix.** The matrix moved to `src/rbac/role-permissions.ts` with the old path
+left as a pure re-export, so there is still exactly one definition and every
+existing import keeps working. Verified identical across the move: 61
+permissions, owner 61 / store_manager 43 / store_employee 20, SHA-256
+`0ddb8c04…` before and after. `src/rbac/role-provisioning.ts` is now the only
+site that creates a role or a role-permission row — audited: two
+company-creation paths, one `role.upsert`, one `rolePermission.createMany`, and
+no custom-role path anywhere to disturb. Registration provisions inside its
+existing transaction, so a failure rolls the whole tenant back.
+
+**Backfill.** Dry-run by default; `--apply` to write. Forces `.env.staging` with
+`override: true`, demands `APP_ENV=staging`, refuses any database name that is
+not unmistakably staging, dumps, and **restore-proves the dump into a disposable
+database** before touching anything. Eligibility is a separate pure module,
+re-checked inside the write transaction: provenance, exactly the three default
+role keys, all three empty, not the demo tenant. Partial or customised companies
+are skipped whole — completing somebody's deliberately narrowed manager would be
+inventing a decision. Audited as `adminId: null`, actor
+`system:role-permission-repair`.
+
+**Result.** 4 companies repaired, each +124 mappings (61/43/20). The replay is a
+no-op. Demo tenant untouched: 7 roles, 159 mappings, checksum `ee023046b819dbfd`,
+1 company / 9 users / 7 sales / 10 051.00, identical before and after.
+
+**A second gap, found by the guard.** The repair refused its first run —
+staging held **44 of 61** permission keys. No migration creates the catalogue;
+the base keys exist only in `prisma/seed.ts`, which also seeds the demo company
+and never runs against staging. `seed-staging.ts` now seeds them through the
+same constant. **Still open and reported, not fixed:** a database built by
+`migrate deploy` alone has an incomplete catalogue. That refusal is the guard
+working — silently granting 60 of 61 permissions would have been far worse.
+
+**Two of my own mistakes, corrected.** I asserted `store_employee` must not hold
+`cost.view`; the canonical matrix says it does, deliberately, because an
+employee who cannot see cost cannot tell whether a price loses money. The matrix
+was right and my assertion was wrong. Separately, an ordering test anchored on a
+loop header that also opens the dry-run report; re-anchored on the actual write.
+A stray empty commit was dropped before pushing.
+
+**Verification.** Backend 98 suites / 1698 tests (was 95 / 1657); tsc clean in
+all three code repositories; prisma valid; **57 migrations, 0 pending — no
+0059**; website 14/14, build clean, 0 vulnerabilities, oxlint 0 errors; mobile
+tsc clean, 9 suites, i18n parity 1752 × 3.
+
+**Staging acceptance: 44/44** — the 16-step flow plus 11 further live checks,
+including a company registered *after* the fix receiving exactly 61/43/20 with
+no repair involved, Manager and Employee allowed and denied operations,
+cross-company refusal, every tenant role refused by the platform administration
+API, `/admin` 404 from the LAN and 200 from loopback, and the API port
+unreachable from the LAN.
+
+An earlier run's two failures were **not** all the defect: `report.view` is
+branch-scoped, so a request without an `x-branch-id` header legitimately 403s.
+That was the branch-safety boundary working and my harness not sending the
+header a real client sends.
+
+**Baseline discrepancy at takeover**, reported not fixed: the website suite
+reported "no tests" once, then 14/14 on ten consecutive runs including a cold
+cache. Not reproducible, and it exits 0 when it happens — a false-green risk for
+any future CI.
+
+**Cleanup.** Four disposable harness tenants removed, 12 administrator sessions
+revoked, 7 unexpired codes consumed, 32 audit events preserved. Two fixtures
+kept, and the temporary staging administrator deliberately kept — removing it
+would make the control portal inaccessible. Staging remains healthy on 8088.

@@ -27,12 +27,13 @@ mechanism rather than by care:
 **Verified, not assumed.** After the full acceptance run:
 
 ```
-prisma_staging   companies 1   users 1   grants 1   billing periods 1   admins 1
-phonestore       companies 1   users 9   grants 0   billing periods 0   admins 0
+prisma_staging   companies 2   users 4   admins 1   audit events 32
+phonestore       companies 1   users 9   admins 0   sales 7 / 10 051.00
 ```
 
-The demo database has no platform administrator, no billing period and no
-subscription event. Staging never reached it.
+The demo database has no platform administrator and no subscription event, and
+its role-permission fingerprint is byte-identical before and after every run in
+this environment. Staging never reached it.
 
 > **The scripts nearly broke this, and the guards held.** `@prisma/client`
 > loads `.env` as an import side effect, and ES imports run before any
@@ -317,65 +318,132 @@ finished with:
 
 ---
 
-## 10. What staging found: self-service registration grants no permissions
+## 10. What staging found — and how it was repaired
 
-**This is the checkpoint's most important result, and it is a defect, not a
-pass.** It was invisible until the whole workflow ran end to end, which is
-precisely what a staging environment is for.
+**Staging's most valuable result was a defect no unit test could have caught,
+because every unit test used the seeded demo company.** It is now fixed,
+verified end to end, and the affected tenants have been repaired.
 
-### The finding
+### The root cause
 
-A business that registers itself through the website gets an Owner who **can
-sign in and then do nothing**. Every screen answers:
+Two things had to be true at once:
 
-```
-403  {"error":"FORBIDDEN","message":"Missing permission(s): report.view"}
-```
+1. `AccessService.getEffectivePermissions` resolves authority **only** from
+   `role_permissions`.
+2. `RegistrationService` created three `roles` rows — a key and a name — and
+   **no `role_permissions` at all**.
 
-Verified in staging across both synthetic tenants:
+So every shop that signed up through the website got an Owner who could sign in
+and then do nothing: `403 Missing permission(s): report.view` on every screen.
 
-```
-role owner            permissions: 0
-role store_manager    permissions: 0
-role store_employee   permissions: 0
-permissions catalogue rows: 44
-```
+The demo company worked because `prisma/seed.ts` carried its **own separate
+copy** of the provisioning loop and applied the matrix itself. That second
+implementation is what hid the bug — the only tenant anybody looked at was
+provisioned by different code from the one real shops used.
 
-### Why
+Underneath both sat a structural cause worth naming: the canonical matrix lived
+in `prisma/seed-data/permissions.ts`, and **`tsconfig.build.json` excludes
+`prisma/seed-data` from the production build**. The seed could read the matrix;
+the server could not. Registration was not careless so much as unable.
 
-`AccessService.getEffectivePermissions` resolves a user's authority **only**
-from `role_permissions` rows. `RegistrationService` creates the three roles with
-a `key` and a `name` and **no `role_permissions` rows at all**, so the union is
-empty and every guarded route refuses. The demo company works only because
-`prisma/seed.ts` separately applies the `ROLE_PERMISSIONS` matrix from
-`prisma/seed-data/permissions.ts` — a step self-service registration never
-performs.
+### The repair
 
-Note this is *not* an entitlement failure, and the entitlement machinery is
-sound: after an administrative grant the subscription correctly reads
-`state: complimentary, canWrite: true, isComplimentary: true` with **no payment
-row fabricated**. Suspension and reinstatement both flip operational access
-correctly. The tenant simply has no permissions to exercise.
+**One canonical source.** The matrix moved to `src/rbac/role-permissions.ts`,
+where runtime code can reach it, with `prisma/seed-data/permissions.ts` left as
+a pure re-export so the seed and every existing import keep working against
+exactly one definition. Verified unchanged across the move: 61 permissions,
+`owner` 61 / `store_manager` 43 / `store_employee` 20, and a SHA-256 over the
+catalogue, matrix, labels and store-facing list identical before and after
+(`0ddb8c04…`). **No permission key was added, removed, renamed or moved between
+roles.**
 
-### The proposed fix — NOT applied
+**One implementation.** `src/rbac/role-provisioning.ts` is now the only place
+that creates a role or a `role_permissions` row — registration, the seed and the
+historical repair all call it. It takes the caller's transaction client, refuses
+an unknown role key, refuses to provision a *partial* role when the catalogue is
+short a permission, stays company-scoped, and is idempotent at the database
+rather than by checking first: `roles` is unique on `(company_id, key)` and
+`role_permissions` is keyed on `(role_id, permission_id)`, so a replay — or two
+concurrent replays — inserts nothing the second time instead of racing.
 
-**Not implemented in this checkpoint.** It changes how permissions are granted,
-which `CLAUDE.md` places behind an explicit approval gate, and the authorised
-scope here was the staging environment rather than application behaviour.
+**Atomic registration.** Provisioning happens inside the transaction that
+creates the company, so roles, permissions, Owner and subscription now succeed
+or roll back together. A half-built tenant is not something a shopkeeper can
+fix, and not obviously broken to anyone else.
 
-- **Plan.** Make the `ROLE_PERMISSIONS` matrix the single source of truth for
-  both callers. Move it to `src/rbac/role-permissions.ts`, have
-  `prisma/seed-data/permissions.ts` re-export it so the seed is unchanged, and
-  have `RegistrationService` write the matching `role_permissions` rows inside
-  the transaction that already creates the roles.
-- **Files.** `src/platform/registration.service.ts`,
-  `src/rbac/role-permissions.ts` (new), `prisma/seed-data/permissions.ts`,
-  plus a registration test asserting a fresh Owner holds `ALL_PERMISSION_KEYS`
-  and a fresh employee does not.
-- **Risks.** It touches a sacred rule. Getting the matrix wrong in the other
-  direction — granting an employee more than intended — is worse than the
-  present failure, because it is silent. The test must pin both roles, not only
-  the Owner. No schema change and no migration are required; the tables and the
-  matrix already exist.
-- **Existing tenants.** Any company already registered self-service needs the
-  rows backfilled. In staging that is a reset. There is no production tenant.
+A drift test fails the build if a second hand-maintained matrix ever appears
+anywhere outside the canonical file.
+
+### The historical repair — eligibility rules
+
+`scripts/staging-repair-role-permissions.ts`. **Dry run by default**; writing
+requires `--apply`, spelled out.
+
+Before any write it forces `.env.staging` with `override: true`, demands
+`APP_ENV=staging`, rejects a database whose name is not unmistakably staging
+(and any name matching `phonestore`, `prod`, `production`, `live` or `demo`),
+takes a `mysqldump`, and **restore-proves that dump into a disposable database**
+which is then dropped. A dump that exists is not a backup; a dump that restores
+is.
+
+A company is repaired only when **all** of the following are proven — and they
+are re-proven inside the write transaction, because between printing a report
+and writing, somebody could have configured that company by hand:
+
+- it came through the affected self-registration path (a `registration_attempts`
+  row names it);
+- it has exactly the three default role keys, no more and no fewer;
+- **all three** roles have zero `role_permissions`;
+- it is not the demo tenant.
+
+**Anything partial or customised is skipped whole**, and reported for manual
+review. Completing somebody's deliberately narrowed manager would be inventing a
+decision they never made — a worse bug than the empty roles, and a quieter one.
+Nothing here completes, normalises or replaces an existing mapping.
+
+Audited as `adminId: null`, `actor: 'system:role-permission-repair'`. A person
+did not do this, and recording one would put a name on a change they never made.
+
+### What the repair did in staging
+
+| | |
+| --- | --- |
+| Companies examined | 6 |
+| Repaired | **4** — each `owner 0→61`, `store_manager 0→43`, `store_employee 0→20` (+124 mappings) |
+| Skipped | 0 on the first run; **4 on the second, as "already provisioned with the canonical matrix"** — the replay is a no-op |
+| Backup | `prisma_staging-before-role-repair-…sql`, restore-proved into a disposable database (83 tables) which was then dropped |
+| Demo tenant | **untouched** — 7 roles, 159 mappings, checksum `ee023046b819dbfd`, 1 company / 9 users / 7 sales / 10 051.00, identical before and after |
+
+### A second gap it exposed
+
+The repair refused its first run: `Permission "sale.create" is not in the
+database catalogue.` **Staging held 44 of the 61 permission keys.**
+
+The catalogue is reference data every environment needs, and **no migration
+creates it** — the base keys are inserted only by `prisma/seed.ts`, which also
+seeds the demo company and therefore never runs against staging. `seed-staging.ts`
+now seeds the catalogue through the same `PERMISSIONS` constant; 17 keys were
+added.
+
+That refusal is the guard doing its job. Silently granting 60 of 61 permissions
+would have been far worse than stopping.
+
+> **Still open, and reported rather than fixed:** a database built by
+> `prisma migrate deploy` alone has an incomplete permission catalogue, because
+> the base keys exist only in the demo seed. Closing that properly needs either a
+> reference-data migration or a deploy step that runs `seedPermissions()` — both
+> outside the authorised scope of this repair, and the second is the safer
+> design.
+
+### Acceptance
+
+**44 of 44 checks pass**, covering the 16-step CP4 flow — including a company
+registered *after* the fix receiving exactly 61/43/20 with no repair involved,
+Manager and Employee allowed and denied operations, cross-company refusal, every
+tenant role refused by the platform administration API, `/admin` 404 from the
+LAN and 200 from loopback, the API port unreachable from the LAN, and idempotent
+replay of both registration and the repair.
+
+Note that `report.view` is **branch-scoped**: without an `x-branch-id` header
+only company-wide permissions resolve. That is the branch-safety boundary
+working, not a defect — an earlier acceptance run mistook it for one.
