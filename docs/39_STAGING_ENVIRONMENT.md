@@ -34,6 +34,17 @@ phonestore       companies 1   users 9   grants 0   billing periods 0   admins 0
 The demo database has no platform administrator, no billing period and no
 subscription event. Staging never reached it.
 
+> **The scripts nearly broke this, and the guards held.** `@prisma/client`
+> loads `.env` as an import side effect, and ES imports run before any
+> statement in the file — so `loadEnv({ path: '.env.staging' })` could not
+> replace a `DATABASE_URL` that was already set. `APP_ENV` is absent from
+> `.env`, so it *was* set from `.env.staging` and every staging guard passed,
+> while the connection silently stayed on development. The reset, cleanup and
+> seed commands would have **refused** rather than acted, because they test the
+> database NAME and `phonestore` fails the staging shape — so nothing
+> destructive could have run. Fixed with `override: true`; `PrismaClient`
+> resolves its URL when constructed, not when imported.
+
 ---
 
 ## 2. Shape: one origin
@@ -93,6 +104,20 @@ loudly, which is the behaviour a real deployment must have.
 `/public/*` and `/account/*` stay reachable from the LAN, so a phone can test
 registration and the customer portal while the administration portal stays on
 the machine.
+
+**The API port is part of that boundary.** Refusing the administration PAGES
+while the administration ENDPOINTS stay open on the API port would leave a
+password as the only layer — exactly what this is supposed to avoid. So the API
+binds loopback only (`API_BIND=127.0.0.1`) and is reachable solely through the
+edge; under Docker the same is achieved with `expose` rather than `ports`.
+Measured:
+
+```
+API direct from LAN      connection refused
+/admin        from LAN   404      from loopback  200
+/public/*     from LAN   200      (a phone can test)
+/api/health   from LAN   200      (through the edge)
+```
 
 > ### Limitation, stated plainly
 >
@@ -220,6 +245,15 @@ everything.
 **No HSTS**, deliberately. An HSTS header can pin a browser to HTTPS for a
 parent domain it was never meant to affect — a mistake that outlives the
 environment that made it.
+
+It was not free. The edge never set HSTS, but **helmet's defaults did**, on
+every `/api/*` response, complete with `includeSubDomains` — and the proxy
+passed it straight through. Over plain HTTP a browser ignores it, so this was
+invisible until measured; the moment staging ran on HTTPS under a real domain it
+would have pinned that domain's siblings for six months. Now closed twice over:
+the API drops HSTS when `APP_ENV=staging`, and the edge strips the header from
+anything upstream sends (`proxy_hide_header Strict-Transport-Security`).
+Verified absent on both website and API responses.
 
 The CSP has already earned its place: it caught a build in which Git Bash
 path-mangled `VITE_API_BASE=/api/v1` into a Windows path, turning every API call

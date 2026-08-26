@@ -5442,3 +5442,44 @@ re-run against staging. **This is not a production readiness statement.**
 including the temporary administrator — deleting it now would leave the Owner
 unable to open the portal the environment exists to test. `staging-cleanup`
 removes it when testing is done.
+
+### Addendum — two defects found while hardening the same session
+
+After the first handoff draft, two more problems surfaced and were fixed and
+pushed (`erp-backend` `cf00837`, `5dbc64e`; `retail-erp-control-web` `ad923df`):
+
+**HSTS was leaking from helmet.** The edge never set `Strict-Transport-Security`,
+but helmet's defaults did on every `/api/*` response — `includeSubDomains`
+included — and the proxy passed it straight through. Over plain HTTP a browser
+ignores it, so it was invisible until measured; under HTTPS on a real domain it
+would have pinned that domain's siblings for six months, long after the staging
+environment was gone. The API now drops HSTS when `APP_ENV=staging`, and the
+edge strips the header from anything upstream sends. Verified absent on both
+website and API responses.
+
+**The staging scripts were reading the development database.**
+`@prisma/client` loads `.env` as a side effect of being imported, and ES imports
+are evaluated before any statement in the file, so
+`loadEnv({ path: '.env.staging' })` could not replace a `DATABASE_URL` that was
+already set. The failure mode was worse than a plain misconfiguration: `APP_ENV`
+is absent from `.env`, so it *was* set from `.env.staging` and every staging
+guard passed, while the connection silently stayed on development. Caught
+because the code-retrieval command could not find a code the API had just
+issued. **Nothing destructive could have run** — the reset, cleanup and seed
+guards test the database NAME, and `phonestore` fails the staging shape, so they
+would have refused rather than acted. That is the guards working, not luck.
+Fixed with `override: true` in all four scripts.
+
+Also closed in this pass: the API bound every interface, leaving the
+administration ENDPOINTS reachable on the API port from the LAN even while the
+administration PAGES were refused — a password as the only layer, which is
+exactly what the deployment exists to avoid while administrator MFA does not
+exist. `API_BIND` now lets it answer on loopback alone; under Docker `expose`
+already did the same. Measured after the change: API refused from the LAN,
+`/admin` 404 from the LAN and 200 from loopback, `/public/*` 200 from the LAN.
+
+The acceptance suite was corrected too. It had asserted `state === 'active'`
+after an administrative grant, when the right answer is `complimentary` — the
+same state that makes "no payment row was fabricated" true. With that fixed the
+run is **31/33**, and the two remaining failures are precisely and only the
+permissions defect, labelled as such in the output.

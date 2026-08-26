@@ -60,6 +60,15 @@ services:
     environment:
       APP_ENV: staging
       NODE_ENV: production
+    # `expose`, never `ports`: the API is reachable on the compose network by
+    # the edge and by nothing else. It is not published to the host, so
+    # `/api/*` can only be entered through the proxy that enforces the `/admin`
+    # boundary and the security headers.
+    #
+    # Do NOT set `API_BIND=127.0.0.1` here. That variable exists for running the
+    # API directly on a host, where the port would otherwise be open to the LAN.
+    # Inside a container it would bind the container's own loopback and the edge
+    # could never reach it.
     expose:
       - '3010'
     # Nest installs shutdown hooks; give in-flight requests time to finish.

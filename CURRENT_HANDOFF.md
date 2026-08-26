@@ -17,9 +17,9 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `837c63f` |
+| `erp-backend` | `5dbc64e` |
 | `erp-mobile` | `b973f64` |
-| `retail-erp-control-web` | `06c8465` |
+| `retail-erp-control-web` | `ad923df` |
 | `erp-docs` | *this commit* |
 
 `retail-erp-control-web` now has a remote and its full history is pushed.
@@ -75,8 +75,11 @@ Full detail in **[`docs/39_STAGING_ENVIRONMENT.md`](docs/39_STAGING_ENVIRONMENT.
   than working around it. No hostname is hardcoded in application code.
 - **Two layers on `/admin`.** Platform-administrator authentication, plus a
   network boundary that refuses any non-loopback peer with `404` before
-  application code runs. `/public` and `/account` stay reachable from the LAN so
-  a phone can test.
+  application code runs. **The API port is part of that boundary** — it binds
+  loopback only, so the administration ENDPOINTS are not reachable while the
+  administration PAGES are refused. `/public` and `/account` stay reachable from
+  the LAN so a phone can test. Measured: API from LAN refused; `/admin` 404 from
+  LAN and 200 from loopback; `/public/*` 200 from LAN.
 - **Strict SQL.** The staging MySQL runs `STRICT_ALL_TABLES`. The development
   server's `sql_mode` is empty, which silently coerces a bad ENUM to `''`.
 - **Guarded commands.** `staging-reset`, `staging-verification-code`,
@@ -85,6 +88,23 @@ Full detail in **[`docs/39_STAGING_ENVIRONMENT.md`](docs/39_STAGING_ENVIRONMENT.
 - **Mobile.** `EXPO_PUBLIC_API_ORIGIN` / `_SIGNUP_URL` / `_PORTAL_URL` /
   `_APP_ENV`, all overrides — production defaults unchanged. A staging build
   carries a persistent `STAGING — test data only` strip mounted at the app root.
+
+### Two things found late, and fixed
+
+- **HSTS was leaking from helmet.** The edge never set it, but helmet's defaults
+  did on every `/api/*` response, `includeSubDomains` and all, and the proxy
+  passed it through. Invisible over plain HTTP — and it would have pinned a real
+  parent domain's siblings for six months the moment staging ran on HTTPS. Now
+  dropped by the API in staging and stripped at the edge. Verified absent on
+  both.
+- **The staging scripts were reading the development database.**
+  `@prisma/client` loads `.env` as an import side effect, before
+  `loadEnv({ path: '.env.staging' })` runs, and dotenv will not replace a
+  variable that is already set. `APP_ENV` is absent from `.env` so it *was* set
+  from `.env.staging` and every staging guard passed, while `DATABASE_URL`
+  silently stayed on development. **Nothing destructive could have run:** the
+  reset, cleanup and seed guards test the database NAME, and `phonestore` fails
+  the staging shape, so they would have refused. Fixed with `override: true`.
 
 ### Secrets
 
@@ -114,8 +134,9 @@ session report.
 | Website `npm audit --omit=dev` | 0 vulnerabilities |
 | Website lint (**oxlint**, not ESLint) | 0 errors, 4 warnings |
 
-**Staging acceptance: 30 of 33 checks passed.** The three failures were all my
-test's wrong expectations, not product faults, and are described below.
+**Staging acceptance: 31 of 33 checks passed.** The two remaining failures are
+precisely and only the permissions defect above — the suite was corrected so a
+failure now means a real fault rather than my own wrong expectation.
 
 Confirmed by the run: a new business is `pending` until an administrator acts ·
 operational access is blocked before activation and the portal stays readable ·
@@ -129,13 +150,16 @@ timeline carries `registered`, `administrative_grant`, `suspended`,
 or code · a verification code never appears in a response · signing out revokes
 the administrator session · `/health/ready` discloses nothing.
 
-### The three "failures" were my test being wrong
+### What the suite now says
 
-All three came from asserting `state === 'active'` after a grant. The real state
-is **`complimentary`** (`canWrite: true`, `isComplimentary: true`,
-`status: 'activated'`), which is correct and is what "no payment row" implies.
-The accompanying `403` was `Missing permission(s): report.view` — the
-permissions defect above, not an entitlement failure.
+One earlier failure was my own: I asserted `state === 'active'` after a grant,
+when the correct state is **`complimentary`** (`canWrite: true`,
+`isComplimentary: true`, `status: 'activated'`) — the same state that makes "no
+payment row was fabricated" true. That expectation is fixed.
+
+The two that remain are the real defect: `403 Missing permission(s):
+report.view`, a permissions failure and not an entitlement one. They are
+labelled as such in the run output, so nobody has to rediscover which is which.
 
 ---
 
