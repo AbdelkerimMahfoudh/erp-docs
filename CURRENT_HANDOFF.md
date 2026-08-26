@@ -6,9 +6,22 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-26T23:05Z`
+- **Authorised task — move account creation into the mobile app**, retire
+  website registration, add a secure one-time mobile→website portal handoff,
+  and show a payment-instruction modal (five providers, all temporarily `00000`).
+  Supersedes every earlier requirement placing public registration on the website.
+- HEADs at takeover — `erp-backend` `c05d04c` · `erp-mobile` `b973f64` ·
+  `retail-erp-control-web` `ad923df` · `erp-docs` `af12e73`. Baseline verified,
+  no discrepancies.
+- **Superseded-prompt work, retained:** a scan-card artifact, a git-ignored
+  `mobile/.env.local` pointing the app at the staging edge, and synthetic
+  staging logins (`owner|manager|employee@example.invalid`). The Expo dev
+  server and the website-registration acceptance flow are STOPPED.
+- Previously completed and preserved: migration `0059`, the permission
+  catalogue work, staging, and all documentation.
 - Completed task — **migration `0059`**, which publishes the 61-key permission
   catalogue as reference data, so a database built by `prisma migrate deploy`
   alone no longer needs the demo seed to be usable.
