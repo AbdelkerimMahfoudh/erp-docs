@@ -6,138 +6,136 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-26T21:50Z`
-- **Authorised task — close the permission-catalogue deployment defect** with
-  reference-data migration `0059`, so a database built by `prisma migrate
-  deploy` alone holds all 61 catalogue keys without the demo seed.
-- Authorisation is limited to publishing the EXISTING 61-key catalogue. It does
-  not permit a new permission, changed role authority, a schema change, or
-  migration `0060`.
-- HEADs at takeover — `erp-backend` `44ceddd` · `erp-mobile` `b973f64` ·
-  `retail-erp-control-web` `ad923df` · `erp-docs` `849fca7`.
-- Baseline verified with no discrepancies: 98 suites / 1698 tests · 57 actual
-  migrations, highest `0058`, `0005` genuinely absent · 61/43/20 · full-canon
-  SHA-256 `0ddb8c04…` · staging healthy on 8088.
-- Next intended action: prove the 44-key pre-fix state on a disposable MySQL
-  database before writing anything.
-- **Do not begin** hosting, CI/CD, administrator MFA, payment-provider
-  integration, or the IMEI scanner milestone.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last account: **CLAUDE-B**
+- Completed task — **migration `0059`**, which publishes the 61-key permission
+  catalogue as reference data, so a database built by `prisma migrate deploy`
+  alone no longer needs the demo seed to be usable.
+- **Do not begin** hosting, production deployment, CI/CD, administrator MFA,
+  Bankily integration, real contact delivery, or the IMEI scanner milestone.
 
 ### HEADs — all four repositories clean and level with their remotes
 
 | Repository | HEAD |
 |---|---|
-| `erp-backend` | `44ceddd` |
+| `erp-backend` | `dd9d4d0` |
 | `erp-mobile` | `b973f64` (unchanged — no mobile change was needed) |
-| `retail-erp-control-web` | `ad923df` (unchanged) |
+| `retail-erp-control-web` | `ad923df` (unchanged — no website change was needed) |
 | `erp-docs` | *this commit* |
 
 Nothing was force-pushed and no shared history was rewritten.
 
 ---
 
-## The defect, and what fixed it
+## The defect this closed
 
-**Root cause — two facts that were only fatal together:**
+**A tenant's authority is only ever as complete as the catalogue behind it.**
+`AccessService` resolves permissions solely from `role_permissions`, and those
+rows can only reference `permissions` rows that exist.
 
-1. `AccessService.getEffectivePermissions` resolves authority **only** from
-   `role_permissions`.
-2. `RegistrationService` created three `roles` rows — a key and a name — and
-   **no `role_permissions` at all**.
+Until now **no migration created the catalogue.** The base keys — `sale.create`,
+`report.view`, `user.manage` and 14 others — were inserted only by
+`prisma/seed.ts`. Later feature migrations each added the handful of keys they
+introduced, which is how a deploy-only database reached exactly **44 of 61**.
 
-Every shop that signed up through the website got an Owner who could sign in and
-then do nothing: `403 Missing permission(s): report.view`.
-
-The demo company worked because `prisma/seed.ts` carried its **own separate copy**
-of the provisioning loop. That second implementation is what hid the bug — the
-only tenant anybody looked at was provisioned by different code from the one real
-shops used.
-
-**Underneath it, a structural cause:** the canonical matrix lived in
-`prisma/seed-data/permissions.ts`, and `tsconfig.build.json` **excludes**
-`prisma/seed-data` from the production build. The seed could read the matrix; the
-server could not. Registration was not careless so much as unable.
-
-### The single canonical source
-
-`src/rbac/role-permissions.ts` — moved there so runtime code can reach it, with
-`prisma/seed-data/permissions.ts` left as a **pure re-export** so the seed and
-every existing import keep working against exactly one definition.
-
-**Proof the matrix is unchanged:** 61 permissions; `owner` 61 / `store_manager`
-43 / `store_employee` 20; SHA-256 over the catalogue, matrix, labels and
-store-facing list identical before and after the move —
-`0ddb8c04314656dc98f4c293726dedc2dcefbdc414fc1d78fd0ae967af9d668e`. **No
-permission key was added, removed, renamed or moved between roles.**
-
-`src/rbac/role-provisioning.ts` is now the **only** place that creates a role or
-a `role_permissions` row. Audit confirms it: exactly two company-creation paths
-(registration, seed), one `role.upsert` site, one `rolePermission.createMany`
-site. No custom-role creation path exists anywhere, so none was disturbed.
-
-Registration provisions **inside its existing transaction**, so roles,
-permissions, Owner and subscription succeed or roll back together.
+**The demo seed concealed it** by doing two jobs at once: it seeds the reference
+catalogue *and* the demo company. Every environment anybody had looked at ran
+it, so the catalogue was always complete there. Staging — the first environment
+built deliberately without the demo company — was the first to show the gap, and
+did so loudly, because the role repair refused to provision a partial Owner.
 
 ---
 
-## The restricted backfill
+## Migration `0059_permission_catalogue_reference_data`
 
-`backend/scripts/staging-repair-role-permissions.ts` — **dry run by default**;
-writing requires `--apply`.
+**Reference data only.** It inserts catalogue rows and grants nothing:
 
-Before any write: forces `.env.staging` with `override: true`, demands
-`APP_ENV=staging`, rejects any database name that is not unmistakably staging
-(and anything matching `phonestore`, `prod`, `production`, `live`, `demo`), takes
-a `mysqldump`, and **restore-proves it into a disposable database** which is then
-dropped.
+- no schema change — no `ALTER`, no `CREATE TABLE`, no Prisma schema edit;
+- no `role_permissions`, so no role's authority moves;
+- no tenant, user, branch, subscription, sale or demo record;
+- **no existing row modified.**
 
-Eligibility — every condition required, and **re-proven inside the write
-transaction**: registration provenance · exactly the three default role keys ·
-**all three** with zero mappings · not the demo tenant. Anything partial or
-customised is **skipped whole** and reported for manual review; nothing is
-completed, normalised or replaced.
+`NOT EXISTS`, never `INSERT IGNORE` or `REPLACE`. `IGNORE` would also swallow a
+genuine error — a truncated label under strict mode, a broken constraint — and
+leave the catalogue quietly short, the exact class of silent failure this ends.
+`REPLACE` would delete and reinsert, discarding ids `role_permissions` points at.
 
-Audited as `adminId: null`, `actor: 'system:role-permission-repair'` — no
-fabricated human, no misused administrator.
+Generated from `src/rbac/role-permissions.ts` by
+`scripts/generate-catalogue-migration.ts`, so nobody hand-maintains a second
+list of keys. The SQL is an **immutable historical snapshot, not a second
+runtime source** — nothing under `src/` reads a migration file, and a test
+enforces it.
 
-### Result in staging
+> **A future permission needs a FUTURE migration. Never edit `0059`.**
+
+### Hashes — unchanged by all of this
 
 | | |
 |---|---|
-| Examined | 6 companies |
-| **Repaired** | **4** — each `owner 0→61`, `store_manager 0→43`, `store_employee 0→20` (**+124 mappings** each) |
-| **Skipped** | 0 on the first run; **4 on the replay**, reported as "already provisioned with the canonical matrix" |
-| Backup | `prisma_staging-before-role-repair-2026-08-26T20-48-46-745Z.sql`, **restore-proved** — 83 tables into a disposable database, then dropped |
-| Partial/custom roles | **none existed**; the rules that would skip them are unit-tested |
+| Canonical key-set SHA-256 | `52b7200d09710a251d424a97fe24900e9dbff01e250195ba73e6e83ab388b4ec` |
+| **Role-matrix SHA-256** | `fc577f63451ec8c0792b8dc034f33f5dabbf402f2190a6cb75647c51933cf687` |
+| Full-canon SHA-256 | `0ddb8c04314656dc98f4c293726dedc2dcefbdc414fc1d78fd0ae967af9d668e` |
 
-**Demo tenant: zero changes.** 7 roles, 159 mappings, checksum
-`ee023046b819dbfd`, 1 company / 9 users / 7 sales / 10 051.00 — identical before
-and after. The development database was never targeted.
+Owner 61 / Manager 43 / Employee 20, unchanged. No permission key was added,
+removed, renamed or reinterpreted.
 
 ---
 
-## A second gap the repair exposed
+## Proof, on real disposable MySQL databases
 
-The repair **refused its first run**: `Permission "sale.create" is not in the
-database catalogue.` **Staging held 44 of the 61 permission keys.**
+Both were dropped afterwards; no `%proof%` database remains.
 
-The catalogue is reference data every environment needs, and **no migration
-creates it** — the base keys are inserted only by `prisma/seed.ts`, which also
-seeds the demo company and so never runs against staging. `seed-staging.ts` now
-seeds it through the same `PERMISSIONS` constant; 17 keys were added.
+### Clean installation — `prisma_staging_cleaninstall_proof`
 
-That refusal is the guard working. Silently granting 60 of 61 permissions would
-have been far worse than stopping.
+Migrations only, **no demo seed**: 58 applied, highest `0059`, **61 keys**, and
+`companies=0 users=0 roles=0 role_permissions=0 sales=0`. Then, live against a
+backend on port 3012: **25 of 25 checks passed** — self-registration succeeded on
+a seedless database, its roles received exactly **61/43/20**, entitlement was
+`pending` and business actions gated, activation worked, the Owner reached a
+`report.view` route with `x-branch-id`, Manager was allowed `report.view` and
+denied `user.manage`, Employee was denied both and allowed the sales surface,
+all three tenant roles were refused by the platform administration API, and a
+branch the tenant does not own was refused.
 
-> ### ⚠ Still open — reported, not fixed
->
-> **A database built by `prisma migrate deploy` alone has an incomplete
-> permission catalogue**, because the base keys exist only in the demo seed.
-> Closing it needs either a reference-data migration or a deploy step that runs
-> `seedPermissions()` — the second is the safer design. Both are outside this
-> repair's authorised scope, and this task did not authorise migration 0059.
+### Upgrade path — `prisma_staging_upgrade_proof`
+
+Built to the pre-`0059` state (57 migrations, **44 keys**), per-row checksums
+captured, then `0059` applied:
+
+- **exactly 17 rows added** (44 → 61);
+- **all 44 pre-existing rows byte-identical** in id, key and label;
+- replaying `migrate deploy` — "No pending migrations to apply" — changed nothing;
+- re-executing the statement under `STRICT_ALL_TABLES` left the catalogue
+  fingerprint identical, ids included.
+
+**The 17 keys:** `branch.manage`, `closing.perform`, `cost.view`,
+`discount.apply`, `discount.override`, `expense.manage`, `import.run`,
+`integrations.manage`, `purchase.manage`, `report.view`, `sale.create`,
+`sale.return`, `settings.manage`, `supplier.manage`, `unit.add`,
+`unit.transfer`, `user.manage`.
+
+---
+
+## Applied to staging
+
+Behind `scripts/staging-apply-migrations.ts`: `.env.staging` with
+`override: true`, `APP_ENV=staging`, a database name that is unmistakably
+staging, a `mysqldump`, and a **restore-proof** of that dump into a disposable
+database (83 tables, 61 permission rows) which was then dropped.
+
+Staging already held all 61 keys from the earlier repair, so as predicted the
+migration **recorded itself and changed no data**:
+
+| | Before | After |
+|---|---|---|
+| Catalogue | 61 | **61** |
+| Roles / mappings | 6 / 248 | **6 / 248** |
+| Role-mapping checksum | `c2cf1e55732161f7` | **`c2cf1e55732161f7`** |
+| Repaired companies | 124 mappings each | **124 each** |
+
+No manual catalogue bootstrap was needed afterwards. The gate reports
+`61/61 canonical keys present`.
 
 ---
 
@@ -145,64 +143,76 @@ have been far worse than stopping.
 
 | Gate | Result |
 |---|---|
-| Backend suite | **98 suites / 1698 tests, all pass** (was 95 / 1657) |
+| Backend suite | **99 suites / 1714 tests, all pass** (was 98 / 1698) |
 | Backend `tsc --noEmit` | clean |
 | `prisma validate` | valid |
-| Migration status | **57 applied, 0 pending** — unchanged, no 0059 |
-| Website `tsc` · tests · build · audit | clean · **14/14** · clean · **0 vulnerabilities** |
-| Website lint (**oxlint**) | 0 errors, 4 pre-existing warnings |
+| Migrations | **58 in the tree, highest `0059`** (`0005` has never existed) |
+| Staging migration status | 58 applied, **0 pending** |
+| Catalogue gate vs staging | `61/61 present`, exit 0 |
+| Generator drift check | in step with the canonical source |
+| Website `tsc` · tests · build · audit · oxlint | clean · **14/14** · clean · **0 vulnerabilities** · 0 errors, 4 pre-existing warnings |
 | Mobile `tsc` · pure suites · i18n parity | clean · 9 files, 0 failures · **en/ar/fr 1752 each** |
 
-**Staging acceptance: 44 of 44.** The 16-step CP4 flow plus 11 further live
-checks. Highlights: a company registered **after** the fix received exactly
-61/43/20 with no repair involved · while pending, the portal reads and business
-actions are gated · after activation the Owner reaches a `report.view` route ·
-Manager allowed `report.view` and denied `user.manage` · Employee denied
-`report.view` and `user.manage`, allowed the sales surface · cross-company read
-refused · Owner, Manager and Employee each refused by the platform administration
-API · `/admin` 404 from the LAN, 200 from loopback · the API port unreachable
-from the LAN · registration and repair replays both no-ops.
+**Staging acceptance after the migration: 33/33 original, 44/44 expanded.**
 
-> **`report.view` is branch-scoped.** Without an `x-branch-id` header only
-> company-wide permissions resolve. An earlier acceptance run mistook that
-> boundary for the defect; it is the branch-safety design working.
+### Demo integrity — unchanged
+
+1 company · 9 users · 7 sales · **10 051.00 MRU** · 7 roles · 159 mappings ·
+catalogue 61 · 0 subscription payments · 0 administrative grants ·
+role-mapping checksum **`ee023046b819dbfd`** before and after.
 
 ---
 
-## Baseline discrepancy found at takeover
+## ⚠ The one thing deliberately left undone
 
-Reported, not fixed, and outside this repair's scope: the **website test suite
-reported "no tests" once** on the first invocation, then 14/14 on ten consecutive
-runs including a cold Vite cache. Not reproducible. It matters because that state
-**exits 0** — a false-green risk in any CI that is eventually configured.
+**The development database was not migrated**, because the task's binding
+boundaries forbid touching it. `npx prisma migrate status` against `phonestore`
+therefore reports `0059` as pending. That is expected, not a defect:
 
-Everything else matched the recorded handoff exactly.
+- it is a **data-only** migration, and dev already holds all 61 keys from the seed;
+- applying it there is a one-command no-op whenever someone chooses —
+  `npx prisma migrate deploy`.
+
+### Takeover discrepancies
+
+**None.** Every stated expectation matched: HEADs `44ceddd` / `b973f64` /
+`ad923df` / `849fca7`, 98 suites / 1698 tests, 57 actual migrations with `0058`
+highest and `0005` genuinely absent, no pending migration, 61/43/20, full-canon
+SHA-256 `0ddb8c04…`, staging healthy on 8088, four repositories clean and level,
+`READY_FOR_HANDOFF` under owner `NONE`.
+
+*(Carried forward from the previous session, still unresolved and still out of
+scope: the website suite once reported "no tests" and exited 0 — a false-green
+risk for any CI eventually configured. It did not recur in any run this session.)*
 
 ---
 
 ## State of staging
 
-**Retained and healthy on port 8088**, single-origin preserved, `/admin`
-loopback-plus-authentication.
+**Retained and healthy on port 8088.** Single origin preserved; `/admin` is
+loopback plus administrator authentication; the API binds loopback only.
 
-- Two tenants kept as fixtures: `Staging Test Shop`, and `CP4 Shop …` (fully
-  exercised — Owner, Manager and Employee, activated).
-- Four disposable harness tenants removed; **12 administrator sessions revoked**;
-  7 unexpired verification codes consumed; **32 audit events preserved**.
+- Two fixtures kept: `Staging Test Shop` and `CP4 Shop …`, both with 124
+  mappings.
+- Acceptance-run tenants removed; administrator sessions revoked; unexpired
+  verification codes consumed; **44 audit events preserved**.
 - The temporary staging administrator is **deliberately kept** — removing it
-  would make the control portal inaccessible. Its password lives only in a file
-  outside every repository, and appears in no commit and no log.
-- All identities are synthetic (`@example.invalid` — RFC 2606, never a real
-  domain). No real customer, employee or business information exists in staging.
+  would make the control portal inaccessible.
+- All identities synthetic (`@example.invalid`, RFC 2606). No real customer,
+  employee or business information exists in staging.
+- Temporary ports released: the clean-install backend on 3012 is stopped, and
+  both disposable databases are dropped. Only `3011` (loopback), `8088` and
+  MySQL `3306` listen.
 
 ---
 
 ## Next exact action
 
-Decide how the **permission catalogue** should be applied to a database built by
-`migrate deploy` alone (see the open item above). Recommended: a deploy step that
-runs `seedPermissions()`, rather than a reference-data migration — it keeps the
-catalogue defined in exactly one place, which is the property whose absence
-caused this whole defect.
+Nothing is in flight. The permission catalogue is now complete on any database
+built by `migrate deploy` alone, and the gate refuses a deployment that is not.
 
-Nothing else is in flight. **This is not a production readiness statement.**
+The remaining open decisions are unchanged from the staging checkpoint and are
+the Owner's to make: **where staging should be hosted**, and **the private-access
+layer for `/admin`** — see [`docs/39`](docs/39_STAGING_ENVIRONMENT.md).
+
+**This is not a production readiness statement.**

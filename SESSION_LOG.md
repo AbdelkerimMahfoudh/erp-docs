@@ -5572,3 +5572,81 @@ any future CI.
 revoked, 7 unexpired codes consumed, 32 audit events preserved. Two fixtures
 kept, and the temporary staging administrator deliberately kept — removing it
 would make the control portal inaccessible. Staging remains healthy on 8088.
+
+---
+
+## 2026-08-26 — CLAUDE-B — migration 0059: the catalogue as reference data
+
+**Task.** Close the last permission defect: a database built by
+`prisma migrate deploy` alone held 44 of the 61 catalogue keys. Authorised
+narrowly — publish the EXISTING catalogue, no new permission, no changed role
+authority, no schema change, no `0060`.
+
+**Commits.** `erp-backend` `06f5efa` (handoff claim), `fd5555f`, `dd9d4d0`.
+Mobile and the website needed no change and are unchanged at `b973f64` /
+`ad923df`. Docs: this entry. All four repositories clean and level; nothing
+force-pushed.
+
+**Takeover.** No discrepancies. Every stated expectation matched, including the
+detail that there are 57 actual migrations with `0058` highest because `0005`
+has never existed — verified by scanning the sequence for gaps rather than
+trusting the count.
+
+**Root cause.** No migration ever created the catalogue. The base keys lived
+only in `prisma/seed.ts`; later feature migrations each added the handful their
+own feature introduced, which is how a deploy-only database reached exactly 44.
+The demo seed concealed it by doing two jobs at once — seeding the reference
+catalogue AND the demo company — so every environment anybody looked at had a
+complete catalogue. Staging, built deliberately without the demo company, was
+the first to show it.
+
+**The migration.** Reference data only: it inserts catalogue rows and grants
+nothing. No schema change, no `role_permissions`, no tenant or demo record, no
+existing row modified. `NOT EXISTS` rather than `INSERT IGNORE` or `REPLACE` —
+IGNORE would also swallow a genuine error and leave the catalogue quietly short,
+which is the exact silent failure being ended, and REPLACE would delete and
+reinsert, discarding ids that `role_permissions` points at. Generated from
+`src/rbac/role-permissions.ts` by a generator, so nobody hand-maintains a second
+key list; a spec fails the build if the two drift, and another proves nothing
+under `src/` ever reads a migration file.
+
+**Proof on real disposable MySQL databases**, both dropped afterwards. Clean
+install: 58 migrations, highest `0059`, 61 keys, zero tenant data — and a live
+backend on a seedless database registered a company whose roles received exactly
+61/43/20, with 25/25 checks covering pending gating, activation, Owner/Manager/
+Employee positive and negative boundaries with `x-branch-id`, and platform-admin
+isolation. Upgrade path: 44 → 61 with exactly 17 rows added, all 44 pre-existing
+rows byte-identical in id, key and label, and a replay changing nothing.
+Re-executing the statement under `STRICT_ALL_TABLES` left the fingerprint
+identical.
+
+**Staging.** Applied behind the usual guards with a restore-proved backup. As
+predicted it recorded the migration and changed no data: catalogue 61 → 61,
+mappings 248 → 248, role-mapping checksum `c2cf1e55732161f7` unchanged, both
+repaired companies still at 124. Acceptance afterwards: 33/33 original and 44/44
+expanded.
+
+**Deployment contract.** `migrate deploy` followed by
+`scripts/verify-permission-catalogue.ts`, which exits non-zero on a missing,
+unknown or duplicated key and never deletes anything — removing an unknown key
+automatically could revoke authority a deliberate change granted. Deployment no
+longer depends on the demo seed for anything, and `seedPermissions()` is kept
+only for local development.
+
+**Deliberately left undone.** The development database was not migrated, because
+the binding boundaries forbid touching it, so `migrate status` there reports
+`0059` pending. It is a data-only no-op for dev, which already holds all 61 keys
+from the seed.
+
+**Two of my own mistakes, corrected.** A row-comparison reported all 44 rows as
+changed; the rows were identical and my `join` had been broken by CRLF line
+endings — caught because "44 changed, 17 added" is not a coherent result for an
+insert-only statement. And several migration assertions matched words in the
+file's own header comment explaining why those constructs are forbidden; they
+now assert against the executable SQL with comments stripped.
+
+**Verification.** Backend 99 suites / 1714 tests (was 98 / 1698); tsc clean in
+all three code repositories; prisma valid; 58 migrations, 0 pending on staging;
+website 14/14, build clean, 0 vulnerabilities, oxlint 0 errors; mobile tsc
+clean, 9 suites, i18n parity 1752 × 3. Demo integrity unchanged throughout:
+1 company / 9 users / 7 sales / 10 051.00, checksum `ee023046b819dbfd`.

@@ -27,8 +27,8 @@ mechanism rather than by care:
 **Verified, not assumed.** After the full acceptance run:
 
 ```
-prisma_staging   companies 2   users 4   admins 1   audit events 32
-phonestore       companies 1   users 9   admins 0   sales 7 / 10 051.00
+prisma_staging   companies 2   users 2   admins 1   audit events 44   catalogue 61
+phonestore       companies 1   users 9   admins 0   sales 7 / 10 051.00   catalogue 61
 ```
 
 The demo database has no platform administrator and no subscription event, and
@@ -428,12 +428,15 @@ added.
 That refusal is the guard doing its job. Silently granting 60 of 61 permissions
 would have been far worse than stopping.
 
-> **Still open, and reported rather than fixed:** a database built by
-> `prisma migrate deploy` alone has an incomplete permission catalogue, because
-> the base keys exist only in the demo seed. Closing that properly needs either a
-> reference-data migration or a deploy step that runs `seedPermissions()` — both
-> outside the authorised scope of this repair, and the second is the safer
-> design.
+> **Closed by migration `0059`.** A database built by `prisma migrate deploy`
+> alone now holds all 61 keys. See
+> [§11](#11-migration-0059--the-catalogue-as-reference-data) and
+> [`37_PLATFORM_CONTROL.md`](37_PLATFORM_CONTROL.md).
+>
+> Staging no longer needs `seed-staging.ts` to repair a short catalogue. That
+> step remains, idempotent and harmless, so an environment created before `0059`
+> still converges — but **deployment does not depend on it**, and it is not a
+> recovery mechanism any more.
 
 ### Acceptance
 
@@ -447,3 +450,130 @@ replay of both registration and the repair.
 Note that `report.view` is **branch-scoped**: without an `x-branch-id` header
 only company-wide permissions resolve. That is the branch-safety boundary
 working, not a defect — an earlier acceptance run mistook it for one.
+
+---
+
+## 11. Migration `0059` — the catalogue as reference data
+
+### Why `prisma migrate deploy` produced only 44 keys
+
+The permission catalogue is reference data every environment needs, and **no
+migration created it.** The base keys — `sale.create`, `report.view`,
+`user.manage` and 14 others — were inserted only by `prisma/seed.ts`. Later
+migrations (0044, 0047, 0049, 0050 and others) each added the handful of keys
+their own feature introduced, which is how a deploy-only database reached 44.
+
+### Why the demo seed concealed it
+
+`prisma/seed.ts` does two jobs at once: it seeds the reference catalogue **and**
+the demo company. Every environment anybody had ever looked at ran it, so the
+catalogue was always complete there — and the gap was invisible precisely
+because the thing that hid it was also the thing everybody used.
+
+Staging was the first environment built deliberately **without** the demo
+company. It was therefore also the first to show the defect, and it did so
+loudly: the role repair refused to run rather than provision a partial Owner.
+
+### Why `0059` is reference data, not schema or authority
+
+It inserts catalogue **rows**. It grants nothing.
+
+- No schema change — no `ALTER`, no `CREATE TABLE`, no Prisma schema edit.
+- No `role_permissions`, so no role's authority moves. Owner 61 / Manager 43 /
+  Employee 20 are untouched, and the role-matrix SHA-256 is unchanged.
+- No tenant, user, branch, subscription, sale or demo record.
+- No existing row modified.
+
+```sql
+INSERT INTO `permissions` (`id`, `key`, `label`)
+SELECT * FROM ( … 61 candidate rows … ) AS want
+WHERE NOT EXISTS (SELECT 1 FROM `permissions` p WHERE p.`key` = want.k);
+```
+
+**`NOT EXISTS`, never `INSERT IGNORE` or `REPLACE`.** `IGNORE` would also
+swallow a genuine error — a truncated label under strict mode, a broken
+constraint — and leave the catalogue quietly short, which is the exact class of
+silent failure this migration exists to end. `REPLACE` would delete and
+reinsert, discarding ids that `role_permissions` rows point at.
+
+### Semantics
+
+| Starting state | Result |
+| --- | --- |
+| Empty (clean install) | all 61 rows inserted |
+| The 44-key pre-`0059` state | **exactly 17** rows inserted; the 44 existing rows untouched |
+| Already complete | nothing inserted, nothing changed |
+
+### Provenance, and the rule for future permissions
+
+The SQL is generated from `src/rbac/role-permissions.ts` by
+`scripts/generate-catalogue-migration.ts`, so nobody hand-maintains a second
+list of keys — a duplicate of exactly that kind is what let registration ship
+without permissions. `--check` regenerates and compares, and
+`permission-catalogue.spec.ts` fails the build if the migration and the
+canonical source drift apart.
+
+**The SQL is an immutable historical snapshot, not a second runtime source of
+authority.** Nothing under `src/` reads a migration file, and a test enforces
+that.
+
+> **Adding a permission later means a NEW migration. Never edit `0059`.** Every
+> database that has already applied it would silently stop matching the file
+> that claims to describe it.
+
+### The deployment gate
+
+```bash
+npx ts-node scripts/verify-permission-catalogue.ts
+```
+
+Exits non-zero when the catalogue is missing a key, holds a key the codebase
+does not define, or holds a duplicate. Run it after `migrate deploy` and refuse
+to start on a failure — `scripts/staging-apply-migrations.ts` already chains the
+two.
+
+It **never deletes**. An unknown key fails the gate and is reported for a person
+to decide about: removing it automatically could revoke authority a deliberate
+change granted, and the command cannot tell those apart. A drifted *label* is
+reported but does not fail, because labels are display text and failing a
+deployment over wording teaches people to ignore the gate.
+
+It reports *matched of canonical* rather than a bare total — a database missing
+one canonical key and carrying one unknown key has the same row count as a
+correct one.
+
+### Migration, backup and rollback
+
+`scripts/staging-apply-migrations.ts` applies pending migrations to staging
+behind the usual guards: `.env.staging` with `override: true`, `APP_ENV=staging`,
+a database name that is unmistakably staging, a `mysqldump`, and a
+**restore-proof** of that dump into a disposable database which is then dropped.
+
+Rolling `0059` back is a data question, not a schema one. There is nothing to
+un-migrate structurally; if the inserted rows must go, restore the recorded
+backup. **Deleting catalogue rows by hand is not a rollback** — `role_permissions`
+references them, and removing a row a role points at revokes authority silently.
+
+### Proof
+
+Both paths were run on real, disposable MySQL databases, dropped afterwards.
+
+| | |
+| --- | --- |
+| **Clean install** | 58 migrations, highest `0059`, **61 keys**, zero tenant data; a self-registered company received exactly **61/43/20** with no seed; 25/25 live checks |
+| **Upgrade** | 44 → 61, **exactly 17 rows added**; all 44 pre-existing rows byte-identical in id, key and label; replaying deploy changed nothing |
+| **Strict mode** | re-executing the statement under `STRICT_ALL_TABLES` left the catalogue fingerprint identical |
+| **Staging** | migration recorded; catalogue stayed at 61; role mappings unchanged (checksum `c2cf1e55732161f7` before and after); both repaired companies still 124 |
+| **Demo** | unchanged — checksum `ee023046b819dbfd`, 1 company / 9 users / 7 sales / 10 051.00 |
+
+The 17 keys added on the upgrade path: `branch.manage`, `closing.perform`,
+`cost.view`, `discount.apply`, `discount.override`, `expense.manage`,
+`import.run`, `integrations.manage`, `purchase.manage`, `report.view`,
+`sale.create`, `sale.return`, `settings.manage`, `supplier.manage`, `unit.add`,
+`unit.transfer`, `user.manage`.
+
+### `seedPermissions()` after this
+
+`prisma/seed.ts` still seeds the catalogue, which stays useful for local
+development where the seed is run anyway. **Deployment no longer depends on it**,
+and it is no longer a way to repair migration state.

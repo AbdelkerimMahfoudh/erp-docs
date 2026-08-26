@@ -309,3 +309,45 @@ arithmetic on the device.
 Administrator **MFA** · a real **contact-delivery provider** · a **payment
 provider** · **domain, DNS and TLS** · a deployment and security review. None is
 faked, and no toggle pretends otherwise.
+
+---
+
+## Deploying: the permission catalogue
+
+**A tenant's authority is only ever as complete as the catalogue behind it.**
+`AccessService` resolves permissions solely from `role_permissions`, and those
+rows can only reference `permissions` rows that exist. A short catalogue does
+not error — it silently narrows what every role can do.
+
+Until migration `0059` **no migration created the catalogue**. The base keys
+lived only in `prisma/seed.ts`, which also seeds the demo company and so never
+ran against staging or a real deployment; a deploy-only database held 44 of the
+61 keys. The seed concealed it by doing both jobs at once — every environment
+anybody looked at had run it.
+
+### The deployment sequence
+
+```bash
+npx prisma migrate deploy                              # schema + reference data
+npx ts-node scripts/verify-permission-catalogue.ts     # gate: non-zero on failure
+```
+
+**Do not run `prisma db seed` to fix a deployment.** The seed creates the demo
+company. It is a development convenience, not a repair mechanism, and
+deployment no longer depends on it for anything.
+
+The gate never deletes. An unknown key fails it and is reported for a person to
+decide about, because removing one automatically could revoke authority a
+deliberate change granted.
+
+### Adding a permission later
+
+1. Add it to `src/rbac/role-permissions.ts` — the one canonical source.
+2. Decide, explicitly, which roles receive it.
+3. Create a **new** reference-data migration with
+   `scripts/generate-catalogue-migration.ts`.
+4. Never edit `0059`, or any applied migration. Every database that already ran
+   it would silently stop matching the file that claims to describe it.
+
+`permission-catalogue.spec.ts` fails the build if the canonical source and the
+migration drift apart, and if a second whole-catalogue migration ever appears.
