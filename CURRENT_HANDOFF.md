@@ -6,12 +6,21 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last account: **CLAUDE-B**
-- Completed task — **a private staging environment** for the control website,
-  the API and the mobile account-creation integration.
-- **Do not begin the IMEI scanner milestone.**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-26T20:25Z`
+- **Authorised task — repair the default tenant-role provisioning defect**
+  found in staging: one canonical provisioning source (CP1), atomic
+  self-registration (CP2), a guarded restricted backfill (CP3), and real
+  staging verification to 33/33 (CP4).
+- Explicitly NOT authorised: changing the permission catalogue, expanding any
+  role, granting tenant users platform-administrator access, or a schema
+  migration. **Do not begin the IMEI scanner milestone.**
+- HEADs at takeover — `erp-backend` `5dbc64e` · `erp-mobile` `b973f64` ·
+  `retail-erp-control-web` `ad923df` · `erp-docs` `0e59c33`.
+- Next intended action: move the canonical matrix under `src/` so runtime code
+  can reach it — `tsconfig.build.json` excludes `prisma/seed-data` from the
+  production build.
 
 ### HEADs — all four repositories clean and pushed
 
