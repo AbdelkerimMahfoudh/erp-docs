@@ -5650,3 +5650,71 @@ all three code repositories; prisma valid; 58 migrations, 0 pending on staging;
 website 14/14, build clean, 0 vulnerabilities, oxlint 0 errors; mobile tsc
 clean, 9 suites, i18n parity 1752 × 3. Demo integrity unchanged throughout:
 1 company / 9 users / 7 sales / 10 051.00, checksum `ee023046b819dbfd`.
+
+
+---
+
+## 2026-08-27 — CLAUDE-B — **the registration pivot, partially built**
+
+**Resume, not takeover.** This file already said `IN_PROGRESS` under CLAUDE-B
+with this exact task, so a session of my own label had been interrupted. Every
+dirty file was inspected before anything was touched, as the protocol requires
+for an interrupted session.
+
+### The handoff disagreed with Git, and Git won
+
+It recorded backend `c05d04c`; reality was `3a43ca8` — one commit further, and
+that commit was the **entire portal handoff**: `POST portal-handoff`, the
+exchange redirect, `PortalHandoffService`, `GET payment-instructions` and
+migration `0060_portal_handoff_intent`. None of it was recorded. The file also
+still claimed no mobile or website change was needed, which had stopped being
+true.
+
+### The interrupted work was not green
+
+`retail-erp-control-web` had four uncommitted files, and `PaymentModal.tsx`
+carried two defects that only the gates caught:
+
+- a raw `rgba()` scrim, which the project's own colour contract refuses — the
+  website suite was **red at baseline**, and the hardcoded value would have been
+  wrong in dark mode besides;
+- a `ref` passed to the shared `Button`, which does not forward one. **`tsc -b`
+  and the production build both failed while `vitest` passed**, because vitest
+  does not typecheck. Worth remembering: a green test run is not a green
+  repository.
+
+Both fixed, and the website is now 14/14 with a clean production build.
+
+### What was built
+
+The rules half of CP1: `lib/registration.ts` with 20 pure assertions. Either
+contact is enough and neither is refused, because the contact IS the credential.
+Nothing asks for a Store ID or any internal identifier — structurally, since the
+draft type has no field for one and a test pins the exact key set. The
+idempotency key is generated once and reused, because the anxious second tap on
+a bad connection is the ordinary case. The password is not carried past
+registration.
+
+Plus the full EN/AR/FR vocabulary for registration, verification and the portal
+— 1796 keys each, identical order.
+
+### 🔴 What I deliberately did not improvise
+
+The brief forbids replaying the registration password to log the Owner in, and
+`POST /platform/register` returns **no tokens**. `isVerified(destination)` looks
+like the obvious binding for a password-less session and **is not safe alone**:
+as written it answers for the most recent consumed verification of a
+destination, so an endpoint trusting it would let anyone who ever verified a
+contact mint an Owner session. That needs designing — single-use, short-lived,
+bound to the specific registration attempt — and designing an authentication
+path quickly at the end of a long session is how a bypass ships.
+
+**The milestone is therefore PARTIAL.** CP2 is done, CP4's component is done but
+unmounted, CP1's rules are done and its screen is not, and CP3's backend was
+already done before I started. The acceptance run, the device checks and five
+documents remain untouched. All four trees are clean, pushed and green.
+
+**Commits:** `retail-erp-control-web` `3d0e277` · `erp-mobile` `14b9d33` ·
+`erp-docs` the commit carrying this entry. Backend unchanged at `3a43ca8`.
+No migration added. No synthetic company created, so no fixtures to clean and
+the demo tenant is untouched. `READY_FOR_HANDOFF`, owner `NONE`.

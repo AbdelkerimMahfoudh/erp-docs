@@ -6,16 +6,37 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
+- Status: **READY_FOR_HANDOFF** — trees clean and green, but the **task is
+  NOT complete**. See "What remains" below.
+- Active account / Owner: **NONE** (last worked by CLAUDE-B)
 - `started_at_utc:` `2026-08-26T23:05Z`
 - **Authorised task — move account creation into the mobile app**, retire
   website registration, add a secure one-time mobile→website portal handoff,
   and show a payment-instruction modal (five providers, all temporarily `00000`).
   Supersedes every earlier requirement placing public registration on the website.
-- HEADs at takeover — `erp-backend` `c05d04c` · `erp-mobile` `b973f64` ·
-  `retail-erp-control-web` `ad923df` · `erp-docs` `af12e73`. Baseline verified,
-  no discrepancies.
+- `resumed_at_utc:` `2026-08-27T20:00Z` — **CLAUDE-B resuming its own
+  interrupted session.** Same account label, so this is a resume and not a
+  takeover; every dirty file was inspected first, as the protocol requires.
+- HEADs at RESUME (verified against Git, not trusted from this file):
+  `erp-backend` **`3a43ca8`** · `erp-mobile` `b973f64` ·
+  `retail-erp-control-web` `ad923df` · `erp-docs` `78fe428`.
+- **Discrepancies found at resume:**
+  1. The backend was **one commit ahead** of what this file recorded
+     (`c05d04c` → `3a43ca8`). The portal handoff is already built and
+     committed: `POST portal-handoff`, an exchange that 302-redirects to a
+     clean URL, `PortalHandoffService`, and `GET payment-instructions`.
+  2. **Migration `0060_portal_handoff_intent` already exists** and was not
+     recorded here. It is authorised by the current prompt for exactly this.
+  3. The claim that no mobile or website change was needed is **stale**.
+  4. `retail-erp-control-web` had **4 uncommitted files**: registration retired
+     (CP2, essentially complete) and `PaymentModal.tsx` written but **never
+     mounted** — no module imported it.
+  5. **The website suite was RED**: 13/14. `PaymentModal.tsx` used
+     `rgba(0,0,0,.55)`, which the project's own raw-colour contract refuses.
+  6. **CP1 was not started**: mobile had no registration route, and
+     `lib/signup.ts` still opened a web URL — the superseded behaviour.
+- Baseline suites at resume: backend **100 suites / 1731 tests** green · mobile
+  `tsc` clean and **19 pure suites** green · website **13/14**.
 - **Superseded-prompt work, retained:** a scan-card artifact, a git-ignored
   `mobile/.env.local` pointing the app at the staging edge, and synthetic
   staging logins (`owner|manager|employee@example.invalid`). The Expo dev
@@ -27,6 +48,94 @@
   alone no longer needs the demo seed to be usable.
 - **Do not begin** hosting, production deployment, CI/CD, administrator MFA,
   Bankily integration, real contact delivery, or the IMEI scanner milestone.
+
+
+### Registration pivot — PARTIAL. Read this before continuing.
+
+All four trees are clean, pushed and green, so the workspace is safe to pick
+up. **The milestone itself is unfinished.** What follows is exact.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `3a43ca8` (unchanged this session) |
+| `erp-mobile` | `14b9d33` |
+| `retail-erp-control-web` | `3d0e277` |
+| `erp-docs` | *this commit* |
+
+### Done
+
+- **CP2 — website registration retired.** `Register.tsx` is a 58-line stub: the
+  old address resolves, renders no form and submits nothing. The landing page no
+  longer offers `Create account`. Committed `3d0e277`.
+- **CP4 component — the payment modal exists and is green.** Server-driven
+  provider list, `dir="ltr"` code, and it states on its face that it takes no
+  money. **It is NOT mounted** — no route imports it.
+- **CP1 rules — `mobile/lib/registration.ts`** with 20 pure assertions, and the
+  full EN/AR/FR vocabulary (**1796 keys each**, identical order). Committed
+  `14b9d33`.
+- **CP3 backend was already built** by the interrupted session (`3a43ca8`):
+  `POST portal-handoff`, an exchange that 302-redirects to a clean URL,
+  `PortalHandoffService`, `GET payment-instructions`, and migration
+  `0060_portal_handoff_intent`.
+
+### Two defects found in the interrupted session's uncommitted work
+
+Both were in `PaymentModal.tsx`, and both were found by **running the gates**
+rather than reading the file:
+
+1. A raw `rgba(0,0,0,.55)` scrim. The project's own colour contract test
+   refuses it, so the website suite was **red at baseline** — and it would have
+   been wrong in dark mode too. There is a `--surface-scrim` token for this.
+2. A `ref` passed to the shared `Button`, which does not forward one. `tsc -b`
+   **and the production build** both failed, while `vitest` passed — because
+   vitest does not typecheck. A green test run was not a green repository.
+
+### What remains — none of this is started
+
+- **CP1 screen.** `mobile/app/(auth)/register.tsx` does not exist. `login.tsx`
+  still calls `openSignup()`, which opens a browser — the superseded behaviour.
+  The rules and every translation key are in place and unused.
+- **CP1 verification UI**, against the existing
+  `verify-contact/start` ` / confirm` endpoints.
+- **🔴 OPEN DESIGN QUESTION — the post-verification session.**
+  `POST /platform/register` returns `{companyId, publicStoreId, branchId,
+  ownerUserId, status, created}` and **no tokens**. The brief forbids replaying
+  the registration password to simulate login, so the Owner session must be
+  issued another way.
+  `ContactVerificationService.isVerified(destination)` exists and looks like the
+  obvious binding — **it is not sufficient on its own.** As written it answers
+  for the most recent consumed verification of that destination, so an endpoint
+  trusting it alone would let anyone who ever verified a contact mint an Owner
+  session with no password. Any design must bind to the specific registration
+  attempt, be single-use and short-lived. **This was deliberately not
+  improvised at the end of a long session.**
+- **CP3 mobile half** — open the portal via the handoff. `.env.local` already
+  exports `EXPO_PUBLIC_PORTAL_URL`.
+- **CP4 wiring** — mount the modal in `Portal.tsx`, auto-open once after a
+  handoff, reopenable.
+- **CP5 / CP6**, the backend / mobile / website test lists, the 40-step
+  real-MySQL and browser acceptance, and `docs/21`, `24`, `37`, `38`, `39`.
+
+### Verification at this checkpoint
+
+- Backend **100 suites / 1731 tests** green (untouched this session).
+- Mobile `tsc` clean · `expo lint` clean · **20 pure suites** · EN/AR/FR
+  **1796 keys**, identical order.
+- Website **14/14** · `tsc -b` clean · **production build clean** · oxlint clean.
+- No migration was added this session; `0060` already existed.
+- **Nothing was run against a device, and no acceptance flow was executed.**
+  No synthetic company was created, so there are no fixtures to clean and the
+  demo tenant is untouched.
+
+### Next exact action
+
+Settle the post-verification session design first — it gates CP1's final step
+and it is the only genuinely security-weighted decision left. Then build
+`register.tsx` against the rules already in `lib/registration.ts`, wire
+`login.tsx` to navigate internally instead of calling `openSignup()`, and mount
+the payment modal.
+
+---
 
 ### HEADs — all four repositories clean and level with their remotes
 
