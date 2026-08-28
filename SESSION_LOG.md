@@ -5718,3 +5718,78 @@ documents remain untouched. All four trees are clean, pushed and green.
 `erp-docs` the commit carrying this entry. Backend unchanged at `3a43ca8`.
 No migration added. No synthetic company created, so no fixtures to clean and
 the demo tenant is untouched. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-28 — CLAUDE-B — **the registration authentication chain**
+
+**Takeover verified against Git and both databases.** Backend `3a43ca8`, mobile
+`14b9d33`, website `3d0e277`, docs `0954a33`, all clean and level. Backend
+**100 suites / 1731**, mobile **20 pure suites**, EN/AR/FR **1796** identical,
+website **14/14** with a clean production build. Registration retired, modal
+unmounted, mobile screen absent — all three confirmed rather than assumed.
+
+**One discrepancy: migration state.** `0059` and `0060` are applied to
+**staging only**; development has neither. The previous handoff described
+`0059` as completed, which was true of staging and false of development.
+
+### The decision this session existed to make
+
+`isVerified(destination)` is not a check. It answers for the most recent
+consumed verification of an address, **ever** — no bound on when, by whom, or
+in which attempt. Issuing a session on it would hand an Owner session to anyone
+who could name an address somebody had once verified, with no password
+anywhere. The previous session refused to improvise past that, and it was right
+to.
+
+What replaced it binds four things and re-checks all of them at spend time: the
+attempt, a fifteen-minute hash-only single-use continuation, the exact
+challenge that continuation is bound to, and the atomic consumption of both in
+one transaction. The session then comes from `SessionsService` exactly as a
+password sign-in would — no special authority, and the subscription stays
+`pending`, because being signed in is not being entitled.
+
+### What the audit changed about the plan
+
+`0061` was expected to possibly need a table. It does not. `verification_intents`
+already has `company_id`, `user_id`, **`challenge_id`**, `token_hash`,
+`expires_at` and `consumed_at`, and its conditional
+`UPDATE ... WHERE consumed_at IS NULL` is already tested — so `0061` is one
+enum value, exactly as `0060` was. Building a second table of that shape would
+have been a second chance to get the only hard part wrong.
+
+The purpose had to be **distinct** from `portal_handoff`, which is a security
+property rather than tidiness: `resolve()` matches on purpose, so one shared
+value would make a portal ticket spendable to finish a registration. A test
+pins it.
+
+Two smaller things fell out. `confirm()` does a destination lookup, so
+`confirmChallenge()` was added beside it where the hashing lives. And the
+destination for a code now comes from the **Owner record, never the request** —
+otherwise a stolen continuation becomes a way to redirect a code and take the
+account.
+
+- **Files:** `prisma/migrations/0061_registration_continuation/`,
+  `schema.prisma`, `registration-continuation.service.ts` (new) and its spec
+  (new), `contact-verification.service.ts`, `registration.service.ts`,
+  `platform.controller.ts`, `platform.module.ts`,
+  `auth/otp/verification-intent.service.ts`.
+- **Tests:** **101 suites / 1748** (+17), all adversarial ones passing —
+  including a previously-verified address buying nothing while `isVerified`
+  is never called, a portal ticket being refused, and two concurrent
+  completions issuing exactly one session.
+
+### 🔴 Not done, and not claimed
+
+**No migration was applied.** `0059`–`0061` are unapplied in development;
+staging has `0059` and `0060`. `0060` **pre-existed this takeover** and was
+not created here. Applying needs the `docs/22` ritual.
+
+**Nothing ran against a live server or a device.** No synthetic company was
+created, so there are no fixtures to clean and the demo tenant is untouched.
+The mobile screens, the portal-handoff audit, mounting the payment modal, the
+37-step acceptance and five documents all remain.
+
+**Commits:** `erp-backend` `93b13c7` · `erp-docs` the commit carrying this
+entry. Mobile and website unchanged. `READY_FOR_HANDOFF`, owner `NONE`.

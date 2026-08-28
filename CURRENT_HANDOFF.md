@@ -6,9 +6,25 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — trees clean and green, but the **task is
-  NOT complete**. See "What remains" below.
+- Status: **READY_FOR_HANDOFF** — trees clean and green. The **security
+  correction is complete**; the UI and acceptance work is not. See below.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- `started_at_utc:` `2026-08-28T09:00Z` — completing the partial registration
+  milestone with an authorised, narrowly scoped registration-authentication
+  design.
+- HEADs at takeover, verified against Git: `erp-backend` `3a43ca8` ·
+  `erp-mobile` `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs`
+  `0954a33`. All four clean and level.
+- Baseline verified: backend **100 suites / 1731 tests** · mobile **20 pure
+  suites**, EN/AR/FR **1796** identical · website **14/14**, `tsc -b` and
+  production build clean · registration retired · modal unmounted · mobile
+  registration screen absent.
+- **Discrepancy — migration state.** `0059` and `0060` are applied to
+  **staging only**. Neither is applied to development (`phonestore`), so the
+  handoff's description of `0059` as completed was true of staging and false of
+  development.
+- **`0060` pre-existed this takeover** (commit `3a43ca8`) and is *one enum
+  value* on `verification_intents`, not a new table.
 - `started_at_utc:` `2026-08-26T23:05Z`
 - **Authorised task — move account creation into the mobile app**, retire
   website registration, add a secure one-time mobile→website portal handoff,
@@ -49,6 +65,86 @@
 - **Do not begin** hosting, production deployment, CI/CD, administrator MFA,
   Bankily integration, real contact delivery, or the IMEI scanner milestone.
 
+
+
+### Registration authentication — the security correction is DONE
+
+`erp-backend` `93b13c7`. **101 suites / 1748 tests** green, `tsc` clean,
+`prisma validate` clean.
+
+#### Why `isVerified(destination)` is not authentication
+
+It answers for the **most recent consumed verification of an address, ever** —
+no bound on when, by whom, or in which attempt. An endpoint issuing a session
+on it would hand an Owner session to anyone who could name an address somebody
+had once verified, with no password in the story. It keeps its existing callers
+but now carries a warning saying exactly what it is not.
+
+#### The chain that replaced it
+
+    one registration attempt
+  + one short-lived continuation credential      (15 min, hash-only, single-use)
+  + one verification challenge BOUND to it       (verification_intents.challenge_id)
+  + successful consumption of that exact challenge
+  = one normal Owner session from SessionsService
+
+Every link is re-checked at spend time. The challenge and the continuation are
+consumed **in one transaction**, so neither can be spent without the other, and
+two concurrent completions yield exactly one session.
+
+Other properties: the destination comes from the **Owner record, never the
+request**, so a stolen continuation cannot redirect a code. Completion marks the
+contact proved, which is what stops a public idempotency key minting a second
+continuation for an account that now has a working password. A resend rebinds,
+so an older code stops working.
+
+#### `0061` — needed, and one enum value
+
+`verification_intents` already carries every link of the chain and already
+implements and tests single-use consumption under concurrency, so `0061` adds
+only `registration_continuation` to `OtpPurpose` — the same shape as `0060`.
+
+The purpose is **distinct from `portal_handoff` on security grounds**:
+`resolve()` matches on purpose, so one shared value would make a ticket minted
+to open a subscription page spendable to complete somebody's registration. A
+test pins this.
+
+`confirmChallenge()` is new because `confirm()` does a destination lookup,
+which is precisely the hole.
+
+#### 🔴 Migrations are NOT applied
+
+| Environment | 0059 | 0060 | 0061 |
+|---|---|---|---|
+| development (`phonestore`) | ✗ | ✗ | ✗ |
+| staging (`prisma_staging`) | ✓ | ✓ | ✗ |
+
+`0060` **pre-existed this takeover** (commit `3a43ca8`) — it was not created
+here. Applying anything needs the backup and restore-proof ritual in
+`docs/22`, and that was not rushed at the end of a long session.
+
+### What remains
+
+- **CP4 — the mobile screens.** `app/(auth)/register.tsx` still does not exist
+  and `login.tsx` still calls `openSignup()`. The rules
+  (`lib/registration.ts`, 20 assertions) and all EN/AR/FR copy are in place and
+  unused. The backend endpoints they need now exist:
+  `POST platform/register` (returns a continuation, never a session),
+  `POST platform/register/verify/start`, `POST platform/register/verify/confirm`.
+- **CP5** — the adversarial audit of the pre-existing portal handoff.
+- **CP6** — mount `PaymentModal.tsx`; it is green and still imported by nothing.
+- **CP8** — the 37-step real-MySQL and browser acceptance. **Nothing was run
+  against a live server or a device this session**, so no synthetic company was
+  created, there are no fixtures to clean, and the demo tenant is untouched.
+- `docs/21`, `24`, `37`, `38`, `39`.
+
+### Next exact action
+
+Apply `0059`–`0061` to development behind the `docs/22` ritual (backup,
+restore proof, clean-database replay), then staging. Then build
+`register.tsx` against the three endpoints above and mount the payment modal.
+
+---
 
 ### Registration pivot — PARTIAL. Read this before continuing.
 
