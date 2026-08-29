@@ -6,88 +6,155 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — trees clean and green. **CP3, CP5 and CP6
-  are complete**; CP4 is partly proven and CP8 is not started.
+- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed. CP4 is
+  complete and CP8 has been run live.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- `started_at_utc:` `2026-08-29T10:00Z` — CP3 onward: the mobile registration
-  and verification screens, the handoff audit, mounting the payment dialog,
-  and repairing the staging cleanup script.
-- HEADs at takeover, verified: `erp-backend` `eed3219` · `erp-mobile`
-  `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs` `79a5a7d`.
-  All four clean and level. **No discrepancies.**
-- Baseline verified: backend **101 suites / 1748** · mobile **20 pure suites**,
-  EN/AR/FR **1796** identical · website **14/14**, `tsc -b` clean · both
-  databases **60 applied, highest 0061, zero pending**, catalogue **61/61** ·
-  staging **3 companies / 7 users**, zero CP2 fixtures.
-- `started_at_utc:` `2026-08-28T14:00Z` — aligning migrations, then proving the
-  registration authentication over real HTTP, then the mobile screens.
-- HEADs at takeover, verified against Git: `erp-backend` `93b13c7` ·
-  `erp-mobile` `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs`
-  `0759c22`. All four clean and level. **No discrepancies.**
-- Baseline verified: backend **101 suites / 1748 tests** · mobile **20 pure
-  suites** · EN/AR/FR **1796** identical · website **14/14**, `tsc -b` clean.
-- Migration state verified in both databases: development **57 applied**,
-  highest `0058` (so `0059`, `0060`, `0061` pending); staging **59 applied**,
-  highest `0060` (so `0061` pending). 60 migration directories on disk.
-- `started_at_utc:` `2026-08-28T09:00Z` — completing the partial registration
-  milestone with an authorised, narrowly scoped registration-authentication
-  design.
-- HEADs at takeover, verified against Git: `erp-backend` `3a43ca8` ·
-  `erp-mobile` `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs`
-  `0954a33`. All four clean and level.
-- Baseline verified: backend **100 suites / 1731 tests** · mobile **20 pure
-  suites**, EN/AR/FR **1796** identical · website **14/14**, `tsc -b` and
-  production build clean · registration retired · modal unmounted · mobile
-  registration screen absent.
-- **Discrepancy — migration state.** `0059` and `0060` are applied to
-  **staging only**. Neither is applied to development (`phonestore`), so the
-  handoff's description of `0059` as completed was true of staging and false of
-  development.
-- **`0060` pre-existed this takeover** (commit `3a43ca8`) and is *one enum
-  value* on `verification_intents`, not a new table.
-- `started_at_utc:` `2026-08-26T23:05Z`
-- **Authorised task — move account creation into the mobile app**, retire
-  website registration, add a secure one-time mobile→website portal handoff,
-  and show a payment-instruction modal (five providers, all temporarily `00000`).
-  Supersedes every earlier requirement placing public registration on the website.
-- `resumed_at_utc:` `2026-08-27T20:00Z` — **CLAUDE-B resuming its own
-  interrupted session.** Same account label, so this is a resume and not a
-  takeover; every dirty file was inspected first, as the protocol requires.
-- HEADs at RESUME (verified against Git, not trusted from this file):
-  `erp-backend` **`3a43ca8`** · `erp-mobile` `b973f64` ·
-  `retail-erp-control-web` `ad923df` · `erp-docs` `78fe428`.
-- **Discrepancies found at resume:**
-  1. The backend was **one commit ahead** of what this file recorded
-     (`c05d04c` → `3a43ca8`). The portal handoff is already built and
-     committed: `POST portal-handoff`, an exchange that 302-redirects to a
-     clean URL, `PortalHandoffService`, and `GET payment-instructions`.
-  2. **Migration `0060_portal_handoff_intent` already exists** and was not
-     recorded here. It is authorised by the current prompt for exactly this.
-  3. The claim that no mobile or website change was needed is **stale**.
-  4. `retail-erp-control-web` had **4 uncommitted files**: registration retired
-     (CP2, essentially complete) and `PaymentModal.tsx` written but **never
-     mounted** — no module imported it.
-  5. **The website suite was RED**: 13/14. `PaymentModal.tsx` used
-     `rgba(0,0,0,.55)`, which the project's own raw-colour contract refuses.
-  6. **CP1 was not started**: mobile had no registration route, and
-     `lib/signup.ts` still opened a web URL — the superseded behaviour.
-- Baseline suites at resume: backend **100 suites / 1731 tests** green · mobile
-  `tsc` clean and **19 pure suites** green · website **13/14**.
-- **Superseded-prompt work, retained:** a scan-card artifact, a git-ignored
-  `mobile/.env.local` pointing the app at the staging edge, and synthetic
-  staging logins (`owner|manager|employee@example.invalid`). The Expo dev
-  server and the website-registration acceptance flow are STOPPED.
-- Previously completed and preserved: migration `0059`, the permission
-  catalogue work, staging, and all documentation.
-- Completed task — **migration `0059`**, which publishes the 61-key permission
-  catalogue as reference data, so a database built by `prisma migrate deploy`
-  alone no longer needs the demo seed to be usable.
-- **Do not begin** hosting, production deployment, CI/CD, administrator MFA,
-  Bankily integration, real contact delivery, or the IMEI scanner milestone.
+- Live acceptance result: **66/67**, one item device-pending. Six defects found
+  and fixed; none of them was visible to 1,787 passing tests.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `343191e` (after `96a75a2`, `4380f1e`, `06e081c`) |
+| `retail-erp-control-web` | `c764d63` |
+| `erp-mobile` | `a710d64` (unchanged — no mobile source was touched) |
+| `erp-docs` | *this commit* |
 
 
 
 
+
+
+### CP4 complete. CP8 run live: **66/67**.
+
+The environment: the documented single origin, reproduced without Docker (it is
+not installed here) as a Node transcription of `deploy/nginx-site.conf` — same
+headers, same SPA fallback, same `/admin` loopback rule. API on :3011 bound to
+loopback, edge on :8088. `docs/39`'s measured boundary table reproduced exactly:
+API direct from the LAN refused, `/admin` 404 from the LAN and 200 from
+loopback, `/account` and `/api/health` 200 from the LAN.
+
+#### Six defects, found by running it
+
+| # | What | Where |
+|---|---|---|
+| 1 | Manager and Employee could each mint an Owner portal ticket (**201**) | `platform.controller.ts` |
+| 2 | The one-time ticket was written to the log in full, twice per request | `app.module.ts` |
+| 3 | A **pending** shop was refused the payment instructions, so the dialog silently never opened | `route-classification.ts` |
+| 4 | `Secure` cookies on plain-HTTP staging — discarded by the browser, hidden by localhost | `cookies.ts` |
+| 5 | The portal gated on a bearer token, so arriving from the app showed a password form | `Portal.tsx` |
+| 6 | Cleanup proposed deleting the staging baseline, and promised tenant deletions it can never make | `staging-cleanup.ts` |
+
+Every one had a green suite around it at the time. Each fix carries a
+regression test naming the live run.
+
+#### CP4 — both missing halves proved
+
+**Role refusals**, over real HTTP with real users of a real company: Manager
+403, Employee 403, platform administrator 401 (an admin session is not a tenant
+JWT), tenant Owner refused all four administrator routes and refused
+`suspend` outright. Another Owner's ticket lands in **their** company. The
+handoff is Owner-gated on `settings.manage` — company-scoped, undelegatable,
+held by the Owner and the company administrator alone.
+
+**Session fixation**, with actual cookies and actual session rows. An attacker
+cookie planted before the exchange acquires nothing (401), the exchange issues a
+**new** cookie, the new `auth_sessions` row is bound to the correct Owner and
+company (sessions n → n+1, joined back to the Owner's email), the planted cookie
+is still worth nothing afterwards, the ticket is consumed exactly once, replay
+fails to the same neutral destination, the landing URL is `/account?welcome=1`
+and clean, the cookie is HttpOnly + SameSite=Lax + path-scoped, nothing reaches
+the log or the audit detail, and **no payment, grant or entitlement transition**
+happened.
+
+#### CP8 — 66/67 live, 1 device-pending
+
+52 API/database checks and 22 browser checks, on real MySQL over real HTTP.
+Highlights that are easy to under-claim:
+
+- The **real app** was driven in a browser (its web export, served from the edge
+  so the origin matches): `Create account` navigated `/login` → `/register`
+  with **zero** `window.open` calls, the form asks for no Store ID and no
+  personal ID, and the whole registration → verification → session → portal
+  chain ran end to end.
+- **Item 20 is proved, not asserted.** The app's own request order was
+  `register` → `verify/start` → `verify/confirm` (session issued) →
+  `portal-handoff` → `portal-session`. The handoff is authenticated, so it
+  cannot precede the session.
+- The payment dialog was measured with a `fetch` spy: selecting a provider and
+  copying a code issue **no network request at all**, a refused clipboard is
+  harmless, focus is contained and restored, `Escape` closes, the code stays
+  `dir="ltr"` in Arabic, and no payment row exists.
+- EN/AR/FR with correct `lang`/`dir`, light and dark, 375 px and 1280 px, no
+  overflow, nothing clipped, and **empty** `localStorage`/`sessionStorage`.
+
+**Device-pending: item 25** — browser-opening failure preserving the session. On
+a web export a browser cannot be refused the way a phone refuses one. It stays
+pinned by unit test and by the ordering above. `docs/24` §9j records what the
+browser did and did not cover.
+
+#### Cleanup, and one thing it cannot do
+
+Dry run → `--apply --since --remove-admin` → dry run, all recorded. The scoped
+run targeted **38** companies — exactly the 38 created in the window, value-
+deduplicated — and left the 3 baseline companies alone. Administrator sessions,
+intents, continuations and the temporary administrator are gone; the deliberate
+staging administrator is kept; **71 audit events preserved**, 29 with their
+`admin_id` released and **all 29 still naming their actor, action, target and
+reason**. The replay is a no-op.
+
+🔴 **Staging did NOT return to 3 companies / 7 users.** It is **41 / 56**, and
+cannot be otherwise: every table referencing `companies` restricts deletion,
+including ones registration itself creates, so `company.delete()` can never
+succeed for a registered shop. Deleting children in dependency order is not the
+fix — nothing financial is hard-deleted here. Reclaiming them means restoring
+the database (`docs/22`).
+
+#### Integrity
+
+**The demo is byte-identical.** 60 migrations through `0061`, permissions 61,
+role_permissions 159, checksum `41df5104…`, mappings
+`owner=61 administrator=15 branch_manager=13 sales_employee=4 warehouse_employee=3 store_manager=43 store_employee=20`,
+1 company, 9 users, 7 sales, **10 051.00**, units checksum `7336ef18…`, audit
+559, **0 subscription payments**. Zero CP4/CP8 rows in development.
+
+#### Verification
+
+- Backend **104 suites / 1787 tests** · `tsc` clean · `prisma validate` clean ·
+  both databases up to date · catalogue **61/61**.
+- Website **37 tests** (32 + 5 new) · `tsc -b` clean · production build clean ·
+  oxlint clean.
+- Mobile **20 pure suites** · `tsc` clean · `expo lint` clean · **Doctor 18/18**
+  · EN/AR/FR **1796** identical · export **68 routes** · raw-colour audit clean
+  (its one hit is a comment saying not to) · secure-storage audit clean · every
+  `openURL` builds from configuration.
+- `sql_mode` on this server is still empty. **Not touched.** Still deployment
+  work.
+
+### What remains
+
+1. **`app/subscription-blocked.tsx` opens `accountPortalUrl()` directly**, with
+   no handoff ticket — so the one screen where somebody taps "manage my
+   subscription" lands them on a sign-in form. It should call
+   `openAccountPortal()`, which is now proven end to end. Left alone because no
+   acceptance item covers it and it needs its own outcome handling (a Manager
+   now gets `refused`).
+2. **`lib/signup.ts` is dead code** — nothing imports it. It opens a browser to
+   register, which is the behaviour the pivot retired. Removing it also means
+   removing `auth.signup.*` from three locales (parity 1796 → 1794) and a line
+   from the drift test.
+3. **`lib/portal.ts`'s `isTrusted()` comment overstates what it checks** — it
+   validates the scheme, not the origin. The origin is correct by construction
+   (the URL is built from `API_V1_URL`), so this is a comment, not a hole.
+4. `accountPortalUrl()`'s fallback still points at `:5173`, the old Vite dev
+   port, not the single-origin edge. Unused when `EXPO_PUBLIC_PORTAL_URL` is set.
+5. **Nothing has run on a physical device.** `docs/24` §9j.
+
+### Next exact action
+
+Fix (1) — point `subscription-blocked` at `openAccountPortal()` and handle its
+outcome — then (2) and (3). None needs a migration.
+
+---
 
 ### CP3, CP5 and CP6 complete. CP4 partly proven. CP8 not started.
 

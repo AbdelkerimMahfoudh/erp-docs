@@ -5951,3 +5951,74 @@ and `docs/24` §9j lists 20 checks covering most of what this flow actually is.
 **Commits:** `erp-mobile` `a710d64` · `retail-erp-control-web` `ea80b47` ·
 `erp-backend` `e3e46cc`, `7e2f356` · `erp-docs` the commit carrying this entry.
 `READY_FOR_HANDOFF`, owner `NONE`, staging available.
+
+
+---
+
+## 2026-08-29 — CLAUDE-B — **the acceptance ran, and found six things**
+
+Takeover clean, no discrepancies: four HEADs, every suite total, both databases
+at 60 migrations through `0061`, staging 3/7, demo byte-identical.
+
+**66/67 live.** Six defects, and the honest summary is that every one of them
+sat behind a green suite. 1,787 passing tests did not see any of them, because
+each lives in the gap between a unit and a running system: a permission that was
+never asked for, a URL a redactor cannot see into, an entitlement rule applied to
+one half of a page, a cookie flag keyed off the wrong question, a page checking
+for a credential no script can read, and a delete that has never once succeeded.
+
+### The two worth remembering
+
+**A Store Employee could mint an Owner's portal ticket.** The route had no
+permission on it at all. Nothing was wrong with the ticket — it is beautifully
+built, hash-only, ninety seconds, single-use, atomically consumed — and none of
+that mattered, because anybody with a session could ask for one.
+
+**A pending shop could not see how to pay.** `payment-instructions` was outside
+`ALWAYS_READABLE`, so the guard refused it; and because the portal treats an
+instructions failure as non-fatal, the dialog silently did not open. The failure
+mode was *nothing happening* to the only person the page exists for. Both halves
+of that page now answer the same way.
+
+### What the browser bought that the suite could not
+
+The app's own web export, served from the edge so the origin matched, ran the
+whole chain: `Create account` opened a screen in the app with zero
+`window.open` calls, registration and verification went through, and the portal
+opened signed in. The request order settles the ordering question by itself —
+`register`, `verify/start`, `verify/confirm`, then `portal-handoff`, which is
+authenticated and therefore cannot precede the session it needs.
+
+Two measurements I would not have trusted without the spy: selecting a provider
+and copying a code issue **no network request at all**, and a refused clipboard
+is genuinely harmless.
+
+### Cleanup, honestly
+
+The scoped run did what it should. But the tenant deletion it has always
+reported has never worked: seventy-odd tables restrict `companies`, including
+branches, users, roles and subscriptions — all created by registration. It said
+"companies: 38" and removed nothing. It now says `companyCandidates` before and
+`companiesRefused` after, and staging is **41 companies / 56 users**, not 3/7.
+That is the schema protecting itself, and reclaiming those tenants is a database
+restore, not a delete.
+
+- **Totals:** backend **104 suites / 1787** · website **37** · mobile **20 pure**,
+  Doctor **18/18**, EN/AR/FR **1796**, export **68 routes**.
+- **Demo byte-identical**: 1 company, 9 users, 7 sales, 10 051.00, checksum
+  `7336ef18…`, mappings 61/43/20, zero subscription payments.
+
+### 🔴 Still not done
+
+**Item 25 is device-pending** — a browser cannot be refused on a web export the
+way a phone refuses one, and "the browser would not open, so registration
+restarted" is the one unforgivable outcome in this flow. Nothing has run on
+real hardware.
+
+`subscription-blocked` still opens the portal without a ticket; `lib/signup.ts`
+is dead code; `sql_mode` on this server is still empty and untouched.
+
+**Commits:** `erp-backend` `06e081c`, `4380f1e`, `96a75a2`, `343191e` ·
+`retail-erp-control-web` `c764d63` · `erp-mobile` unchanged at `a710d64` ·
+`erp-docs` the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`,
+staging available.

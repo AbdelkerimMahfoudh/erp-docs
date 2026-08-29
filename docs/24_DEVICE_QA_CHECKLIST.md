@@ -1260,3 +1260,44 @@ Whether the keyboard covers the submit button · whether the browser hand-off
 actually lands signed in on a real phone · whether returning from the browser
 restores the pending screen · haptics and focus order · Arabic **visual**
 mirroring of the form.
+
+### 9j — what a browser has since covered, and what it has not
+
+The web export of the app was served from the staging edge and driven in a
+browser, so some of §9j is no longer untouched. **A browser is not a phone**, and
+the split is recorded honestly rather than counted as done.
+
+**Covered in a browser** (rows 1, 2, 3–7 by API, 10, 13):
+
+- `Create account` opens a screen **in the app** — measured: the route went from
+  `/login` to `/register` with **zero** `window.open` calls;
+- the form asks for business name, branch, city, name, email, WhatsApp number
+  and a password twice — **no Store ID and no personal ID**;
+- the verification screen shows the **masked** destination it actually sent to,
+  and says no real message was sent;
+- the correct code signed the Owner in and the portal opened, landing on the
+  account page as that shop.
+
+The app's own request order settles row 13's ordering question:
+
+```
+POST /platform/register
+POST /platform/register/verify/start
+POST /platform/register/verify/confirm   ← the session is issued here
+POST /platform/portal-handoff            ← authenticated; needs that session
+GET  /platform/portal-session?t=…        ← only now does a browser open
+```
+
+The handoff **cannot** precede the session, because it is an authenticated
+route. Row 13 is therefore proved rather than asserted.
+
+**Still device-only.** Rows 8, 9, 11, 12, 14–20 remain untouched, and row 15 is
+the one that matters most: *deny the browser, or have none installed — the Owner
+must stay signed in and pending, and registration must NOT restart.* On the web
+export a browser cannot be refused the way a phone refuses one, so this was not
+exercised. It stays pinned by unit test and by the ordering above, and it is the
+first thing to try on real hardware.
+
+Also untouched, and only a device can answer: whether the keyboard covers the
+submit button, whether returning from the browser restores the pending screen,
+haptics and focus order, and Arabic **visual** mirroring of the form.

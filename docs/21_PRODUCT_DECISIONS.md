@@ -2682,3 +2682,61 @@ replace the `00000` placeholders before launch.
 The development MySQL runs with an **empty `sql_mode`**. Migration replay is
 verified under an explicit strict session, but making the server itself strict
 is deployment work, recorded in `docs/39`.
+
+---
+
+## 6l. What a live acceptance changed — SHIPPED
+
+Six things a full staging run found that 1,787 passing tests did not. Recorded
+because each one had a test suite around it that was green at the time.
+
+### ✅ APPROVED — the portal handoff is Owner-only
+
+Gated on `settings.manage`: company-scoped, never delegatable to a branch, held
+by the Owner and the company administrator and nobody else. A Store Manager and
+a Store Employee were each minting tickets and getting `201`.
+
+The portal is the account surface — what the shop is charged, what it owes, how
+to pay. A manager runs a branch; an employee sells. Neither settles the bill.
+
+No new permission key was invented: one more key means a catalogue migration,
+and the authority already existed.
+
+### ✅ APPROVED — a pending shop may read how to pay
+
+`platform/payment-instructions` joins `platform/my-subscription` in
+`ALWAYS_READABLE`. It was outside, so the entitlement guard refused it with
+`ENTITLEMENT_PENDING` — and because the portal treats an instructions failure as
+non-fatal, the dialog silently never opened **for the only kind of shop that
+needs it**. Both halves of one page now behave the same way.
+
+### ✅ APPROVED — a one-time ticket never reaches a log
+
+`redact.paths` cannot see inside a URL, so `autoLogging` wrote
+`portal-session?t=<ticket>` verbatim, twice per request. The path is kept and
+the value replaced. The rule was already written down in
+`scripts/staging-verification-code.ts`: *a code in a log file is a working
+credential sitting in a file that gets copied around.*
+
+### ✅ APPROVED — `Secure` on a session cookie is a transport question
+
+Not a `NODE_ENV` question. `.env.staging` sets `NODE_ENV=production` on purpose,
+and a `Secure` cookie on a plain-HTTP origin is discarded by the browser without
+a word. `localhost` hid it entirely. **Production must leave `COOKIE_SECURE`
+unset or `true`.**
+
+### ✅ APPROVED — the portal accepts a cookie session
+
+The website gated on an in-memory bearer token that only its own sign-in form
+ever set, so somebody arriving from the app — cookie set, API answering `200` —
+was shown a password form. A script cannot read an `HttpOnly` cookie, so the
+page asks the API and believes the answer, and falls back to sign-in only on a
+real `401`. The auto-open marker now matches what the API actually sends.
+
+### 🔴 UNRESOLVED — a staging tenant cannot be deleted
+
+Every table referencing `companies` restricts deletion, including ones
+registration itself creates. The cleanup script has never removed a tenant; it
+now says so instead of reporting a count it cannot honour. Deleting children in
+dependency order is **not** the answer — nothing financial is hard-deleted.
+Reclaiming staging tenants means restoring the database.

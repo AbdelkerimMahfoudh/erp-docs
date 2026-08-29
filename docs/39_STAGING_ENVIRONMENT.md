@@ -622,3 +622,98 @@ remains non-strict.
 Making it strict is deployment work and a decision to take deliberately rather
 than inherit: a database that silently truncates is a database that silently
 loses money.
+
+---
+
+## `COOKIE_SECURE` — and why `NODE_ENV` could not decide it
+
+`.env.staging` sets `NODE_ENV=production`, deliberately: the build should be
+production-like. Session cookies used to read their `Secure` flag straight off
+that, and on a staging host served over plain HTTP that is not a stricter
+cookie — it is **no cookie at all**. The browser discards it silently, and the
+only symptom is being asked to sign in again.
+
+`localhost` hides the problem completely, because browsers treat it as a
+trustworthy origin and keep the cookie anyway. The CP8 acceptance walked the
+same handoff twice:
+
+| Origin | Cookie kept | Result |
+| --- | --- | --- |
+| `http://localhost:8088` | yes | landed in the portal, signed in |
+| `http://192.168.100.3:8088` | **no** | landed on a password form |
+
+The second is the LAN path this document deliberately keeps open so a phone can
+test registration and the portal. So the flag is now explicit:
+
+```bash
+COOKIE_SECURE=false   # this host is plain HTTP; TLS terminates in front elsewhere
+```
+
+`cookieSecure()` in `backend/src/common/http/cookies.ts` reads it, falls back to
+`NODE_ENV === 'production'` when it is unset, and ignores a value it does not
+understand rather than guessing — a typo must not silently turn `Secure` off in
+production.
+
+> **Production must leave this unset, or set it to `true`.** Turning it off
+> means session cookies travel in clear text. Put TLS in front of the edge.
+
+## Cleaning up after a run
+
+```bash
+npx ts-node scripts/staging-cleanup.ts                                   # reports only
+npx ts-node scripts/staging-cleanup.ts --since=2026-08-29T02:00:00.000Z  # this run only
+npx ts-node scripts/staging-cleanup.ts --apply --since=... --remove-admin
+```
+
+### `--since`, and why it had to exist
+
+"The owner has an `@example.invalid` address" identifies test data — but every
+company in staging is test data, including the fixtures each session starts
+from. A dry run proposed deleting **41** companies, three of which were the
+baseline. With `--since`, a company must be synthetic **and** newer than the
+moment the run began; the same window applies to a temporary administrator, so a
+run can take its own away without touching the deliberate staging one.
+
+Inside a window, a company with **no** email address counts too. A WhatsApp-only
+registration leaves an owner with a phone and no address, so the email rule
+cannot see it — six such shops were invisible to the first dry run.
+
+### 🔴 A staging tenant cannot actually be deleted
+
+`companies` is referenced by seventy-odd tables and **every one of them
+restricts deletion** — `branches`, `users`, `roles`, `role_permissions` and
+`subscriptions` among them, all of which registration itself creates. So
+`company.delete()` cannot succeed for any shop that has ever registered, and
+this script has never removed one.
+
+It used to report `companies: 38` in a dry run and then remove nothing, which
+reads exactly like success. It now reports `companyCandidates` before the fact
+and `companiesRefused` after it, and says plainly that the tenants remain.
+
+**Deleting the children in dependency order is not the fix.** "Nothing financial
+is hard-deleted" is a rule of this system, not an obstacle to route around.
+Reclaiming staging tenants means restoring the database per
+[`22_BACKUP_AND_ROLLBACK.md`](22_BACKUP_AND_ROLLBACK.md) — a deliberate act.
+
+What the script *does* reliably remove: administrator sessions, spent and
+unspent verification intents, expired continuations and handoff tickets, and a
+windowed temporary administrator. It **preserves** every audit event: the
+`admin_id` reference is released and the row is kept, because the actor's name
+is stored as text beside it precisely so the record still reads afterwards.
+Measured: 29 events had their reference released, and all 29 still name their
+actor, action, target and reason.
+
+### After the CP8 acceptance
+
+Staging holds **41 companies / 56 users** — the 3-company baseline plus 38
+tenants this acceptance created and the schema will not let go. One platform
+administrator (the deliberate one). Audit 71, subscription events 62,
+**subscription payments 0**.
+
+## Serving the app's web export from the edge
+
+Not part of the deployed arrangement, but worth recording because the acceptance
+needed it: the app's API origin is baked at build time, so the export can only be
+driven in a browser from that same origin. Mounting `mobile/dist` at `/app/`
+alongside `/_expo/` on the edge makes the real registration screens reachable
+without a second origin and without touching CORS.

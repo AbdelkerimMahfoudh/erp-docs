@@ -351,3 +351,78 @@ deliberate change granted.
 
 `permission-catalogue.spec.ts` fails the build if the canonical source and the
 migration drift apart, and if a second whole-catalogue migration ever appears.
+
+---
+
+## Phase 3 — registration moved into the app, and what a live run found
+
+Everything under "What is not built yet" above is now stale in the ways that
+matter, and is kept for the record rather than corrected in place.
+
+- **The web project exists** (`retail-erp-control-web`) — the retired public
+  registration page, the customer portal and the administration portal. See
+  [`38_CONTROL_WEBSITE.md`](38_CONTROL_WEBSITE.md).
+- **Mobile integration exists**, and is no longer a link to a website.
+  Registration happens in the app: `app/(auth)/register.tsx` and
+  `app/(auth)/verify.tsx`.
+- **Contact verification is end to end**, and it is what issues the session.
+- **The subscription lifecycle is exercised**: quote, administrative grant,
+  suspend, reinstate, and an entitlement the app re-reads without reinstalling.
+
+### The chain that issues a session
+
+```
+registration attempt
+  + a 15-minute, hash-only, single-use continuation
+  + the exact verification challenge bound to that continuation
+  + atomic consumption of both
+  = one ordinary Owner session from SessionsService
+```
+
+A destination-wide `isVerified()` never issues a session. The registration
+password is never replayed. Registration and portal handoff hold **distinct**
+purposes in `verification_intents`, so neither ticket can be spent as the other.
+
+### Who may mint a portal handoff
+
+**The Owner, and the company administrator.** Gated on `settings.manage`, which
+is company-scoped, never delegatable to a branch, and held by nobody else.
+
+This was found by acceptance, not by design review: the route carried no
+permission at all, and a real Store Manager and a real Store Employee each
+minted a ticket over HTTP and got `201`. The portal is the account surface —
+what the shop is charged, what it owes, how to pay. A manager runs a branch; an
+employee sells. Neither settles the bill.
+
+A **pending** Owner may still mint one, and must: every newly registered shop is
+pending by definition, and this is the route to the page that ends that state.
+It is the only `platform/` route in the entitlement allow-list, pinned by name.
+
+### Two things a live run found that no test had
+
+1. **The one-time ticket was written to the log in full.** `redact.paths` covers
+   headers and body fields but cannot see inside a URL, and `autoLogging` wrote
+   `portal-session?t=<ticket>` twice per request — twelve times in one run.
+   Fixed in `common/http/log-scrub.ts`; the path is kept and the value replaced,
+   so a request is still followable.
+2. **A pending shop could not read the payment instructions.**
+   `platform/payment-instructions` sat outside `ALWAYS_READABLE`, so the
+   entitlement guard answered `ENTITLEMENT_PENDING` — and because the portal
+   treats an instructions failure as non-fatal, the payment dialog silently
+   never opened, for the only kind of shop that needs it.
+
+## Production security still outstanding
+
+Unchanged from above, with one item now settled and one sharpened:
+
+1. **Administrator MFA.** Still password plus step-up. Still no fake toggle.
+2. **A real contact-delivery provider.** Verification codes are retrieved with
+   `scripts/staging-verification-code.ts`, which requires shell access to the
+   staging host and answers about one contact you already named.
+3. **A payment provider.** All five providers show the placeholder `00000`.
+   Production must refuse or replace those before launch.
+4. **Cookie `secure` is now an explicit setting**, not a guess from `NODE_ENV`.
+   See `cookieSecure()` in `common/http/cookies.ts` and `COOKIE_SECURE` in
+   [`39_STAGING_ENVIRONMENT.md`](39_STAGING_ENVIRONMENT.md). **Production must
+   leave it unset or `true`** — turning it off puts session cookies in clear
+   text. TLS termination in front of the edge is still deployment work.

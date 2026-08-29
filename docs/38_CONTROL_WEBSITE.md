@@ -159,3 +159,71 @@ issue rather than a problem with the tests.
 4. **A domain, DNS and TLS**, cookie `secure` in production, and a decision
    about where `/admin` is reachable from at all.
 5. **A deployment and security review** of the whole arrangement.
+
+---
+
+## Arriving from the app
+
+The mobile app hands the browser a one-time ticket. The API spends it, sets an
+`HttpOnly` cookie and redirects to `/account?welcome=1` — a clean URL with no
+ticket, no token, no password and no code in it.
+
+**Two sessions reach this site, and they are not the same thing.**
+
+| | How it arrives | Survives a refresh |
+| --- | --- | --- |
+| Signed in on `/account` | A bearer token in a module variable | No |
+| Arrived from the app | An `HttpOnly` cookie the browser sends itself | **Yes** |
+
+The page cannot tell which it has, because a script cannot read an `HttpOnly`
+cookie. So it does not try: it asks the API and believes the answer, and falls
+back to the sign-in form only on a real `401`.
+
+That is a correction, not a design note. The portal used to gate on the
+in-memory bearer token alone, which only its own sign-in form ever set. Walking
+the real handoff in a browser during the CP8 acceptance produced this: the
+exchange succeeded, the cookie was set, the API answered `200` to the very same
+page — and the Owner was shown a password form. `/account` now forwards an
+already-authenticated visitor to `/account/subscription` instead of asking again,
+carrying the marker across so the payment dialog still opens.
+
+### The marker
+
+The dialog opens by itself for somebody arriving from the app, once. It watches
+for **`welcome=1`**, which is what the API actually sends. It also still accepts
+`from=app`, which was written here first and never matched anything — so the
+dialog stayed shut for every real arrival until a browser run noticed.
+
+## Where credentials live, and where they do not
+
+The section above still holds, with one line corrected: **an Owner who arrived
+from the app does survive a refresh**, because their session is the cookie, not
+the module variable. Verified in the browser: after a full reload of
+`/account/subscription`, the correct company still renders, `document.cookie` is
+empty, and `localStorage` and `sessionStorage` are both empty.
+
+## The payment dialog, measured
+
+Verified in a browser against staging, on a genuinely **pending** shop:
+
+- opens by itself after the handoff, Bankily selected, showing `00000`;
+- Masrivi, Sedad, Bimbank and Click each switch and each show `00000`;
+- selecting a provider issues **no network request at all** — measured with a
+  `fetch` spy, not assumed;
+- copying a code issues none either, and a **refused** clipboard is harmless:
+  the dialog survives, nothing is thrown at the reader, the page stays usable;
+- focus moves into the dialog on open, `Tab` and `Shift+Tab` cycle inside it,
+  `Escape` closes it, and focus returns to the exact control that opened it;
+- it closes and reopens from a control that is always present;
+- the code renders `dir="ltr"` in English, Arabic and French — it is a sequence
+  to type into a banking app, and mirroring it would have somebody enter it
+  backwards;
+- the words *paid*, *confirmed*, *verified* and *activated* appear nowhere;
+- **no payment row, grant or activation was created** by any of it.
+
+## Language, theme and layout, measured
+
+Verified in the browser, not inferred: `lang`/`dir` become `en`/`ltr`,
+`ar`/`rtl` and `fr`/`ltr`; no untranslated key leaks into the page; light and
+dark swap the whole token set (`#f7f8fa` / `#0b0f17`); and at both 375 px and
+1280 px there is no horizontal overflow and nothing is clipped.
