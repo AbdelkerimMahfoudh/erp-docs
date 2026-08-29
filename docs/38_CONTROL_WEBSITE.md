@@ -227,3 +227,20 @@ Verified in the browser, not inferred: `lang`/`dir` become `en`/`ltr`,
 `ar`/`rtl` and `fr`/`ltr`; no untranslated key leaks into the page; light and
 dark swap the whole token set (`#f7f8fa` / `#0b0f17`); and at both 375 px and
 1280 px there is no horizontal overflow and nothing is clipped.
+
+---
+
+## Language on the sign-in pages
+
+Both sign-in pages — the customer portal at `/account` and the administrator
+portal at `/admin` — already carry the established control, because `Chrome`
+wraps every route and the language `<select>` lives there. Nothing needed
+adding; the audit is recorded so the next reader does not repeat it.
+
+Measured again in the browser: `ar` gives `lang="ar"` and `dir="rtl"`, `fr` and
+`en` both give `ltr`, each switch changes the visible copy immediately, and no
+untranslated key leaks. Each language is written in its own words and there are
+no flags anywhere in the catalogues.
+
+The website has never carried the mobile app's staging banner, and a scan of the
+production build confirms the phrase appears nowhere in it.

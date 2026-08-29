@@ -1301,3 +1301,35 @@ first thing to try on real hardware.
 Also untouched, and only a device can answer: whether the keyboard covers the
 submit button, whether returning from the browser restores the pending screen,
 haptics and focus order, and Arabic **visual** mirroring of the form.
+
+## 9k. The language switcher and the blocked-subscription portal
+
+Verified in a browser against the exported app, on the same origin as the
+staging API. **A browser is not a phone**, and the split is recorded rather than
+counted as done.
+
+**Covered in a browser:**
+
+| Check | Result |
+| --- | --- |
+| Sign-in screen carries a language switcher | English · Français · العربية, no flags |
+| Account-creation screen carries one | yes |
+| Copy changes immediately | *Connectez-vous à votre boutique* · *سجّل الدخول إلى متجرك* |
+| The preference persists | `erp.language` = `fr` / `ar` / `en` |
+| Switching mid-form keeps typed fields | yes — values still in place afterwards |
+| Arabic reads naturally and aligns right | yes, at 375 px |
+| No restart notice before anybody switches | yes (it used to show on load) |
+| The staging banner is absent | on every one of the 68 exported routes |
+
+**Still device-only.** Layout **mirroring** for Arabic is native: React Native
+applies `I18nManager.forceRTL` at startup, which the web export cannot exercise
+at all — on web the document direction never flips. The logic is pinned by test
+(direction follows the language *both* ways), and the notice tells the reader a
+relaunch is needed, but **only a device shows whether the mirrored layout is
+actually right**. That is the first thing to check on real hardware, together
+with §9j row 15 — deny the browser and confirm registration does not restart.
+
+The blocked-subscription screen's portal handoff was proved over HTTP, not on a
+phone: an Owner mints a ticket (`201`) and a Manager of the same shop is refused
+(`403`). What a device still owes is the tap itself — that the browser opens,
+lands signed in, and that returning to the app leaves the session intact.

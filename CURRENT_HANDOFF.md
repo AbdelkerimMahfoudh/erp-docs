@@ -6,11 +6,26 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed. CP4 is
-  complete and CP8 has been run live.
+- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- Live acceptance result: **66/67**, one item device-pending. Six defects found
-  and fixed; none of them was visible to 1,787 passing tests.
+- The staging banner is gone from the interface, the authentication screens can
+  change language, every portal entry goes through one authenticated handoff,
+  and staging holds one retained shop with twenty phones in it.
+- **The environment is still staging.** Removing the label removed a label.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `7b23d5d` |
+| `erp-mobile` | `977e162` (after `f3730e7`, `277fb7e`) |
+| `retail-erp-control-web` | `c764d63` (unchanged — it already had the control) |
+| `erp-docs` | *this commit* |
+
+## 🔑 The retained staging shop
+
+`store@test.com` at **Test Store** — one branch, verified contact, active on a
+30-day administrative grant to **2026-09-28**, 500 MRU a month, **20 iPhones in
+stock**. The password is the one you chose; it is deliberately not written down
+here or anywhere else in these repositories.
 
 | Repository | HEAD |
 |---|---|
@@ -23,6 +38,117 @@
 
 
 
+
+
+### Usability and the retained fixture
+
+#### The banner came off, the environment did not
+
+`STAGING — test data only` sat across the top of every screen. It is gone:
+component deleted, mount removed, and the drift test that used to REQUIRE it now
+forbids the phrase in every casing and dash, across the layout, all three
+authentication screens, the subscription screen and all three catalogues. A scan
+of all **68 exported routes** and the website build finds it nowhere.
+
+`APP_ENV`, the separate database and its guards, the staging-only scripts,
+loopback-bound administration, separate secrets and log classification are all
+untouched. **This is still staging.**
+
+#### Language, before you can sign in
+
+The setting lived behind the sign-in screen — so somebody handed a phone in a
+language they cannot read could not sign in to change it, and could not change
+it without signing in.
+
+English · Français · العربية in their own words, **no flags**, on sign-in,
+account creation and (compact) verification. Same store, same `erp.language`
+preference, no second catalogue. Live in a browser: the copy changes instantly,
+the preference persists, and **switching mid-form left every typed field in
+place**.
+
+One thing the browser caught: the restart notice was showing on load, before
+anybody had switched anything, because `restartRequired` is also raised during
+hydration. It now appears only after a switch made *there*.
+
+#### One way into the portal
+
+`subscription-blocked` opened the account URL with no ticket, so the one screen
+where somebody taps "manage my subscription" landed an authenticated Owner on a
+password form. It now uses `useAccountPortal()` — one hook, one copy of the
+reasoning, a **ref** for the duplicate-tap guard because `if (busy) return`
+reads state React has not updated yet.
+
+#### Test Store
+
+Provisioned through the real services: `RegistrationService` for the company,
+branch, Owner, canonical roles and mappings; the real continuation and challenge
+for the contact (and its session revoked immediately);
+`SubscriptionLifecycleService` for an audited, **complimentary** grant with no
+payment invented. `currentPeriodEnd` stays null on purpose — that is what stops
+a grant reading like money that arrived.
+
+20 variants, 20 units, **5 dual-SIM — five units with two identifiers, not ten**.
+IMEIs generated locally from a non-allocated test range with the app's own Luhn
+helper, validated before insertion, unique across **both** identifier columns.
+
+The command refuses outside staging, writes nothing without `--apply`, is a
+proven no-op on a rerun, and **refuses to adopt a `store@test.com` it did not
+create**.
+
+#### Live: 19/19, plus 3 browser checks
+
+Sign-in as the Owner · Owner of Test Store · contact verified · active by grant ·
+**0 payments** · quote **500 MRU** · one branch `Main Store` · 20 variants ·
+20 units all in stock · every primary IMEI Luhn-valid · unique across both
+columns platform-wide · 15 primary-only and 5 dual · either identifier finds the
+same unit · the Owner reads inventory over HTTP · no sales, expenses, customers
+or extra staff · another company sees nothing · Owner mints a handoff (201) and
+a Manager of the same shop is refused (403) · the probe Manager left no trace.
+
+Browser: language switching in all three languages, Arabic reading right-aligned
+at 375 px, and the banner phrase absent from every exported route.
+
+#### Counts
+
+Staging **41 → 42 companies**, **56 → 57 users** — exactly one company and one
+Owner, as predicted. The **38 retained acceptance tenants are still there** and
+are not reported as deleted. 20 products, 20 units, 1 administrator,
+**0 subscription payments**.
+
+**Demo byte-identical**: 1 company, 9 users, 7 sales, 10 051.00, checksum
+`7336ef18…`, mappings 61/15/13/4/3/43/20, audit 559, 0 payments.
+**Development received nothing**: no `Test Store`, no `store@test.com`, no CP rows.
+
+#### Gates
+
+- Backend **105 suites / 1803 tests** · `tsc` clean · `prisma validate` clean ·
+  both databases up to date at `0061` · catalogue **61/61**.
+- Mobile **22 pure suites** · `tsc` clean · `expo lint` clean · Doctor **18/18**
+  · EN/AR/FR **1796** identical · export **68 routes** · raw-colour,
+  hardcoded-copy, secure-storage and trusted-URL audits clean.
+- Website **37 tests** · `tsc -b` clean · production build clean ·
+  **0 advisories** · `ar` → `dir="rtl"`, `fr`/`en` → `ltr`.
+- `@@GLOBAL.sql_mode` still empty. **Not touched.** Still deployment work.
+
+### What remains
+
+1. **Nothing has run on a physical device.** `docs/24` §9j row 15 — deny the
+   browser and prove registration does not restart — and §9k: Arabic layout
+   **mirroring** is native and the web export cannot exercise it at all.
+2. `lib/signup.ts` is still dead code (nothing imports it). Removing it also
+   means removing `auth.signup.*` from three catalogues (parity 1796 → 1794).
+3. `lib/portal.ts`'s `isTrusted()` comment claims it checks the origin; it
+   checks the scheme. The origin is correct by construction.
+4. `accountPortalUrl()`'s fallback still names `:5173`, the old Vite port.
+5. The 38 acceptance tenants cannot be removed by any command — only a database
+   restore reclaims them.
+
+### Next exact action
+
+Take the app onto a phone and run `docs/24` §9j and §9k. Nothing else here needs
+a migration or a schema change.
+
+---
 
 ### CP4 complete. CP8 run live: **66/67**.
 

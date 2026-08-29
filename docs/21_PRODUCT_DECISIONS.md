@@ -2740,3 +2740,73 @@ registration itself creates. The cleanup script has never removed a tenant; it
 now says so instead of reporting a count it cannot honour. Deleting children in
 dependency order is **not** the answer — nothing financial is hard-deleted.
 Reclaiming staging tenants means restoring the database.
+
+---
+
+## 6m. The staging banner, language before sign-in, and one retained shop — SHIPPED
+
+### ✅ APPROVED — the visible staging banner is removed
+
+A strip across the top of every screen read `STAGING — test data only`. It is
+gone from the interface.
+
+The people looking at this build are shopkeepers being shown their own shop, and
+a permanent warning band over a demonstration reads as *this software is
+unfinished* rather than *this data is not real*.
+
+**Nothing underneath moved.** `APP_ENV`, the separate database and its guards,
+the staging-only scripts that refuse to run anywhere else, loopback-bound
+administration, separate secrets and staging log classification are all exactly
+as they were. **The build is still staging.** A drift test now forbids the
+phrase — in every casing and dash — across the layout, all three authentication
+screens, the subscription screen and all three catalogues, and the exported
+bundle is scanned for it too.
+
+### ✅ APPROVED — the language switcher belongs before sign-in
+
+The setting lived behind the sign-in screen. Somebody handed a phone showing a
+language they cannot read could not sign in to change the language, and could
+not change the language without signing in.
+
+English · Français · العربية, each written in its own words, on sign-in, on
+account creation and — compact — on verification. **No flags:** a flag is a
+country, not a language. Arabic is not one country's, and a French flag on a
+screen in Nouakchott says something nobody meant to say.
+
+It writes the same `erp.language` preference the settings row writes, changes
+the words immediately, and **leaves every typed field in place** — confirmed by
+switching mid-form during a live run. The restart notice appears only after
+somebody switches *there*: it is also raised during hydration, which on a
+sign-in screen meant telling somebody to restart the app when they had not
+touched anything.
+
+The customer-portal and administrator sign-in pages already carried the
+established control, so neither needed one added.
+
+### ✅ APPROVED — one shared way into the portal
+
+`subscription-blocked` opened the account URL directly, with no ticket — so the
+one screen where somebody taps "manage my subscription" landed an authenticated
+Owner on a password form. It now uses the same handoff the registration flow
+uses, through one hook rather than a second copy of the reasoning.
+
+The duplicate-tap guard is a **ref**: `if (busy) return` reads state React has
+not updated yet, and two taps in one frame would mint two tickets.
+
+### ✅ APPROVED — a retained staging shop
+
+`Test Store` / `Main Store`, Owner `store@test.com` (the password is not
+recorded anywhere in this repository), verified contact, **activated by a
+30-day administrative grant** — complimentary, with **no payment row invented**
+— one active branch, no extra staff, no sales, no expenses, no customers.
+500 MRU a month.
+
+Twenty iPhone variants and twenty in-stock units, five dual-SIM. **A dual-SIM
+phone is one unit with two identifiers, not two units.** Every IMEI is generated
+locally from a non-allocated test range with the application's own Luhn helper,
+validated before insertion and checked against both identifier columns.
+
+It is provisioned by a guarded, idempotent command that refuses outside staging,
+writes nothing without `--apply`, and **refuses to adopt a `store@test.com` it
+did not create** — the worst thing a fixture command could do on a shared
+database.

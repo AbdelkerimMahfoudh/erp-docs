@@ -717,3 +717,76 @@ needed it: the app's API origin is baked at build time, so the export can only b
 driven in a browser from that same origin. Mounting `mobile/dist` at `/app/`
 alongside `/_expo/` on the edge makes the real registration screens reachable
 without a second origin and without touching CORS.
+
+---
+
+## The retained fixture: `Test Store`
+
+```bash
+npx ts-node scripts/staging-fixture-store.ts                       # reports only
+FIXTURE_OWNER_PASSWORD=… npx ts-node scripts/staging-fixture-store.ts --apply
+```
+
+One shop that is meant to survive, so there is always somewhere to sign in and
+see stock. Everything else in staging is litter the schema will not let go of;
+this is deliberate.
+
+| | |
+| --- | --- |
+| Company / branch | `Test Store` / `Main Store` |
+| Owner | `store@test.com` — **the password is not recorded anywhere in this repository** |
+| Contact | verified, through the real continuation and challenge |
+| Subscription | **activated by a 30-day administrative grant**, complimentary, expiring `2026-09-28` |
+| Payments | **none.** A grant is not money, and none is invented |
+| Monthly | 500 MRU — one branch, Owner only, no chargeable staff |
+| Stock | 20 iPhone variants · 20 units, all `in_stock` · 5 dual-SIM |
+| Not present | staff, sales, expenses, customers, trial |
+
+### The password
+
+It arrives in `FIXTURE_OWNER_PASSWORD` or through a non-echoing prompt, and is
+hashed by the ordinary authentication path. It is **staging-only**: it is not in
+a tracked file, not printed, not logged, and must never be reused anywhere else
+or on a production account. A test asserts the command contains no literal
+password and that no `console.log` in it mentions one.
+
+### Everything goes through the real services
+
+`RegistrationService` creates the company, branch, Owner, canonical roles and
+permission mappings and the pending subscription. The continuation and challenge
+verify the contact — and the session that completion issues is revoked
+immediately, because a fixture is a shop to sign into later, not a live session
+left open on a shared host. `SubscriptionLifecycleService` records the grant, so
+it is audited and attributed.
+
+A grant sets `complimentaryUntil` and leaves `currentPeriodEnd` **null**, which
+is not an omission: it is what stops a grant reading like a period somebody paid
+for.
+
+### The IMEIs are synthetic, and safe to publish
+
+No real device identifier is involved. The first eight digits are a
+non-allocated test range, the next six a deterministic sequence, and the
+fifteenth is the Luhn check digit — computed with the application's own helper
+and then checked by the application's own validator before anything is stored.
+Primaries and secondaries occupy disjoint bands, so a primary can never equal a
+secondary, and uniqueness is checked against **both** columns before insertion:
+an identifier that already exists as somebody's secondary is just as taken as
+one that exists as a primary.
+
+Because the sequence is deterministic, a rerun provisions nothing new. That is
+what makes the command idempotent rather than merely careful.
+
+### Guards
+
+Refuses unless `APP_ENV=staging`; refuses a database whose name is not
+unmistakably staging, and specifically refuses `phonestore`, anything matching
+`prod`, `live` or `demo`; dry-run by default; and **refuses outright to adopt an
+existing `store@test.com` that belongs to a different company** rather than
+granting a subscription to somebody else's Owner.
+
+### Counts after this checkpoint
+
+Staging holds **42 companies / 57 users**: the 3-company baseline, the 38
+retained acceptance tenants the schema will not release, and `Test Store`.
+20 products, 20 units, one platform administrator, **0 subscription payments**.

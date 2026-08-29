@@ -6022,3 +6022,76 @@ is dead code; `sql_mode` on this server is still empty and untouched.
 `retail-erp-control-web` `c764d63` · `erp-mobile` unchanged at `a710d64` ·
 `erp-docs` the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`,
 staging available.
+
+
+---
+
+## 2026-08-29 — CLAUDE-B — **the label came off, and a shop went in**
+
+Takeover clean, no discrepancies: four HEADs, 104/1787 backend, 37 website, 20
+mobile pure suites, Doctor 18/18, parity 1796, 68 routes, both databases at
+`0061`, staging 41/56, demo byte-identical.
+
+### Four small things, and one that is not small
+
+**The banner.** `STAGING — test data only` across every screen, gone. The
+reasoning is worth keeping: the people looking at this build are shopkeepers
+being shown their own shop, and a permanent warning band over a demonstration
+reads as *this software is unfinished* rather than *this data is not real*. The
+protection it stood for has not moved an inch — `APP_ENV`, the separate
+database, the scripts that refuse to run elsewhere, loopback administration,
+separate secrets. The drift test flipped from requiring the phrase to forbidding
+it, which is the same test doing the same job in the opposite direction.
+
+**Language before sign-in.** The setting was behind the sign-in screen. Somebody
+handed a phone in a language they cannot read could not sign in to change it and
+could not change it without signing in. That is a closed loop, and it is now
+open on all three authentication screens. No flags — a flag is a country, not a
+language, and a French flag on a screen in Nouakchott says something nobody
+meant to say.
+
+The browser caught something I would have shipped: the restart notice was
+appearing on load, before anybody switched anything, because `restartRequired`
+is also raised during hydration. Greeting somebody with "restart the app to
+finish switching language" when they have not touched anything is worse than
+saying nothing.
+
+**One way into the portal.** The blocked screen opened the account URL with no
+ticket — the one screen where somebody actually taps "manage my subscription"
+was the one place that skipped the handoff. One hook now, not two
+implementations, and the duplicate-tap guard is a ref because `if (busy) return`
+reads state React has not updated yet.
+
+**Test Store.** Twenty iPhones, five of them dual-SIM, which is five units with
+two identifiers and not ten units. Every identifier generated locally from a
+non-allocated range, run through the app's own Luhn helper and then through its
+own validator, and checked against BOTH columns — an identifier that already
+exists as somebody's secondary is just as taken as one that exists as a primary.
+
+Everything went through the real services rather than straight into tables. The
+grant is complimentary and leaves `currentPeriodEnd` null, which I briefly read
+as a bug before realising it is the point: a grant that filled in a period end
+would look exactly like money that arrived.
+
+The guard I care most about is the refusal to adopt an existing
+`store@test.com` that belongs to somebody else. On a shared database, granting a
+subscription to another team's Owner is the kind of helpful behaviour that ruins
+an afternoon.
+
+- **Live 19/19** plus three browser checks. **Staging 41 → 42 / 56 → 57**,
+  exactly one company and one Owner. The 38 retained acceptance tenants are
+  still there and still cannot be deleted.
+- **Totals:** backend **105 / 1803** · mobile **22 pure** · website **37**.
+- **Demo byte-identical**, development untouched, `sql_mode` not touched.
+
+### 🔴 Still not done
+
+**Nothing has run on a phone.** Arabic layout *mirroring* is native — the web
+export never flips direction, so the browser cannot judge it at all — and §9j
+row 15, deny the browser and prove registration does not restart, is still
+unexercised. Those two are what a device owes.
+
+**Commits:** `erp-backend` `7b23d5d` · `erp-mobile` `277fb7e`, `f3730e7`,
+`977e162` · `retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the
+commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`, Test Store left
+running and signed out.

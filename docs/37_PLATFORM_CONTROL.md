@@ -426,3 +426,31 @@ Unchanged from above, with one item now settled and one sharpened:
    [`39_STAGING_ENVIRONMENT.md`](39_STAGING_ENVIRONMENT.md). **Production must
    leave it unset or `true`** — turning it off puts session cookies in clear
    text. TLS termination in front of the edge is still deployment work.
+
+---
+
+## Phase 4 — a shop to look at
+
+### The retained fixture
+
+Staging now holds one deliberate shop, `Test Store`, alongside the retained
+acceptance tenants. It exists because a platform-control surface with nothing
+real behind it is hard to judge: the pending queue, the grant, the quote and the
+audit trail all read differently when there is a shop with stock in it.
+
+It is provisioned through the same services as a real signup, activated by the
+same audited administrative grant, and carries **no fabricated payment**. The
+grant is complimentary and says so; `currentPeriodEnd` stays null so a grant can
+never be mistaken for money that arrived. Details and guards in
+[`39_STAGING_ENVIRONMENT.md`](39_STAGING_ENVIRONMENT.md).
+
+### Who may still mint a portal handoff
+
+Unchanged from Phase 3 — the Owner and the company administrator, gated on
+`settings.manage` — and re-proved live against this fixture: the Owner mints a
+ticket (`201`) and a Store Manager of the same shop is refused (`403`).
+
+The mobile app now reaches the portal through **one** helper from every entry
+point. The subscription-blocked screen used to open the account URL with no
+ticket at all, which meant the one screen where somebody taps "manage my
+subscription" put an authenticated Owner in front of a password form.
