@@ -1223,3 +1223,40 @@ whether a real phone keyboard covers the code field during verification ·
 whether the account page is readable on a cheap phone in sunlight · whether the
 `Check again` round trip is fast enough on a slow connection that somebody
 believes it worked.
+
+
+## 9j. Mobile registration (CP3) — **never touched on a device**
+
+Nothing below has been performed. CP3 was verified by a type checker, a linter,
+Expo Doctor, pure and drift tests, and a web export — **none of which opens a
+keyboard, a browser or an app switcher**, which is most of what this flow is.
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Tap **Create account** on the sign-in screen | A screen opens **in the app**. No browser. |
+| 2 | Read the form | No Store ID, no personal or national ID, nothing internal |
+| 3 | Submit with neither contact | Refused, saying either one will do |
+| 4 | Register with an email only | Accepted |
+| 5 | Register with a WhatsApp number only | Accepted |
+| 6 | Register with both | Accepted |
+| 7 | Mismatched password confirmation | Refused, both password problems shown at once |
+| 8 | Tap Continue twice, fast | **One** account, not two |
+| 9 | Lose the connection mid-submit, retry | Still one account — same idempotency key |
+| 10 | The verification screen | Shows the masked destination it actually sent to |
+| 11 | Enter a wrong code | Refused; the screen stays usable |
+| 12 | Wait out the resend countdown, resend | A new code arrives; the **older one stops working** |
+| 13 | Enter the correct code | Signed in, and the browser opens at the portal |
+| 14 | Turn off networking, then verify | Session survives; a retry action is offered |
+| 15 | Deny the browser / no browser installed | **Still signed in and pending** — registration does NOT restart |
+| 16 | Kill and reopen the app | Still signed in, still pending, no re-registration |
+| 17 | Try to reach stock or sales while pending | Blocked |
+| 18 | The whole flow in Arabic | RTL reads correctly; the keyboard does not cover the button |
+| 19 | The whole flow in French | Reads naturally |
+| 20 | Large text, 375 px | Nothing clipped, every field reachable |
+
+### What only a device can answer
+
+Whether the keyboard covers the submit button · whether the browser hand-off
+actually lands signed in on a real phone · whether returning from the browser
+restores the pending screen · haptics and focus order · Arabic **visual**
+mirroring of the form.

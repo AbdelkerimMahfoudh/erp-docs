@@ -6,9 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — trees clean and green. **CP1 and CP2 are
-  complete**; CP3 (the mobile screens) is not started.
+- Status: **READY_FOR_HANDOFF** — trees clean and green. **CP3, CP5 and CP6
+  are complete**; CP4 is partly proven and CP8 is not started.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- `started_at_utc:` `2026-08-29T10:00Z` — CP3 onward: the mobile registration
+  and verification screens, the handoff audit, mounting the payment dialog,
+  and repairing the staging cleanup script.
+- HEADs at takeover, verified: `erp-backend` `eed3219` · `erp-mobile`
+  `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs` `79a5a7d`.
+  All four clean and level. **No discrepancies.**
+- Baseline verified: backend **101 suites / 1748** · mobile **20 pure suites**,
+  EN/AR/FR **1796** identical · website **14/14**, `tsc -b` clean · both
+  databases **60 applied, highest 0061, zero pending**, catalogue **61/61** ·
+  staging **3 companies / 7 users**, zero CP2 fixtures.
 - `started_at_utc:` `2026-08-28T14:00Z` — aligning migrations, then proving the
   registration authentication over real HTTP, then the mobile screens.
 - HEADs at takeover, verified against Git: `erp-backend` `93b13c7` ·
@@ -77,6 +87,116 @@
 
 
 
+
+
+### CP3, CP5 and CP6 complete. CP4 partly proven. CP8 not started.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `7e2f356` |
+| `erp-mobile` | `a710d64` |
+| `retail-erp-control-web` | `ea80b47` |
+| `erp-docs` | *this commit* |
+
+#### CP3 — registration is in the app
+
+`Create account` pushes a screen; nothing opens a browser to register.
+`app/(auth)/register.tsx` and `app/(auth)/verify.tsx` run against the exact
+CP2-proven contract.
+
+- One idempotency key per attempt, generated on mount, reused on every retry.
+- The duplicate guard is a **ref**, because two taps land before React renders.
+- The password is cleared the moment registration returns and **never replayed**.
+- The continuation lives in SecureStore through the existing wrapper and is
+  deleted on success, restart and cancellation.
+- **Order is pinned by test:** the session is adopted BEFORE the browser is
+  tried, so a refused browser leaves the account and session alone. No failure
+  path deletes a valid session, and every portal attempt asks for a **fresh**
+  ticket — a spent or uncertain one is treated as spent.
+- The URL carries the one-time ticket and nothing else.
+
+The navigation drift test caught both new routes unclassified, exactly as
+designed.
+
+#### CP5 — the payment dialog is mounted
+
+Opens once automatically for somebody arriving from the app, closable,
+reopenable from a control that is always present. Instructions are fetched
+alongside the subscription; **their failure is not the page's failure**.
+
+18 rendering tests, mostly about what must not happen: selecting any provider
+sends nothing (asserted against a `fetch` spy), copying sends nothing and
+copies the selected provider, a blocked clipboard is harmless, and the dialog
+never contains *paid*, *confirmed*, *verified* or *activated*. All five
+providers show `00000`; Bankily is default and always returnable to; the code
+stays `dir="ltr"`.
+
+#### CP6 — staging cleanup repaired
+
+It **failed outright** before. `platform_audit_events.admin_id` is a nullable
+FK with no delete action, so it RESTRICTS; the repair **releases the reference
+and keeps the audit event**, which is what the schema always intended.
+
+A second defect surfaced while fixing the first: the synthetic-company `Set`
+held `Buffer`s, which dedupe by identity — it reported **7** companies where
+staging has **3**. Now dry-run by default (`--apply` to delete), the staging
+administrator is preserved unless `--remove-admin`, and unspent continuations
+and handoff tickets are expired. 9 focused safety tests.
+
+**No migration.** The schema was right; the script was wrong.
+
+#### CP4 — partly proven
+
+The pre-existing `portal-handoff.spec.ts` already covers **17** of the audit
+points: company/user/purpose binding, 90-second TTL, hash-only storage,
+single-use, replay refusal, concurrency, expiry, wrong purpose, cross-company,
+disabled and deleted users, no payment/grant/subscription change, the ticket
+absent from logs, and the HttpOnly cookie. CP2 additionally proved live that a
+portal ticket cannot complete a registration.
+
+**Added here:** the `ALWAYS_ALLOWED` list is now pinned **by name**, with tests
+that no operational route (sales, units, inventory, purchases, transfers,
+returns, refunds, expenses, closing, suppliers, loans, consignments, products,
+pricing, goals, imports) survives a lapsed subscription, and that the handoff is
+the only `platform/` route allowed through.
+
+**Still unproven:** Manager / Employee / platform-administrator handoff refusal
+over real HTTP, and session fixation.
+
+#### Verification
+
+- Backend **102 suites / 1760 tests** · `tsc` clean · `prisma validate` clean ·
+  schema up to date · both databases 60 applied through `0061`.
+- Mobile **20 pure suites** (identifier drift now 37 assertions) · `tsc` clean ·
+  `expo lint` clean · **Expo Doctor 18/18** · EN/AR/FR **1796** identical ·
+  web export **68 routes** including both new ones.
+- Website **32 tests** (14 + 18 new) · `tsc -b` clean · production build clean ·
+  oxlint clean · `npm audit` **0 vulnerabilities**.
+- **Demo byte-identical**: 1 company, 9 users, 7 sales, **10 051.00**, units
+  checksum `7336ef1871b1216954e2921b1c0e05fa`, role mappings
+  `owner=61 store_manager=43 store_employee=20`, **0 subscription payments**.
+- Staging intact at 3 companies / 7 users. Verification port released.
+
+### What remains
+
+- **CP8 — the 37-step staging acceptance was NOT run.** No browser or device
+  session took place this checkpoint, so no live count is claimed. CP2's 29/29
+  HTTP proof stands from the previous session and covers the authentication
+  chain, but not the portal in a browser, the dialog on screen, grant/suspend/
+  reinstate, or the language and viewport checks.
+- The three CP4 items above.
+- `docs/37` and `docs/38` were not updated; `21`, `24` and `39` were.
+- **Nothing was run on a physical device.** `docs/24` §9j lists 20 checks, and
+  they cover most of what this flow actually is — a keyboard, a browser hand-off
+  and an app switcher, none of which a type checker opens.
+
+### Next exact action
+
+Run CP8 against staging with a browser: the portal landing, the dialog, all five
+providers, grant/suspend/reinstate, and the language and viewport passes. Then
+the three remaining CP4 refusals over HTTP.
+
+---
 
 ### CP1 — migrations aligned. CP2 — authentication proven over real HTTP.
 

@@ -577,3 +577,48 @@ The 17 keys added on the upgrade path: `branch.manage`, `closing.perform`,
 `prisma/seed.ts` still seeds the catalogue, which stays useful for local
 development where the seed is run anyway. **Deployment no longer depends on it**,
 and it is no longer a way to repair migration state.
+
+---
+
+## Cleanup, and the SQL mode question
+
+### `staging-cleanup.ts` is now dry-run by default
+
+It used to fail outright — `Foreign key constraint violated: admin_id` — so the
+documented way to tidy staging did not work at all.
+
+`platform_audit_events.admin_id` is a nullable foreign key with no delete
+action, so it RESTRICTS. The repair releases the reference and **keeps** the
+audit event, which is what the schema always intended: the actor's name is
+stored as text beside the reference precisely so the record still reads once the
+admin row is gone.
+
+A second defect surfaced while testing the first: the synthetic-company set was
+a `Set` of `Buffer`s, which dedupes by object identity rather than value. It
+reported 7 companies where staging has 3, and would have tried to delete each
+one twice.
+
+```bash
+npx ts-node scripts/staging-cleanup.ts                    # reports only
+npx ts-node scripts/staging-cleanup.ts --apply            # deletes
+npx ts-node scripts/staging-cleanup.ts --apply --remove-admin
+```
+
+**The staging administrator is preserved** unless `--remove-admin` is passed. It
+is deliberate infrastructure, not test litter; sweeping it away meant the next
+session had to recreate it before it could do anything.
+
+Unspent registration continuations and portal-handoff tickets are expired too —
+both live in `verification_intents`, and both are credentials nobody is watching
+once a run ends.
+
+### 🔴 Unresolved: this MySQL is not strict
+
+`@@GLOBAL.sql_mode` is **empty**. Migration replay is verified under an explicit
+strict session (`STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION`),
+and the original value is always restored afterwards — but the **server**
+remains non-strict.
+
+Making it strict is deployment work and a decision to take deliberately rather
+than inherit: a database that silently truncates is a database that silently
+loses money.

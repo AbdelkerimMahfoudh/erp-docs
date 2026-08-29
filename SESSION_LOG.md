@@ -5867,3 +5867,87 @@ whatever followed was never received and was not guessed at.
 **Commits:** `erp-backend` `eed3219` · `erp-docs` the commit carrying this
 entry. Mobile and website unchanged. `READY_FOR_HANDOFF`, owner `NONE`,
 staging left available.
+
+
+---
+
+## 2026-08-29 — CLAUDE-B — **registration lands in the app; the dialog is mounted**
+
+**Takeover clean, no discrepancies.** All four HEADs, every suite total, both
+databases at 60 migrations through `0061`, catalogue 61/61, staging 3/7 with no
+CP2 fixtures.
+
+### CP3
+
+`Create account` pushes a screen instead of opening a website. Two screens
+against the CP2-proven contract, with the parts that matter pinned by test: one
+idempotency key per attempt reused across retries, a **ref** for the duplicate
+guard because two taps land before React renders, the password cleared the
+moment registration returns and never replayed, and the continuation held only
+in SecureStore.
+
+The ordering assertion is the one worth keeping: **the session is adopted before
+the browser is tried.** By then the account exists, so a refused browser leaves
+it alone. Restarting a registration because a browser would not launch is the
+one unforgivable outcome here, and no failure path deletes a valid session.
+
+Rewriting the login drift tests was part of the work, not a chore — they
+asserted `openSignup()`, which was exactly the behaviour being retired.
+
+### CP5
+
+`PaymentModal` had been a green component nothing imported. It is now mounted,
+opening once for somebody arriving from the app and reopenable afterwards.
+
+Its 18 tests are mostly about absence: no `fetch` when a provider is selected or
+a code copied, no *paid* / *confirmed* / *verified* / *activated* anywhere in the
+dialog, a harmless blocked clipboard. Two harness traps worth remembering —
+`userEvent.setup()` installs its own clipboard stub, so a test stub must come
+after it, and this jsdom has no working `localStorage`, which the language
+provider reads on mount.
+
+### CP6 — and the two defects underneath it
+
+The cleanup script **failed outright**, so the documented way to tidy staging
+did not work. `platform_audit_events.admin_id` is a nullable FK with no delete
+action, so it RESTRICTS. The fix is not to cascade: the schema keeps the actor's
+name as text beside the reference precisely so the record still reads once the
+admin row is gone — so the reference is released and the **event is kept**.
+Deleting those rows would destroy exactly the records meant to outlive what they
+describe.
+
+Fixing that exposed a second one. The synthetic-company `Set` held `Buffer`s,
+which dedupe by object identity rather than value: it reported **7** companies
+where staging has **3**, and in apply mode would have deleted each twice.
+
+It is now dry-run by default, keeps the staging administrator unless asked, and
+expires unspent continuations and handoff tickets. **No migration** — the schema
+was right and the script was wrong.
+
+### CP4, honestly
+
+The existing handoff spec already proves 17 of the audit points, and CP2 proved
+live that a portal ticket cannot finish a registration. What I added is the part
+I had changed: `ALWAYS_ALLOWED` is pinned **by name**, and no operational route
+may join it. Manager / Employee / administrator refusal over HTTP and session
+fixation remain unproven.
+
+- **Totals:** backend **102 suites / 1760** · mobile **20 pure suites**, Doctor
+  **18/18**, EN/AR/FR **1796**, export **68 routes** · website **32 tests**,
+  production build clean, **0 advisories**.
+- **Demo byte-identical**: 1 company, 9 users, 7 sales, 10 051.00, checksum
+  `7336ef18…`, mappings 61/43/20, zero subscription payments.
+
+### 🔴 Not done, and not claimed
+
+**CP8 was not run.** No browser and no device session took place, so there is no
+live count for this checkpoint. CP2's 29/29 stands from the previous session and
+covers the authentication chain — not the portal on screen, the dialog in a
+browser, grant/suspend/reinstate, or the language and viewport passes.
+
+`docs/37` and `docs/38` were not updated. **Nothing ran on a physical device**,
+and `docs/24` §9j lists 20 checks covering most of what this flow actually is.
+
+**Commits:** `erp-mobile` `a710d64` · `retail-erp-control-web` `ea80b47` ·
+`erp-backend` `e3e46cc`, `7e2f356` · `erp-docs` the commit carrying this entry.
+`READY_FOR_HANDOFF`, owner `NONE`, staging available.

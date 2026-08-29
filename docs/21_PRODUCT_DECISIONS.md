@@ -2620,3 +2620,65 @@ differently from a browser that will not open.
 Pending, suspended and expired each get their own screen, chosen by the
 **server's** state with no date arithmetic on the device. Re-checking lets a
 newly activated shop straight in, with no reinstall and no clearing storage.
+
+
+---
+
+## 6k. Registration, the portal and payment instructions — SHIPPED
+
+### ✅ APPROVED — registration is mobile-only
+
+Account creation and contact verification happen **in the app**. The website
+holds no registration form and no public account-creation action; its old
+address resolves, explains that registration is in the app, and submits nothing.
+
+Setting a shop up means scanning stock, and scanning happens on the phone.
+Splitting sign-up across a browser and an app meant typing the longest form in
+the product on the surface with the worst keyboard, then doing the real work
+somewhere else.
+
+### ✅ APPROVED — the session comes from proving THIS attempt
+
+    registration attempt
+  + a 15-minute, hash-only, single-use continuation
+  + the exact verification challenge bound to it
+  + atomic consumption of both
+  = one ordinary Owner session from `SessionsService`
+
+A destination-wide `isVerified()` **never** issues a session. The registration
+password is never replayed. Registration and portal handoff hold **distinct**
+purposes, so neither ticket can be spent as the other.
+
+### ✅ APPROVED — signed in to the portal is not subscribed
+
+After registration the Owner is authenticated and the subscription is still
+`pending`. Opening the portal, choosing a provider and copying a code change
+nothing: **no payment row, no grant, no activation, no provider call.**
+
+A pending Owner **may** mint a portal handoff — every new shop is pending by
+definition, and that route leads to the page which ends the pending state.
+That is the single allowance; no operational route follows it, and a test pins
+the allow-list by name.
+
+### ✅ APPROVED — five providers, all showing `00000`
+
+Bankily (default), Masrivi, Sedad, Bimbank, Click. Every code is currently
+`00000`. The list, its order and the codes are **server-owned**, so a real code
+replaces a placeholder without an app release. The code renders `dir="ltr"`
+even in Arabic: it is a sequence to be typed into a banking app, and mirroring
+it would have somebody enter it backwards.
+
+The dialog states that it shows instructions and takes no money. Its tests
+assert the absence of the words *paid*, *confirmed*, *verified* and *activated*,
+and that no `fetch` occurs when a provider is selected or a code copied.
+
+### 🔴 DEFERRED — real payment-provider integration
+
+No provider is called, integrated or contacted. Production must refuse or
+replace the `00000` placeholders before launch.
+
+### 🔴 UNRESOLVED — strict SQL mode in production
+
+The development MySQL runs with an **empty `sql_mode`**. Migration replay is
+verified under an explicit strict session, but making the server itself strict
+is deployment work, recorded in `docs/39`.
