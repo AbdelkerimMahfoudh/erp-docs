@@ -5793,3 +5793,77 @@ The mobile screens, the portal-handoff audit, mounting the payment modal, the
 
 **Commits:** `erp-backend` `93b13c7` · `erp-docs` the commit carrying this
 entry. Mobile and website unchanged. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-29 — CLAUDE-B — **migrations aligned, and the chain proved over HTTP**
+
+**Takeover clean, no discrepancies.** All four HEADs, all suite totals and both
+databases' migration states matched what the handoff claimed — including the
+uneven state it had recorded honestly (development three behind, staging one).
+
+### CP1
+
+Development and staging are both at `0061` with zero pending. Development got
+the full ritual: target validated, state recorded, backup taken and
+**restore-proved into a disposable database** whose every checksum matched.
+Staging went through its own guarded script, which owns the `override: true`
+env-order safeguard and restore-proves its own dump.
+
+Both environments' before/after diffs show **only** the migration ledger and the
+`purpose` enum. Nothing else moved.
+
+**A finding worth keeping:** this MySQL runs with an **empty `sql_mode`**. The
+"clean strict-mode replay" was therefore not strict on the first attempt. It was
+redone with strict mode set globally and the original restored afterwards —
+but the server itself is not strict, which is a standing decision somebody
+should make rather than inherit.
+
+### CP2 — and why it exists
+
+29/29 over real HTTP against real MySQL, and it earned its place: **it found two
+defects that 1748 unit tests could not.**
+
+The first was mine. Completion locks the Owner's row to mark the contact
+verified, then asked `SessionsService` to insert a session — on its own
+connection. `auth_sessions` has a foreign key to `users`, so the insert waited
+for a lock the same request was holding, and the whole thing died as "Database
+request error". A faked Prisma cannot deadlock, which is exactly why the unit
+tests were green. `create` now accepts a transaction client, and the rollback
+became honest as a side effect: a failed session now rolls back the consumed
+challenge and continuation with it.
+
+The second was a policy gap. `ALWAYS_ALLOWED` refuses any new route for a
+lapsed shop "until somebody decides otherwise" — a good default that had simply
+never been revisited. Every newly registered shop is pending **by definition**,
+and the portal handoff is the route to the page where they learn what to pay.
+Blocking it meant a new shop could never reach the thing that ends the pending
+state. Now allowed, with the argument written into the rule.
+
+The concurrency assertion counts **session rows**, not HTTP statuses. Three
+simultaneous completions, one session, one 200 — "one 200" alone would not have
+been the claim worth making.
+
+- **Files:** `src/auth/sessions.service.ts`,
+  `src/platform/registration-continuation.service.ts`,
+  `src/entitlement/route-classification.ts`.
+- **Migrations applied:** `0059`, `0060`, `0061` to development; `0061` to
+  staging. **None created this session** — `0061` was written in the previous one.
+- **Fixtures:** 21 synthetic tenants created, all removed. Staging back to 3
+  companies / 7 users, and both environments byte-identical to their
+  post-migration records. Port 3012 released.
+
+> `scripts/staging-cleanup.ts` fails on a foreign key at
+> `platformAdmin.deleteMany()`. Pre-existing and unrelated; the fixtures were
+> removed with a scoped script instead. Worth fixing before it is trusted.
+
+### 🔴 Not done
+
+**CP3, the mobile screens, is not started** — and the instruction for this
+session was **truncated mid-sentence** inside CP3's failure handling, so
+whatever followed was never received and was not guessed at.
+
+**Commits:** `erp-backend` `eed3219` · `erp-docs` the commit carrying this
+entry. Mobile and website unchanged. `READY_FOR_HANDOFF`, owner `NONE`,
+staging left available.

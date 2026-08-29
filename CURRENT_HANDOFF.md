@@ -6,9 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — trees clean and green. The **security
-  correction is complete**; the UI and acceptance work is not. See below.
+- Status: **READY_FOR_HANDOFF** — trees clean and green. **CP1 and CP2 are
+  complete**; CP3 (the mobile screens) is not started.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- `started_at_utc:` `2026-08-28T14:00Z` — aligning migrations, then proving the
+  registration authentication over real HTTP, then the mobile screens.
+- HEADs at takeover, verified against Git: `erp-backend` `93b13c7` ·
+  `erp-mobile` `14b9d33` · `retail-erp-control-web` `3d0e277` · `erp-docs`
+  `0759c22`. All four clean and level. **No discrepancies.**
+- Baseline verified: backend **101 suites / 1748 tests** · mobile **20 pure
+  suites** · EN/AR/FR **1796** identical · website **14/14**, `tsc -b` clean.
+- Migration state verified in both databases: development **57 applied**,
+  highest `0058` (so `0059`, `0060`, `0061` pending); staging **59 applied**,
+  highest `0060` (so `0061` pending). 60 migration directories on disk.
 - `started_at_utc:` `2026-08-28T09:00Z` — completing the partial registration
   milestone with an authorised, narrowly scoped registration-authentication
   design.
@@ -66,6 +76,105 @@
   Bankily integration, real contact delivery, or the IMEI scanner milestone.
 
 
+
+
+### CP1 — migrations aligned. CP2 — authentication proven over real HTTP.
+
+`erp-backend` `eed3219`. **101 suites / 1748 tests**, `tsc` clean.
+
+#### CP1 · both environments now at `0061`
+
+| | before | after |
+|---|---|---|
+| development (`phonestore`) | 57 applied, highest `0058` | **60 applied, highest `0061`, zero pending** |
+| staging (`prisma_staging`) | 59 applied, highest `0060` | **60 applied, highest `0061`, zero pending** |
+
+Development: target name validated before anything ran, full state recorded,
+backup taken (`phonestore-pre0059-20260829-013551.sql`, 555 232 bytes, 83
+tables, **0 raw `_binary`**, valid UTF-8), and **restore-proved** into a
+disposable database whose every checksum matched the live record exactly.
+
+Staging went through `scripts/staging-apply-migrations.ts`, which owns the
+load-bearing `override: true` env-order safeguard, refuses a non-staging name,
+and restore-proves its own dump. Catalogue gate after: **61/61**.
+
+Both diffs show **only three lines changed**: the migration count, the highest
+migration name, and the `purpose` enum. Permission catalogue, role mappings
+(`owner=61 store_manager=43 store_employee=20`), tenant data, subscriptions,
+payments and unit checksums all byte-identical.
+
+**Clean replay** on a disposable strict-mode database: full history through
+`0061`, schema valid, **61/61 catalogue from migrations alone**, the two
+purposes distinct, and **zero tenant or demo rows created**. All three
+disposable databases dropped.
+
+> ⚠️ **Finding:** this MySQL runs with an **empty `sql_mode`** — not strict at
+> all. The first replay was therefore not a strict-mode replay. It was redone
+> with `STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION`
+> set globally, and the original empty value restored afterwards. Worth deciding
+> whether the server should run strict permanently.
+
+#### CP2 · 29/29 over real HTTP and real MySQL
+
+Backend on port **3012** against staging. Successful path: continuation issued
+and **no session**; stored **hash-only**; challenge **bound to that exact
+continuation**; code retrieved the staging-only way; completion issues **exactly
+one** session; contact marked verified; **both credentials consumed**;
+subscription still **pending**; portal handoff available; **protected ERP data
+blocked**.
+
+Every adversarial refusal passed: a historical consumed verification, another
+registration's challenge, cross-company, a **portal ticket used for
+registration**, an expired continuation, a rotated challenge, a wrong code, a
+replayed continuation, an unknown continuation, a disabled Owner.
+
+**Concurrency was measured by SESSION ROWS, not HTTP status**: three
+simultaneous completions → one session, one 200.
+
+#### Two defects real HTTP found that unit tests could not
+
+1. **Completion died with "Database request error".** `SessionsService.create`
+   used its own connection while completion held an exclusive lock on the
+   Owner's row; `auth_sessions` has an FK to `users`, so the insert waited on a
+   lock its own request held. `create` now takes an optional transaction
+   client — which also makes the rollback honest. **The pre-existing portal
+   handoff does not have this bug**: it never locks the user row first.
+2. **A pending Owner could not create a portal handoff (403).**
+   `ALWAYS_ALLOWED` blocks by default so a new route is refused "until somebody
+   decides otherwise". Every new shop is pending by definition and this is the
+   route to the page that ends that state, so it is now allowed, with the
+   reasoning recorded in the rule.
+
+#### Fixtures and integrity
+
+21 synthetic tenants created and **all removed**; staging back to its original
+3 companies / 7 users. Both environment snapshots are **identical to their
+post-migration records apart from the label line**. Development was never
+touched by CP2. Port 3012 released.
+
+> ⚠️ `scripts/staging-cleanup.ts` **fails** with a foreign-key violation on
+> `platformAdmin.deleteMany()`. Pre-existing, unrelated to this work, and it is
+> why the fixtures were removed with a scoped script instead.
+
+### What remains
+
+- **CP3 — the mobile screens.** Not started. `app/(auth)/register.tsx` does not
+  exist; `login.tsx` still calls `openSignup()`. The rules
+  (`lib/registration.ts`, 20 assertions) and all EN/AR/FR copy are in place, and
+  the endpoints they need are now **proven working**:
+  `POST platform/register` → `{ status, created, publicStoreId, verification,
+  continuation: { token, expiresAt, expiresInSeconds }, next }`;
+  `POST platform/register/verify/start` → `{ delivery }`;
+  `POST platform/register/verify/confirm` → `{ accessToken, refreshToken, expiresIn }`.
+- Mounting `PaymentModal.tsx` (still imported by nothing), the portal-handoff
+  audit, and the browser/device acceptance.
+
+> **The instruction for this session was truncated** mid-sentence in CP3's
+> failure handling. Anything after that — further checkpoints, test lists,
+> gates, cleanup and documentation requirements — never arrived and was
+> deliberately not guessed at.
+
+---
 
 ### Registration authentication — the security correction is DONE
 
