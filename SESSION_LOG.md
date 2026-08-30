@@ -6172,3 +6172,81 @@ and `Other model` are ordinary options rather than error states.
 **Commits:** `erp-backend` `e7062fb`, `e8dd873` · `erp-mobile` `b756a12`,
 `5c6981f` · `retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the
 commits carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-30 — CLAUDE-B — **the list reads properly, and the numbers stop flattering**
+
+Takeover clean: 106/1822 backend, 23 mobile pure, 37 website, both databases at
+`0062`, staging 42/57/20, demo byte-identical.
+
+### Reproducing the defect before fixing it
+
+Release year was ordering the model list, and it produced two visibly wrong
+results: `iPhone 16e` above `iPhone 17` because models sharing a year fell back
+to alphabetical, and `iPhone 17e` alone at the top, split from the family it
+belongs to. I printed both before changing anything.
+
+The interesting part is that they are not the same bug. The first is a missing
+tie-break. The second is structural: a family spans years, so ordering by family
+and ordering by date are different orderings and one integer cannot be both.
+That is what justified a second column rather than overloading the first, and I
+kept the year because a phone's release year is real curated data that would
+otherwise have to be curated all over again.
+
+`display_rank` comes from the model's POSITION in the source list, which makes
+correcting the order a matter of moving a line. Spacing the ranks by ten leaves
+room to slip a model in; making every rank distinct removes the tie-break
+entirely — and that is what stops the list reordering itself in Arabic.
+
+Two `mini` entries turned out to be plainly in the wrong place too, sitting
+above their standard model.
+
+### The number I most wanted to get right
+
+323 models in the selector does **not** mean 323 models can be recognised from
+an IMEI. Staging has twenty TAC rows covering nineteen models; development has
+none at all, so no IMEI resolves to anything there. That is **5.9%**, and
+`scripts/tac-coverage.ts` now prints the selector catalogue, the TAC rows and
+the company mappings as three separate counts and refuses to total them.
+
+Quoting one number for both would have been the easiest thing to get away with
+here and the most misleading.
+
+### A sheet, and what it does not prove
+
+There is no phone available, so I built the thing a phone would need: the
+fixture's twenty handsets as Code 128 barcodes, primary and secondary, with the
+warning printed on the sheet itself that printing it proves nothing.
+
+Two details worth keeping. My first guard checked `APP_ENV` — but the script
+loads `.env.staging` itself, so it was checking a variable it had just set. A
+guard that cannot fail is not a guard; it now checks the database name. And the
+first render came out dark, because a dark-mode browser inverts the card: black
+bars on a dark background do not scan, which would have made the sheet useless
+for its only job.
+
+### The backup that wasn't
+
+The first demo dump ended at `-- Dumping routines` with no `-- Dump completed`.
+`docs/22` says a dump you have not checked is not a backup and describes exactly
+that failure. Re-dumped, restore-proven, and worth recording because the check
+took two seconds and would have cost an afternoon.
+
+- **Live 18/18.** Backend **106 / 1830** · mobile **23 pure**, lint 0, Doctor
+  18/18, parity 1808, 68 routes · website 37 untouched.
+- **Demo byte-identical.** Staging unchanged. Both probe databases dropped.
+
+### 🔴 Still not done
+
+**No camera has read anything.** Rows 3–6 and 10 of `docs/24` §9m are proved
+over real HTTP, which proves the rules and not the camera, the decoder, or what
+happens with a phone in one hand and a handset in the other.
+
+**19 of 323.** A licensed GSMA feed is the outstanding dependency and no amount
+of curation substitutes for it.
+
+**Commits:** `erp-backend` `7ecb5a4` · `erp-mobile` `3908fae` ·
+`retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the commit
+carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

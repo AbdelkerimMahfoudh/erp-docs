@@ -840,3 +840,50 @@ Unit matching finds the unit by its PRODUCT, not by its identifier. Keyed on
 the IMEI it would have provisioned twenty more phones the moment the
 identifiers changed — which is exactly what giving each model its own TAC did.
 A rerun now corrects identifiers in place and reports `0 created`.
+
+---
+
+## Migration `0063` — the display order
+
+`release_rank` was the release year and was also ordering the list. It cannot
+do both: a family spans years, so `iPhone 17e` (2026) belongs **below**
+`iPhone 17 Pro Max` (2025), and sorting by year also fell back to alphabetical
+and put `iPhone 16e` above `iPhone 17`.
+
+`0063` adds `display_rank` and backfills it from
+`src/catalog/device-catalogue.ts`. **`release_rank` is not touched** — the year
+is real curated data and stays separately queryable.
+
+Backed up and restore-proven first, both databases, into `prisma_restore_proof`
+(dropped afterwards). Applied to a restored copy of staging in
+`prisma_migrate_probe` before anything real: 42 companies, 20 units, 323 models,
+20 TAC rows, years still `2017`–`2026`, `0` models left unranked. Probe dropped.
+
+> **The trailer check earned its keep.** The first demo dump ended at
+> `-- Dumping routines` with no `-- Dump completed`. `docs/22` says a dump you
+> have not checked is not a backup, and this is exactly the failure it
+> describes — the re-run completed cleanly and was restore-proven.
+
+## Two commands worth knowing
+
+```bash
+npx ts-node scripts/tac-coverage.ts
+```
+
+Counts the selector catalogue, the TAC rows and the company mappings
+**separately**, and prints how many catalogue models can actually be recognised
+from an IMEI. Pass `--staging` with `APP_ENV=staging` for the staging database.
+
+```bash
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > sheet.html
+```
+
+Renders the fixture's twenty phones as Code 128 barcodes, primary and secondary,
+for pointing a camera at. It refuses any database that is not a staging one —
+it checks the **database name**, not `APP_ENV`, because the script loads
+`.env.staging` itself and a guard that can never fail is not a guard.
+
+The page is pinned to a light colour scheme on purpose: a dark-mode browser
+renders black bars on a dark card, and a barcode without contrast does not scan.
+
+**Printing the sheet is not camera verification.** It says so on its face.

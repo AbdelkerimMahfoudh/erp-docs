@@ -2873,3 +2873,60 @@ The last catalogue is cached with the durable **non-secret** file storage the
 drafts use — a brand list is not a credential. When a cached list is shown the
 screen says so. Claiming a live lookup that did not happen is the one thing the
 client must never do, and IMEI uniqueness stays server-authoritative.
+
+---
+
+## 6o. Model order, and what a TAC can actually recognise — SHIPPED
+
+### ✅ APPROVED — the list order is a product decision, made once, on the server
+
+Release year was deciding it and could not. **Two facts, two columns:**
+`release_rank` is the release YEAR and stays separately queryable;
+`display_rank` is where the model sits in its brand's list.
+
+They genuinely conflict, which is why one integer could not hold both:
+
+| | Order by year | Order by family |
+| --- | --- | --- |
+| `iPhone 17e` (2026) | first | **below** `iPhone 17` |
+| `iPhone 17 Pro Max` (2025) | below `17e` | **first** |
+| `iPhone 16e` (2025) | above `iPhone 17`, alphabetically | below the whole 17 family |
+
+**Newest family first; within a family, premium first** — Pro Max, Pro,
+Air/Plus, standard, then value variants (`e`, mini, SE). Samsung reads Ultra,
+Plus, standard, FE.
+
+`display_rank` comes from each model's **position in the source list**, so
+correcting the order means moving a line. Ranks are spaced by ten so a model
+can be slipped in without renumbering a brand, and every model has a distinct
+rank — which removes the tie-break entirely. That last part matters: a
+comparator falling back to a NAME would sort differently in Arabic than in
+English, and the catalogue must read the same in all three.
+
+**The API returns the canonical order and clients do not re-sort.** A test greps
+the mobile client for `.sort(` and `localeCompare` and fails on either.
+
+### ✅ APPROVED — three different counts, never added together
+
+These get confused constantly, so they are reported separately and always will
+be:
+
+| | What it is | Staging | Development |
+| --- | --- | --- | --- |
+| **Selector catalogue** | what somebody can *choose* | 13 brands / **323 models** | 13 / 323 |
+| **TAC rows** | what an IMEI can be *recognised* from | **20** (all `synthetic_staging`, all Apple) | **0** |
+| **Company mappings** | what one shop has *decided* | 0 | 7 confirmed |
+
+**19 of 323 selectable models can be recognised from an IMEI — 5.9%.** The rest
+are chosen from the list or typed. Saying "323 models" and meaning "323
+recognisable" would be the easiest lie to tell here, so `scripts/tac-coverage.ts`
+prints all three and refuses to total them.
+
+Broad recognition needs **licensed GSMA data**. Nothing substitutes for it.
+
+### 🔴 PENDING — camera verification
+
+`scripts/staging-scan-sheet.ts` prints the fixture's synthetic identifiers as
+Code 128 barcodes so a phone can be pointed at them. **Printing it is not
+verification, and the sheet says so on its own face.** Web export, HTTP tests
+and Expo Doctor are none of them a camera.

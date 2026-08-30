@@ -8,10 +8,21 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- A shop can now pick a phone from a list instead of spelling it, and a scanned
-  IMEI says which iPhone it is. **20/20** fixture phones recognised live.
-- **A migration WAS required** — `0062`, applied to development and staging,
-  backed up and restore-proven first, nothing renamed or deleted.
+- Models now sort the way a shopkeeper reads them, and TAC coverage is reported
+  honestly: **19 of 323** selectable models can be recognised from an IMEI.
+- `0063` applied to both databases, backed up and restore-proven first.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `7ecb5a4` |
+| `erp-mobile` | `3908fae` |
+| `retail-erp-control-web` | `c764d63` (unchanged) |
+| `erp-docs` | *this commit* |
+
+## 🔑 The retained staging shop
+
+`store@test.com` at **Test Store** — 20 iPhones, each with its own synthetic
+TAC. A printable scan sheet now exists; **no camera has read it.**
 
 | Repository | HEAD |
 |---|---|
@@ -52,6 +63,102 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### Model order, TAC coverage, and a sheet to scan
+
+#### The ordering defect, proved before it was touched
+
+`release_rank` was the release YEAR and was also ordering the list. Both
+symptoms were reproduced first:
+
+    1. iPhone 17e        (2026)   <- alone at the top, split from its family
+    2. iPhone 16e        (2025)   <- above a newer flagship, alphabetically
+    3. iPhone 17         (2025)
+
+Family order and date order genuinely conflict — `iPhone 17e` shipped later
+than `iPhone 17 Pro Max` and belongs below it — so one integer cannot hold
+both. **Two facts, two columns.** `release_rank` keeps the year and stays
+separately queryable; `display_rank` is the position.
+
+Now:
+
+    1. iPhone 17 Pro Max   2. iPhone 17 Pro   3. iPhone Air
+    4. iPhone 17           5. iPhone 17e      6. iPhone 16 Pro Max …
+
+`display_rank` is derived from the model's POSITION in the source list, so
+correcting the order means moving a line. Spaced by ten, every rank distinct —
+so there is **no tie-break**, which is what stops the order changing with the
+language. Two `mini` entries were also simply above their standard model and
+were moved.
+
+#### Migration 0063
+
+Backed up and restore-proven, both databases, into `prisma_restore_proof`.
+Applied first to a restored copy of staging in `prisma_migrate_probe`: 42
+companies, 20 units, 323 models, 20 TAC rows, years still 2017–2026, **0**
+models unranked, rerun a no-op. Both probes dropped.
+
+> The trailer check in `docs/22` earned its keep — the first demo dump ended at
+> `-- Dumping routines` with no completion line. Re-dumped and restore-proven.
+
+#### TAC coverage, counted honestly
+
+Three things that keep being confused, never added together:
+
+| | Staging | Development |
+|---|---|---|
+| Selector catalogue | 13 brands / **323 models** | 13 / 323 |
+| TAC rows (recognisable) | **20** — all `synthetic_staging`, all Apple | **0** |
+| Company `ProductRecognition` | 0 | 7 confirmed |
+
+**19 of 323 models — 5.9% — can be recognised from an IMEI.** The rest are
+chosen or typed. `scripts/tac-coverage.ts` prints all three and refuses to
+total them.
+
+#### Live: 18/18
+
+Brand order with `Other` last · Redmi and POCO independent · **the canonical
+Apple order, exact** · both ordering defects gone with the release year intact ·
+Samsung reads Ultra/Plus/standard/FE · `reno 13` finds `Reno13` · unknown brand
+is an empty list · `complete: false` · **20/20** synthetic IMEIs resolve to
+Apple and the intended model · no storage/colour/cost inferred · suggestion not
+selection · unknown TAC guesses nothing · seven digits refused · dual-SIM
+consistent from both identifiers and one unit · disagreeing TACs give different
+answers · synthetic mappings in staging only · cross-company isolation.
+
+#### The scan sheet
+
+`scripts/staging-scan-sheet.ts` — 20 phones, 25 Code 128 barcodes, primary and
+secondary. Two things it gets right: the guard checks the **database name**, not
+`APP_ENV` (the script loads `.env.staging` itself, so an `APP_ENV` check could
+never fail), and the page is pinned to a light colour scheme (a dark-mode
+browser renders black bars on a dark card, and that does not scan).
+
+#### Gates
+
+- Backend **106 suites / 1830 tests** · `tsc`, `prisma validate` clean · both
+  databases at `0063` · catalogue 61/61.
+- Mobile **23 pure suites** · `tsc` clean · lint **0** · Doctor **18/18** ·
+  parity **1808** · export **68 routes**.
+- Website **37**, untouched.
+- **Demo byte-identical**: 1/9/7, 10 051.00, `bcc38d96…`, 559 audit, 0 payments.
+  Staging 42/57/20, 20 TACs.
+
+### What remains
+
+1. **No camera has read anything.** `docs/24` §9m lists ten checks; rows 3–6
+   and 10 are proved over HTTP, which proves the RULES and not the camera.
+2. **A licensed GSMA feed** — 19 of 323 recognisable is the honest number.
+3. `lib/signup.ts` is still dead code.
+4. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Print the scan sheet, take a phone, and work `docs/24` §9m. Nothing here needs
+another migration.
+
+---
 
 ### Device catalogue, dependent selectors, TAC recognition
 

@@ -1362,3 +1362,36 @@ Recognition itself was proved over HTTP rather than by scanning: **20/20**
 synthetic IMEIs resolved to Apple and the intended model. What a device still
 owes is the camera — that scanning a real barcode produces the same result the
 API already gives.
+
+## 9m. The scanner — still unverified, and now easier to verify
+
+A printable sheet of the fixture's synthetic identifiers now exists:
+
+```bash
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > sheet.html
+```
+
+20 phones · 25 codes (20 primary, 5 secondary) · Code 128 · Luhn-valid by
+construction · not one of them a real device.
+
+### 🔴 What is still pending, stated without hedging
+
+**No camera has read anything.** The web export, the HTTP tests and Expo Doctor
+are none of them a camera, and none of them may be described as one.
+
+| # | Check | Status |
+| --- | --- | --- |
+| 1 | Point the camera at a primary IMEI barcode | **pending** |
+| 2 | The scanned value matches the printed digits exactly | **pending** |
+| 3 | Recognition suggests Apple and the right model | proved over HTTP; **not scanned** |
+| 4 | The suggestion is a suggestion — nothing is selected for you | proved over HTTP; **not scanned** |
+| 5 | Scan a secondary IMEI: the same one phone is found | proved over HTTP; **not scanned** |
+| 6 | Scan two codes that disagree: it asks rather than choosing | proved over HTTP; **not scanned** |
+| 7 | Scan in poor light / at an angle | **pending** |
+| 8 | A damaged or partial code fails safely | **pending** |
+| 9 | The camera permission prompt reads correctly in AR and FR | **pending** |
+| 10 | Nothing is written before somebody confirms | proved over HTTP; **not scanned** |
+
+Rows 3–6 and 10 have been proved against a real server over real HTTP. That
+proves the RULES. It does not prove the camera, the decoder, or what happens
+when a shopkeeper is holding a phone in one hand and a handset in the other.
