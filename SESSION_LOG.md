@@ -6095,3 +6095,80 @@ unexercised. Those two are what a device owes.
 `977e162` · `retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the
 commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`, Test Store left
 running and signed out.
+
+
+---
+
+## 2026-08-30 — CLAUDE-B — **a list of phones, and a code that says which one**
+
+Takeover clean. Backend 104/1787, mobile 20 pure, website 37, staging 42/57,
+demo byte-identical.
+
+### The audit was most of the work, and it saved most of the work
+
+The instruction authorised a migration only if the schema could not represent
+the catalogue safely, so the first hour went on finding out. Most of the
+recognition half already existed and is untouched: `ProductRecognition` is the
+company-scoped authority, and `resolveTac()` already ran the deterministic
+ladder with storage, colour, condition and price deliberately absent. Building
+a second recognition system would have been the easy mistake.
+
+What genuinely had nowhere to live was a BRAND. `tac_catalog` is keyed by TAC
+and can only answer "what is this code" — it cannot answer "what brands are
+there", which is the question a selector asks before anybody has scanned
+anything. That is what `0062` is for.
+
+I backed up both databases, restored both into a scratch database and checked
+them row for row before touching anything, then tested the migration twice on a
+throwaway copy — clean install, and upgrade over a restored copy of real
+staging. The upgrade case is the one that mattered: 42 companies, 20 products,
+20 units and a legacy free-text `tac_catalog` row all came through untouched.
+
+### Being honest about a hand-made list
+
+323 models across 12 brands, assembled from what this market actually trades.
+It is marked `curated`, never `official` — `official` is reserved for a licensed
+feed, and calling a hand-assembled list official would be a claim nobody could
+check. `/device-catalogue/version` returns `complete: false` in the payload, so
+no client can quietly decide the list is exhaustive and stop offering the manual
+field. Real production coverage needs licensed GSMA data and I have said so in
+the code, the migration, the docs and the API.
+
+The rule I kept coming back to: a model is a commercial name. A test forbids
+`128 GB` or `Black` in one, because folding storage into model names multiplies
+the catalogue by every SKU and makes both search and reporting worthless.
+
+### Small things the browser caught
+
+Two, both invisible in the source. The manual brand field appeared on a
+brand-new empty form, because I had inferred "manual" from an empty value
+instead of making it a mode somebody chooses. And after picking `Other brand`
+the screen showed two rows both labelled "Brand", each correct and the pair
+confusing.
+
+The one I am most pleased about is the fixture. Giving each iPhone its own TAC
+changed all twenty identifiers — and the provisioner matched units BY IMEI, so a
+rerun would have found no clash and cheerfully provisioned twenty more phones.
+Keying on the product instead makes a rerun correct its own work in place.
+
+- **Live 16/16**, including **20/20** synthetic IMEIs resolving to Apple and the
+  intended model over real HTTP.
+- **Backend 106 / 1822** · **mobile 23 pure**, lint 0, Doctor 18/18, parity
+  **1808**, 68 routes · website 37, untouched.
+- **Demo byte-identical.** Staging unchanged at 42/57. Both probe databases
+  dropped.
+
+### 🔴 Still not done
+
+**The camera has never been used.** Recognition was proved over HTTP; what a
+phone still owes is that scanning a real barcode gives the same answer. Arabic
+layout MIRRORING is native and the web export never flips direction, so §9l
+cannot settle it either.
+
+And the honest limit: **323 curated models is a starter catalogue.** It will not
+match the next phone somebody walks in with, which is exactly why `Other brand`
+and `Other model` are ordinary options rather than error states.
+
+**Commits:** `erp-backend` `e7062fb`, `e8dd873` · `erp-mobile` `b756a12`,
+`5c6981f` · `retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the
+commits carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

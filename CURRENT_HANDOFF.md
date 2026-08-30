@@ -6,19 +6,24 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-B**
-- `started_at_utc:` `2026-08-30T09:00Z` — device catalogue: server-owned
-  brand/model reference data, dependent selectors, and TAC recognition for the
-  retained staging inventory.
-- HEADs at takeover: `erp-backend` `7b23d5d` · `erp-mobile` `977e162` ·
-  `retail-erp-control-web` `c764d63` · `erp-docs` `345d839`. All clean and level.
-- **A migration IS required** (see the audit below) and is authorized by the
-  checkpoint. Next number: `0062`.
-- The staging banner is gone from the interface, the authentication screens can
-  change language, every portal entry goes through one authenticated handoff,
-  and staging holds one retained shop with twenty phones in it.
-- **The environment is still staging.** Removing the label removed a label.
+- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
+- Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- A shop can now pick a phone from a list instead of spelling it, and a scanned
+  IMEI says which iPhone it is. **20/20** fixture phones recognised live.
+- **A migration WAS required** — `0062`, applied to development and staging,
+  backed up and restore-proven first, nothing renamed or deleted.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `e8dd873` (after `e7062fb`) |
+| `erp-mobile` | `5c6981f` (after `b756a12`) |
+| `retail-erp-control-web` | `c764d63` (unchanged) |
+| `erp-docs` | *this commit* |
+
+## 🔑 The retained staging shop
+
+`store@test.com` at **Test Store** — 20 iPhones in stock, each with its own
+synthetic TAC. The password is the one you chose and is not written down here.
 
 | Repository | HEAD |
 |---|---|
@@ -46,6 +51,112 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### Device catalogue, dependent selectors, TAC recognition
+
+#### The audit came first, and most of it was already built
+
+`ProductRecognition` already was the company-scoped authority — proposed /
+confirmed / superseded — and `resolveTac()` already ran the ladder: a confirmed
+company mapping wins, a proposal is shown but never auto-selected, otherwise
+generic identity, otherwise unknown. Storage, colour, condition, cost and price
+were already never inferred. **No competing recognition system was built.**
+`products.brand/model/variant` were reused as they stand.
+
+#### Why a migration was genuinely required
+
+Nothing could represent a BRAND. `tac_catalog` is keyed by TAC and answers only
+"what is this code" — not "what brands are there", which is what a selector asks
+before anybody has scanned anything. Aliases, display order, release ordering
+and the Redmi/POCO relationship had nowhere to live.
+
+`0062` adds `device_brands` and `device_models` and gives `tac_catalog`
+provenance: source, active flag, review date, optional links to catalogue rows.
+
+**Backed up and restore-proven before it ran anywhere real.** Both databases
+dumped, both restored into `prisma_restore_proof` and checked row for row
+(42/57/20/20, 83 tables, 24 triggers — identical), then dropped. Clean install
+and upgrade both tested on `prisma_migrate_probe` against a restored copy of
+staging: 42 companies, 20 products, 20 units untouched, and a legacy free-text
+`tac_catalog` row kept its brand and model while gaining a source. Both probe
+databases dropped.
+
+#### What is honest about the catalogue
+
+**13 brands, 323 models**, `source = 'curated'` — not `official`, which is
+reserved for a licensed feed. `/device-catalogue/version` returns
+`complete: false` **in the payload**, because a client that believed it held
+every phone would stop offering the manual field.
+
+| Brand | Models | | Brand | Models |
+|---|---|---|---|---|
+| Apple | 35 | | Tecno | 28 |
+| Samsung | 67 | | realme | 28 |
+| Redmi | 26 | | Infinix | 22 |
+| OPPO | 27 | | Huawei | 19 |
+| POCO | 19 | | itel | 18 |
+| Xiaomi | 17 | | Honor | 17 |
+
+**Broad production coverage needs licensed GSMA data.** Said in the code, the
+migration, the docs and the API payload.
+
+#### The selectors
+
+Brand first, then that brand's models, newest first, searchable — in the
+SHARED `ProductForm`, so create, edit and every intake path got it at once.
+
+`Other brand` and `Other model` are ordinary options. Legacy free-text products
+open in manual mode ready to edit; a lower-case `samsung` still matches Samsung.
+Changing the brand clears the model **and nothing else** — proved live with a
+typed variant that survived.
+
+Manual entry is a MODE somebody chose, not a state inferred from an empty field.
+Inferring it opened a brand-new form already showing "type the brand".
+
+#### Live: 16/16, and 20/20 recognition
+
+Brand order with `Other` last · Redmi and POCO independent with Xiaomi recorded
+· 35 Apple models newest-first · `reno 13` finds `Reno13` · unknown brand is an
+empty list not an error · `complete: false` · **all 20 synthetic IMEIs resolve
+to Apple and the intended model** · no storage/colour/cost inferred · suggestion
+not selection · unknown TAC guesses nothing · a seven-digit TAC is refused ·
+dual-SIM resolves consistently from both identifiers and is one unit ·
+disagreeing TACs give different answers so the app can ask · synthetic mappings
+in staging (20) and not in development (0) · another company sees nothing.
+
+Browser: the selectors in Arabic at 375 px, right-aligned, no overflow.
+
+#### Gates
+
+- Backend **106 suites / 1822 tests** · `tsc` clean · `prisma validate` clean ·
+  both databases at `0062` · catalogue **61/61**.
+- Mobile **23 pure suites** · `tsc` clean · `expo lint` **0 problems** · Doctor
+  **18/18** · EN/AR/FR **1808** identical · export **68 routes**.
+- Website **37 tests**, unchanged and untouched.
+- **Demo byte-identical**: 1/9/7, 10 051.00, checksum `bcc38d96…`, 559 audit,
+  **0 payments**. Staging **42 / 57**, unchanged by this checkpoint.
+
+### What remains
+
+1. **Nothing has run on a physical device.** `docs/24` §9j, §9k and §9l — the
+   camera has never been used, and Arabic layout MIRRORING is native and cannot
+   be judged in a web export at all.
+2. **A licensed GSMA feed** is the outstanding dependency for real TAC coverage.
+   323 curated models is a starter list.
+3. Ordering consequence worth a look: `releaseRank` is the release YEAR, so
+   `iPhone 16e` (2025) sorts above `iPhone 17` (2025) alphabetically within the
+   year, and `iPhone 17e` (2026) sorts above everything. That follows the rule
+   as specified; a finer rank would read more naturally.
+4. `lib/signup.ts` is still dead code.
+5. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Take the app onto a phone: `docs/24` §9j, §9k, §9l. Nothing here needs another
+migration.
+
+---
 
 ### Usability and the retained fixture
 
