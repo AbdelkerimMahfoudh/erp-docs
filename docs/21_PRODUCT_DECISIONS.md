@@ -2810,3 +2810,66 @@ It is provisioned by a guarded, idempotent command that refuses outside staging,
 writes nothing without `--apply`, and **refuses to adopt a `store@test.com` it
 did not create** — the worst thing a fixture command could do on a shared
 database.
+
+---
+
+## 6n. The device catalogue, dependent selectors and TAC recognition — SHIPPED
+
+### ✅ APPROVED — the catalogue is server-owned, and curated
+
+Brands and models live in the database (`device_brands`, `device_models`) and
+are read over `/device-catalogue`. **No second list is bundled in the app.** A
+list compiled into a release drifts from the server's, and the one you cannot
+fix without shipping is the one people are looking at.
+
+**13 brands, 323 models, `source = 'curated'`.** Not `official`, which is
+reserved for a licensed feed — calling a hand-assembled list official would be
+a claim nobody could check. `/device-catalogue/version` returns
+`complete: false` **in the payload**, because a client that believed it held
+every phone would stop offering the manual field.
+
+Redmi and POCO are Xiaomi's, recorded as `parentKey`, and are still listed,
+searched and sold as brands in their own right. Nesting them under Xiaomi would
+hide them from somebody typing the name printed on the box.
+
+**Broad production coverage needs licensed GSMA data.** This is a starter
+catalogue and says so everywhere it can.
+
+### ✅ APPROVED — a model is a commercial name, and nothing else
+
+Storage, colour, cosmetic condition and an individual IMEI are **not** models.
+`products.variant` already carries storage and colour; the unit carries the
+identifier. A test forbids `128 GB` or `Black` in a model name: folding them in
+would multiply the catalogue by every SKU and make search and reporting
+worthless.
+
+### ✅ APPROVED — typing is never a failure
+
+`Other brand` and `Other model` are ordinary options, not error states. A shop
+receiving a handset nobody has catalogued books it in **now**. Legacy free-text
+products open in manual mode ready to edit, and a lower-case `samsung` still
+matches Samsung. Changing the brand clears the model **and nothing else**.
+
+The catalogue is a source of choices, never a constraint on what a product may
+be called.
+
+### ✅ APPROVED — a TAC suggests, and proves nothing
+
+The existing ladder is unchanged and was reused rather than replaced: a
+confirmed company mapping wins, a proposal is shown but never auto-selected,
+otherwise the global table gives generic identity, otherwise unknown.
+
+A TAC is the first **eight** digits. It never infers storage, colour,
+condition, cost or price. A valid Luhn checksum proves **nothing** about
+authenticity, ownership or theft status. No external service is called, and if
+one ever is it receives the TAC — never the full IMEI.
+
+Company corrections stay in `ProductRecognition`, company-scoped: one shop's
+decision cannot rewrite the catalogue for everybody.
+
+### ✅ APPROVED — offline is honest
+
+The last catalogue is cached with the durable **non-secret** file storage the
+drafts use — a brand list is not a credential. When a cached list is shown the
+screen says so. Claiming a live lookup that did not happen is the one thing the
+client must never do, and IMEI uniqueness stays server-authoritative.

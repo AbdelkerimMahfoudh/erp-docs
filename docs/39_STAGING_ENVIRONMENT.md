@@ -790,3 +790,53 @@ granting a subscription to somebody else's Owner.
 Staging holds **42 companies / 57 users**: the 3-company baseline, the 38
 retained acceptance tenants the schema will not release, and `Test Store`.
 20 products, 20 units, one platform administrator, **0 subscription payments**.
+
+---
+
+## The device catalogue, and the fixture's synthetic TACs
+
+Migration `0062` adds `device_brands` and `device_models` and gives
+`tac_catalog` provenance. **13 brands / 323 models** in both databases,
+`source = 'curated'`, reviewed `2026-08-30`.
+
+### Updating the catalogue without a mobile release
+
+The catalogue is read from the database at request time, so correcting or
+extending it is reference-data work, not a release:
+
+```bash
+npx ts-node scripts/generate-device-catalogue-migration.ts
+```
+
+Edit `src/catalog/device-catalogue.ts`, regenerate, and the next migration
+carries the change. `device-catalogue.spec.ts` fails the build if the source
+and the snapshot ever drift — the same guard `0059` uses for permissions. Every
+insert is `NOT EXISTS`, so a replay changes nothing.
+
+### The fixture's twenty TACs
+
+Each `Test Store` iPhone has its own synthetic TAC, `0100` + the model index:
+
+| | |
+| --- | --- |
+| Range | `01000000` – `01000019` (**not** an allocated TAC range) |
+| Source | `synthetic_staging` |
+| Maps to | Apple, and the one iPhone model that phone represents |
+| Live result | **20/20** resolve to the intended model over real HTTP |
+
+A single shared TAC would have made the recognition test meaningless — every
+scan would resolve identically whether the lookup worked or not.
+
+> **The guard is at the READ, not only at the write.**
+> `TacMappingService.resolve()` excludes `synthetic_staging` unless
+> `APP_ENV=staging`. If those rows ever travelled — a dump restored in the
+> wrong place, a copied database — they must not become suggestions somebody
+> acts on, and the command that wrote them is not what a stray database has
+> already run. Measured: 20 rows in staging, **0** in development.
+
+### The fixture is now product-keyed
+
+Unit matching finds the unit by its PRODUCT, not by its identifier. Keyed on
+the IMEI it would have provisioned twenty more phones the moment the
+identifiers changed — which is exactly what giving each model its own TAC did.
+A rerun now corrects identifiers in place and reports `0 created`.

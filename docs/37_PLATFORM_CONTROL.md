@@ -454,3 +454,23 @@ The mobile app now reaches the portal through **one** helper from every entry
 point. The subscription-blocked screen used to open the account URL with no
 ticket at all, which meant the one screen where somebody taps "manage my
 subscription" put an authenticated Owner in front of a password form.
+
+---
+
+## Reference data the platform owns
+
+The device catalogue — `device_brands`, `device_models` and the global
+`tac_catalog` — is **platform-controlled**. There is no write surface on the
+tenant API: `/device-catalogue` reads only, and a shop's own belief about a
+code has its own home in `ProductRecognition`, company-scoped, so one shop's
+correction can never become everybody's catalogue.
+
+Correcting it is reference-data work through the guarded generator, not a
+mobile release. See [`39_STAGING_ENVIRONMENT.md`](39_STAGING_ENVIRONMENT.md).
+
+`tac_catalog` now records where each mapping came from: `official` (reserved
+for a licensed feed, unused), `curated`, `company_confirmed` and
+`synthetic_staging`. The last is refused outside staging at the read.
+
+**A licensed GSMA feed is the outstanding dependency** for broad production TAC
+coverage. Nothing here should be read as a substitute for it.

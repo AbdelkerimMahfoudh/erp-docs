@@ -1333,3 +1333,32 @@ The blocked-subscription screen's portal handoff was proved over HTTP, not on a
 phone: an Owner mints a ticket (`201`) and a Manager of the same shop is refused
 (`403`). What a device still owes is the tap itself — that the browser opens,
 lands signed in, and that returning to the app leaves the session intact.
+
+## 9l. Brand and model selectors
+
+Verified in a browser against the exported app on the staging origin. **A
+browser is not a phone.**
+
+| Check | Result |
+| --- | --- |
+| Brand list, in order, `Other brand` last | 13 brands ✓ |
+| Redmi and POCO listed independently | ✓ |
+| Model disabled until a brand is chosen | "Choose a brand first" ✓ |
+| Samsung's models, newest first | 67, `Galaxy S26` family first ✓ |
+| Family shown under each model | ✓ |
+| `Other model — enter manually` always last | ✓ |
+| Picking a model fills the row | `Galaxy A56` ✓ |
+| `Other brand` reveals the manual field | ✓ |
+| Changing the brand clears the model **only** | a typed variant survived ✓ |
+| Arabic, right-aligned, 375 px, no overflow | ✓ |
+
+**Still device-only.** Whether the expanding list is comfortable to scroll with
+a thumb while holding a phone in the other hand; whether the keyboard covers
+the search box on a short screen; whether Arabic layout **mirroring** (native,
+applied at startup) puts the check mark on the correct side. The web export
+never flips direction, so none of those can be judged here.
+
+Recognition itself was proved over HTTP rather than by scanning: **20/20**
+synthetic IMEIs resolved to Apple and the intended model. What a device still
+owes is the camera — that scanning a real barcode produces the same result the
+API already gives.

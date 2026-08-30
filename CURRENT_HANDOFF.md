@@ -6,8 +6,15 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-B**
+- `started_at_utc:` `2026-08-30T09:00Z` — device catalogue: server-owned
+  brand/model reference data, dependent selectors, and TAC recognition for the
+  retained staging inventory.
+- HEADs at takeover: `erp-backend` `7b23d5d` · `erp-mobile` `977e162` ·
+  `retail-erp-control-web` `c764d63` · `erp-docs` `345d839`. All clean and level.
+- **A migration IS required** (see the audit below) and is authorized by the
+  checkpoint. Next number: `0062`.
 - The staging banner is gone from the interface, the authentication screens can
   change language, every portal entry goes through one authenticated handoff,
   and staging holds one retained shop with twenty phones in it.
