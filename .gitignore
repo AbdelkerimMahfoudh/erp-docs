@@ -26,3 +26,7 @@ desktop.ini
 
 # Staging compose secrets. Only the example is committed.
 deploy/.env.staging
+
+# Generated on demand by backend/scripts/staging-scan-sheet.ts. Never committed:
+# it is a build artefact of whatever the staging fixture holds right now.
+scan-sheet.html
