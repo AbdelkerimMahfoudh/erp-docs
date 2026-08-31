@@ -1410,9 +1410,22 @@ print it, or leave it on a second screen and scan from there. White, dashed
 borders on the refuse cases, expected result printed beside every fixture, and
 no internal database ids anywhere on it.
 
-**30 cards · 29 barcodes.** Nine fixture types plus the twenty stock phones.
-Cases **2 and 3 (QR) are not on it yet** and the sheet says so where they would
-be.
+**31 cards · 29 Code 128 barcodes · 2 QR codes.** All ten fixture types, plus
+the twenty stock phones.
+
+The two QR payloads are labelled, which is how they are met in the wild:
+
+    2 · IMEI: <synthetic-imei>
+    3 · IMEI1: <synthetic-primary>
+        IMEI2: <synthetic-secondary>
+
+Black modules on white, medium error correction, four-module quiet zone.
+Generated with `qrcode`, a backend **devDependency** — it is not in the app,
+not in production, and not in the mobile bundle.
+
+> **Generating a fixture correctly is not decoding it.** The generator proves
+> the symbol is right. Whether a camera reads it through glass, at an angle, in
+> a shop's lighting is a question only a phone answers.
 
 ### 🔴 The user-run checklist — none of this has happened
 
@@ -1422,7 +1435,7 @@ be.
 | 2 | Keep the code in frame | The camera **pauses** while the result is showing |
 | 3 | Hold it there several seconds | **One** result and **one** haptic, not a stream |
 | 4 | Tap rescan | The lock releases and it reads again |
-| 5 | *(needs QR)* Scan a dual-IMEI QR | Both identifiers shown as **one** phone |
+| 5 | Scan case 3 — the dual-IMEI QR | Both identifiers shown as **one** phone |
 | 6 | Scan case 6 — unknown TAC | Accepted, **no** brand and **no** model guessed |
 | 7 | Scan cases 7, 8, 9, 10 | Each **refused**; nothing is stored |
 | 8 | Scan case 11 — EAN-13 | Treated as a product barcode, never as an IMEI |

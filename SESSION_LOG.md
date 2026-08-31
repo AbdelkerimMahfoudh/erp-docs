@@ -6318,3 +6318,56 @@ phone in one hand and a handset in the other.
 **Commits:** `erp-backend` `54a0163`, `5c86587` · `erp-mobile` and
 `retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **the sheet is complete, and still proves nothing about cameras**
+
+Takeover clean: 106/1837, both databases at `0063`.
+
+### The dependency, and the line I would not cross without asking
+
+`qrcode@1.5.4`, pinned, devDependency, one file. I asked before adding it
+rather than hand-rolling, and the reason is worth recording: Code 128 is a
+lookup table and a checksum, which is why it is hand-rolled here. QR is
+Reed–Solomon over GF(256), data masking and format information — and with no
+decoder available in this environment I could not have checked my own work. A
+QR that looks right and does not decode is worse than no QR at all, because it
+fails a test the scanner had actually passed.
+
+### A compiler that agreed too easily
+
+`tsc -p` compiled the script without `@types/qrcode`, and I nearly concluded the
+types package was unnecessary. It was not: `scripts/` is outside tsconfig's
+`include`, so the project build never reads that file at all. `ts-node` does,
+and raised TS7016 the moment the script ran. A green typecheck that never looked
+at the file is not a green typecheck.
+
+### Being specific about what the sheet proves
+
+Fifteen tests, and the assertions I care about most are the ones checking the
+quiet zone by arithmetic and the colours by attribute — the library draws
+modules as a `stroke` and the background as a `fill`, and my first assertion
+checked the wrong one and passed for the wrong reason.
+
+One test failed honestly and usefully: I had invented a secondary IMEI for the
+fixture constants and got the check digit wrong. It now uses the real synthetic
+pair from staging and asserts both are Luhn-valid — a test catching me writing
+an invalid identifier into a test is exactly what it is for.
+
+The preamble of that spec says plainly that generating a fixture correctly is
+not decoding it. That distinction is the whole point of this checkpoint.
+
+- **Backend 107 / 1852.** Production advisories **17 before and 17 after**,
+  `qrcode` implicated in none. Demo byte-identical, staging fixture untouched.
+
+### 🔴 Still not done
+
+**No camera has read anything.** The sheet now has every fixture the ten checks
+need, which means the only thing standing between here and a verified scanner
+is somebody with a phone.
+
+**Commits:** `erp-backend` `d01e4f8` · `erp-mobile` and `retail-erp-control-web`
+unchanged · `erp-docs` the commit carrying this entry. `READY_FOR_HANDOFF`,
+owner `NONE`.

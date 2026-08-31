@@ -915,3 +915,36 @@ Four parts, never one number:
 
 `5.9%` is **staging's generic synthetic catalogue coverage** and nothing wider.
 Development's equivalent is 0% while still resolving three codes.
+
+---
+
+## The scan sheet is complete — all ten fixture types
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+Output: `C:\wamp64\www\PhoneStoreERP\scan-sheet.html`
+
+**31 cards · 29 Code 128 · 2 QR.** Cases 2 and 3 carry `IMEI: <imei>` and
+`IMEI1: …\nIMEI2: …` — black on white, medium error correction, four-module
+quiet zone.
+
+### The dependency
+
+`qrcode@1.5.4` and `@types/qrcode@1.5.6`, both pinned **devDependencies**, used
+in exactly one file. Confirmed absent from `dependencies`, from the production
+install tree, from the compiled `dist/`, from the mobile package and from the
+mobile web bundle. Production advisories measured before and after: **17 both
+times**, and `qrcode` is implicated in none of them.
+
+Code 128 stays hand-rolled — it is small and entirely mechanical. QR is not:
+Reed–Solomon, masking and format information are exactly the things a
+hand-written encoder gets subtly wrong, producing a symbol that looks right and
+does not decode. That would be the worst possible fixture, because it fails a
+test the scanner actually passed.
+
+> `tsc -p` compiled the script without the types package, which was misleading:
+> `scripts/` is not in tsconfig's `include`, so the project build never reads
+> it. `ts-node` does, and raised TS7016 the moment the script ran.

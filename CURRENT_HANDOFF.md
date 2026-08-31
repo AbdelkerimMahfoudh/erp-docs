@@ -8,10 +8,25 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- The coverage contradiction is resolved: **a confirmed company mapping needs no
-  global TAC row.** The earlier report was wrong; `docs/21` §6p records it.
-- The scan sheet now carries nine of ten fixture types. **The two QR cases are
-  missing and the sheet says so** — see "What remains".
+- The scan sheet is **complete — all ten fixture types**, QR included.
+- `qrcode` is a pinned devDependency, confined to one staging script, and
+  absent from production, the build and the mobile bundle.
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `d01e4f8` |
+| `erp-mobile` | `3908fae` (unchanged) |
+| `retail-erp-control-web` | `c764d63` (unchanged) |
+| `erp-docs` | *this commit* |
+
+## 🔑 Ready for a phone
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+Then `docs/24` §9n — ten checks. **No camera has read anything yet.**
 
 | Repository | HEAD |
 |---|---|
@@ -78,6 +93,76 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### The QR fixtures, and where the dependency is allowed to live
+
+#### Cases 2 and 3
+
+```
+2 · IMEI: <synthetic-imei>
+3 · IMEI1: <synthetic-primary>
+    IMEI2: <synthetic-secondary>
+```
+
+Black modules on white, medium error correction, **four-module quiet zone** —
+checked by arithmetic rather than trusted, because a missing quiet zone is the
+classic reason a perfectly valid QR will not decode. Both payloads are built
+from the fixture's own synthetic identifiers; no real IMEI is involved.
+
+The sheet is now **31 cards · 29 Code 128 · 2 QR**, all ten types.
+
+#### Why a dependency rather than hand-rolling
+
+Code 128 stays hand-rolled: it is small and entirely mechanical. QR is not —
+Reed–Solomon, masking and format information are exactly what a hand-written
+encoder gets subtly wrong, producing a symbol that looks right and does not
+decode. That is the worst possible fixture, because it fails a test the scanner
+actually passed.
+
+#### `@types/qrcode` WAS required, contrary to first appearances
+
+`tsc -p` compiled the script without it. That was misleading: `scripts/` is not
+in tsconfig's `include`, so the project build never reads the file. `ts-node`
+does, and raised **TS7016** the moment the script actually ran. Added, pinned.
+
+#### Confined
+
+Not in `dependencies` · `npm ls qrcode --omit=dev` empty · absent from compiled
+`dist/` · absent from the mobile package and its web bundle. Production
+advisories measured **before and after: 17 both times**, and `qrcode` is
+implicated in none of them.
+
+#### The spec caught a real mistake
+
+Fifteen tests on the sheet, and one failed honestly: I had invented a secondary
+IMEI for the fixture constants and got the check digit wrong. It now uses the
+real synthetic pair from staging and asserts both are Luhn-valid.
+
+#### Gates
+
+Backend **107 suites / 1852 tests** · `tsc -p` clean · production advisories
+**17, unchanged** · **demo byte-identical** (1/9/7, 10 051.00, `bcc38d96…`) ·
+staging fixture untouched (20 units, 20 TACs, 0 recognition rows).
+
+Mobile and website untouched this checkpoint.
+
+### What remains
+
+1. 🔴 **No camera has read anything.** `docs/24` §9n is the ten-check list, now
+   with every fixture it needs. Rows 6–9 are proved over HTTP, which proves the
+   RULES and not the decoder, the focus, or a phone held in one hand while the
+   other holds a handset.
+2. A licensed GSMA feed remains the dependency for broad generic recognition.
+3. `lib/signup.ts` is still dead code.
+4. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Generate the sheet, print it or open it on a second screen, and work `docs/24`
+§9n on a phone. Nothing here needs a migration.
+
+---
 
 ### The coverage contradiction, and the scan sheet
 
