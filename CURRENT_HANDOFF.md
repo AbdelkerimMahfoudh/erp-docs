@@ -8,17 +8,18 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **3/3 physical attempts failed.** The scanner accepted in under a second,
-  before anybody could aim it — often a neighbouring card, or one half in shot.
-- A barcode must now be **held**: the same payload, 3+ times, across 1 000 ms,
-  with no gap over 400 ms. Not a timer.
-- 🔴 **Not device-verified.** Retest: `docs/24` §9r, using the new
-  **individual fixture view** rather than the page of thirty-two cards.
+- **The scanner could not scan a phone label at all.** Measured: 4 950 ms held
+  still over 4 barcodes → **0 accepted**. Now **1 617 ms → the IMEI**.
+- `onBarcodeScanned` fires once per BARCODE, not per frame. Candidates are now
+  tracked concurrently, each earning its own 1 000 ms window.
+- ROI is **advisory**: it ranks candidates where coordinates are trustworthy and
+  is ignored where they are not. No scan is ever refused for want of one.
+- 🔴 **Not device-verified.** Retest: `docs/24` §9s — Scan 1, 2 and 3.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `a82666f` |
-| `erp-backend` | `b5b9461` |
+| `erp-mobile` | `91e2fa0` |
+| `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
 
@@ -34,13 +35,73 @@ cd backend
 APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
 ```
 
-Open it, find **Case 1**, tap **"Open this one alone →"**, and run `docs/24`
-§9r. Physical QA uses the solo view — never the page of thirty-two cards.
+Run `docs/24` **§9s**. Scan 1 needs a **crowded** label — a real phone, or the
+full sheet — because that is the case that failed. Scans 2 and 3 use the solo
+fixture view ("Open this one alone →").
 
 **No camera has read anything yet.**
 
 ---
 
+
+
+### The scanner could not scan a phone label
+
+`a82666f` fixed "accepts in under a second" and introduced something worse,
+which measurement here caught rather than a phone:
+
+```
+before:  4 950 ms held still over 4 barcodes  →  0 accepted
+after:   1 617 ms                             →  1 accepted (the IMEI)
+```
+
+`onBarcodeScanned` fires **once per barcode, not once per frame**. A label
+carrying IMEI 1, IMEI 2, a serial and a model number produces four interleaved
+callbacks, and a single-candidate tracker that resets on every payload change
+means they erase each other forever. A stationary camera on a crowded label was
+the worst case, and it is the ordinary case.
+
+Candidates are tracked concurrently now, each earning its own window: same
+normalised payload 3+ times, spanning 1 000 ms, no gap over `MAX_GAP_MS`.
+
+#### Two more defects, both found by writing the tests
+
+1. **Whichever code crossed the one-second line first won uncontested**, because
+   no rival was yet eligible to compare against — decided by decoder emission
+   order, which is "accept whatever arrived first" one level up. Dominance is
+   now judged against every LIVE candidate.
+2. **A serial number could out-rank the IMEI beside it** and the scan then
+   failed with "that is not an IMEI" while the IMEI was in frame throughout.
+   Usable candidates are considered first and separately; `prefer: 'imei'`
+   ranks IMEIs above stray barcodes when a phone is being booked in.
+
+#### The reticle ranks; it never gates
+
+From the native source, not the doc comments: iOS passes barcodes through
+`previewLayer.transformedMetadataObject` (preview points) or Vision (already
+0–1); **Android reports image pixels ÷ display density and never forwards the
+image dimensions**, so no denominator exists. Android ranks by stability alone.
+No speculative normalisation was attempted — its failure mode is a scanner that
+rejects everything, on hardware nobody here can test.
+
+#### Bounded, and never silent
+
+Two indistinguishable candidates keep acquiring rather than tossing a coin,
+capped by `AMBIGUITY_GRACE_MS` so it cannot hang. Tracking is capped at
+`MAX_CANDIDATES`. An unusable code gets one brief note over a still-live
+camera, then a cooldown. The reticle fills as the window builds, because a
+silent second reads as a frozen app.
+
+#### Gates
+
+Mobile **26 pure suites** — 38 stabilizer assertions, 44 scanner behaviour ·
+`tsc` clean · lint **0** · Doctor **18/18** · EN/AR/FR **1 828 identical** ·
+export **68 routes**. Backend, website and databases untouched. No migration.
+
+Schema, API contracts, IMEI validation, duplicate rules, permissions, manual
+entry and the success lock are all unchanged.
+
+---
 
 ### The scanner accepted what it saw first, not what was meant
 
@@ -54,9 +115,11 @@ already still.
 #### The rule
 
 `lib/scan/stabilizer.ts`. A payload is accepted when the same normalized bytes
-have been decoded **3+ times**, spanning **1 000 ms**, with **no gap over
-400 ms**. The gap clause is the one carrying the meaning: a code that drifts out
-and back was passed over twice, not aimed at.
+have been decoded **3+ times**, spanning **1 000 ms**, with no gap over
+`MAX_GAP_MS`. The gap clause is the one carrying the meaning: a code that drifts
+out and back was passed over twice, not aimed at. *(Superseded above: this
+tracked ONE candidate, which could not scan a phone label. 400 ms became
+600 ms with concurrent tracking.)*
 
 **Not a timer.** A `setTimeout` that accepts whatever is current after a second
 takes the LAST thing seen rather than the first, and fires when the camera may
@@ -85,7 +148,8 @@ and a test asserts it cannot accept or advance the machine.
 differing per platform**, and no documented coordinate space. Guessing wrong
 would silently reject every scan on one platform, on hardware nobody here can
 test — so the frame is honest guidance and the copy never claims otherwise.
-`withinGuide` is written and tested for whoever can verify it on a device.
+*(Superseded above: coordinates now RANK candidates where they are trustworthy,
+read from the native source rather than the doc comments.)*
 
 #### The QA page was part of the problem
 
@@ -115,18 +179,17 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 *On a device — nothing below has been confirmed by a camera:*
 
-1. 🔴 **`docs/24` §9r** — nine steps on the solo fixture view, plus a neighbour
-   test on the grid. **This is the one that matters**, and step 3 (a sweep
-   accepting nothing) is what decides whether the fix worked.
-2. 🔴 **§9q steps 8–15** — the model count moving after a save, using
+1. 🔴 **`docs/24` §9s** — Scan 1, 2 and 3 on a **crowded label**. Step 1 is the
+   one that matters: a stationary camera over 4–5 barcodes must now accept an
+   IMEI in 1–2 s, where the previous build accepted nothing at all.
+2. 🔴 **§9r** — the aiming steps, superseded in part by §9s but never confirmed.
+3. 🔴 **§9q steps 8–15** — the model count moving after a save, using
    scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
    with `staging-verify-model-count.ts`.
-3. 🔴 **§9n and §9o** — the ten original scanner checks, and the §9o items
-   (one haptic, footer reachable with the keyboard open, blank-area dismiss).
-   Superseded in part by §9r, but never independently confirmed.
-4. The stabilizer's arithmetic is proved with an injected clock. Whether a real
-   decoder fires often enough to satisfy the rule comfortably, and whether one
-   second feels right in the hand, only a phone can say.
+4. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
+5. The acquisition constants are exported and documented **because they have not
+   met a phone**. `MAX_GAP_MS` is the likeliest to need tuning: it must not
+   assume a callback rate, so it is deliberately generous.
 
 *Known and deliberately not done:*
 
@@ -143,9 +206,10 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Generate the sheet, open **Case 1 alone**, and run `docs/24` §9r. Step 3 — a
-sweep across the barcode accepting nothing — is the one that decides whether
-this worked.
+Run `docs/24` **§9s step 1**: hold the camera still over a label with four or
+five barcodes for five seconds. The previous build accepted nothing there, ever.
+An IMEI must be accepted in one to two seconds. Everything else follows from
+whether that works.
 
 ---
 

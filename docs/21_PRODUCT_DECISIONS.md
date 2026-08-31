@@ -3193,3 +3193,85 @@ stabilization.
 **That is arithmetic, not a camera.** Whether a real decoder produces callbacks
 often enough to satisfy the rule comfortably, and whether one second feels right
 in the hand, are open until `docs/24` §9r is run on a phone.
+
+---
+
+## 6s. Target acquisition on a crowded label — SHIPPED
+
+### ✅ APPROVED — one candidate is not enough
+
+`expo-camera` fires `onBarcodeScanned` **once per barcode, not once per frame**.
+A phone label carries IMEI 1, IMEI 2, a serial and a model number, so a
+stationary camera produces four interleaved callbacks.
+
+Tracking a single candidate and resetting on every payload change meant those
+callbacks cancelled each other — **4 950 ms held perfectly still, 0 accepted.**
+The scanner could not book in a phone at all. Candidates are now tracked
+concurrently, each earning its own window, and one is selected.
+
+Interleaving is the normal case for this product, not an edge case.
+
+### ✅ APPROVED — dominance is judged against every live candidate
+
+The first fix had the original defect hiding one level up: whichever code
+crossed the one-second line **first** won uncontested, because no rival was yet
+eligible to compare against. Since callbacks arrive one barcode at a time, that
+is decided by decoder emission order — which is exactly "accept whichever
+arrived first".
+
+A candidate must now lead every *live* rival, not merely every eligible one.
+
+### ✅ APPROVED — a code that cannot be used never blocks one that can
+
+A serial number decodes as readily as an IMEI and often sits nearer the reticle.
+Ranking everything together and checking usability afterwards meant the scan
+failed with "that is not an IMEI" **while the IMEI was in frame throughout**.
+
+Usable candidates are considered first and separately. When the caller is
+booking a phone in, an IMEI also outranks a stray product barcode — ranking
+only, because the same sheet reads ordinary barcodes and must keep working.
+
+### ✅ APPROVED — indecision is preferable to a coin toss, but must be bounded
+
+Two equally-held candidates with no trustworthy position cannot be told apart.
+Acquisition continues rather than picking one, and `AMBIGUITY_GRACE_MS` caps
+that so it can never hang: after it, the ordering decides — arbitrary between
+true equals, but stable.
+
+### ✅ APPROVED — the reticle ranks, and never gates
+
+Established from the native source in `node_modules/expo-camera`:
+
+- **iOS AVFoundation** passes barcodes through
+  `previewLayer.transformedMetadataObject` — preview points, usable against the
+  measured preview size.
+- **iOS Vision** reports `VNBarcodeObservation.bounds`, already normalised 0–1.
+- **Android ML Kit** reports image pixels ÷ display density, and **the image
+  dimensions are never forwarded to JS**. No denominator exists.
+
+Android therefore ranks by stability alone. **No scan is ever refused for want
+of a coordinate**, and no speculative Android normalisation was attempted: its
+failure mode is a scanner that rejects everything, on hardware nobody here can
+test.
+
+### ✅ APPROVED — an unusable code is a note, not a dead end
+
+A barcode aimed at for a full second that cannot be used gets one brief message
+in the existing vocabulary, over a **still-live camera**, with the sheet still
+open and nothing committed. A cooldown stops it repeating every frame; it
+expires, because somebody who came back deserves telling again.
+
+### ✅ APPROVED — the acquisition is visible
+
+The reticle fills as the window builds. A silent second reads as a frozen app —
+the same complaint as the original defect, from the opposite direction.
+
+### 🔴 PENDING — the constants have not met a phone
+
+Every threshold is exported and documented so it can be tuned after a device
+test rather than hunted for. `MAX_GAP_MS` is the one most likely to need it: it
+answers "is this code still in frame?" and must not assume a callback rate, so
+it is deliberately generous for a slow device showing a busy label.
+
+38 stabilizer assertions and 44 scanner-behaviour assertions pass with a
+hand-advanced clock. **That is arithmetic, not a camera** — `docs/24` §9s.

@@ -6621,3 +6621,68 @@ nothing accepted — is what decides whether this worked.
 **Commits:** `erp-mobile` `a82666f` · `erp-backend` `b5b9461` ·
 `retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **the fix that could not scan a phone label**
+
+Takeover clean and level: mobile `a82666f`, backend `b5b9461`, docs `30aeb7b`.
+
+### What I shipped last time did not work
+
+Asked to inspect before changing anything, I measured the thing I had just
+built against a realistic label: four barcodes, camera stationary, five seconds.
+**Zero accepted.** Not slow — impossible.
+
+`onBarcodeScanned` fires once per BARCODE, not once per frame. I had known that
+number was one; I had not thought about what four of them arriving in rotation
+does to a tracker that resets on every payload change. Seeing B erased A, seeing
+A erased B, forever. The worst case for that design is a stationary camera on a
+crowded label, which is the only case this product has.
+
+Two rounds in a row now where the fix for a real defect introduced a worse one.
+Both times the mechanism was something I could have derived from the library's
+own types and did not.
+
+### Two defects the tests found, not me
+
+Writing the tests surfaced two things the brief had not asked about.
+
+The first is the original bug wearing a third hat: whichever code crossed the
+one-second line **first** won uncontested, because no rival was yet "ready" to
+compare against. Callbacks arrive one barcode at a time, so that was decided by
+decoder emission order — "accept whatever arrived first", rebuilt one level up
+from where I had just removed it.
+
+The second is worse in a quieter way. A serial number ranks like anything else,
+and often sits nearer the reticle than the IMEI; my selection picked it, and the
+scan then failed with "that is not an IMEI" **while the IMEI was in frame the
+whole time**. A code that cannot be used must never block one that can.
+
+I also wrote a test asserting a serial was "unusable" and it wasn't — `other`
+is a legitimate scan, because this sheet reads product barcodes too. The test
+was wrong and the fix it pointed at was right: preference by kind, ranking only.
+
+### The coordinate question, settled from source
+
+Reading `node_modules/expo-camera`'s Kotlin and Swift rather than its doc
+comments: iOS transforms through the preview layer or reports normalised Vision
+bounds; **Android divides ML Kit image pixels by display density and never puts
+the image dimensions in the bundle sent to JS.** There is no denominator. So the
+reticle ranks where it can and is ignored where it cannot, exactly as the user
+directed — and I attempted no clever inference, because its failure mode is a
+scanner that rejects everything on hardware I cannot test.
+
+- **Mobile 26 pure suites** — 38 stabilizer, 44 scanner behaviour. lint 0,
+  Doctor 18/18, parity 1 828, 68 routes. Backend and website untouched, no
+  migration, no change to validation, duplicates, permissions or manual entry.
+
+### 🔴 Not device-verified
+
+4 950 ms → 0 became 1 617 ms → the IMEI, in a simulation I wrote. The constants
+have never met a camera, and `docs/24` §9s step 1 is what decides whether any
+of this holds.
+
+**Commits:** `erp-mobile` `91e2fa0` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

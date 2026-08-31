@@ -1724,3 +1724,110 @@ no haptic or lookup during stabilization — with a clock the tests advance by
 hand. **That is arithmetic, not a camera.** Whether a real decoder on a real
 phone produces callbacks often enough to satisfy the rule comfortably, and
 whether one second feels right in the hand, are open until step 5 is done.
+
+---
+
+## 9s. The multi-barcode defect — measured, not reported
+
+`a82666f` fixed the "accepts in under a second" fault of §9r. It also made the
+scanner **unable to scan a real phone label at all**, and that was found by
+measurement here rather than by a phone.
+
+### The measurement
+
+Stationary camera, a label carrying IMEI 1, IMEI 2, a serial and a model
+number, five seconds:
+
+```
+before:  4,950 ms held still  →  0 accepted
+after:   1,617 ms             →  1 accepted (the IMEI)
+```
+
+### Why
+
+`expo-camera` fires `onBarcodeScanned` **once per barcode, not once per frame**.
+Four barcodes produce four interleaved callbacks. The stabilizer tracked ONE
+candidate and reset whenever the payload changed, so seeing B erased A and
+seeing A erased B — forever. A stationary camera on a crowded label was the
+worst case, and it is the normal case.
+
+Candidates are now tracked concurrently, each earning its own window.
+
+### Two more defects the tests forced out
+
+Neither was in the brief; both were found while writing the tests for it.
+
+1. **Whichever code crossed the one-second line first won uncontested**, because
+   no rival was yet "ready" to compare against. That is "accept whatever arrived
+   first" rebuilt one level up. Dominance is now judged against every *live*
+   candidate, not only eligible ones.
+2. **A serial number could out-rank the IMEI beside it** — by sitting nearer the
+   reticle, or simply by decoding more often — and the scan then failed with
+   "that is not an IMEI" while the IMEI was in frame throughout. Usable
+   candidates are considered first and separately, and IMEIs outrank stray
+   barcodes when the caller is booking a phone in.
+
+### The reticle ranks; it does not gate
+
+Confirmed from the native source in `node_modules/expo-camera`, not the doc
+comments:
+
+| Path | Coordinates |
+|---|---|
+| iOS AVFoundation | `previewLayer.transformedMetadataObject` → preview points, usable against the measured preview size |
+| iOS Vision | `VNBarcodeObservation.bounds` → already normalised 0–1 |
+| Android ML Kit | image pixels ÷ display density, **image dimensions never forwarded to JS** — no denominator exists |
+
+So Android ranks by stability alone, and **no scan is ever refused for want of a
+coordinate.** Inferring Android's extent would be a speculative normalisation on
+hardware nobody here can test, whose failure mode is a scanner that rejects
+everything.
+
+### 🔴 The retest — a crowded label, three scans
+
+Use the **individual fixture view** for the single-code steps, and a real phone
+label (or the full sheet) for the crowded ones.
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+**Scan 1 — the crowded label (the measurement that failed)**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Hold the camera **still** over a label with 4–5 barcodes for ~5 s. | A code **is** accepted, in roughly 1–2 s. The old build accepted nothing, ever. |
+| 2 | Watch what was accepted. | An **IMEI** — not the serial, not the model number. |
+| 3 | Watch the frame during that second. | It fills as the acquisition builds. It must never look frozen. |
+
+**Scan 2 — aiming**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 4 | Sweep the camera across several codes without settling. | **Nothing is accepted.** No buzz. |
+| 5 | Pause briefly over the wrong barcode, then move on. | Nothing commits. |
+| 6 | Centre the intended IMEI and hold. | **"Hold steady…"**, then acceptance after ~1 s. Exactly one haptic. |
+| 7 | Begin acquiring, then deliberately move away before it completes. | The abandoned candidate is **not** committed. |
+| 8 | Read the result. | The **exact printed IMEI**, as selectable text. No camera frame. |
+
+**Scan 3 — repetition and duplicates**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 9 | After acceptance, keep the camera on the same barcode. | **Exactly one** submission. No second stock operation. |
+| 10 | Repeat steps 4–8 through a second and third scanner opening. | Identical behaviour. No state from an earlier session. |
+| 11 | Accept, then tap **Next**. | Product and IMEI survive the step. |
+| 12 | Aim at a damaged or non-IMEI barcode and hold. | One brief note, camera **still live**, sheet still open, nothing committed — and it does not repeat every frame. |
+| 13 | Type an IMEI by hand instead. | Manual entry works exactly as before. |
+
+### What is proven, and what is not
+
+38 stabilizer assertions and 44 scanner-behaviour assertions, with a clock the
+tests advance by hand — including the A B C D interleaving regression in the
+exact shape it was measured.
+
+**That is arithmetic, not a camera.** Whether a real decoder produces callbacks
+often enough to satisfy `MAX_GAP_MS` on a busy label, whether the reticle
+ranking helps on iOS, and whether ~1 s feels right in the hand are all open. The
+constants are exported and documented so they can be tuned after step 1.
