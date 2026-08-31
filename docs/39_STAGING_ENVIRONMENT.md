@@ -887,3 +887,31 @@ The page is pinned to a light colour scheme on purpose: a dark-mode browser
 renders black bars on a dark card, and a barcode without contrast does not scan.
 
 **Printing the sheet is not camera verification.** It says so on its face.
+
+---
+
+## Reading the coverage report
+
+```bash
+npx ts-node scripts/tac-coverage.ts                                # development
+APP_ENV=staging npx ts-node scripts/tac-coverage.ts --staging
+APP_ENV=staging npx ts-node scripts/tac-coverage.ts --staging --company "Test Store"
+```
+
+Four parts, never one number:
+
+1. **Selector catalogue** — 13 brands / 323 models. Choosing from it needs no
+   IMEI at all.
+2. **Global TAC catalogue** — by source and by brand, with distinct TACs and
+   distinct models for each. Staging: **20 TACs / 19 models**, all
+   `synthetic_staging`, all Apple. Development: **0**.
+3. **Company-confirmed mappings** — per company. Development: **3**, all one
+   company. Staging: **0**.
+4. **Effective per-company** — the union of 2 and 3, deduplicated by TAC.
+
+> **A confirmed mapping needs no global row.** Development has an empty
+> `tac_catalog` and still resolves three codes, to exact products. An earlier
+> report said the opposite; `docs/21` §6p records the correction.
+
+`5.9%` is **staging's generic synthetic catalogue coverage** and nothing wider.
+Development's equivalent is 0% while still resolving three codes.

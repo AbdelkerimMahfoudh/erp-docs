@@ -2930,3 +2930,50 @@ Broad recognition needs **licensed GSMA data**. Nothing substitutes for it.
 Code 128 barcodes so a phone can be pointed at them. **Printing it is not
 verification, and the sheet says so on its own face.** Web export, HTTP tests
 and Expo Doctor are none of them a camera.
+
+---
+
+## 6p. What a confirmed mapping needs, and what coverage means
+
+### ✅ CORRECTED — a confirmed company mapping resolves on its own
+
+An earlier coverage report said development had zero `tac_catalog` rows, seven
+confirmed `ProductRecognition` records, and that **no IMEI resolved there**. Two
+of those three statements were wrong.
+
+**Four of the seven were BARCODE mappings.** Only three are `codeType: 'tac'`,
+and only that kind answers "what phone is this IMEI".
+
+**Those three resolve with no global row at all.** `resolveTac()` returns
+`company_confirmed` with the shop's exact `productId`; the global entry supplies
+only the generic brand and model LABELS. A missing global row costs the labels,
+not the resolution — and the company's answer is the stronger one, because it
+names a product rather than a manufacturer.
+
+**There is no dependency to document.** Confirmed mappings stand alone.
+
+Proved by seven unit tests and nine real-HTTP checks: the owning company
+resolves it with zero global rows in existence; an **entitled** other company
+gets `none`; a generic row added afterwards cannot displace it; an unmapped TAC
+stays unknown; an Employee's submission is a proposal that selects nothing.
+
+> The other company had to be an *activated* one. A pending tenant is refused by
+> the entitlement guard before the resolver runs, which proves the guard rather
+> than the isolation.
+
+### ✅ APPROVED — coverage is reported in four parts, never as one number
+
+| | What it answers |
+| --- | --- |
+| Selector catalogue | what can be *chosen* — needs no IMEI at all |
+| Global TAC catalogue | what resolves *generically*, by source and by brand |
+| Company-confirmed mappings | what one shop has *decided*, per company |
+| Effective per-company | the union of the two above, deduplicated by TAC |
+
+**`5.9%` keeps its label or it does not get used.** It is *staging's generic
+synthetic catalogue coverage* — 19 of 323 models, source `synthetic_staging`.
+It is **not** system coverage and **not** production coverage. Development's
+equivalent figure is **0%** while still resolving three codes, which is the
+clearest demonstration that the number does not mean what it looks like.
+
+Broad *generic* recognition needs licensed GSMA data.

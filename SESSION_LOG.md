@@ -6250,3 +6250,71 @@ of curation substitutes for it.
 **Commits:** `erp-backend` `7ecb5a4` · `erp-mobile` `3908fae` ·
 `retail-erp-control-web` unchanged at `c764d63` · `erp-docs` the commit
 carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **the report was wrong, and the sheet says what it lacks**
+
+Takeover clean: 106/1830, mobile 23 pure, both databases at `0063`.
+
+### Correcting my own report
+
+Last session I wrote that development has zero `tac_catalog` rows, seven
+confirmed `ProductRecognition` records, and that no IMEI resolves there. Asked
+to audit it, I found two of those three claims wrong.
+
+Four of the seven records are BARCODE mappings. I had counted every row in the
+table as though it were TAC recognition, and only three of them are.
+
+And those three resolve **without any global row**. `resolveTac()` returns
+`company_confirmed` with the shop's exact product; the global entry only ever
+supplied the generic brand and model labels. So a missing global row costs the
+labels and not the resolution — and the company's answer was the stronger one
+all along, because it names a product rather than a manufacturer.
+
+There is no dependency to document. The interesting part is that the wrong
+conclusion came from counting a column I had not looked at closely enough, and
+the number looked plausible enough that nothing else contradicted it.
+
+Proving it took seven unit tests and nine HTTP checks. One detail worth keeping:
+my first isolation check used a PENDING company, which the entitlement guard
+refuses before the resolver ever runs — it would have proved the guard and
+looked like it proved isolation. Re-run against an activated company.
+
+### A number that flattered
+
+`5.9%` was being quoted as coverage. It is staging's generic synthetic
+catalogue coverage and nothing wider. `tac-coverage.ts` now reports four
+separate things and refuses to total them — and the clearest illustration is
+that development reads **0%** while resolving three codes.
+
+### The sheet, and what it admits
+
+Nine of the ten fixture types, each with its expected result printed beside it.
+The ICCID and EID cases are the ones I think earn their place: both are printed
+on the phone next to the IMEI, both are long runs of digits, and "refused" is
+the right answer to a code that looks almost right.
+
+The two QR cases are not built. Code 128 I hand-rolled because it is small and
+mechanical; QR needs Reed–Solomon, masking and format information, and there is
+no decoder in this environment to check my work against — `BarcodeDetector` is
+unavailable. A QR that looks right and does not decode is worse than no QR at
+all: it would fail a test the scanner had actually passed. I have asked whether
+to add `qrcode` as a devDependency rather than guess.
+
+The sheet carries a dashed placeholder naming both missing cases. A printed
+sheet quietly missing two of ten is a sheet somebody signs off as complete.
+
+- **Backend 106 / 1837.** Demo byte-identical. Fixture restored exactly: 20
+  units, 20 TACs, 0 recognition rows, one user.
+
+### 🔴 Still not done
+
+**No camera has read anything.** `docs/24` §9n lists ten checks; rows 6–9 are
+proved over HTTP, which proves the rules and not the decoder, the focus, or a
+phone in one hand and a handset in the other.
+
+**Commits:** `erp-backend` `54a0163`, `5c86587` · `erp-mobile` and
+`retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
+`READY_FOR_HANDOFF`, owner `NONE`.

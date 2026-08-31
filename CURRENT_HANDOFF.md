@@ -8,9 +8,22 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- Models now sort the way a shopkeeper reads them, and TAC coverage is reported
-  honestly: **19 of 323** selectable models can be recognised from an IMEI.
-- `0063` applied to both databases, backed up and restore-proven first.
+- The coverage contradiction is resolved: **a confirmed company mapping needs no
+  global TAC row.** The earlier report was wrong; `docs/21` §6p records it.
+- The scan sheet now carries nine of ten fixture types. **The two QR cases are
+  missing and the sheet says so** — see "What remains".
+
+| Repository | HEAD |
+|---|---|
+| `erp-backend` | `5c86587` (after `54a0163`) |
+| `erp-mobile` | `3908fae` (unchanged) |
+| `retail-erp-control-web` | `c764d63` (unchanged) |
+| `erp-docs` | *this commit* |
+
+## 🔑 The retained staging shop
+
+`store@test.com` at **Test Store** — 20 iPhones, 20 synthetic TACs, restored
+exactly as found after the verification run. **No camera has read anything.**
 
 | Repository | HEAD |
 |---|---|
@@ -64,6 +77,106 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### The coverage contradiction, and the scan sheet
+
+#### What the contradiction turned out to be
+
+The report said development had zero `tac_catalog` rows, seven confirmed
+`ProductRecognition` records, and that no IMEI resolved there. **Two of those
+three statements were wrong.**
+
+**Four of the seven were BARCODE mappings.** Only three are `codeType: 'tac'`,
+and only that kind answers "what phone is this IMEI".
+
+**Those three resolve with no global row at all.** `resolveTac()` returns
+`company_confirmed` with the shop's exact `productId`; the global entry supplies
+only the generic brand and model LABELS. A missing global row costs the labels,
+not the resolution — and naming a product is the stronger answer anyway.
+
+**So there is no dependency to document.** Confirmed mappings stand alone, and
+development recognises three TACs and always did.
+
+#### Proved, not asserted
+
+Seven unit tests on the resolver, and **9/9 over real HTTP** against real MySQL.
+Run in staging, because the demo owner's password is env-supplied and the demo
+must stay byte-identical.
+
+The run confirms a mapping for a TAC the catalogue has never heard of, then
+shows: the owning company resolves it with zero global rows in existence · it
+loses only the labels · an **entitled** other company gets `none` · a generic
+row added afterwards cannot displace it · an unmapped TAC stays unknown · an
+Employee's submission is a proposal that selects nothing.
+
+> The other company had to be an ACTIVATED one. A pending tenant is refused by
+> the entitlement guard before the resolver runs, which would have proved the
+> guard rather than the isolation. Worth remembering.
+
+Everything the run created was removed; the fixture is exactly as it was found.
+
+#### Coverage, in four parts
+
+| | Development | Staging |
+|---|---|---|
+| Selector catalogue | 13 / **323** | 13 / **323** |
+| Global TAC catalogue | **0** | **20** TACs / 19 models, `synthetic_staging`, Apple |
+| Company-confirmed | **3** (one company) | **0** |
+| Effective for that company | **3** | 20 |
+
+**`5.9%` keeps its label or it does not get used**: it is *staging's generic
+synthetic catalogue coverage*, not system and not production coverage.
+Development's equivalent is **0% while still resolving three codes** — which is
+the clearest proof the number does not mean what it looks like.
+
+#### The scan sheet
+
+**30 cards, 29 barcodes.** Nine fixture types with the expected result printed
+beside each, plus the twenty stock phones:
+
+    1  raw IMEI            6  valid IMEI, unknown TAC   9  ICCID
+    4  both SIMs           7  invalid checksum         10  EID
+    5  disagreeing TACs    8  wrong length             11  EAN-13
+
+The ICCID and EID are the ones worth having — both are printed beside the IMEI
+and both are long runs of digits, which is why they get scanned by mistake.
+
+Every negative fixture is generated in the script and **never written to a
+database**. Verified after the run: zero units with a non-15-digit identifier,
+Test Store still exactly twenty.
+
+#### Gates
+
+Backend **106 suites / 1837 tests** · `tsc` and `prisma validate` clean · both
+databases at `0063` · **demo byte-identical** (1/9/7, 10 051.00, `bcc38d96…`,
+7 recognition rows) · staging 42 companies / 20 units / 20 TACs / 0 mappings.
+
+Mobile and website untouched this checkpoint.
+
+### What remains
+
+1. 🔴 **Scan-sheet cases 2 and 3 (QR) are not built.** Both need a QR encoder.
+   Code 128 is hand-rolled because it is small and mechanical; QR needs
+   Reed–Solomon, masking and format information, and this environment has **no
+   decoder to verify against** (`BarcodeDetector` unavailable). A hand-rolled QR
+   that looks right and does not decode would be worse than none — a fixture
+   that fails a test the scanner passed. **The user has been asked whether to
+   add `qrcode` as a backend devDependency.** The sheet shows a dashed
+   placeholder naming both cases rather than omitting them.
+2. 🔴 **No camera has read anything.** `docs/24` §9n is the ten-check list for
+   whoever has a phone. Rows 6–9 are proved over HTTP, which proves the RULES
+   and not the camera.
+3. A licensed GSMA feed remains the dependency for broad generic recognition.
+4. `lib/signup.ts` is still dead code.
+5. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Decide the QR encoder question, then build cases 2 and 3 and regenerate the
+sheet. After that, `docs/24` §9n needs a phone.
+
+---
 
 ### Model order, TAC coverage, and a sheet to scan
 
