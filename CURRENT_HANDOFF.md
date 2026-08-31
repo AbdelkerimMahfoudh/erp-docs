@@ -8,9 +8,16 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- The scan sheet is **complete — all ten fixture types**, QR included.
-- `qrcode` is a pinned devDependency, confined to one staging script, and
-  absent from production, the build and the mobile bundle.
+- **A phone was finally used, and found seven defects.** All corrected.
+- 🔴 **The corrections are NOT device-verified.** A phone found them; only a
+  phone can confirm they are fixed. Retest sequence in `docs/24` §9o.
+
+| Repository | HEAD |
+|---|---|
+| `erp-mobile` | `b0b4a9f` |
+| `erp-backend` | `d01e4f8` (untouched) |
+| `retail-erp-control-web` | `c764d63` (untouched) |
+| `erp-docs` | *this commit* |
 
 | Repository | HEAD |
 |---|---|
@@ -94,6 +101,82 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### The first physical-device test
+
+**Every one of the seven defects survived TypeScript, the linter, Expo Doctor, a
+68-route web export and a 20/20 HTTP recognition run.** The gates were green and
+the feature did not work. That is the finding; the individual bugs are almost
+secondary.
+
+#### The camera never stopped
+
+Detaching `onBarcodeScanned` stops us REACTING; it does not stop the camera. The
+preview stayed live behind the result, still decoding — which a person reads as
+"it is still scanning". `active={live}` deactivates the capture session itself.
+Both are needed and only one was there.
+
+#### "Use this IMEI" did three wrong things at once
+
+It waited for `/scan` before closing, so the accepted result appeared only after
+the sheet was closed by hand. `useScan` fired a SECOND haptic on top of the
+detection's. And `accepted` had no render branch, so the sheet fell through to
+the camera view and **looked like it had gone back to scanning**.
+
+It now transitions once, hands the parent the complete result — identifiers,
+classified payload, TAC suggestion, conflict flag — and closes itself. The
+`/scan` call still happens so recognition keeps learning, through a new
+`silent` mode. A synchronous `accepting` ref guards it: a double tap lands
+before React re-renders, and two accepts meant two `onClose` calls.
+
+#### Manual entry was in the wrong place
+
+Under a live viewfinder, in every state. Somebody who opened the camera has
+already chosen to scan. It moves to the field on the intake page beside the
+camera icon — which is where the choice actually happens. **The no-camera
+fallback stays**; without it a denied permission strands the user.
+
+#### The form was unfinishable with the keyboard open
+
+A pinned footer and a soft keyboard are natural enemies. Three fixes, all
+required:
+
+  1. `KeyboardAvoidingView` lifts the frame on iOS. Android resizes its own
+     window and must NOT be given a behaviour, or the two corrections fight.
+  2. The scroll area reserves the footer's **measured** height — a constant is
+     wrong on every screen whose footer has two buttons instead of one.
+  3. Blank space dismisses the keyboard, with
+     `keyboardShouldPersistTaps="handled"` so the wrapper does not eat the
+     first tap on a button.
+
+#### Twenty tests, and one that taught me something
+
+`lib/scanner-behaviour.test.ts`. One failed honestly: I asserted "Add second
+IMEI" must not resume the camera, and it must — it means "now scan the other
+SIM". The real contract is that only an **explicit human decision** resumes the
+camera, never a render and never a completed lookup.
+
+#### Gates
+
+Mobile **24 pure suites** · `tsc` clean · lint **0** · Doctor **18/18** ·
+EN/AR/FR **1808** identical · export **68 routes**. Backend, website, databases
+and staging fixtures untouched.
+
+### What remains
+
+1. 🔴 **The corrections are not device-verified.** `docs/24` §9o has the
+   seven-step retest. A phone found these; only a phone closes them.
+2. 🔴 The ten scanner checks in §9n are still outstanding.
+3. A licensed GSMA feed remains the dependency for broad generic recognition.
+4. `lib/signup.ts` is still dead code.
+5. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Run `docs/24` §9o on the phone that found the defects.
+
+---
 
 ### The QR fixtures, and where the dependency is allowed to live
 

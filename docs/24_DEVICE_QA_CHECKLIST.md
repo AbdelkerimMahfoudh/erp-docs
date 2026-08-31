@@ -1448,3 +1448,49 @@ one hand and a handset in the other. Row 5 additionally needs the QR fixtures.
 
 Web export, HTTP tests and Expo Doctor are none of them a camera and are not to
 be described as one.
+
+## 9o. The first physical-device test — what it found
+
+**A phone was finally used, and it found seven defects.** Every one survived
+TypeScript, the linter, Expo Doctor, a 68-route web export and a 20/20 HTTP
+recognition run. That is the finding worth keeping: the automated gates were
+all green and the feature did not work.
+
+### Reproduced on the device
+
+| # | What happened |
+| --- | --- |
+| 1 | A result appeared |
+| 2 | …and the camera carried on scanning behind it |
+| 3 | Tapping `Use this IMEI` put the scanner back to scanning |
+| 4 | The accepted result appeared only after closing the sheet by hand |
+| 5 | `Saisir manuellement` sat inside the scanner, under a live viewfinder |
+| 6 | With the keyboard open on the intake form, the footer was unreachable |
+| 7 | Tapping outside an input did not close the keyboard |
+
+### Corrected — and **not** device-verified
+
+The fixes are in `erp-mobile` `b0b4a9f` with twenty tests. **Only a phone can
+confirm them.** Retest sequence:
+
+1. Scan the raw valid IMEI (case 1 on the scan sheet).
+2. **Confirm the camera pauses** — the preview should stop, not merely stop
+   reacting.
+3. Tap `Use this IMEI`.
+4. **Confirm the scanner closes by itself.**
+5. **Confirm the full result is on the intake page** — identifiers, and the
+   brand/model suggestion — without closing anything by hand.
+6. Open the keyboard on the form and **scroll to the footer**.
+7. **Tap a blank area** and confirm the keyboard closes, then tap the submit
+   button once and confirm it fires on the first tap.
+
+Also worth a look while you are there: one haptic per scan, not two; and
+`Scan again` is the only thing that should restart the camera after a result
+(`Add second IMEI` restarts it too, deliberately — it means "now scan the other
+SIM").
+
+### What could not be moved
+
+The keyboard fallback inside the scanner stays for the **no-camera** case. If
+the permission is denied there is nothing else on that screen, and removing it
+would strand the user.

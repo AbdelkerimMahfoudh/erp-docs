@@ -6371,3 +6371,59 @@ is somebody with a phone.
 **Commits:** `erp-backend` `d01e4f8` · `erp-mobile` and `retail-erp-control-web`
 unchanged · `erp-docs` the commit carrying this entry. `READY_FOR_HANDOFF`,
 owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **a phone found seven things the gates could not**
+
+Takeover clean: backend 107/1852, mobile 23 pure, both databases at `0063`.
+
+### The finding that matters
+
+Somebody finally scanned with a real phone, and it found seven defects. Every
+one of them had passed TypeScript, the linter, Expo Doctor, a 68-route web
+export and a 20/20 HTTP recognition run. I have been careful for several
+sessions to say that HTTP proves the rules and not the camera — this is what
+that distinction was actually worth.
+
+### What was wrong, and the shape of it
+
+The camera never stopped. I had detached the barcode handler and written a
+comment saying that was what pauses scanning. It is not: detaching the handler
+stops us reacting, while the camera carries on previewing and decoding. The
+comment was confident and wrong, which is the worst combination.
+
+"Use this IMEI" failed three ways at once, and the third is the one I would not
+have found by reading: `accepted` had no render branch, so the sheet fell
+through to the camera view. The state machine was correct the whole time; the
+render simply had no case for the state it was in, and the symptom looked like
+a state bug.
+
+Manual entry sat under a live viewfinder in every state. I had written a comment
+defending it — "always present, in every state, typing is never taken away" —
+which was true about the feature and wrong about the placement. Somebody who has
+opened the camera has already chosen to scan.
+
+And the form could not be finished with the keyboard open: a pinned footer
+underneath the keyboard, and no way to scroll to it.
+
+### The test that corrected me
+
+Twenty tests, and one failed for a good reason: I asserted that "Add second
+IMEI" must not resume the camera. It must — it means "now scan the other SIM".
+The rule is not "only Scan again resumes the camera", it is "only an explicit
+human decision does, never a render and never a completed lookup". Writing the
+test made me state the contract properly.
+
+- **Mobile 24 pure suites**, lint 0, Doctor 18/18, parity 1808, 68 routes.
+- Backend, website, databases and staging fixtures untouched.
+
+### 🔴 Not device-verified
+
+These are corrections to defects a phone found. **Only a phone can confirm they
+are fixed**, and I am not claiming otherwise. `docs/24` §9o has the seven-step
+retest.
+
+**Commits:** `erp-mobile` `b0b4a9f` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
