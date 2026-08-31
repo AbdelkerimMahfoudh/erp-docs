@@ -6427,3 +6427,57 @@ retest.
 
 **Commits:** `erp-mobile` `b0b4a9f` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **my fix broke two things, and the phone found those too**
+
+Takeover clean: mobile 24 pure suites, backend untouched at `d01e4f8`.
+
+### Two regressions, one habit
+
+Both of the new defects were mine, from `b0b4a9f`, and both were the same
+mistake in different clothes: I fixed the symptom and misunderstood the
+mechanism.
+
+I stopped the camera with `active={false}` and wrote a test asserting exactly
+that. It does stop the camera — and leaves its last frame frozen on screen, so
+the scanner looked like it had photographed the barcode. And because the frame
+is whatever the sensor held at the instant the decoder fired, it usually did not
+show the digits at all. The fix before that one had been "detach the handler",
+which does not stop the camera either. Two confident assertions, two phones
+saying no. The camera is now unmounted, which is the only version with nothing
+left to argue about.
+
+The second one is worse, because it was a data loss I introduced while fixing a
+data-flow bug. I routed the accepted IMEI through a `silent` `useScan` so it
+would not buzz twice — and that hook had no `onResult`, so the recognised
+product came back from the server and went nowhere. The intake page had been
+getting its phone through that callback all along.
+
+The lesson I want to leave here: "silent" was a name I chose for one property
+(no haptic) and it quietly acquired another (no result). Naming a mode after
+what it suppresses invites exactly that.
+
+### What changed
+
+The lookup now runs when the result appears rather than after acceptance, which
+also means the panel can show the phone before anybody commits to it — "In your
+stock" or "Might be", following `recognized` rather than flattening the two.
+
+I audited the OCR question properly rather than asserting it: the identifier
+comes from `BarcodeScanningResult.data` through `classifyScan`, and there is no
+photo or OCR API anywhere in the scan path.
+
+- **Mobile 24 pure suites**, 29 scanner assertions, lint 0, Doctor 18/18,
+  parity 1810, 68 routes. Backend, website and fixtures untouched.
+
+### 🔴 Not device-verified
+
+A phone found both of these. **Only a phone can confirm they are fixed**, and
+after two rounds of being wrong about this exact component I am not going to
+claim otherwise. `docs/24` §9p has the nine-step retest.
+
+**Commits:** `erp-mobile` `ae53d3a` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

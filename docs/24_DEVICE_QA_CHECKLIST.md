@@ -1494,3 +1494,53 @@ SIM").
 The keyboard fallback inside the scanner stays for the **no-camera** case. If
 the permission is denied there is nothing else on that screen, and removing it
 would strand the user.
+
+## 9p. The second physical-device test — the fix broke two other things
+
+`b0b4a9f` corrected the seven defects in §9o and introduced two more. Both were
+the same kind of error: **right about the symptom, wrong about the mechanism.**
+
+### Reproduced on the device
+
+| # | What happened |
+| --- | --- |
+| 1 | Detection froze the last camera frame — it looked like a screenshot |
+| 2 | The IMEI was often not visible in that frame at all |
+| 3 | After accepting and continuing, the recognised product disappeared |
+| 4 | The product was not preserved into the intake workflow |
+
+**Why the frozen frame.** `active={false}` stops the camera and leaves its last
+frame on screen. That frame is whatever the sensor held when the decoder fired,
+so the "result" was a photograph of a barcode usually half out of shot. The
+camera is now **unmounted**, and the panel shows the decoder's payload as
+selectable text — what is on screen no longer depends on where the lens pointed.
+
+**Why the product vanished.** The accepted IMEI went down `/scan` through a
+`silent` hook that had **no `onResult`**, so the recognised product came back
+and was discarded. *Silent* was meant to mean "no second buzz"; it also meant
+"no product". The lookup now runs when the result appears, and the complete
+result reaches the parent on accept.
+
+### It is not OCR, and this was audited
+
+The accepted identifier comes from `BarcodeScanningResult.data` → `classifyScan`
+→ payload. No `takePictureAsync`, no frame capture, no image OCR anywhere in the
+scan path. No camera frame is persisted or displayed.
+
+### Corrected — and **not** device-verified
+
+`erp-mobile` `ae53d3a`, twenty-nine tests. Retest:
+
+1. Scan the raw valid fixture.
+2. **Confirm the live camera disappears** and no frozen frame is shown.
+3. **Confirm the IMEI appears clearly as text** (and is selectable).
+4. **Confirm the existing product is shown** in the result panel.
+5. Tap `Use this IMEI`.
+6. **Confirm the scanner closes.**
+7. Tap `Next`.
+8. **Confirm the same product and IMEI are still visible.**
+9. **Confirm duplicate inventory creation is blocked** — the fixture phone is
+   already a unit.
+
+The §9o checks (one haptic, footer reachable with the keyboard open, blank-area
+tap dismissing it) still stand and are still unverified.

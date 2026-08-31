@@ -8,9 +8,17 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **A phone was finally used, and found seven defects.** All corrected.
-- 🔴 **The corrections are NOT device-verified.** A phone found them; only a
-  phone can confirm they are fixed. Retest sequence in `docs/24` §9o.
+- **The second device test found two regressions in my own fix.** Both
+  corrected: the frozen camera frame, and the disappearing product.
+- 🔴 **Not device-verified.** A phone found them; only a phone confirms them.
+  Retest in `docs/24` §9p.
+
+| Repository | HEAD |
+|---|---|
+| `erp-mobile` | `ae53d3a` |
+| `erp-backend` | `d01e4f8` (untouched) |
+| `retail-erp-control-web` | `c764d63` (untouched) |
+| `erp-docs` | *this commit* |
 
 | Repository | HEAD |
 |---|---|
@@ -102,6 +110,73 @@ here or anywhere else in these repositories.
 
 
 
+
+
+### The second device test: my fix broke two other things
+
+Both regressions were the same kind of error — **right about the symptom, wrong
+about the mechanism.**
+
+#### The frozen frame
+
+I stopped the camera with `active={false}`. That does stop it, and leaves the
+last frame on screen, so the scanner looked like it had taken a photograph. The
+frame is whatever the sensor held when the decoder fired, which very often does
+not show the digits at all — so the "result" was a picture of a barcode half out
+of shot.
+
+The camera is now **unmounted**: no session, nothing to freeze. The panel shows
+the decoder's payload as selectable text through the `Identifier` primitive, so
+what is on screen no longer depends on where the lens was pointing.
+
+> The assertion pinning this has now been wrong **twice** — first "detach the
+> handler", then "deactivate" — and a phone said so both times. The test carries
+> that history so the third guess is not a repeat of the first.
+
+#### The disappearing product
+
+I sent the accepted IMEI down `/scan` through a `silent` `useScan` that had
+**no `onResult`**. The recognised product came back and was thrown away.
+"Silent" was meant to mean *no second buzz*; it also meant *no product*.
+
+The lookup now runs when the result APPEARS — keyed on the identifier, guarded
+by a ref so a render cannot fire it twice. Early enough to show the phone in the
+panel ("In your stock" when recognition is authoritative, "Might be" when it is
+a guess), and the complete result reaches the parent on accept: in the
+structured `AcceptedImei` **and** through `onResult`, the channel every
+embedding screen already listens on.
+
+#### Audited: it is not OCR
+
+The accepted identifier comes from `BarcodeScanningResult.data` → `classifyScan`
+→ payload, and nothing else. No `takePictureAsync`, no frame capture, no image
+OCR anywhere in the scan path — checked across the sheet, the target, the hook
+and both `lib/scan` modules. No camera frame is persisted or displayed. The OCR
+confusion table left from the retired milestone lives in `lib/imei.ts` and is
+unreachable from here; only `tacOf` is imported from it.
+
+#### Gates
+
+Mobile **24 pure suites** (scanner behaviour now **29 assertions**) · `tsc`
+clean · lint **0** · Doctor **18/18** · EN/AR/FR **1810** identical · export
+**68 routes**. Backend, website, databases and Test Store fixtures untouched.
+
+### What remains
+
+1. 🔴 **Not device-verified.** `docs/24` §9p has the nine-step retest, and the
+   §9o checks (one haptic, footer reachable, blank-area dismiss) are still
+   unconfirmed too.
+2. 🔴 The ten scanner checks in §9n remain outstanding.
+3. `lib/imei.ts` is now effectively dead apart from `tacOf` — the OCR reading
+   path it was written for is gone. Worth deleting, but not in a fix checkpoint.
+4. A licensed GSMA feed remains the dependency for broad generic recognition.
+5. The 38 retained acceptance tenants still cannot be removed by any command.
+
+### Next exact action
+
+Run `docs/24` §9p on the phone. If it passes, §9o and §9n are the backlog.
+
+---
 
 ### The first physical-device test
 
