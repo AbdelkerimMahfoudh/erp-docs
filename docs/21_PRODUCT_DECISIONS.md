@@ -2977,3 +2977,126 @@ equivalent figure is **0%** while still resolving three codes, which is the
 clearest demonstration that the number does not mean what it looks like.
 
 Broad *generic* recognition needs licensed GSMA data.
+
+---
+
+## 6q. Counting by model, and what `variant` has always meant — SHIPPED
+
+### ✅ APPROVED — one phone is one Unit; "four in stock" is a presentation
+
+A phone is one `Unit` with its own IMEI, and that never changes. It is how a
+handset is found, sold, warranted and traced, and it is the only record of a
+specific physical object the shop owns.
+
+But nobody stands in a shop and says *"I have IMEI 01000000… and IMEI
+01000012…"*. They say **"I have four 17 Pro Max"**, and the stock list only ever
+answered the first question — so counting a model meant counting rows by eye.
+
+Both answers are now available and **the model answer is the default**, because
+it is the one asked fifty times a day. Tapping a model shows its units; typing
+in the search box switches to units on its own, because searching an IMEI is a
+question about one handset. Nothing about the data changes: every phone is still
+an individual unit, still findable by either identifier.
+
+### ✅ APPROVED — the count is derived, never stored, never client-side
+
+`GET /inventory/by-model` groups `in_stock` units on every request, scoped to
+the company by the tenant client and to the active branch by the same
+`assertAssignedToBranch` check the unit list makes.
+
+There is deliberately **no stored total and no client-side counter.** A number
+that is maintained rather than derived drifts the first time a sale, a transfer
+or a refused duplicate takes a path nobody remembered to update — and that drift
+is silent. Deriving it makes the failure impossible rather than tested-for:
+
+- scanning changes nothing, because scanning creates no row;
+- choosing a model or a product changes nothing, for the same reason;
+- a refused duplicate IMEI changes nothing — it never became a row;
+- a sale, a transfer or a fault moves the count through the **existing status
+  model**, without the counting code being told anything.
+
+### ✅ APPROVED — folded by brand and model, not by product id
+
+Storage and colour live in `products.variant`, which is part of the
+`(company, brand, model, variant)` unique key. Four 17 Pro Max in four colours
+are therefore four *product* rows, and grouping by product id would report
+`1, 1, 1, 1` — arithmetically true and useless.
+
+The headline is per **model**. The colours sit one level down, in the detail
+view, and always add up to the headline.
+
+### ✅ APPROVED — `variant` means storage and colour, and nothing else
+
+Audited rather than assumed. `schema.prisma` states it outright on
+`DeviceModel`: *"`products.variant` already carries storage and colour"*, and
+`catalog.service.ts` calls a product row "the exact-variant identity".
+
+Two consequences, both deliberate:
+
+- **There is no market or region selector.** A region would be a new fact about
+  a phone that nothing in the schema, the API or any shop's data has ever
+  recorded, and it would add a fourth term to the unique key — one more product
+  row per market, for a distinction nobody has made. If a shop ever needs it, it
+  is a decision with a migration behind it, not a dropdown.
+- **`Pro`, `Plus` and `Ultra` are not variant values.** They are part of the
+  commercial model name and arrive from the model selector. Offering them again
+  would file one phone under two identities.
+
+### ✅ APPROVED — storage and colour are lists, and no typed value is ever lost
+
+The field was free text, so one shelf held `128GB`, `128 gb`, `128 Go` and
+`128`: four product rows for one phone. Ten capacities and sixteen colours are
+now served from `/device-catalogue/attributes` — from the server, so the app
+holds no list of its own to drift from.
+
+`Other` is an ordinary row at the end of both lists, not an error state, and it
+is also the fallback when there is no signal and no cached copy. **Every value a
+shop has ever typed still opens, still shows and still saves.**
+
+The one thing deliberately rewritten is a **known synonym**: `Grey` becomes
+`Gray`, `128GB` becomes `128 GB`. One spelling per value is the entire point.
+Nothing unrecognised is ever dropped.
+
+### ✅ APPROVED — a phone is never counted as a quantity
+
+"How is it counted?" no longer offers **Quantity** for a phone. Twelve iPhone 15
+with no IMEIs behind them cannot be sold to a named handset, warranted, traced
+after a theft, or told apart — and the loss is silent and permanent. Each of
+those twelve stops being a thing and becomes a number.
+
+Removed rather than disabled: a greyed-out control invites *"why can I not press
+that?"*, and the honest answer is that it was never a choice.
+
+The signal is the brand being in the **device catalogue**, which is a catalogue
+of phones, server-owned, and not editable into being wrong from a handset. A
+category's `defaultTrackingType` answers a different question — *how does this
+shop usually count things like this* — and a shop that set it wrongly would get
+exactly the outcome this prevents. When the catalogue cannot tell, the answer is
+"not a phone", so **accessories keep quantity tracking**: a shop cannot book in
+cables one by one.
+
+### ✅ APPROVED — legacy duplicate products are reported, never merged
+
+`scripts/audit-duplicate-products.ts` is permanently read-only. Two rows that
+look identical to a string comparison can be a real distinction somebody made
+deliberately, and merging them moves units between products — which moves cost,
+margin and history with them. That is a decision for a person who knows the
+shop, informed by the list.
+
+It separates **collapsible** groups (spelling differences, from the free-text
+era) from **variant-only** groups (same model, different storage or colour),
+which are usually correct. Model-level counting already folds both into one
+line, so this is about tidiness and reporting, not a wrong number on screen.
+
+Current staging state: 13 products, 0 duplicate groups of either kind.
+
+### 🔴 PENDING — the number on the screen
+
+`scripts/staging-verify-model-count.ts` proved the rule against MySQL: 20 units
+across 19 models, iPhone 11 went 2 → 3 on one added unit, no other model moved,
+the duplicate was refused by the database itself, and the fixture returned to
+20 with the temporary unit removed.
+
+**That proves the rule and not the screen.** Whether the number a shopkeeper
+sees changes after a save on a real phone is still open — `docs/24` §9q steps
+8–15.

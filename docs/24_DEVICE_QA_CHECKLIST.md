@@ -1544,3 +1544,79 @@ scan path. No camera frame is persisted or displayed.
 
 The §9o checks (one haptic, footer reachable with the keyboard open, blank-area
 tap dismissing it) still stand and are still unverified.
+
+---
+
+## 9q. The third physical-device test — sessions, and the count
+
+The §9p fix made the **first** scan work. The device then found that reopening
+the scanner brought back the previous session — often in under a second, which
+reads as a frozen photograph of the last barcode.
+
+### What was actually wrong
+
+Not the camera. `ScannerSheet` is permanently mounted by its parents (`open`
+only gates `if (!open) return null`), so **every piece of its state survived a
+close**: the machine, the lookup, both guards, and the `CameraView` instance
+itself. The reset lived in an effect, and an effect runs one paint too late —
+the reopened sheet had already painted the old result.
+
+Three corrections, all needed:
+
+1. the reset happens **during render**, comparing `open` against its previous
+   value, so nothing from the last session can reach the screen;
+2. `key={sessionId}` on `CameraView`, so React constructs a **new native view**
+   instead of reconciling onto the one holding the last frame;
+3. a `lookupSession` token, so a `/scan` response from a closed session cannot
+   write into the session that replaced it.
+
+**No delay was added anywhere.** Fast detection was correct; the frame was the
+fault, and slowing the decoder would have hidden the symptom while breaking the
+feature. `lib/scanner-behaviour.test.ts` asserts the absence of `setTimeout`,
+`setInterval`, `await new Promise` and `requestAnimationFrame` in the sheet.
+
+### 🔴 The retest — three openings, then the count
+
+Print the sheet first:
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Open the scanner. Scan **case 1**. | A result appears. **No camera frame anywhere** — the identifier is selectable text. |
+| 2 | Tap **Use this IMEI**. | The sheet closes on its own. The product is visible on the intake page. |
+| 3 | **Open the scanner a second time.** | It opens **scanning**, with a live camera and **nothing from the first session on screen** — no result, no old identifier, no still frame. |
+| 4 | Scan **case 4** (the dual-SIM pair). | A fresh result. Not the first session's phone. |
+| 5 | Accept, then **open a third time.** | Scanning again, clean again. This is the opening that used to fail. |
+| 6 | Scan, accept, and tap **Next**. | The accepted product **and** IMEI survive the step. |
+| 7 | Close the scanner **while a result is loading**, then reopen and scan something else. | The first phone must **never** appear under the second scan. |
+
+Then the count, which is the part no test can settle:
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 8 | Open **Stock**. Note the number beside the model on **case 12**'s card. | A model line reading e.g. `Apple iPhone 11 — 2 in stock`. |
+| 9 | Scan **case 12** and complete the intake. | Recognised as that model. Accepted — it is not yet in stock. |
+| 10 | Return to **Stock**. | The **same model line now reads one higher**. No new line appeared. |
+| 11 | Scan **case 12 again** and try to save. | **Refused as a duplicate.** |
+| 12 | Return to **Stock**. | The count is **unchanged** by the refusal. |
+| 13 | Open that model, then open one phone. | Its own IMEI is shown, and searching either IMEI finds that one handset. |
+| 14 | Open a phone product in the catalogue. | **"How is it counted?" offers no Quantity option**, and says it is tracked individually by IMEI and shown by model. |
+| 15 | Open an accessory. | Quantity **is** offered. Nothing was taken away from bulk stock. |
+
+> Step 9 permanently adds a unit to Test Store. That is deliberate — it is the
+> only way to see the number move — and it takes the fixture to 21. Restore it
+> with `scripts/staging-verify-model-count.ts`, which reports the shelf before
+> and after, or delete that one unit by its IMEI.
+
+### What HTTP already settled, and what it did not
+
+`scripts/staging-verify-model-count.ts` proved against MySQL that the count is
+derived: 20 units across 19 models, iPhone 11 went 2 → 3 on one added unit, no
+other model moved, the duplicate was refused by the database itself, and the
+fixture returned to 20. **That proves the rule and not the screen** — whether
+the number a shopkeeper sees changes after a save on a real phone is still
+open, which is what steps 8–12 are for.

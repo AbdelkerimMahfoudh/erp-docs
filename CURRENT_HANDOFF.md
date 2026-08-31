@@ -8,109 +8,130 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **The second device test found two regressions in my own fix.** Both
-  corrected: the frozen camera frame, and the disappearing product.
-- 🔴 **Not device-verified.** A phone found them; only a phone confirms them.
-  Retest in `docs/24` §9p.
+- The scanner reopens clean; stock counts by model; storage and colour are
+  lists. The model count was **proved against MySQL** and the fixture restored.
+- 🔴 **Not device-verified.** Three rounds of device defects in this component
+  now. Retest: `docs/24` §9q — three openings, then the count.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `ae53d3a` |
-| `erp-backend` | `d01e4f8` (untouched) |
+| `erp-mobile` | `da93d56` |
+| `erp-backend` | `4e35d01` |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
 
-| Repository | HEAD |
-|---|---|
-| `erp-mobile` | `b0b4a9f` |
-| `erp-backend` | `d01e4f8` (untouched) |
-| `retail-erp-control-web` | `c764d63` (untouched) |
-| `erp-docs` | *this commit* |
+## 🔑 The retained staging shop
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `d01e4f8` |
-| `erp-mobile` | `3908fae` (unchanged) |
-| `retail-erp-control-web` | `c764d63` (unchanged) |
-| `erp-docs` | *this commit* |
-
-## 🔑 Ready for a phone
+`store@test.com` at **Test Store** — 20 iPhones, each with its own synthetic
+TAC, restored exactly as found after every verification run. The password is
+the one you chose and is deliberately not written down here or anywhere in
+these repositories.
 
 ```bash
 cd backend
 APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
 ```
 
-Then `docs/24` §9n — ten checks. **No camera has read anything yet.**
+Then `docs/24` §9q. **No camera has read anything yet.**
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `5c86587` (after `54a0163`) |
-| `erp-mobile` | `3908fae` (unchanged) |
-| `retail-erp-control-web` | `c764d63` (unchanged) |
-| `erp-docs` | *this commit* |
+---
 
-## 🔑 The retained staging shop
+### The scanner: the state outlived the sheet
 
-`store@test.com` at **Test Store** — 20 iPhones, 20 synthetic TACs, restored
-exactly as found after the verification run. **No camera has read anything.**
+The first scan worked; reopening showed the previous session's result before the
+camera existed, which reads as a frozen photograph.
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `7ecb5a4` |
-| `erp-mobile` | `3908fae` |
-| `retail-erp-control-web` | `c764d63` (unchanged) |
-| `erp-docs` | *this commit* |
+**The camera was not the cause.** `ScannerSheet` is permanently mounted by its
+parents — `open` only gates `if (!open) return null` — so the machine, the
+lookup, both guards and the `CameraView` instance all survived a close. The
+reset lived in an effect, and an effect runs one paint too late.
 
-## 🔑 The retained staging shop
+  1. Reset **during render**, comparing `open` against its previous value.
+  2. `key={sessionId}` on `CameraView` — a new native view, not a reconcile
+     onto the one holding the last frame.
+  3. A `lookupSession` token, so a `/scan` response from a closed session
+     cannot write into the session that replaced it.
 
-`store@test.com` at **Test Store** — 20 iPhones, each with its own synthetic
-TAC. A printable scan sheet now exists; **no camera has read it.**
+**No delay was added.** Fast detection was correct; the test asserts the absence
+of `setTimeout`, `setInterval`, `await new Promise` and
+`requestAnimationFrame` in the sheet.
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `e8dd873` (after `e7062fb`) |
-| `erp-mobile` | `5c6981f` (after `b756a12`) |
-| `retail-erp-control-web` | `c764d63` (unchanged) |
-| `erp-docs` | *this commit* |
+### Counting by model, without stopping counting by IMEI
 
-## 🔑 The retained staging shop
+`GET /inventory/by-model` groups `in_stock` units, company-scoped by the
+tenant client and branch-scoped by the same `assertAssignedToBranch` check
+`listStock` makes.
 
-`store@test.com` at **Test Store** — 20 iPhones in stock, each with its own
-synthetic TAC. The password is the one you chose and is not written down here.
+**Folded by brand and model, not by product id.** Storage and colour live in
+`products.variant`, which is in the `(company, brand, model, variant)` unique
+key — so four 17 Pro Max in four colours are four product rows, and grouping by
+id reports `1, 1, 1, 1`. True, and useless. The colours sit one level down and
+always add up to the headline.
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `7b23d5d` |
-| `erp-mobile` | `977e162` (after `f3730e7`, `277fb7e`) |
-| `retail-erp-control-web` | `c764d63` (unchanged — it already had the control) |
-| `erp-docs` | *this commit* |
+Derived on every request. No stored total, no client counter: a maintained
+number drifts the first time a sale or a transfer takes a path nobody updated,
+and the drift is silent.
 
-## 🔑 The retained staging shop
+### What `variant` actually means — audited, not assumed
 
-`store@test.com` at **Test Store** — one branch, verified contact, active on a
-30-day administrative grant to **2026-09-28**, 500 MRU a month, **20 iPhones in
-stock**. The password is the one you chose; it is deliberately not written down
-here or anywhere else in these repositories.
+`schema.prisma` says it outright: *"`products.variant` already carries storage
+and colour"*. So:
 
-| Repository | HEAD |
-|---|---|
-| `erp-backend` | `343191e` (after `96a75a2`, `4380f1e`, `06e081c`) |
-| `retail-erp-control-web` | `c764d63` |
-| `erp-mobile` | `a710d64` (unchanged — no mobile source was touched) |
-| `erp-docs` | *this commit* |
+- **No market/region selector was built.** It would be a fact nothing has ever
+  recorded, and a fourth term in the unique key — a product row per market for a
+  distinction no shop has made. This is a **deliberate deviation** from the
+  checkpoint's conditional wording, and the audit is why.
+- `Pro`/`Plus`/`Ultra` are not variant values; they are model names.
 
+Storage and colour are now two lists from `/device-catalogue/attributes` — from
+the server, so the app holds none of its own. `Other` is an ordinary row and
+the no-signal fallback. Every legacy value opens, shows and saves.
 
+### A phone is never a quantity
 
+"How is it counted?" no longer offers Quantity for a phone — removed, not
+greyed out. The signal is the brand being in the device catalogue (server-owned,
+a catalogue of phones); a category's `defaultTrackingType` answers a different
+question. When it cannot tell it says "not a phone", so **accessories keep
+quantity tracking**.
 
+### Live verification, and the fixture put back
 
+`staging-verify-model-count.ts`: 20 units across 19 models → iPhone 11 **2 → 3**
+on one added unit → no other model moved → duplicate refused by the database
+itself → **back to 20**. The delete is in a `finally`.
 
+`audit-duplicate-products.ts` is permanently read-only: 13 products, 0
+duplicate groups. Merging moves cost and margin between products and is a
+human decision.
 
+Scan sheet is now **32 cards** — case 12 is a valid, recognised IMEI that is
+**not** in stock, so a device can finally watch a count go up. Its serial is
+checked against the database, not assumed free.
 
+### Gates
 
+Backend **109 suites / 1894 tests** · `tsc -p` clean.
+Mobile **25 pure suites** · `tsc` clean · lint **0 errors** · Doctor **18/18** ·
+EN/AR/FR **1826 identical** · export **68 routes**.
+Website, databases and migrations untouched — **no migration was needed**; the
+schema preserves every canonical and custom value as strings.
 
+### What remains
 
+1. 🔴 **Not device-verified.** `docs/24` §9q: three scanner openings, then
+   steps 8–15 for the count. §9o and §9p checks are still open too.
+2. Step 9 of §9q leaves Test Store at 21 units by design — restore with
+   `staging-verify-model-count.ts` or delete that unit by its IMEI.
+3. A licensed GSMA feed remains the dependency for broad generic recognition.
+4. `lib/imei.ts` is still dead apart from `tacOf`.
+5. The 38 retained acceptance tenants still cannot be removed by any command.
 
+### Next exact action
+
+Run `docs/24` §9q on the phone — the three openings first, then the count.
+
+---
 
 ### The second device test: my fix broke two other things
 

@@ -6481,3 +6481,72 @@ claim otherwise. `docs/24` §9p has the nine-step retest.
 
 **Commits:** `erp-mobile` `ae53d3a` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **the state outlived the sheet, and the shelf learned to count**
+
+Takeover clean and level: backend `d01e4f8` 107/1852, mobile `ae53d3a` 24 pure,
+docs `89747d2`, website `c764d63`. No discrepancies.
+
+### The scanner, third round
+
+The device said the first scan now worked and every later one came back frozen.
+I had been looking at the camera for three sessions, and the camera was never
+the problem: `ScannerSheet` is permanently mounted by its parents, so *all* of
+its state survived a close — including the `CameraView` instance. My reset was
+in an effect, which runs after the reopened sheet has already painted.
+
+Fixed in the render pass, with `key={sessionId}` so React builds a new native
+view rather than reconciling onto the one holding the last frame, and a session
+token so a `/scan` response from a closed session cannot land in the next one.
+
+The thing I want recorded: three rounds of "right about the symptom, wrong about
+the mechanism" in one component. Each fix was a smaller version of the same
+error — treating the visible artefact as the cause.
+
+### The audit that changed the shape of CP3
+
+I was asked for three selectors: variant, colour, storage — with a conditional
+instruction to label variant as a market/region if that is what it meant.
+
+It does not. `schema.prisma` states plainly that `products.variant` carries
+storage and colour, and `variant` sits in the `(company, brand, model,
+variant)` unique key. So a region selector would have invented a fact nothing
+has ever recorded AND multiplied product rows per market — the exact
+proliferation the same checkpoint asked me to prevent. I built two selectors,
+not three, and wrote the reason into the module, the decisions doc and the
+handoff rather than burying it.
+
+That same key is why the model count folds by brand and model rather than by
+product id: four Pro Max in four colours are four product rows, and "1, 1, 1, 1"
+is a true answer to a question nobody asked.
+
+### Two tests that corrected me
+
+One asserted "never loses text" and failed on `Grey` → `Gray`. It was right to
+fail and my claim was wrong: canonicalising a known synonym is the feature, and
+the real rule is that no *unrecognised* word is dropped. Split into two tests.
+
+The other refused `select: { id: true }` in the scan-sheet script — the sheet
+may derive nothing from a database id. My use was an existence check, not a
+label, but the rule is worth more than my exception. It counts now.
+
+### Live, against MySQL
+
+20 units across 19 models → iPhone 11 2 → 3 → nothing else moved → duplicate
+refused by the database itself → **back to 20**. Proving the rule, not the
+screen: whether the number a shopkeeper *sees* moves after a save is still open,
+and scan-sheet case 12 now exists so a phone can settle it.
+
+- **Backend 109 / 1894** · **mobile 25 pure**, lint 0, Doctor 18/18, parity
+  1826, 68 routes. No migration: the schema already preserves every value.
+
+### 🔴 Not device-verified
+
+`docs/24` §9q. Three openings, then the count.
+
+**Commits:** `erp-mobile` `da93d56` · `erp-backend` `4e35d01` ·
+`retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
+`READY_FOR_HANDOFF`, owner `NONE`.
