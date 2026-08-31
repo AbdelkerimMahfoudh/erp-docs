@@ -3100,3 +3100,96 @@ the duplicate was refused by the database itself, and the fixture returned to
 **That proves the rule and not the screen.** Whether the number a shopkeeper
 sees changes after a save on a real phone is still open — `docs/24` §9q steps
 8–15.
+
+---
+
+## 6r. Acceptance is earned, not immediate — SHIPPED
+
+### ✅ APPROVED — a barcode must be HELD, not merely seen
+
+Three physical attempts, three failures. The scanner recognised something in
+well under a second — before anybody had finished bringing the phone to the
+label — accepted it, and removed the camera. On a sheet of adjacent codes it
+frequently took a neighbour, or one only half in shot.
+
+The decoder was not wrong. A barcode partly in frame is still a barcode. **The
+product decision that was missing is that the first thing seen is not the thing
+meant**, and those coincide only when the camera is already still.
+
+A payload is accepted when the same normalized bytes have been decoded at least
+**3 times**, spanning at least **1 000 ms**, with **no gap over 400 ms** between
+sightings. The gap clause is the one that carries the meaning: a code that
+drifts out of frame and returns was passed over twice, not aimed at.
+
+### ✅ APPROVED — no delay may be blind
+
+`docs/24` §9p left a test asserting that "detection is never delayed", banning
+every delay mechanism. It was written when the fault was a frozen frame, and it
+read "fast detection is acceptable" as "acceptance must never take time". **3/3
+device failures is what that cost**, and the assertion has been replaced.
+
+The rule that survives is narrower and correct: **nothing that fires on its own
+may accept anything.** A `setTimeout` that takes whatever is current after a
+second accepts the *last* thing seen rather than the first, and fires when the
+camera may point anywhere — the same defect wearing a different hat. Every
+decision is made from an observation that actually arrived, on a monotonic
+clock. The one interval in the scanner drives a *label* and is asserted to be
+incapable of accepting anything.
+
+### ✅ APPROVED — nothing happens during stabilization
+
+Until the rule passes: the **camera stays live**, there is **no result screen,
+no lookup, no haptic**, and **no Product or IMEI is committed**. One haptic
+fires, once, after acceptance. Buzzing at every decode is what made sweeping a
+sheet feel like a successful scan.
+
+The window resets on a different payload, on a gap, on cancel, on "Scan again",
+on "Add second IMEI", and on every new scanner session — a window half-built
+when the sheet closed must never be completed by the next opening.
+
+**An invalid IMEI never becomes a candidate.** Holding still on a mistyped code
+must not turn it into a good one: stability is evidence of aim, never of
+correctness. An *unusable* read also does not destroy a window somebody is
+already holding, because sweeping past a damaged label while aiming at a good
+one is evidence of nothing either way.
+
+### ✅ APPROVED — the frame guides, and does not claim to gate
+
+There is a central aiming frame with two lines of plain language — *"Position
+the barcode inside the frame"*, then *"Hold steady…"*. No "checksum", no "Luhn",
+no "stabilizing": the person is being asked to do one physical thing.
+
+It is **guidance, not a constraint**, and the copy never says otherwise.
+`expo-camera` documents `bounds` as sometimes an empty rectangle and sometimes
+"the area used by the scanner" rather than the code, and `cornerPoints` as often
+absent, with **corner order differing per platform** and no documented
+coordinate space. Guessing wrong would silently reject every scan on whichever
+platform was guessed wrong — on hardware nobody here can test.
+
+`withinGuide` and the bounds path in the stabilizer are written and tested, so
+enabling this later is returning a value from one function.
+
+### ✅ APPROVED — physical QA uses one fixture at a time
+
+The QA sheet holds thirty-two cards, several of which are in frame at once. A
+wrong result on that page could be the scanner's fault or the page's, with no
+way to tell — so it was never usable for judging the scanner.
+
+Every code now opens **alone, full screen**: one barcode at twice the height,
+white to the edges, a wide quiet margin, the expected result underneath, and a
+way back. One code per view, dual-SIM cards included — two identifiers on one
+page would reintroduce exactly what this removes.
+
+No identifier is regenerated: the grid and the solo view read from the same
+built strings. CSS `:target` alone — no script, no network, staging-only.
+
+### 🔴 PENDING — a camera has still not confirmed any of this
+
+`lib/scan/stabilizer.test.ts` proves the rule exactly, with a clock the tests
+advance by hand: 999 ms rejected and 1 000 ms accepted, resets on payload change
+and on gaps, invalid IMEIs never candidates, no haptic or lookup during
+stabilization.
+
+**That is arithmetic, not a camera.** Whether a real decoder produces callbacks
+often enough to satisfy the rule comfortably, and whether one second feels right
+in the hand, are open until `docs/24` §9r is run on a phone.

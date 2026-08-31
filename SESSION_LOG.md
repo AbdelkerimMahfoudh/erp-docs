@@ -6550,3 +6550,74 @@ and scan-sheet case 12 now exists so a phone can settle it.
 **Commits:** `erp-mobile` `da93d56` · `erp-backend` `4e35d01` ·
 `retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-08-31 — CLAUDE-B — **3/3 on a phone, and a test of mine was the reason**
+
+Takeover clean and level: mobile `da93d56`, backend `4e35d01`, docs `e2e48e6`.
+
+### The failure
+
+All three physical attempts failed. The scanner recognised something in well
+under a second, before the barcode could be centred, and frequently took a
+neighbouring card or one half out of shot.
+
+The decoder was doing its job. A barcode partly in frame is still a barcode, and
+`expo-camera` reports it the moment it resolves. The missing idea was that **the
+first thing seen is not the thing meant** — those coincide only when the camera
+is already still. Four rounds on this component and every one of them was a
+version of trusting the wrong signal.
+
+### The part that is mine to own
+
+§9p ended with a test I wrote asserting that "detection is never delayed",
+banning `setTimeout`, `setInterval`, `await new Promise` and
+`requestAnimationFrame` outright. The device note at the time said fast
+detection was acceptable and a frozen frame was the fault. I turned that into
+"acceptance must never take time", pinned it with an assertion, and the
+assertion then defended the defect.
+
+3/3 failures is what a too-broad test costs. The replacement says what I should
+have said: **no delay may be blind.** A timer that accepts whatever is current
+after a second is worse than immediate acceptance, because it fires when the
+camera may point anywhere. Holding one code for a second and confirming it
+repeatedly is the opposite of that, and is now required.
+
+I have kept the old wording in the test file rather than deleting it. A future
+reader deciding whether to re-tighten that rule should be able to see why it was
+loosened.
+
+### What went in
+
+A pure stabilizer with an injected clock — 3 identical payloads, 1 000 ms,
+400 ms maximum gap. Writing the boundary test the naive way surfaced something
+worth recording: with a 400 ms gap limit, three sightings can span at most
+800 ms, so `MIN_OBSERVATIONS` is never the binding constraint. Both clauses
+still matter, and the test says which does the work.
+
+Also an aiming frame — and an audit that stopped me gating on it. `expo-camera`
+documents both coordinate fields as unreliable, with corner order differing per
+platform and no documented coordinate space. A centroid survives the ordering
+difference, but not the unknown space, and guessing wrong rejects every scan on
+one platform. So the frame guides and the copy says nothing more.
+
+And the QA page turned out to be part of the fault: thirty-two barcodes, several
+in frame at once. Every fixture now opens alone, full screen. That one is
+uncomfortable — the sheet I built to test the scanner was itself untestable, and
+it took a person with a phone to notice.
+
+- **Backend 109 / 1 901** · **mobile 26 pure**, lint 0, Doctor 18/18, parity
+  1 828, 68 routes. Model counting, selectors, keyboard fixes, TAC recognition
+  and backend inventory semantics all untouched. No migration.
+
+### 🔴 Not device-verified
+
+The rule is proved as arithmetic, with a clock the tests advance by hand. That
+is not a camera. `docs/24` §9r, step 3 — sweeping across a barcode and having
+nothing accepted — is what decides whether this worked.
+
+**Commits:** `erp-mobile` `a82666f` · `erp-backend` `b5b9461` ·
+`retail-erp-control-web` unchanged · `erp-docs` the commit carrying this entry.
+`READY_FOR_HANDOFF`, owner `NONE`.

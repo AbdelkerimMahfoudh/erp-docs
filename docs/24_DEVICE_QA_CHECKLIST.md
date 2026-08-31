@@ -1620,3 +1620,107 @@ other model moved, the duplicate was refused by the database itself, and the
 fixture returned to 20. **That proves the rule and not the screen** — whether
 the number a shopkeeper sees changes after a save on a real phone is still
 open, which is what steps 8–12 are for.
+
+---
+
+## 9r. The third physical-device test — **3/3 failed**
+
+`da93d56` fixed the session-reuse fault of §9q. The scanner was then tested on a
+phone and **all three attempts failed**, for a reason none of the previous
+rounds had reached.
+
+### What the device did
+
+| # | What happened |
+| --- | --- |
+| 1 | Recognition landed in **well under a second**, before the barcode could be centred |
+| 2 | A **neighbouring** card on the sheet was accepted instead of the intended one |
+| 3 | A **partially visible** code was accepted |
+| 4 | The camera was removed immediately, leaving no chance to correct it |
+
+### The mistake, stated plainly
+
+The decoder was not wrong. A barcode half in frame is still a barcode, and
+`expo-camera` reports it the instant it resolves. **We treated the first thing
+seen as the thing meant**, and those are the same only when the camera is
+already still.
+
+There is a second admission here. §9p ended with a test asserting that
+"detection is never delayed", banning every delay mechanism outright. It was
+written when the fault was a frozen frame, and read the note that fast detection
+was acceptable as *acceptance must never take time*. That assertion has been
+**replaced**: the rule is that no delay may be **blind**, not that acceptance
+may never take time.
+
+### The rule now
+
+A payload is accepted only when the **same normalized bytes** have been decoded
+
+  - at least **3 times**,
+  - spanning at least **1 000 ms**,
+  - with **no gap over 400 ms** between consecutive sightings.
+
+The gap clause is what makes this *held on one code* rather than *seen
+occasionally over a second*: a barcode that drifts out of frame and returns was
+passed over twice, not aimed at.
+
+**It is not a timer.** A `setTimeout` that accepts whatever is current after a
+second accepts the *last* thing seen rather than the first, and fires when the
+camera may be pointing anywhere. Every decision is made from an observation that
+actually arrived, on a monotonic clock.
+
+Until the rule passes: **camera live, no result, no lookup, no haptic, nothing
+committed.** The window resets on a different payload, a gap, a cancel, "Scan
+again", "Add second IMEI", and every new session. An invalid IMEI never becomes
+a candidate — holding still on a mistyped code must not make it a good one.
+
+### The frame guides; it does not gate
+
+`expo-camera` documents `bounds` as sometimes an empty rectangle and sometimes
+"the area used by the scanner" rather than the code, and `cornerPoints` as often
+absent, with **corner order differing per platform** and no documented
+coordinate space. Guessing wrong would silently reject every scan on whichever
+platform was guessed wrong.
+
+So the frame is honest guidance and the copy never claims otherwise.
+`withinGuide` is written and tested, ready to enable when somebody can verify
+the coordinate space on both platforms.
+
+### 🔴 The retest — use the individual fixture view
+
+**Do not test against the page of thirty-two cards.** Several are in frame at
+once, and a wrong result could then be the scanner's fault or the sheet's.
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+Open it, find **Case 1**, and tap **"Open this one alone →"**.
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Case 1 is open alone, full screen. | One barcode, white to the edges, nothing else in shot. |
+| 2 | Open the scanner. | A live camera, a frame in the middle, and **"Position the barcode inside the frame"**. |
+| 3 | **Sweep the camera briefly across the barcode** without settling. | **Nothing is accepted.** No buzz, no result, camera still live. This is the failure being fixed. |
+| 4 | Centre the barcode and hold. | **"Hold steady…"** appears and the frame changes. |
+| 5 | Keep holding. | Acceptance comes **after about a second — never before**. Exactly one haptic. |
+| 6 | Read the result. | The **exact printed IMEI**, as selectable text. No camera frame anywhere. |
+| 7 | Move off the barcode while holding, before it accepts. | The guidance returns to "Position the barcode…" and the window starts over. |
+| 8 | Repeat steps 2–6 through a **second and third** scanner opening. | Identical behaviour each time. No state from an earlier session. |
+| 9 | Accept, then tap **Next**. | The recognised **Product and IMEI survive** the step. |
+
+Then, on a neighbour test that the grid is now good for:
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 10 | On the full sheet, hold the camera steady over **one** card among many. | The card actually aimed at is the one accepted. |
+
+### What is proven, and what is not
+
+`lib/scan/stabilizer.test.ts` proves the rule exactly — 999 ms rejected, 1 000 ms
+accepted, resets on payload change and on gaps, invalid IMEIs never candidates,
+no haptic or lookup during stabilization — with a clock the tests advance by
+hand. **That is arithmetic, not a camera.** Whether a real decoder on a real
+phone produces callbacks often enough to satisfy the rule comfortably, and
+whether one second feels right in the hand, are open until step 5 is done.

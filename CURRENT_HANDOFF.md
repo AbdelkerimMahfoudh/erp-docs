@@ -8,15 +8,17 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- The scanner reopens clean; stock counts by model; storage and colour are
-  lists. The model count was **proved against MySQL** and the fixture restored.
-- 🔴 **Not device-verified.** Three rounds of device defects in this component
-  now. Retest: `docs/24` §9q — three openings, then the count.
+- **3/3 physical attempts failed.** The scanner accepted in under a second,
+  before anybody could aim it — often a neighbouring card, or one half in shot.
+- A barcode must now be **held**: the same payload, 3+ times, across 1 000 ms,
+  with no gap over 400 ms. Not a timer.
+- 🔴 **Not device-verified.** Retest: `docs/24` §9r, using the new
+  **individual fixture view** rather than the page of thirty-two cards.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `da93d56` |
-| `erp-backend` | `4e35d01` |
+| `erp-mobile` | `a82666f` |
+| `erp-backend` | `b5b9461` |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
 
@@ -32,7 +34,118 @@ cd backend
 APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
 ```
 
-Then `docs/24` §9q. **No camera has read anything yet.**
+Open it, find **Case 1**, tap **"Open this one alone →"**, and run `docs/24`
+§9r. Physical QA uses the solo view — never the page of thirty-two cards.
+
+**No camera has read anything yet.**
+
+---
+
+
+### The scanner accepted what it saw first, not what was meant
+
+Three attempts, three failures, and a fault none of the earlier rounds reached.
+
+The decoder was never wrong. A barcode half in frame is still a barcode, and
+`expo-camera` reports it the instant it resolves. **We treated the first thing
+seen as the thing meant**, and those are the same only when the camera is
+already still.
+
+#### The rule
+
+`lib/scan/stabilizer.ts`. A payload is accepted when the same normalized bytes
+have been decoded **3+ times**, spanning **1 000 ms**, with **no gap over
+400 ms**. The gap clause is the one carrying the meaning: a code that drifts out
+and back was passed over twice, not aimed at.
+
+**Not a timer.** A `setTimeout` that accepts whatever is current after a second
+takes the LAST thing seen rather than the first, and fires when the camera may
+point anywhere. Every decision comes from an observation that actually arrived,
+on a monotonic clock — and the clock is injected, so the window is tested at the
+millisecond without a device.
+
+Until it passes: camera live, no result, no lookup, no haptic, nothing
+committed. Resets on a different payload, a gap, cancel, "Scan again", "Add
+second IMEI", and every new session.
+
+#### An assertion of mine that was wrong
+
+§9p left a test banning **every** delay mechanism. I wrote it when the fault was
+a frozen frame, reading "fast detection is acceptable" as "acceptance must never
+take time". **3/3 device failures is what that cost.**
+
+Replaced with the narrower rule that is actually right: nothing that fires on
+its own may accept anything. The one interval left in the sheet drives a label,
+and a test asserts it cannot accept or advance the machine.
+
+#### The frame guides; it does not gate
+
+`expo-camera` documents `bounds` as sometimes an empty rectangle and sometimes
+"the area used by the scanner"; `cornerPoints` as often absent, **corner order
+differing per platform**, and no documented coordinate space. Guessing wrong
+would silently reject every scan on one platform, on hardware nobody here can
+test — so the frame is honest guidance and the copy never claims otherwise.
+`withinGuide` is written and tested for whoever can verify it on a device.
+
+#### The QA page was part of the problem
+
+Thirty-two cards, several in frame at once, the decoder reporting whichever
+resolves first — a wrong result could be the scanner's fault or the page's.
+Every code now opens **alone, full screen**: one barcode at twice the height,
+white to the edges, a wide quiet margin, expected result underneath, a way back.
+One code per view, dual-SIM included. 32 cards → **39 solo views**, no
+identifier regenerated, CSS `:target` only.
+
+#### Gates
+
+Backend **109 suites / 1 901 tests** · `tsc -p` clean.
+Mobile **26 pure suites** — 21 new stabilizer assertions, 44 in scanner
+behaviour · `tsc` clean · lint **0 errors** · Doctor **18/18** · EN/AR/FR
+**1 828 identical** · export **68 routes**.
+
+Model counting, the storage/colour selectors, the keyboard fixes, TAC
+recognition and every backend inventory semantic are untouched. No migration.
+
+### What remains
+
+**Consolidated.** Every earlier session left its own "What remains" list in this
+file, and thirteen of them had accumulated — each naming a next action that had
+already been done. They are merged here and the duplicates removed; the
+narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
+
+*On a device — nothing below has been confirmed by a camera:*
+
+1. 🔴 **`docs/24` §9r** — nine steps on the solo fixture view, plus a neighbour
+   test on the grid. **This is the one that matters**, and step 3 (a sweep
+   accepting nothing) is what decides whether the fix worked.
+2. 🔴 **§9q steps 8–15** — the model count moving after a save, using
+   scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
+   with `staging-verify-model-count.ts`.
+3. 🔴 **§9n and §9o** — the ten original scanner checks, and the §9o items
+   (one haptic, footer reachable with the keyboard open, blank-area dismiss).
+   Superseded in part by §9r, but never independently confirmed.
+4. The stabilizer's arithmetic is proved with an injected clock. Whether a real
+   decoder fires often enough to satisfy the rule comfortably, and whether one
+   second feels right in the hand, only a phone can say.
+
+*Known and deliberately not done:*
+
+5. `withinGuide` stays unused until somebody verifies the platform coordinate
+   space on both iOS and Android — see the bounds audit in `ScannerSheet.tsx`.
+6. A licensed GSMA feed remains the dependency for broad generic recognition.
+   19 of 323 models recognisable is the honest number.
+7. **Dead code**: `lib/signup.ts` (nothing imports it) and `lib/imei.ts` apart
+   from `tacOf` — the OCR reading path it was written for is gone.
+8. `lib/portal.ts`'s `isTrusted()` comment overstates what it checks, and
+   `accountPortalUrl()`'s fallback still names `:5173`, the old Vite port.
+9. The 38 retained acceptance tenants still cannot be removed by any command —
+   only a database change would clear them.
+
+### Next exact action
+
+Generate the sheet, open **Case 1 alone**, and run `docs/24` §9r. Step 3 — a
+sweep across the barcode accepting nothing — is the one that decides whether
+this worked.
 
 ---
 
@@ -117,20 +230,6 @@ EN/AR/FR **1826 identical** · export **68 routes**.
 Website, databases and migrations untouched — **no migration was needed**; the
 schema preserves every canonical and custom value as strings.
 
-### What remains
-
-1. 🔴 **Not device-verified.** `docs/24` §9q: three scanner openings, then
-   steps 8–15 for the count. §9o and §9p checks are still open too.
-2. Step 9 of §9q leaves Test Store at 21 units by design — restore with
-   `staging-verify-model-count.ts` or delete that unit by its IMEI.
-3. A licensed GSMA feed remains the dependency for broad generic recognition.
-4. `lib/imei.ts` is still dead apart from `tacOf`.
-5. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Run `docs/24` §9q on the phone — the three openings first, then the count.
-
 ---
 
 ### The second device test: my fix broke two other things
@@ -181,21 +280,6 @@ unreachable from here; only `tacOf` is imported from it.
 Mobile **24 pure suites** (scanner behaviour now **29 assertions**) · `tsc`
 clean · lint **0** · Doctor **18/18** · EN/AR/FR **1810** identical · export
 **68 routes**. Backend, website, databases and Test Store fixtures untouched.
-
-### What remains
-
-1. 🔴 **Not device-verified.** `docs/24` §9p has the nine-step retest, and the
-   §9o checks (one haptic, footer reachable, blank-area dismiss) are still
-   unconfirmed too.
-2. 🔴 The ten scanner checks in §9n remain outstanding.
-3. `lib/imei.ts` is now effectively dead apart from `tacOf` — the OCR reading
-   path it was written for is gone. Worth deleting, but not in a fix checkpoint.
-4. A licensed GSMA feed remains the dependency for broad generic recognition.
-5. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Run `docs/24` §9p on the phone. If it passes, §9o and §9n are the backlog.
 
 ---
 
@@ -259,19 +343,6 @@ Mobile **24 pure suites** · `tsc` clean · lint **0** · Doctor **18/18** ·
 EN/AR/FR **1808** identical · export **68 routes**. Backend, website, databases
 and staging fixtures untouched.
 
-### What remains
-
-1. 🔴 **The corrections are not device-verified.** `docs/24` §9o has the
-   seven-step retest. A phone found these; only a phone closes them.
-2. 🔴 The ten scanner checks in §9n are still outstanding.
-3. A licensed GSMA feed remains the dependency for broad generic recognition.
-4. `lib/signup.ts` is still dead code.
-5. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Run `docs/24` §9o on the phone that found the defects.
-
 ---
 
 ### The QR fixtures, and where the dependency is allowed to live
@@ -325,21 +396,6 @@ Backend **107 suites / 1852 tests** · `tsc -p` clean · production advisories
 staging fixture untouched (20 units, 20 TACs, 0 recognition rows).
 
 Mobile and website untouched this checkpoint.
-
-### What remains
-
-1. 🔴 **No camera has read anything.** `docs/24` §9n is the ten-check list, now
-   with every fixture it needs. Rows 6–9 are proved over HTTP, which proves the
-   RULES and not the decoder, the focus, or a phone held in one hand while the
-   other holds a handset.
-2. A licensed GSMA feed remains the dependency for broad generic recognition.
-3. `lib/signup.ts` is still dead code.
-4. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Generate the sheet, print it or open it on a second screen, and work `docs/24`
-§9n on a phone. Nothing here needs a migration.
 
 ---
 
@@ -417,28 +473,6 @@ databases at `0063` · **demo byte-identical** (1/9/7, 10 051.00, `bcc38d96…`,
 7 recognition rows) · staging 42 companies / 20 units / 20 TACs / 0 mappings.
 
 Mobile and website untouched this checkpoint.
-
-### What remains
-
-1. 🔴 **Scan-sheet cases 2 and 3 (QR) are not built.** Both need a QR encoder.
-   Code 128 is hand-rolled because it is small and mechanical; QR needs
-   Reed–Solomon, masking and format information, and this environment has **no
-   decoder to verify against** (`BarcodeDetector` unavailable). A hand-rolled QR
-   that looks right and does not decode would be worse than none — a fixture
-   that fails a test the scanner passed. **The user has been asked whether to
-   add `qrcode` as a backend devDependency.** The sheet shows a dashed
-   placeholder naming both cases rather than omitting them.
-2. 🔴 **No camera has read anything.** `docs/24` §9n is the ten-check list for
-   whoever has a phone. Rows 6–9 are proved over HTTP, which proves the RULES
-   and not the camera.
-3. A licensed GSMA feed remains the dependency for broad generic recognition.
-4. `lib/signup.ts` is still dead code.
-5. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Decide the QR encoder question, then build cases 2 and 3 and regenerate the
-sheet. After that, `docs/24` §9n needs a phone.
 
 ---
 
@@ -521,19 +555,6 @@ browser renders black bars on a dark card, and that does not scan).
 - Website **37**, untouched.
 - **Demo byte-identical**: 1/9/7, 10 051.00, `bcc38d96…`, 559 audit, 0 payments.
   Staging 42/57/20, 20 TACs.
-
-### What remains
-
-1. **No camera has read anything.** `docs/24` §9m lists ten checks; rows 3–6
-   and 10 are proved over HTTP, which proves the RULES and not the camera.
-2. **A licensed GSMA feed** — 19 of 323 recognisable is the honest number.
-3. `lib/signup.ts` is still dead code.
-4. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Print the scan sheet, take a phone, and work `docs/24` §9m. Nothing here needs
-another migration.
 
 ---
 
@@ -620,25 +641,6 @@ Browser: the selectors in Arabic at 375 px, right-aligned, no overflow.
 - Website **37 tests**, unchanged and untouched.
 - **Demo byte-identical**: 1/9/7, 10 051.00, checksum `bcc38d96…`, 559 audit,
   **0 payments**. Staging **42 / 57**, unchanged by this checkpoint.
-
-### What remains
-
-1. **Nothing has run on a physical device.** `docs/24` §9j, §9k and §9l — the
-   camera has never been used, and Arabic layout MIRRORING is native and cannot
-   be judged in a web export at all.
-2. **A licensed GSMA feed** is the outstanding dependency for real TAC coverage.
-   323 curated models is a starter list.
-3. Ordering consequence worth a look: `releaseRank` is the release YEAR, so
-   `iPhone 16e` (2025) sorts above `iPhone 17` (2025) alphabetically within the
-   year, and `iPhone 17e` (2026) sorts above everything. That follows the rule
-   as specified; a finer rank would read more naturally.
-4. `lib/signup.ts` is still dead code.
-5. The 38 retained acceptance tenants still cannot be removed by any command.
-
-### Next exact action
-
-Take the app onto a phone: `docs/24` §9j, §9k, §9l. Nothing here needs another
-migration.
 
 ---
 
@@ -731,24 +733,6 @@ are not reported as deleted. 20 products, 20 units, 1 administrator,
 - Website **37 tests** · `tsc -b` clean · production build clean ·
   **0 advisories** · `ar` → `dir="rtl"`, `fr`/`en` → `ltr`.
 - `@@GLOBAL.sql_mode` still empty. **Not touched.** Still deployment work.
-
-### What remains
-
-1. **Nothing has run on a physical device.** `docs/24` §9j row 15 — deny the
-   browser and prove registration does not restart — and §9k: Arabic layout
-   **mirroring** is native and the web export cannot exercise it at all.
-2. `lib/signup.ts` is still dead code (nothing imports it). Removing it also
-   means removing `auth.signup.*` from three catalogues (parity 1796 → 1794).
-3. `lib/portal.ts`'s `isTrusted()` comment claims it checks the origin; it
-   checks the scheme. The origin is correct by construction.
-4. `accountPortalUrl()`'s fallback still names `:5173`, the old Vite port.
-5. The 38 acceptance tenants cannot be removed by any command — only a database
-   restore reclaims them.
-
-### Next exact action
-
-Take the app onto a phone and run `docs/24` §9j and §9k. Nothing else here needs
-a migration or a schema change.
 
 ---
 
@@ -858,30 +842,6 @@ role_permissions 159, checksum `41df5104…`, mappings
 - `sql_mode` on this server is still empty. **Not touched.** Still deployment
   work.
 
-### What remains
-
-1. **`app/subscription-blocked.tsx` opens `accountPortalUrl()` directly**, with
-   no handoff ticket — so the one screen where somebody taps "manage my
-   subscription" lands them on a sign-in form. It should call
-   `openAccountPortal()`, which is now proven end to end. Left alone because no
-   acceptance item covers it and it needs its own outcome handling (a Manager
-   now gets `refused`).
-2. **`lib/signup.ts` is dead code** — nothing imports it. It opens a browser to
-   register, which is the behaviour the pivot retired. Removing it also means
-   removing `auth.signup.*` from three locales (parity 1796 → 1794) and a line
-   from the drift test.
-3. **`lib/portal.ts`'s `isTrusted()` comment overstates what it checks** — it
-   validates the scheme, not the origin. The origin is correct by construction
-   (the URL is built from `API_V1_URL`), so this is a comment, not a hole.
-4. `accountPortalUrl()`'s fallback still points at `:5173`, the old Vite dev
-   port, not the single-origin edge. Unused when `EXPO_PUBLIC_PORTAL_URL` is set.
-5. **Nothing has run on a physical device.** `docs/24` §9j.
-
-### Next exact action
-
-Fix (1) — point `subscription-blocked` at `openAccountPortal()` and handle its
-outcome — then (2) and (3). None needs a migration.
-
 ---
 
 ### CP3, CP5 and CP6 complete. CP4 partly proven. CP8 not started.
@@ -972,25 +932,6 @@ over real HTTP, and session fixation.
   `owner=61 store_manager=43 store_employee=20`, **0 subscription payments**.
 - Staging intact at 3 companies / 7 users. Verification port released.
 
-### What remains
-
-- **CP8 — the 37-step staging acceptance was NOT run.** No browser or device
-  session took place this checkpoint, so no live count is claimed. CP2's 29/29
-  HTTP proof stands from the previous session and covers the authentication
-  chain, but not the portal in a browser, the dialog on screen, grant/suspend/
-  reinstate, or the language and viewport checks.
-- The three CP4 items above.
-- `docs/37` and `docs/38` were not updated; `21`, `24` and `39` were.
-- **Nothing was run on a physical device.** `docs/24` §9j lists 20 checks, and
-  they cover most of what this flow actually is — a keyboard, a browser hand-off
-  and an app switcher, none of which a type checker opens.
-
-### Next exact action
-
-Run CP8 against staging with a browser: the portal landing, the dialog, all five
-providers, grant/suspend/reinstate, and the language and viewport passes. Then
-the three remaining CP4 refusals over HTTP.
-
 ---
 
 ### CP1 — migrations aligned. CP2 — authentication proven over real HTTP.
@@ -1071,24 +1012,6 @@ touched by CP2. Port 3012 released.
 > `platformAdmin.deleteMany()`. Pre-existing, unrelated to this work, and it is
 > why the fixtures were removed with a scoped script instead.
 
-### What remains
-
-- **CP3 — the mobile screens.** Not started. `app/(auth)/register.tsx` does not
-  exist; `login.tsx` still calls `openSignup()`. The rules
-  (`lib/registration.ts`, 20 assertions) and all EN/AR/FR copy are in place, and
-  the endpoints they need are now **proven working**:
-  `POST platform/register` → `{ status, created, publicStoreId, verification,
-  continuation: { token, expiresAt, expiresInSeconds }, next }`;
-  `POST platform/register/verify/start` → `{ delivery }`;
-  `POST platform/register/verify/confirm` → `{ accessToken, refreshToken, expiresIn }`.
-- Mounting `PaymentModal.tsx` (still imported by nothing), the portal-handoff
-  audit, and the browser/device acceptance.
-
-> **The instruction for this session was truncated** mid-sentence in CP3's
-> failure handling. Anything after that — further checkpoints, test lists,
-> gates, cleanup and documentation requirements — never arrived and was
-> deliberately not guessed at.
-
 ---
 
 ### Registration authentication — the security correction is DONE
@@ -1147,27 +1070,6 @@ which is precisely the hole.
 here. Applying anything needs the backup and restore-proof ritual in
 `docs/22`, and that was not rushed at the end of a long session.
 
-### What remains
-
-- **CP4 — the mobile screens.** `app/(auth)/register.tsx` still does not exist
-  and `login.tsx` still calls `openSignup()`. The rules
-  (`lib/registration.ts`, 20 assertions) and all EN/AR/FR copy are in place and
-  unused. The backend endpoints they need now exist:
-  `POST platform/register` (returns a continuation, never a session),
-  `POST platform/register/verify/start`, `POST platform/register/verify/confirm`.
-- **CP5** — the adversarial audit of the pre-existing portal handoff.
-- **CP6** — mount `PaymentModal.tsx`; it is green and still imported by nothing.
-- **CP8** — the 37-step real-MySQL and browser acceptance. **Nothing was run
-  against a live server or a device this session**, so no synthetic company was
-  created, there are no fixtures to clean, and the demo tenant is untouched.
-- `docs/21`, `24`, `37`, `38`, `39`.
-
-### Next exact action
-
-Apply `0059`–`0061` to development behind the `docs/22` ritual (backup,
-restore proof, clean-database replay), then staging. Then build
-`register.tsx` against the three endpoints above and mount the payment modal.
-
 ---
 
 ### Registration pivot — PARTIAL. Read this before continuing.
@@ -1210,7 +1112,12 @@ rather than reading the file:
    **and the production build** both failed, while `vitest` passed — because
    vitest does not typecheck. A green test run was not a green repository.
 
-### What remains — none of this is started
+### What remained at the time — since shipped, except the design question
+
+> **Stale as written.** `mobile/app/(auth)/register.tsx` exists and
+> registration lands in the app; the CP1/CP3/CP4 items below were completed in
+> later sessions. Kept for the **open design question**, which is not resolved
+> and is security-relevant. The live list is under *What remains* at the top.
 
 - **CP1 screen.** `mobile/app/(auth)/register.tsx` does not exist. `login.tsx`
   still calls `openSignup()`, which opens a browser — the superseded behaviour.
@@ -1246,14 +1153,6 @@ rather than reading the file:
 - **Nothing was run against a device, and no acceptance flow was executed.**
   No synthetic company was created, so there are no fixtures to clean and the
   demo tenant is untouched.
-
-### Next exact action
-
-Settle the post-verification session design first — it gates CP1's final step
-and it is the only genuinely security-weighted decision left. Then build
-`register.tsx` against the rules already in `lib/registration.ts`, wire
-`login.tsx` to navigate internally instead of calling `openSignup()`, and mount
-the payment modal.
 
 ---
 
