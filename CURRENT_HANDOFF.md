@@ -8,23 +8,39 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **The frame is now the scan region** — every corner of a barcode must be
-  inside it, and a failing callback is dropped before anything else happens.
-- 🔴 **Enforceable on iOS only.** Android never forwards the image dimensions
-  needed to map barcode coordinates; nothing is inferred. Details below.
-- One frame now, wide and shallow, sized for a single horizontal barcode. The
-  two overlapping shapes are gone.
-- ⚠️ The two device screenshots that prompted this were **not received**. The
-  geometry follows the written brief and has not been compared with the device.
-- 🔴 **Not device-verified.** Retest: `docs/24` §9u, Android and iOS
-  separately. **Step 8 is the one that matters.**
+- **Android strict ROI is implemented via a committed `expo-camera` patch**
+  using CameraX's own `CoordinateTransform`. `.first()` is gone; every
+  barcode is forwarded.
+- 🔴 **NOT COMPILED.** No `eas.json`, no EAS login here. The Kotlin has never
+  been through a compiler and the transform has never run.
+- Enforcement is decided **per callback** from a marker the patch emits, so an
+  unpatched binary or Expo Go falls back safely instead of rejecting everything.
+- ⚠️ **§9u corrected**: Android was never short of information. The active path
+  mapped coordinates and mapped them wrongly — details below.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `fe7829e` |
+| `erp-mobile` | `a907f7e` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
+
+## 🔨 Build it before believing any of it
+
+```bash
+cd mobile
+npm install                  # applies the patch, then verifies six anchors
+npx eas-cli login
+npx eas-cli build:configure  # creates eas.json (first time only)
+npx eas-cli build --platform android --profile preview
+```
+
+The profile needs `"distribution": "internal"`, `"android": { "buildType":
+"apk" }` and `"env": { "EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY": "1" }`.
+
+**A modified native module cannot be validated by a JavaScript refresh, by
+Metro, or in Expo Go** — those run the unpatched binary, where the marker never
+arrives and the strict path stays off by design.
 
 ## 🔑 The retained staging shop
 
@@ -50,6 +66,83 @@ three IMEIs in frame, using a real dual-SIM label or fixtures side by side) and
 
 
 
+
+
+### Android strict ROI: a committed native patch
+
+#### A correction to what I recorded last session
+
+I reported that Android could not enforce a scan region because the image
+dimensions never reach JavaScript. **That was wrong.** I had read a serializer
+that is not on the active path.
+
+`ExpoCameraView.kt` does map corner points, and maps them badly:
+
+- **scale with no translation** — an aspect-fill crop is off by the crop offset;
+- **rotation ignored**;
+- corners read back **transposed** — written `[x, y, …]`, read as
+  `y = points[i]`;
+- `barcodes.first()` — one barcode per frame, so neighbours could not be
+  rejected even in principle.
+
+That is why the frame never matched the acceptance boundary. The information was
+there; the arithmetic was wrong.
+
+#### What the patch does
+
+`patches/expo-camera+17.0.10.patch`, applied by `postinstall`. It replaces
+the arithmetic with CameraX's **`CoordinateTransform`**, built from
+`ImageProxyTransformFactory` and `PreviewView.outputTransform`, which handle
+crop, rotation and scale together. `isUsingRotationDegrees` is on, because ML
+Kit receives a rotated `InputImage` and the spaces would otherwise disagree by
+90° in a way that looks plausible rather than broken.
+
+**The API was verified**, not assumed: I downloaded
+`camera-view-1.5.0-rc01.aar` and ran `javap` on it.
+`getOutputTransform()` still exists in 1.5.0-rc01 — my previous session
+assumed it had been removed, and that was wrong too.
+
+`.first()` is gone. One event per barcode with
+`frameId`/`indexInFrame`/`countInFrame`, so "three at once" is
+distinguishable from "one, three times". Every added field has a default, so
+existing consumers are unaffected.
+
+#### The capability is read, never assumed
+
+Enforcement is decided **per callback** from a `coordinateSpace` marker:
+
+| Situation | Enforced? |
+|---|---|
+| iOS | always — mapped natively before the payload leaves |
+| Android, patched, preview laid out | **yes** |
+| Android, patched, first frames | no — `outputTransform` is null until layout |
+| Android, unpatched, or Expo Go | no — the marker never arrives |
+
+An unpatched build falls back to the stability and chooser rules. It does not
+reject everything: a scanner that silently refused every barcode because it
+could not verify geometry would be worse than the defect, and one that trusted
+unverified coordinates would be worse still.
+
+#### The patch cannot fail silently
+
+`postinstall` = `patch-package && node scripts/verify-native-patch.js`. The
+verifier checks the version and **six anchors in `node_modules`** and exits
+non-zero if any is missing. Tested both ways: passes after a clean reinstall of
+`expo-camera`, fails with a clear message when an anchor is broken.
+
+A quietly unapplied patch would leave the scanner working, every test passing,
+and the frame no longer the boundary — visible only to somebody holding a phone
+against a label.
+
+#### Gates
+
+Mobile **27 pure suites** — 35 ROI assertions · `tsc` clean · lint **0** ·
+Doctor **18/18** · EN/AR/FR **1 837 identical** · export **68 routes**. Backend,
+website and databases untouched. One new devDependency (`patch-package`); no
+`expo-dev-client`, no replacement scanner dependency, no OCR or frame capture.
+`android/` and `ios/` stay generated and uncommitted under CNG.
+
+---
 
 ### The frame became the scan region
 
@@ -310,21 +403,26 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 *On a device — nothing below has been confirmed by a camera:*
 
-1. 🔴 **`docs/24` §9u** — the scan region, Android and iOS separately.
-   **Step 8 is the one that matters**: does the dark mask align with the real
-   detection boundary? A source test cannot prove a coordinate transform, and
-   aspect-fill cropping and rotation are exactly what looks right in a simulator
-   and is wrong in a hand. The `__DEV__` overlay is there to show it.
-2. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
-3. 🔴 **§9s** — the crowded-label acquisition steps.
-4. 🔴 **§9r** — the aiming steps, superseded in part but never confirmed.
-5. 🔴 **§9q steps 8–15** — the model count moving after a save, using
+1. 🔴 **The Android patch has never been compiled.** No `eas.json`, no EAS
+   login here. `docs/24` §9v has the build command. **Check it compiles
+   first** — likely suspects if Gradle fails: the `@TransformExperimental`
+   opt-in, `isUsingRotationDegrees` property syntax, and the
+   `BarcodeAnalyzer` constructor arity at its call site.
+2. 🔴 **`docs/24` §9v** — the Android device retest. **Step 1** (does the
+   overlay say `view`?) proves the patch is in the binary; **step 7** (do the
+   overlay's corners agree with the drawn frame?) proves the mapping is right.
+   Neither is optional.
+3. 🔴 **§9u** — the iOS checklist. Untouched natively, but the shared JavaScript
+   gate changed, so it needs re-confirming rather than assuming.
+4. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
+5. 🔴 **§9s** — the crowded-label acquisition steps.
+6. 🔴 **§9q steps 8–15** — the model count moving after a save, using
    scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
    with `staging-verify-model-count.ts`.
-6. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
-7. `ROI_TOLERANCE_PT` and the acquisition constants are exported and
+7. 🔴 **§9n, §9o, §9r** — earlier scanner checks, never independently confirmed.
+8. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
    documented **because they have not met a phone**. Do not tune from simulation.
-8. ⚠️ The two screenshots behind §9u were never received; the frame geometry is
+9. ⚠️ The two screenshots behind §9u were never received; the frame geometry is
    unverified against what the device displayed.
 
 *Known and deliberately not done:*
@@ -342,10 +440,10 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Run `docs/24` **§9u** on a phone, on **both** platforms — then §9t. Step 8 of
-§9u decides everything else: if the mask does not sit exactly on the real
-detection boundary on iOS, the coordinate conversion is wrong and the
-`__DEV__` overlay will show where.
+Build the Android internal binary (command above) and find out whether the
+patch **compiles**. Nothing else in the Android path can be judged until it
+does. Then `docs/24` §9v on a device — step 1, then step 7 — and re-run §9u on
+iOS.
 
 ---
 

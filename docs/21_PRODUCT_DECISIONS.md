@@ -3450,3 +3450,90 @@ cropping, at each rotation and aspect ratio — is exactly what they cannot show
 The two device screenshots that prompted this work were **not received**; the
 geometry follows the written brief and has not been compared with what the
 device displayed.
+
+---
+
+## 6v. The Android scan region, and a committed native patch — SHIPPED, UNCOMPILED
+
+### ✅ CORRECTED — Android was never short of information
+
+§6u recorded that Android could not enforce a scan region because the image
+dimensions never reach JavaScript. **That was wrong**, and it came from reading
+a file that is not on the active path.
+
+`ExpoCameraView.kt` does map corner points. It maps them with scale and no
+translation (so an aspect-fill crop is off by the crop offset), ignores
+rotation, and the emitter reads them back **transposed** — corners are written
+`[x, y, …]` and read as `y = points[i]`. It also forwarded `barcodes.first()`
+only, so neighbours could not be rejected even in principle.
+
+The frame never matched the acceptance boundary because of that, not because
+the information was missing.
+
+### ✅ APPROVED — CameraX does the transform, not us
+
+`patches/expo-camera+17.0.10.patch` replaces the arithmetic with
+`CoordinateTransform`, built from `ImageProxyTransformFactory` and
+`PreviewView.outputTransform`. Those handle crop, rotation and scale together,
+which is what they exist for; a hand-rolled formula had already been wrong three
+ways at once.
+
+`isUsingRotationDegrees` is on, because ML Kit receives a rotated `InputImage`
+and the spaces would otherwise disagree by 90° in a way that looks plausible.
+
+The API surface was verified by downloading `camera-view-1.5.0-rc01.aar` and
+running `javap` on it. `getOutputTransform()` still exists in 1.5.0-rc01 —
+§6u assumed it had been removed, and that assumption was also wrong.
+
+### ✅ APPROVED — every barcode, non-coalescing
+
+`.first()` is removed. One event per barcode, carrying
+`frameId`/`indexInFrame`/`countInFrame`, so *three at once* is distinguishable
+from *one, three times* — the two situations the chooser has to tell apart.
+Every added field has a default, so the change is additive and existing
+consumers are untouched.
+
+### ✅ APPROVED — the capability is read, never assumed
+
+Enforcement is decided **per callback** from a `coordinateSpace` marker the
+patch emits. Not from a version number: a patch that failed to apply must not be
+mistaken for one that did. Not once per session either, because
+`PreviewView.outputTransform` is null until the preview is laid out — the first
+frames after opening the camera genuinely have no answer.
+
+An unpatched binary, or Expo Go, never sends `view`, so the strict path stays
+off and the existing stability and chooser rules carry the scan. That is the
+honest degradation. **Rejecting everything** because geometry could not be
+verified would be worse than the defect; **trusting unverified coordinates**
+would be worse still.
+
+### ✅ APPROVED — a patch that cannot fail silently
+
+`postinstall` runs `patch-package` and then a verifier that checks the installed
+version and six anchors **inside `node_modules`**, exiting non-zero if any is
+missing.
+
+A quietly unapplied patch is the worst outcome available here: the scanner keeps
+working, every test keeps passing, and the frame stops being the boundary —
+visible only to somebody holding a phone against a label. Checking the result
+rather than trusting the step is the only defence.
+
+### ✅ APPROVED — one new devDependency, and no more
+
+`patch-package`. No `expo-dev-client` — an internal EAS build is enough to
+compile and test, and a dev client is only worth adding if repeated native
+iteration proves necessary. No replacement scanner dependency. `android/` and
+`ios/` stay generated and uncommitted under CNG; the patch is what makes the
+native change durable.
+
+### 🔴 PENDING — never compiled, never run
+
+**There is no `eas.json` and no EAS login in this repository.** The Kotlin has
+not been through a compiler and the transform has not executed. No credentials
+were invented and no build was claimed.
+
+`docs/24` §9v carries the build command and the retest. Step 1 (does the overlay
+say `view`?) tells you the patch is in the binary; step 7 (do the overlay's
+corners agree with the drawn frame?) tells you the mapping is right.
+
+**Android strict ROI is not complete until both pass on a physical device.**

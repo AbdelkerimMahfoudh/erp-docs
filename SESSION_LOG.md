@@ -6820,3 +6820,66 @@ sit exactly on the real detection boundary — settles it.
 
 **Commits:** `erp-mobile` `fe7829e` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **I had read the wrong file**
+
+Takeover: mobile `fe7829e`, backend `b5b9461`, docs `27c83f2`. Clean, level.
+
+### The correction
+
+Last session I wrote, at some length and in three places, that Android cannot
+enforce a scan region because `BarcodeScannerResultSerializer.kt` never
+forwards the image dimensions. I verified that by counting occurrences and was
+satisfied with it.
+
+It was the wrong file. The active path is `ExpoCameraView.kt`, which maps
+corner points itself — with scale and no translation, ignoring rotation, and
+with the emitter reading them back transposed because corners are written
+`[x, y, …]` and read as `y = points[i]`. The information was never missing.
+The arithmetic was wrong, in three independent ways, and it had `.first()` on
+top so neighbours could not be rejected even in principle.
+
+What I got wrong methodologically: I searched for the *absence* of something and
+found it, without first establishing that I was looking at the code that runs. A
+negative result from the wrong file reads exactly like a negative result from the
+right one.
+
+I also assumed `PreviewView.getOutputTransform()` had been removed in CameraX
+1.3. This time I downloaded `camera-view-1.5.0-rc01.aar` and ran `javap` on
+it before writing anything. It still exists. Two assumptions about the same
+library, both wrong, and the only one I caught in time was the one I checked.
+
+### What went in
+
+A committed `expo-camera` patch replacing the hand-rolled mapping with
+CameraX's `CoordinateTransform`, forwarding every barcode instead of the
+first, and emitting a `coordinateSpace` marker so JavaScript enforces the hard
+region only when the coordinates were actually mapped.
+
+The part I care most about is the postinstall verifier. A patch that quietly
+fails to apply leaves the scanner working, every test passing, and the frame no
+longer the boundary — the only symptom is somebody holding a phone against a
+label and wondering why. So it checks six anchors inside `node_modules` and
+exits non-zero, and I tested the failure path as well as the success path rather
+than assuming a guard works because it is present.
+
+### 🔴 It has never been compiled
+
+There is no `eas.json` and no EAS login in this repository. The Kotlin has not
+been through a compiler and the transform has not run. I did not invent
+credentials and I am not claiming a build.
+
+Given how this session started — two confident wrong readings of this same
+library — the honest statement is that the patch is a well-evidenced proposal
+that happens to be wired up, not a working feature. `docs/24` §9v step 1 tells
+you whether it is in the binary; step 7 tells you whether the mapping is right.
+
+- **Mobile 27 pure suites**, 35 ROI assertions, lint 0, Doctor 18/18, parity
+  1 837, 68 routes. One new devDependency. No dev-client, no replacement
+  scanner, no OCR.
+
+**Commits:** `erp-mobile` `a907f7e` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
