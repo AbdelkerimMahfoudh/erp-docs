@@ -2371,3 +2371,102 @@ value surviving dismissal, and the scanner internals being untouched.
 
 **These are source assertions.** Whether fifty points of space actually
 disappeared, and whether the keyboard behaves in a hand, are steps 1–15.
+
+---
+
+## 9z. ✅ The Android native build COMPILED
+
+EAS build `251f8b41-5b1d-4c9f-85a1-a0e59a95351a` **completed successfully**.
+
+That answers §9v's first open question: the committed `expo-camera` patch
+**compiles**. The Kotlin is valid against CameraX 1.5.0-rc01 — the
+`@TransformExperimental` opt-in, `ImageProxyTransformFactory`,
+`CoordinateTransform`, `isUsingRotationDegrees` and the widened
+`BarcodeAnalyzer` constructor are all accepted by the compiler.
+
+The earlier build `6a141e15` failed at `processReleaseResources` on the splash
+drawable (§9w) and never reached Kotlin. That is fixed and this one got through.
+
+### 🔴 What compiling does NOT prove
+
+**Android ROI behaviour is still unverified on a device.** A compiler checks
+that the transform is *called correctly*; it says nothing about whether the
+mapped corners land where the frame is drawn. Rotation is the specific risk —
+ML Kit is handed a rotated `InputImage`, and `isUsingRotationDegrees = true` is
+a choice that only a phone can confirm.
+
+§9v's device retest stands, unchanged. **Step 1** (does the overlay say `view`?)
+now has a binary to run in; **step 7** (do the corners agree with the frame?) is
+the one that decides.
+
+---
+
+## 9aa. The keyboard dismissal that was wired to the wrong branch
+
+### What the device found
+
+Entering a scan page with the keyboard closed: working. Tapping the input to
+open it: working. **Tapping outside to dismiss it: not working.** The only way
+to close the keyboard was to leave the page and come back.
+
+### Why, and why the test had passed
+
+`Screen` renders its body two ways:
+
+```
+scroll={true}   → ScrollView  → Pressable → children      ← had a dismissal
+scroll={false}  → View        → children                  ← had NOTHING
+```
+
+**Every scan-entry page passes `scroll={false}`.** The previous correction added
+three dismissals and a test counted three: header strip, footer strip, and the
+scrolling body those pages never render. The middle of the screen — the empty
+cart, the empty state, the list — was a plain `View` with no handler.
+
+The count was correct. Counting was never the problem; counting the wrong three
+was, and a source-text assertion cannot tell the difference.
+
+### The fix
+
+| | |
+| --- | --- |
+| The non-scrolling body | is now a dismissal surface — **the actual defect** |
+| Both body surfaces | use `flexGrow` so they reach the bottom of a short page. A `Pressable` sizes to its children, so with an empty cart — exactly when somebody is typing — it covered a strip at the top and left the obvious place to tap outside itself |
+| Receive's list | gained `keyboardDismissMode="on-drag"`, the one scrollable on a scan page where a drag left the keyboard over the content being scrolled |
+
+The behaviour moved into `lib/keyboard-dismiss.ts` as two plain functions, so a
+test can **call** the handler the UI calls. 18 assertions now invoke them and
+observe the result rather than searching for a string.
+
+Still no overlay. The surfaces are `Pressable`s wrapped around real content, so
+the deepest responder wins: buttons press, the camera icon opens the camera, and
+the field keeps focus when tapped.
+
+### 🔴 The device checks
+
+Run in **English, French and Arabic RTL**, on Sell **and** stock intake.
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Open Sell. | No keyboard. |
+| 2 | Tap the scan field, type three digits. | Keyboard opens; digits appear. |
+| 3 | Tap the **empty cart area** in the middle of the screen. | **Keyboard closes.** This is the exact tap that did nothing before. |
+| 4 | Tap the field again, then tap the **header** beside the title. | Closes. |
+| 5 | Tap the field again, then tap the **footer**. | Closes; if a button was hit, it also ran, on the first tap. |
+| 6 | Tap the field again, then tap **inside the field**. | Stays open. |
+| 7 | Type, dismiss, then look at the field. | **The typed value is still there.** |
+| 8 | Type, then tap the **camera icon**. | Keyboard closes and the scanner opens full height. |
+| 9 | Add items to the cart, type, then **drag the list**. | Keyboard closes. |
+| 10 | Repeat 1–9 on **stock intake** (Receive). | Identical. |
+| 11 | Leave the page and come back. | No keyboard, and no field focused. |
+| 12 | Scan something; let a result appear. | No keyboard. |
+| 13 | Repeat 1–9 in **Arabic**. | Identical; RTL intact. |
+| 14 | With VoiceOver on, swipe through the page. | The dismissal surfaces are **not** announced as buttons. |
+
+### What is proven, and what is not
+
+18 behavioural assertions calling the handlers, plus wiring checks that the
+handler is attached to **every** body branch — including the one that was
+missed.
+
+**None of that is a finger on glass.** Step 3 is the one that decides.

@@ -6943,3 +6943,64 @@ been through a compiler.
 
 **Commits:** `erp-mobile` `10901bf` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **counting the wrong three**
+
+Takeover: mobile `10901bf`, backend `b5b9461`, docs `c04f279`. Clean, level.
+Ownership claimed this time — I skipped it last session and said so.
+
+### The Android patch compiles
+
+EAS build `251f8b41` completed. The Kotlin is valid against CameraX
+1.5.0-rc01 — the `@TransformExperimental` opt-in, `ImageProxyTransformFactory`,
+`CoordinateTransform` and the widened `BarcodeAnalyzer` constructor were all
+accepted. The three suspects I listed as likely Gradle failures were all fine.
+
+It proves the transform is *called* correctly and nothing about where the mapped
+corners land. Rotation remains the open question and only a phone answers it.
+
+### The keyboard fix that fixed nothing
+
+Last session I added three dismissal handlers to `Screen` and wrote a test that
+counted three. It passed. On a real iPhone, tapping outside the field did
+nothing at all, and the only way to close the keyboard was to leave the page.
+
+`Screen` renders its body two ways and **every scan-entry page passes
+`scroll={false}`**. Two of my three dismissals were the header and footer
+strips; the third was in the scrolling branch those pages never render. The
+middle of the screen had no handler in it.
+
+The count was right. I had counted the wrong three, and a test that searches
+source text cannot tell those apart — it confirms that a string exists, not that
+the code runs on the screen in question. I wrote almost this exact note two
+sessions ago about a slice anchor that swallowed a whole component, and then
+made a variation of the same mistake.
+
+So the behaviour is now two plain functions in `lib/keyboard-dismiss.ts` that a
+test can **call**. Eighteen assertions invoke them and observe what happened —
+including that dismissal runs before the action, recorded by the order the two
+functions actually ran in rather than by reading which argument came first.
+
+One of those tests immediately found something: `dismissing` was a concise
+arrow, so `onPress` received whatever `Keyboard.dismiss()` returns. Harmless,
+but it is a value nobody asked for, and the test that asserts "this handler
+returns nothing" is the reason I know.
+
+The other half of the fix is layout, not logic: a `Pressable` sizes to its
+children, so even on the right branch it would have covered a strip at the top
+of an empty cart and left the obvious place to tap outside itself. `flexGrow`
+on both body surfaces.
+
+- **Mobile 29 pure suites**, lint 0, Doctor 18/18, parity 1 837, 68 routes.
+  More-page spacing and strict ROI untouched and asserted so.
+
+### 🔴 Still to check
+
+`docs/24` §9aa step 3 — tapping the empty cart area — is the tap that failed.
+And Android ROI on a device, now that there is a binary.
+
+**Commits:** `erp-mobile` `9f1146e` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

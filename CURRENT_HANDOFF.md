@@ -8,16 +8,19 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- ✅ **iPhone strict ROI is PHYSICALLY VERIFIED.** A barcode is accepted only
-  when fully inside the visible frame. First green result in this component.
-- Two UI corrections, each a **single shared cause**: the More header gap
-  (46 routes, one line in `Screen`) and the scan-page keyboard.
-- 🔴 **Android remains uncompiled and unverified.** Nothing from the iOS result
-  transfers — the two platforms reach the same predicate by different paths.
+- ✅ **iPhone strict ROI is PHYSICALLY VERIFIED** — a barcode is accepted only
+  when fully inside the visible frame.
+- ✅ **The Android native patch COMPILES.** EAS build
+  `251f8b41-5b1d-4c9f-85a1-a0e59a95351a` completed successfully.
+- 🔴 **Android ROI behaviour is still unverified on a device.** Compiling proves
+  the transform is called correctly, not that the mapped corners land where the
+  frame is drawn. Rotation is the specific risk.
+- Keyboard dismissal fixed: it had been wired to the body branch that
+  **scan pages never render**.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `10901bf` |
+| `erp-mobile` | `9f1146e` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
@@ -35,9 +38,9 @@ step. The `preview` profile is an internal-distribution APK with
 `EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY=1` already set. `npm install` applies the
 native patch and then verifies six anchors, failing loudly if it did not apply.
 
-**Build `6a141e15` failed here on the splash defect, before Kotlin.** That is
-fixed. The next failure — if there is one — will be the first real test of the
-CameraX patch.
+**Build `251f8b41` succeeded — the patch compiles.** An earlier build,
+`6a141e15`, failed here on a splash defect before reaching Kotlin; that is
+fixed. Rebuild only when the native patch or the app config changes.
 
 **A modified native module cannot be validated by a JavaScript refresh, by
 Metro, or in Expo Go** — those run the unpatched binary, where the marker never
@@ -70,6 +73,63 @@ three IMEIs in frame, using a real dual-SIM label or fixtures side by side) and
 
 
 
+
+### The dismissal was wired to the branch scan pages never render
+
+#### What the device found
+
+Entering a scan page with the keyboard closed: working. Tapping the input to
+open it: working. **Tapping outside to dismiss it: not working.** The only way
+to close the keyboard was to leave the page and come back.
+
+#### Why the test had passed
+
+`Screen` renders its body two ways, and **every scan-entry page passes
+`scroll={false}`**:
+
+```
+scroll={true}   → ScrollView → Pressable → children     ← had a dismissal
+scroll={false}  → View       → children                 ← had NOTHING
+```
+
+The previous correction added three dismissals and a test counted three: the
+header strip, the footer strip, and the scrolling body those pages never
+render. The middle of the screen — the empty cart, the empty state, the list —
+was a plain `View` with no handler.
+
+The count was correct. **Counting was never the problem; counting the wrong
+three was**, and a source-text assertion cannot tell the difference.
+
+#### The fix
+
+- the non-scrolling body is a dismissal surface — the actual defect;
+- both body surfaces use `flexGrow` so they reach the bottom of a short page.
+  A `Pressable` sizes to its children, so with an empty cart — exactly when
+  somebody is typing — it covered a strip at the top and left the obvious place
+  to tap outside itself;
+- Receive's list gained `keyboardDismissMode="on-drag"`.
+
+The behaviour moved into `lib/keyboard-dismiss.ts` as two plain functions, so
+a test can **call** the handler the UI calls. 18 assertions invoke them and
+observe the result: that dismissal fires, that the camera action dismisses AND
+opens, that dismissal runs **before** the action (recorded by order, not read
+from argument order), that a throwing action still dismissed first, and that the
+module imports nothing and so cannot reach the typed value.
+
+`dismissing` returns void explicitly rather than leaking `dismiss()`'s return
+value into `onPress` — found by a test asserting the handler returns nothing.
+
+Still no overlay: `Pressable`s around real content, so the deepest responder
+wins and buttons, the camera icon and the field all behave normally.
+
+#### Gates
+
+Mobile **29 pure suites** · `tsc` clean · lint **0** · Doctor **18/18** ·
+EN/AR/FR **1 837 identical** · export **68 routes**. The More-page spacing fix
+and the strict scanner ROI are untouched, and asserted so.
+
+---
+
 ### ✅ iPhone strict ROI verified, and two shared-cause UI fixes
 
 #### The first green device result
@@ -82,7 +142,7 @@ what `docs/24` §9u step 8 and §9v step 7 were written to settle — on iOS.
 comparing them with a rectangle measured by `onLayout` works in the hand as
 well as on paper.
 
-**Android carries none of this.** Its patch has still never been compiled.
+**Android carries none of this.** *(Update: its patch has since COMPILED — EAS build `251f8b41`. Device behaviour there is still unverified.)*
 
 #### The gap under the navigation header — 46 routes, one line
 
@@ -465,22 +525,25 @@ file, and thirteen of them had accumulated — each naming a next action that ha
 already been done. They are merged here and the duplicates removed; the
 narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
-*Confirmed on a device:*
+*Confirmed:*
 
 - ✅ **iPhone strict ROI** — a barcode is accepted only when fully inside the
-  visible frame (`docs/24` §9x).
+  visible frame (`docs/24` §9x). Physically verified.
+- ✅ **The Android native patch compiles** — EAS build `251f8b41`
+  (`docs/24` §9z). The Kotlin is valid against CameraX 1.5.0-rc01.
 
 *Still unconfirmed by a camera:*
 
-1. 🔴 **The Android patch has never been compiled.** `docs/24` §9v has the
-   build command. **Check it compiles first** — likely suspects if Gradle
-   fails: the `@TransformExperimental` opt-in, `isUsingRotationDegrees`
-   property syntax, and the `BarcodeAnalyzer` constructor arity at its call
-   site. The iOS result transfers nothing.
-2. 🔴 **§9v** — the Android device retest. Step 1 (overlay says `view`), then
-   step 7 (corners match the frame).
-3. 🔴 **§9y** — the two UI corrections, in **EN, FR and Arabic RTL**. Fifteen
-   steps: the More gap, the tabs staying unchanged, and the keyboard.
+1. 🔴 **Android ROI behaviour** — `docs/24` §9v. Compiling proves the
+   transform is *called* correctly and nothing about where the mapped corners
+   land. **Rotation is the specific risk**: ML Kit is handed a rotated
+   `InputImage` and `isUsingRotationDegrees = true` is a choice only a phone
+   can confirm. Step 1 (overlay says `view`), then step 7 (corners match the
+   frame).
+2. 🔴 **§9aa** — the keyboard dismissal, 14 steps. **Step 3** is the one that
+   decides: tapping the empty cart area, which is the exact tap that did
+   nothing before.
+3. 🔴 **§9y** — the More-page spacing, in EN, FR and Arabic RTL.
 4. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
 5. 🔴 **§9s, §9r, §9q steps 8–15, §9n, §9o** — earlier scanner checks.
 6. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
@@ -501,10 +564,10 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Build the Android internal binary (command above) and find out whether the
-patch **compiles** — nothing in the Android path can be judged until it does.
-Then `docs/24` §9v on a device. §9y (the More gap and the keyboard, in all
-three languages) can be checked on any build, including iOS. Android resizes its own
+Install the Android build (`251f8b41`) on a phone and run `docs/24` §9v —
+step 1, then step 7. That is the last unanswered question about the scanner.
+§9aa (the keyboard, step 3 above all) and §9y (the More spacing) can be checked
+on any build, including iOS. Android resizes its own
      window and must NOT be given a behaviour, or the two corrections fight.
   2. The scroll area reserves the footer's **measured** height — a constant is
      wrong on every screen whose footer has two buttons instead of one.
