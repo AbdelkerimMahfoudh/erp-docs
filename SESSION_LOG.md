@@ -6686,3 +6686,70 @@ of this holds.
 
 **Commits:** `erp-mobile` `91e2fa0` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **the hang and the wrong pick were the same line**
+
+Takeover verified against the frozen baseline: mobile `91e2fa0`, backend
+`b5b9461`, docs `19d44ec`. Clean, level, no discrepancies.
+
+### What the device found
+
+Three visible IMEIs made the scanner alternate, occasionally wait forever, and
+occasionally choose one nobody meant.
+
+I had built exactly that behaviour and thought it was the careful option. The
+rule was "keep acquiring until one candidate dominates, and if the grace expires,
+take a stable answer". Two IMEIs side by side accumulate at the same rate and
+never separate — so the wait was unbounded in practice and the fallback was a
+coin toss. **Both symptoms came from that one rule**, which is why the report
+listed them as separate faults and they had a single cause.
+
+The instruction not to solve this by tuning constants was correct and I want to
+record why: no threshold distinguishes "held still" from "wanted". Those are
+different facts, and only a person has the second one.
+
+### What changed
+
+A `choosing` state. One valid IMEI still continues on its own; two or more stop
+the camera and ask. Nothing runs while the question is open — no haptic, no
+recognition call, nothing committed — and the camera being off is load-bearing,
+because a list that changes while you read it is not a list.
+
+The part I am most confident about is the smallest: a candidate must be seen
+`MIN_OBSERVATIONS` times before it is offered. Without it, one stray decode
+from a neighbouring label turns every ordinary scan into a multiple-choice
+question, which would have been a worse product than the bug.
+
+### A test that was passing for the wrong reason
+
+The session-reset test sliced from the reset block to a marker that appears
+nowhere near it, so the slice was 25 000 characters and the assertion amounted
+to "this string exists somewhere in the file". It passed while the reset did not
+actually clear the selection. I tightened the anchor and bounded the slice; it
+then failed, which is how I found the missing line.
+
+Worth noting against my own habit: I have been writing source-reading tests for
+several sessions because a device was unavailable, and this is their
+characteristic failure — they pass on a substring rather than on a behaviour.
+
+### Result meanings
+
+A valid IMEI whose TAC nobody recognises was reading as "nothing found". That is
+a successful scan of an uncatalogued phone, and calling it a failure sent people
+back to rescan a code that was already correct. Four meanings now, kept apart.
+
+- **Mobile 26 pure suites** — 49 stabilizer, 28 machine, 58 scanner behaviour.
+  lint 0, Doctor 18/18, parity 1 837, 68 routes. No backend, schema, migration,
+  API, validation, duplicate-rule or permission change.
+
+### 🔴 Not device-verified
+
+`docs/24` §9t, and it must be run **on Android and iOS separately** — iOS can
+rank candidates by position and Android cannot, so a pass on one proves nothing
+about the other.
+
+**Commits:** `erp-mobile` `76e389e` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

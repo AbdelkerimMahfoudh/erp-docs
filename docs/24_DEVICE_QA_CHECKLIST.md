@@ -1831,3 +1831,118 @@ exact shape it was measured.
 often enough to satisfy `MAX_GAP_MS` on a busy label, whether the reticle
 ranking helps on iOS, and whether ~1 s feels right in the hand are all open. The
 constants are exported and documented so they can be tuned after step 1.
+
+---
+
+## 9t. Three visible IMEIs — the scanner now asks
+
+### What the device did
+
+With three IMEI barcodes in frame, the scanner:
+
+- alternated between whatever the decoder happened to report;
+- sometimes waited indefinitely;
+- sometimes chose an IMEI nobody meant;
+- sometimes reported "nothing found" while holding a valid IMEI;
+- did not reliably respect the barcode being aimed at.
+
+### Why timing could not fix it
+
+The previous rule waited for one candidate to *dominate*. Two IMEIs held side
+by side accumulate at the same rate and never separate — so it waited, and when
+`AMBIGUITY_GRACE_MS` expired it picked one arbitrarily. **The hang and the wrong
+pick came from the same line.**
+
+Stability says a barcode is being held still. It never says it is the one
+somebody wanted. No constant can bridge that.
+
+### The policy
+
+| Valid IMEIs found | What happens |
+| --- | --- |
+| **one** | continues automatically after the usual window — one answer is not ambiguous |
+| **two** | camera stops, both shown, choose one or *"Use both — one phone"* |
+| **three or more** | camera stops, all shown, **never** auto-selected, at most two selectable |
+
+While the question is open: **camera off, no haptic, no recognition request,
+nothing committed.** `/scan` is driven by a confirmed identifier and a question
+has none — which is also what stops a response for an unintended candidate
+arriving later and overwriting the visible result.
+
+A candidate must have been seen `MIN_OBSERVATIONS` times to be offered, so one
+stray decode from a neighbouring label cannot turn a clean scan into a question.
+
+### The reticle still only ranks
+
+Where coordinates are trustworthy the panel lists the best-aimed candidate
+first. That is presentation. On Android — ML Kit image pixels over display
+density, image dimensions never forwarded to JS — the order carries no
+positional information and the person simply chooses. **That is the required
+fallback, not a stability-only guess.**
+
+### 🔴 The retest — one, two and three barcodes, on BOTH platforms
+
+Run every block on **Android and iOS separately**. They take different code
+paths: iOS can rank by position, Android cannot, and a pass on one says nothing
+about the other.
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+**A — one IMEI visible** (use the individual fixture view)
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Open one IMEI alone, aim, hold. | Accepted after ~1 s. **No selection panel.** One haptic. |
+| 2 | Read the result. | The exact printed IMEI, selectable, left-to-right in Arabic too. |
+
+**B — two IMEIs visible** (a real dual-SIM label, or two fixtures side by side)
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 3 | Hold both in frame. | The camera **stops** and both are listed. Nothing is pre-ticked. No haptic yet. |
+| 4 | Tick one, tap **Use selected IMEI**. | That one is used. One haptic, at this moment. |
+| 5 | Repeat, ticking the *other*. | The other is used — either can be chosen alone. |
+| 6 | Repeat, tick both. | **"Both IMEIs belong to one phone."** appears *before* the button is pressed, and the button reads **Use both — one phone**. |
+| 7 | Accept after choosing both. | **One** unit with two identifiers. Never two units. |
+
+**C — three or more IMEIs visible**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 8 | Hold three in frame for ~5 s. | The panel appears with **all three**. Nothing is ever chosen automatically, however long you wait. |
+| 9 | Try to tick a third. | Refused at two. |
+| 10 | Tap **Scan again**. | Camera returns, collection starts over. |
+| 11 | Tap **Cancel**. | The sheet closes and nothing is committed. |
+
+**D — result meanings**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 12 | Scan a valid IMEI whose TAC is not in the catalogue (fixture case for an unknown TAC). | **"IMEI detected"** and **"Product not recognized"** — never "No IMEI found". |
+| 13 | Aim at a 15-digit code with a broken checksum. | The invalid-IMEI explanation. Camera stays live, nothing committed. |
+| 14 | Aim at an ordinary product barcode while booking a phone in. | **"No IMEI found"** — a different fact from step 12. |
+
+**E — IMEI 2, repetition and fallback**
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 15 | Accept IMEI 1, tap **Add second IMEI**, point at the same label. | IMEI 1 is still shown, and is **not** offered as a candidate. |
+| 16 | Try to scan IMEI 1 again as the second. | Refused. It never appears in the list. |
+| 17 | Choose a genuine second IMEI. | Both shown as one phone. IMEI 1 never discarded. |
+| 18 | After acceptance, keep the camera on the label. | **Exactly one** submission. |
+| 19 | Close and reopen the scanner twice. | Clean each time — no candidates, no ticks, no result carried over. |
+| 20 | Type an IMEI on the intake page instead. | Manual entry unchanged and still on the intake page, not inside the scanner. |
+
+### What is proven, and what is not
+
+49 stabilizer, 28 machine and 58 scanner-behaviour assertions, all with a clock
+the tests advance by hand — including alternating A/B/C callbacks reaching a
+question instead of hanging, and IMEI 1 being excluded on the second pass.
+
+**That is arithmetic and source reading, not a camera.** Whether the panel
+appears at the right moment on a real label, whether three barcodes are actually
+all collected before it opens, and whether the wording is clear enough at a
+counter are open until this section is run on both platforms.

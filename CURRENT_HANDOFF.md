@@ -8,17 +8,18 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **The scanner could not scan a phone label at all.** Measured: 4 950 ms held
-  still over 4 barcodes → **0 accepted**. Now **1 617 ms → the IMEI**.
-- `onBarcodeScanned` fires once per BARCODE, not per frame. Candidates are now
-  tracked concurrently, each earning its own 1 000 ms window.
-- ROI is **advisory**: it ranks candidates where coordinates are trustworthy and
-  is ignored where they are not. No scan is ever refused for want of one.
-- 🔴 **Not device-verified.** Retest: `docs/24` §9s — Scan 1, 2 and 3.
+- **Several visible IMEIs are now a question, not a guess.** One continues
+  automatically; two or more stop the camera and ask.
+- The hang and the wrong pick were the same line: waiting for one candidate to
+  dominate, then picking arbitrarily when the grace expired.
+- ROI stays **advisory** — it orders the panel, it decides nothing. Android has
+  no usable coordinates and uses explicit selection, as required.
+- 🔴 **Not device-verified.** Retest: `docs/24` §9t, **on Android and iOS
+  separately** — one, two and three visible IMEIs.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `91e2fa0` |
+| `erp-mobile` | `76e389e` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
@@ -35,15 +36,79 @@ cd backend
 APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
 ```
 
-Run `docs/24` **§9s**. Scan 1 needs a **crowded** label — a real phone, or the
-full sheet — because that is the case that failed. Scans 2 and 3 use the solo
-fixture view ("Open this one alone →").
+Run `docs/24` **§9t**, on **Android and iOS separately**. Blocks B and C need
+**two and three IMEIs in frame at once** — a real dual-SIM label, or fixtures
+placed side by side. Block A uses the solo fixture view ("Open this one alone
+→"). §9s is still open for the crowded-label acquisition steps.
 
 **No camera has read anything yet.**
 
 ---
 
 
+
+
+### Three visible IMEIs: the scanner asks now
+
+The device found it alternating between them, sometimes waiting indefinitely,
+sometimes choosing one nobody meant, and sometimes reporting "nothing found"
+while holding a valid IMEI.
+
+**Timing could not fix this.** The old rule waited for one candidate to
+dominate; two IMEIs held side by side accumulate at the same rate and never
+separate, so it waited — and when `AMBIGUITY_GRACE_MS` expired it picked one
+arbitrarily. The hang and the wrong pick came from the same line.
+
+The principle: **stability says a barcode is being held still, never that it is
+the one somebody wanted.**
+
+| Valid IMEIs | Behaviour |
+|---|---|
+| one | continues automatically after its window |
+| two | camera stops; one, or "Use both — one phone" |
+| three or more | all listed, **never** auto-selected, at most two |
+
+While the question is open: **camera off, no haptic, no recognition request,
+nothing committed.** `/scan` hangs off a confirmed identifier and a question
+has none — which is also what stops a response for an unintended candidate
+arriving later and overwriting the visible result.
+
+#### Details worth keeping
+
+- A candidate needs `MIN_OBSERVATIONS` sightings to be offered, so one stray
+  decode from a neighbouring label cannot turn a clean scan into a question.
+- Invalid identifiers are never offered and never displace a valid one.
+- **"Both IMEIs belong to one phone."** appears *with* the choice, not after.
+  Two IMEIs on a bench are not evidence of one handset, and filing two phones as
+  one is not correctable later.
+- `rankCandidates` orders the panel best-aimed first where coordinates are
+  trustworthy. **Presentation only.** On Android nothing can be normalised, so
+  the person simply chooses — the required fallback, not a stability guess.
+- Adding IMEI 2: IMEI 1 is excluded from collection entirely, so it cannot be
+  offered, counted as a rival, or re-picked. "Scan again" keeps it.
+
+#### Four result meanings, kept apart
+
+A valid IMEI with an unknown TAC now reads **IMEI detected** + **Product not
+recognized**. It used to read as "nothing found" — telling somebody the scan had
+failed when it had worked, and sending them back to rescan a correct code.
+**No IMEI found** is reserved for nothing having been an IMEI at all.
+
+#### A test that was passing for the wrong reason
+
+The session-reset test sliced on an anchor that swallowed the whole component,
+so it asserted that `setSelected([])` appears *somewhere in 25 000
+characters*. Fixed, and it now bounds the block it claims to inspect — the
+tightened version failed until the reset actually cleared the selection.
+
+#### Gates
+
+Mobile **26 pure suites** — 49 stabilizer, 28 machine, 58 scanner behaviour ·
+`tsc` clean · lint **0** · Doctor **18/18** · EN/AR/FR **1 837 identical** ·
+export **68 routes**. Backend, website and databases untouched. **No migration**,
+no API change, no change to IMEI validation, duplicates or permissions.
+
+---
 
 ### The scanner could not scan a phone label
 
@@ -179,17 +244,17 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 *On a device — nothing below has been confirmed by a camera:*
 
-1. 🔴 **`docs/24` §9s** — Scan 1, 2 and 3 on a **crowded label**. Step 1 is the
-   one that matters: a stationary camera over 4–5 barcodes must now accept an
-   IMEI in 1–2 s, where the previous build accepted nothing at all.
-2. 🔴 **§9r** — the aiming steps, superseded in part by §9s but never confirmed.
-3. 🔴 **§9q steps 8–15** — the model count moving after a save, using
+1. 🔴 **`docs/24` §9t** — one, two and three visible IMEIs, **on Android and
+   iOS separately**. They take different code paths: iOS can rank by position,
+   Android cannot, and a pass on one says nothing about the other.
+2. 🔴 **§9s** — the crowded-label acquisition steps.
+3. 🔴 **§9r** — the aiming steps, superseded in part but never confirmed.
+4. 🔴 **§9q steps 8–15** — the model count moving after a save, using
    scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
    with `staging-verify-model-count.ts`.
-4. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
-5. The acquisition constants are exported and documented **because they have not
-   met a phone**. `MAX_GAP_MS` is the likeliest to need tuning: it must not
-   assume a callback rate, so it is deliberately generous.
+5. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
+6. The acquisition constants remain exported and documented **because they have
+   not met a phone**. Do not tune them from simulation.
 
 *Known and deliberately not done:*
 
@@ -206,10 +271,9 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Run `docs/24` **§9s step 1**: hold the camera still over a label with four or
-five barcodes for five seconds. The previous build accepted nothing there, ever.
-An IMEI must be accepted in one to two seconds. Everything else follows from
-whether that works.
+Run `docs/24` **§9t** on a phone — and on **both** platforms. Block C is the
+one that matters: three IMEIs in frame must produce a panel listing all three
+and must never choose one on its own, however long it is held.
 
 ---
 

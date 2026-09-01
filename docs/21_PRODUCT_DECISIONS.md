@@ -3275,3 +3275,91 @@ it is deliberately generous for a slow device showing a busy label.
 
 38 stabilizer assertions and 44 scanner-behaviour assertions pass with a
 hand-advanced clock. **That is arithmetic, not a camera** — `docs/24` §9s.
+
+---
+
+## 6t. Several visible IMEIs: ask, never guess — SHIPPED
+
+### ✅ APPROVED — timing cannot identify intent
+
+With three IMEIs in frame the scanner alternated between them, sometimes waited
+indefinitely, and sometimes chose one nobody meant.
+
+The previous rule waited for one candidate to *dominate*. Two IMEIs held side by
+side accumulate at the same rate and never separate — so it waited, and when the
+grace period expired it picked one arbitrarily. **The hang and the wrong pick
+were the same line of code.**
+
+The principle that replaced it: **stability says a barcode is being held still;
+it never says it is the one somebody wanted.** No constant bridges that gap, so
+the scanner stops guessing and asks.
+
+### ✅ APPROVED — one is not a question; two or more is
+
+| Valid IMEIs | Behaviour |
+| --- | --- |
+| one | continues automatically after its window |
+| two | camera stops; choose one, or *"Use both — one phone"* |
+| three or more | camera stops; all listed; **never** auto-selected; at most two |
+
+Asking is for ambiguity. Making somebody confirm a single unambiguous scan would
+tax the common case to fix the rare one, and this app is measured against a
+notebook.
+
+### ✅ APPROVED — nothing happens while the question is open
+
+Camera **off**, so the list cannot change under somebody reading it. **No
+haptic**, because nothing has succeeded. **No recognition request** — `/scan` is
+driven by a confirmed identifier and a question has none, which is also what
+prevents a response for an unintended candidate arriving later and replacing the
+visible result. Nothing is committed.
+
+### ✅ APPROVED — "both" is confirmed, never assumed
+
+Two IMEIs near each other are not evidence of one handset: a bench, a drawer or
+a display card can put two phones in frame. **"Both IMEIs belong to one phone."**
+is stated *with* the choice rather than in a confirmation afterwards, because
+filing two handsets as one is not correctable later.
+
+Two is also not a UI limit — a `Unit` carries a primary and a secondary, so a
+third selected identifier would have nowhere to go.
+
+### ✅ APPROVED — a candidate must be seen repeatedly to be offered
+
+One stray decode from a neighbouring label is not a plausible target. Offering
+it would turn ordinary scans into multiple-choice questions, so candidates clear
+the same `MIN_OBSERVATIONS` bar the accept path uses. Invalid identifiers are
+never offered and never displace a valid one.
+
+### ✅ APPROVED — the reticle ranks the list and decides nothing
+
+Where coordinates are trustworthy the panel opens best-aimed first. That is
+presentation only. On Android no coordinate can be normalised, so the order
+carries no positional information and the person simply chooses — **explicit
+selection is the Android fallback, not a stability-only guess.**
+
+### ✅ APPROVED — IMEI 1 is never at risk while adding IMEI 2
+
+It is excluded from collection entirely, so it cannot be offered, counted as a
+rival to the identifier being looked for, or picked twice. Only one further
+identifier may be selected, and *"Scan again"* from the panel keeps it.
+
+### ✅ APPROVED — four result meanings, kept apart
+
+| Situation | What is shown |
+| --- | --- |
+| valid IMEI, recognised TAC | the product |
+| valid IMEI, unknown TAC | **IMEI detected** + **Product not recognized** |
+| 15 digits, bad checksum | the invalid-IMEI explanation |
+| nothing was an IMEI | **No IMEI found** |
+
+A valid IMEI whose product is unknown is a **successful** scan of an
+uncatalogued phone. Reporting it as "nothing found" told people the scan had
+failed when it had worked, and sent them back to rescan a correct code.
+
+### 🔴 PENDING — none of this has met a camera
+
+49 stabilizer, 28 machine and 58 scanner-behaviour assertions pass with a
+hand-advanced clock, including alternating callbacks reaching a question rather
+than hanging. **That is arithmetic, not a device** — `docs/24` §9t, which must
+be run on **Android and iOS separately** because they take different code paths.
