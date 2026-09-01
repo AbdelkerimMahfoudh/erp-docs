@@ -6753,3 +6753,70 @@ about the other.
 
 **Commits:** `erp-mobile` `76e389e` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **a hard region, on the one platform that can have one**
+
+Takeover: mobile `76e389e`, backend `b5b9461`, docs `b5e973f`. Clean, level.
+The brief referenced two device screenshots; **they did not arrive**, and I said
+so before starting rather than implying I had looked at them.
+
+### The audit decided the shape of the work
+
+I have written about expo-camera's coordinate spaces twice before from its type
+documentation. This time I read the Kotlin and the Swift, and the answer is
+sharper than "unreliable".
+
+**iOS is fine.** `MetaDataDelegate` passes every metadata object through
+`previewLayer.transformedMetadataObject`, which is AVFoundation converting into
+preview-layer points — aspect-fill, rotation and mirroring already handled. Those
+share a coordinate system with `onLayout`, so containment is a comparison and
+nothing else. It also loops all `metadataObjects`, so every barcode in frame is
+judged separately.
+
+**Android cannot do this at all**, and the reason is one missing line. The
+serializer builds the JS bundle from six fields; `BarCodeScannerResult` carries
+`width` and `height` from the analyzer and neither is put in. I checked by
+count rather than by eye: zero occurrences. Corner points are rotated image
+pixels over display density with the denominator withheld.
+
+So I implemented the hard gate on iOS and left Android honest, which is what the
+brief asked for when it cannot be guaranteed. I did not attempt to infer the
+extent. The failure mode of guessing is a scanner that rejects everything, on
+hardware I cannot test — and that is the one outcome worse than the bug.
+
+Worth recording as the smallest fix for whoever picks this up: forwarding
+`width`/`height` and the rotation in `toBundle` is a few lines, is
+upstreamable, and would make this gate work on Android unchanged.
+
+### The thing I keep having to state explicitly
+
+`no-geometry` is not `inside`. It would have been easy to let a missing
+`cornerPoints` fall through as admissible — every callback would keep working
+and every test would pass — and the region would be decorative while the code,
+the docs and the handoff all described it as strict. The test for it is the one
+I would keep if I could keep only one.
+
+### A constraint that shaped the design
+
+`lib/scan/roi.ts` imports nothing. The first version read `Platform.OS`
+directly and immediately broke `node lib/scan/roi.test.ts` — every module under
+`lib/scan` is dependency-free precisely so it can be run without a bundler. The
+platform is now an argument to a pure predicate. That is a better design anyway:
+`roiEnforceable('android')` is testable and `Platform.OS === 'ios'` was not.
+
+- **Mobile 27 pure suites** — 22 ROI, 49 stabilizer, 28 machine, 58 scanner
+  behaviour. lint 0, Doctor 18/18, parity 1 837, 68 routes. No backend, schema,
+  migration or API change; no dependency added or replaced.
+
+### 🔴 Not device-verified
+
+**A source test cannot prove a coordinate transform.** Aspect-fill cropping and
+rotation look right in a simulator and are wrong in a hand, which is what the
+`__DEV__` geometry overlay exists for. `docs/24` §9u step 8 — does the mask
+sit exactly on the real detection boundary — settles it.
+
+**Commits:** `erp-mobile` `fe7829e` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

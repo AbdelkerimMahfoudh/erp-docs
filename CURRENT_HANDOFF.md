@@ -8,18 +8,20 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **Several visible IMEIs are now a question, not a guess.** One continues
-  automatically; two or more stop the camera and ask.
-- The hang and the wrong pick were the same line: waiting for one candidate to
-  dominate, then picking arbitrarily when the grace expired.
-- ROI stays **advisory** — it orders the panel, it decides nothing. Android has
-  no usable coordinates and uses explicit selection, as required.
-- 🔴 **Not device-verified.** Retest: `docs/24` §9t, **on Android and iOS
-  separately** — one, two and three visible IMEIs.
+- **The frame is now the scan region** — every corner of a barcode must be
+  inside it, and a failing callback is dropped before anything else happens.
+- 🔴 **Enforceable on iOS only.** Android never forwards the image dimensions
+  needed to map barcode coordinates; nothing is inferred. Details below.
+- One frame now, wide and shallow, sized for a single horizontal barcode. The
+  two overlapping shapes are gone.
+- ⚠️ The two device screenshots that prompted this were **not received**. The
+  geometry follows the written brief and has not been compared with the device.
+- 🔴 **Not device-verified.** Retest: `docs/24` §9u, Android and iOS
+  separately. **Step 8 is the one that matters.**
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `76e389e` |
+| `erp-mobile` | `fe7829e` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
@@ -36,10 +38,10 @@ cd backend
 APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
 ```
 
-Run `docs/24` **§9t**, on **Android and iOS separately**. Blocks B and C need
-**two and three IMEIs in frame at once** — a real dual-SIM label, or fixtures
-placed side by side. Block A uses the solo fixture view ("Open this one alone
-→"). §9s is still open for the crowded-label acquisition steps.
+Run `docs/24` **§9u first**, on **Android and iOS separately** — the scan
+region, with the `__DEV__` geometry overlay on. Then **§9t** (one, two and
+three IMEIs in frame, using a real dual-SIM label or fixtures side by side) and
+**§9s** for the crowded-label acquisition steps.
 
 **No camera has read anything yet.**
 
@@ -47,6 +49,70 @@ placed side by side. Block A uses the solo fixture view ("Open this one alone
 
 
 
+
+
+### The frame became the scan region
+
+Only a barcode **completely** inside the rectangle may be considered. Every
+corner, not the centre: a barcode straddling an edge has its centre inside while
+half of it is out of shot, and that is the read that produces a wrong digit. Two
+barcodes each crossing the frame is **no detection**, not a guess at whichever
+is more covered.
+
+A rejected callback is dropped before classification, stabilization, haptics,
+recognition or any message. It never happened.
+
+#### One frame
+
+There were two overlapping shapes — corner brackets and a rounded rectangle — so
+the active area was whichever one you read. **Two frames on a scanner is worse
+than none**: it promises a boundary and leaves you to guess which.
+
+One wide, shallow rectangle now: 84% of the preview width, 0.34 of that as
+height, accents drawn on it so they cannot drift, and derived from the same
+rectangle the gate tests. Height is tied to WIDTH rather than to the preview, so
+a long phone does not get a frame that comfortably holds two stacked codes.
+
+Surround is four scrim panels — a cutout needs a mask layer and this needs none,
+and inside stays clear glass. **No blur**: `expo-blur` is not installed and
+none was added.
+
+#### 🔴 The limitation, audited from the native source
+
+| Platform | Enforceable? |
+|---|---|
+| **iOS** | **Yes.** `MetaDataDelegate.swift` passes metadata through `previewLayer.transformedMetadataObject` — preview points, aspect-fill and rotation already applied, the same space `onLayout` reports. It loops **all** `metadataObjects`. |
+| **Android** | **No.** ML Kit corners are rotated image pixels; the serializer divides by density and sends `data · raw · type · extra · cornerPoints · bounds`. The image dimensions are captured in Kotlin and **never put into that bundle** — verified zero occurrences. Also `barcodes.first()` only. |
+
+**Nothing was inferred.** Guessing an extent fails by silently rejecting every
+scan, on hardware nobody here can test. `no-geometry` is never treated as
+`inside`. `bounds` is not consulted: Expo documents it as sometimes empty and
+as not necessarily bounding the whole barcode — precisely this use.
+
+On Android the frame guides and the copy claims nothing more; the existing
+stability and explicit-selection rules still protect the scan there.
+
+**Proposed, not implemented** — smallest first: forward `width`/`height` and
+rotation in `toBundle` (a few lines, upstreamable, and this gate would work
+unchanged); then a config plugin cropping the analyzer input; a different
+scanner dependency only if both are proven insufficient.
+
+#### A development overlay with no identifiers in it
+
+Behind `__DEV__`: the measured rectangle, the received corners, and the
+verdict. Coordinates and the **last four digits** only — an overlay printing
+payloads would put complete IMEIs on screen and into whatever captured it.
+Nothing logged, nothing persisted.
+
+#### Gates
+
+Mobile **27 pure suites** — 22 ROI, 49 stabilizer, 28 machine, 58 scanner
+behaviour · `tsc` clean · lint **0** · Doctor **18/18** · EN/AR/FR **1 837
+identical** · export **68 routes**. Backend, website and databases untouched.
+**No migration, no schema change, no API change.** Manual entry, the ambiguity
+workflow, dual-IMEI QR parsing, IMEI 1 locking and the no-OCR rule all preserved.
+
+---
 
 ### Three visible IMEIs: the scanner asks now
 
@@ -244,17 +310,22 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 *On a device — nothing below has been confirmed by a camera:*
 
-1. 🔴 **`docs/24` §9t** — one, two and three visible IMEIs, **on Android and
-   iOS separately**. They take different code paths: iOS can rank by position,
-   Android cannot, and a pass on one says nothing about the other.
-2. 🔴 **§9s** — the crowded-label acquisition steps.
-3. 🔴 **§9r** — the aiming steps, superseded in part but never confirmed.
-4. 🔴 **§9q steps 8–15** — the model count moving after a save, using
+1. 🔴 **`docs/24` §9u** — the scan region, Android and iOS separately.
+   **Step 8 is the one that matters**: does the dark mask align with the real
+   detection boundary? A source test cannot prove a coordinate transform, and
+   aspect-fill cropping and rotation are exactly what looks right in a simulator
+   and is wrong in a hand. The `__DEV__` overlay is there to show it.
+2. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
+3. 🔴 **§9s** — the crowded-label acquisition steps.
+4. 🔴 **§9r** — the aiming steps, superseded in part but never confirmed.
+5. 🔴 **§9q steps 8–15** — the model count moving after a save, using
    scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
    with `staging-verify-model-count.ts`.
-5. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
-6. The acquisition constants remain exported and documented **because they have
-   not met a phone**. Do not tune them from simulation.
+6. 🔴 **§9n and §9o** — the ten original scanner checks and the §9o items.
+7. `ROI_TOLERANCE_PT` and the acquisition constants are exported and
+   documented **because they have not met a phone**. Do not tune from simulation.
+8. ⚠️ The two screenshots behind §9u were never received; the frame geometry is
+   unverified against what the device displayed.
 
 *Known and deliberately not done:*
 
@@ -271,9 +342,10 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Run `docs/24` **§9t** on a phone — and on **both** platforms. Block C is the
-one that matters: three IMEIs in frame must produce a panel listing all three
-and must never choose one on its own, however long it is held.
+Run `docs/24` **§9u** on a phone, on **both** platforms — then §9t. Step 8 of
+§9u decides everything else: if the mask does not sit exactly on the real
+detection boundary on iOS, the coordinate conversion is wrong and the
+`__DEV__` overlay will show where.
 
 ---
 

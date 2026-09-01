@@ -1946,3 +1946,108 @@ question instead of hanging, and IMEI 1 being excluded on the second pass.
 appears at the right moment on a real label, whether three barcodes are actually
 all collected before it opens, and whether the wording is clear enough at a
 counter are open until this section is run on both platforms.
+
+---
+
+## 9u. The scan region — strict on iOS, guidance on Android
+
+### What the frame now means
+
+Only a barcode **completely** inside the rectangle may be considered. Every
+corner must be inside; a callback that fails is dropped before classification,
+stabilization, haptics, recognition or any message. It never happened.
+
+**The centre is not the test.** A barcode straddling an edge has its centre
+inside while half of it is out of shot — the read that produces a wrong digit.
+Two barcodes each crossing the frame is therefore *no detection at all*, not a
+guess at whichever is more covered.
+
+### One frame
+
+There were two overlapping shapes: large white corner brackets and a smaller
+rounded rectangle. Two frames on a scanner is worse than none — it promises a
+boundary and leaves you to guess which one it is.
+
+One wide, shallow rectangle now, sized for **one horizontal barcode** (84% of
+the preview width, 0.34 of that as height), with the corner accents drawn on it
+so they cannot drift. A taller region comfortably holds two stacked codes, which
+is the situation the frame exists to prevent. The surround is four scrim panels;
+inside stays clear glass, because a barcode read through a tint is read worse.
+
+> No blur. `expo-blur` is not installed, and no dependency was added for it.
+
+### 🔴 The platform limitation — read this before testing
+
+Audited from the native source shipped in `node_modules/expo-camera@17.0.10`.
+
+| Platform | Can full containment be enforced? |
+| --- | --- |
+| **iOS** | **Yes.** `MetaDataDelegate.swift` passes every metadata object through `previewLayer.transformedMetadataObject`, so corners arrive in **preview points** with aspect-fill, rotation and mirroring already applied — the same space `onLayout` reports. It loops **all** `metadataObjects`, so every barcode in frame is judged on its own geometry. |
+| **Android** | **No.** `BarcodeAnalyzer.kt` forwards ML Kit `cornerPoints` in *rotated image pixels*. `BarcodeScannerResultSerializer.kt` divides them by display density and builds a bundle of `data · raw · type · extra · cornerPoints · bounds`. The image dimensions **are captured in Kotlin and never put into that bundle** — verified, zero occurrences. No denominator, no rotation, no mapping. It also reports `barcodes.first()` only, so it cannot see the neighbours it would need to reject. |
+
+Nothing is inferred on Android. The failure mode of guessing an extent is a
+scanner that silently rejects **every** scan, on hardware that cannot be tested
+from here. `no-geometry` is never treated as `inside`.
+
+`bounds` is not consulted on either platform: Expo documents it as sometimes an
+empty rectangle and as not necessarily bounding the whole barcode, which is
+exactly this use.
+
+**On Android the mask is guidance and the copy claims nothing more.** The
+existing stability and explicit-selection rules still protect the scan there.
+
+#### The smallest native fix for Android, proposed and NOT implemented
+
+CameraX can constrain analysis directly — an `ImageAnalysis` viewport, or an ML
+Kit input cropped to a rect. Both live in `ExpoCameraView.kt` / `BarcodeAnalyzer
+.kt`, so the smallest honest options are, in order of cost:
+
+1. **Forward the image dimensions.** Add `width`/`height` to the JS bundle in
+   `BarCodeScannerResultSerializer.toBundle` — a few lines, upstreamable, and it
+   would let this gate work unchanged on Android. Needs the rotation too.
+2. A config plugin patching the analyzer to accept a crop rect.
+3. A different scanner dependency — **only** if 1 and 2 are proven insufficient.
+
+No dependency was added or replaced, per the brief.
+
+### 🔴 The retest — Android and iOS separately
+
+```bash
+cd backend
+APP_ENV=staging npx ts-node scripts/staging-scan-sheet.ts > ../scan-sheet.html
+```
+
+Turn on the development build to see the geometry overlay: it shows the measured
+rectangle, the received corner points, and whether the gate accepted or rejected
+each callback. Use it to check camera scaling, aspect-fill cropping and rotation
+on the actual device — those are exactly the things that look right in a
+simulator and are wrong in a hand.
+
+| # | Step | iOS | Android |
+| --- | --- | --- | --- |
+| 1 | Three barcodes in view, only one completely inside. | **Only the inside one** is considered. | The frame does not restrict; note what happens. |
+| 2 | Move that barcode part-way across the **left** edge. | Ignored. | — |
+| 3 | Repeat for the **right**, **top** and **bottom** edges. | Ignored each time. | — |
+| 4 | Centre it completely. | Becomes eligible, then follows the usual ~1 s acquisition. | Same acquisition rules. |
+| 5 | Place **two complete** barcodes inside. | Both eligible → the selection panel appears. | Selection panel via the existing rules. |
+| 6 | Repeat on several screen sizes and camera aspect ratios. | The frame stays wide and shallow and centred; the overlay's rectangle matches what is drawn. | Same. |
+| 7 | Poor focus, glare, small hand movements. | Borderline barcodes must not flicker between accepted and rejected — that is what `ROI_TOLERANCE_PT` is for. Tune it from what you see. | — |
+| 8 | **Does the dark mask align with the real detection boundary?** | It must, exactly. If it does not, the coordinate conversion is wrong and the overlay will show it. | It cannot, and must not be presented as if it does. |
+| 9 | A dual-IMEI QR completely inside. | Still parsed as one phone, two identifiers. | Same. |
+| 10 | Type an IMEI on the intake page. | Manual entry unchanged. | Unchanged. |
+
+### What is proven, and what is not
+
+22 ROI assertions covering complete containment, every edge, a centre-inside
+corner-outside barcode, the two-crossed-barcodes case, missing geometry never
+masquerading as success, and five viewport sizes — plus 58 scanner-behaviour
+assertions.
+
+**All of it is arithmetic and source reading.** Whether the reported corners
+actually land where the frame is drawn on a real iOS device — through aspect-fill
+cropping, at each rotation, on each aspect ratio — is unverified, and step 8 is
+what settles it. **A source test cannot prove a coordinate transform.**
+
+> The two device screenshots referenced when this work was commissioned were not
+> received. The frame geometry follows the written description and has not been
+> compared against what the device actually displayed.
