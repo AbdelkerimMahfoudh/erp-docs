@@ -11,8 +11,12 @@
 - **Android strict ROI is implemented via a committed `expo-camera` patch**
   using CameraX's own `CoordinateTransform`. `.first()` is gone; every
   barcode is forwarded.
-- 🔴 **NOT COMPILED.** No `eas.json`, no EAS login here. The Kotlin has never
-  been through a compiler and the transform has never run.
+- 🔴 **STILL NOT COMPILED.** Build `6a141e15` failed at
+  `processReleaseResources` — **before Kotlin** — on a splash-drawable defect
+  that had nothing to do with the scanner. That defect is now fixed; the patch
+  has still never been through a compiler.
+- EAS is now configured and committed: project link, `eas.json`, preview APK
+  profile, `EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY=1`.
 - Enforcement is decided **per callback** from a marker the patch emits, so an
   unpatched binary or Expo Go falls back safely instead of rejecting everything.
 - ⚠️ **§9u corrected**: Android was never short of information. The active path
@@ -20,7 +24,7 @@
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `a907f7e` |
+| `erp-mobile` | `5734e7e` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
@@ -29,14 +33,18 @@
 
 ```bash
 cd mobile
-npm install                  # applies the patch, then verifies six anchors
-npx eas-cli login
-npx eas-cli build:configure  # creates eas.json (first time only)
+npm install
 npx eas-cli build --platform android --profile preview
 ```
 
-The profile needs `"distribution": "internal"`, `"android": { "buildType":
-"apk" }` and `"env": { "EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY": "1" }`.
+`eas.json` is committed and the project is linked, so there is no configure
+step. The `preview` profile is an internal-distribution APK with
+`EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY=1` already set. `npm install` applies the
+native patch and then verifies six anchors, failing loudly if it did not apply.
+
+**Build `6a141e15` failed here on the splash defect, before Kotlin.** That is
+fixed. The next failure — if there is one — will be the first real test of the
+CameraX patch.
 
 **A modified native module cannot be validated by a JavaScript refresh, by
 Metro, or in Expo Go** — those run the unpatched binary, where the marker never

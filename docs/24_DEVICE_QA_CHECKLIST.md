@@ -2193,3 +2193,79 @@ from native logs. The patch applies cleanly and survives a clean install.
 whether the patch is in the binary; step 7 tells you whether the mapping is
 right. Until both pass on a physical Android device, **Android strict ROI is
 not complete.**
+
+---
+
+## 9w. Build `6a141e15` — a splash defect, before Kotlin
+
+The first EAS Android build failed at `:app:processReleaseResources`:
+
+```
+resource drawable/splashscreen_logo
+(aka mr.retailerp.app:drawable/splashscreen_logo) not found
+```
+
+**Resource linking runs before Kotlin compilation, so the CameraX patch was
+never reached.** It remains uncompiled.
+
+### The cause, from the plugin source
+
+| File | What it does |
+| --- | --- |
+| `withAndroidSplashStyles.js` | writes `@drawable/splashscreen_logo` into the theme **unconditionally** — `windowSplashScreenAnimatedIcon`, and again in `setSplashStylesForTheme` |
+| `withAndroidSplashImages.js` | produces that drawable **only when an image is configured** — its own comment: *"If path isn't provided then no new image is placed in drawable directories."* |
+| `getAndroidSplashConfig.js` | reads `image: splash.image` with **no default and no fallback** |
+
+The `expo-splash-screen` entry in `app.json` had `imageWidth`, `resizeMode` and
+`backgroundColor` — and no `image`. So the theme referenced a drawable that
+nothing generated. Adding the image is the entire fix.
+
+### Proven, not assumed
+
+A disposable clean prebuild, both ways:
+
+| Config | Drawables generated | Files still referencing it |
+| --- | --- | --- |
+| **without** `image` | **0** | 1 |
+| **with** `image` | **5** (mdpi → xxxhdpi) | 2, all resolving |
+
+Every `@drawable/…` reference in the generated resources was then swept for
+dangling targets. The only two are `abc_textfield_activated_mtrl_alpha` and
+`abc_textfield_default_mtrl_alpha`, referenced by `rn_edit_text_material.xml` —
+AndroidX AppCompat supplies both at link time. They are in every React Native
+app and linked fine in the failing build.
+
+### The other five checks
+
+| Check | Result |
+| --- | --- |
+| Path in `app.json` / `app.config.*` / plugin | `app.json` is the only config; the plugin entry was the defect |
+| Image exists | `assets/images/splash-icon.png`, present |
+| Git-tracked and uploaded | tracked since the initial commit |
+| Excluded by ignore rules | no — and there is no `.easignore` |
+| Filename / extension / case | all correct |
+
+### ⚠️ There is no branded splash asset
+
+`splash-icon.png` is **byte-identical to `expo-logo.png`** — the stock Expo
+template mark. So are `icon.png` and `android-icon-foreground.png` (the Expo
+chevron, inspected directly).
+
+The intended tracked asset was referenced rather than a placeholder invented.
+**Real artwork can be dropped in at `assets/images/splash-icon.png` with no
+config change** — 200 pt wide, `contain`, on the `#4f46e5` brand background.
+
+### Rerun
+
+```bash
+cd mobile
+npm install
+npx eas-cli build --platform android --profile preview
+```
+
+`eas.json` and the project link are committed, so there is no configure step.
+
+**This is the first build that can actually test the CameraX patch.** If Gradle
+fails now, it will be at Kotlin compilation, and the likely suspects are in
+§9v: the `@TransformExperimental` opt-in, `isUsingRotationDegrees` property
+syntax, and the `BarcodeAnalyzer` constructor arity at its call site.
