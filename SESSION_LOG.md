@@ -6883,3 +6883,63 @@ you whether it is in the binary; step 7 tells you whether the mapping is right.
 
 **Commits:** `erp-mobile` `a907f7e` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **the first green device result, and two shared causes**
+
+Takeover: mobile `5734e7e`, backend `b5b9461`, docs `363b0f7`. Clean, level.
+
+### iPhone strict ROI works
+
+Reported from a physical iPhone: a barcode is accepted only when fully inside
+the visible frame. After several rounds where the phone kept finding things the
+gates could not, this is the first one that came back green — and it is the
+check I cared most about, because a source test cannot prove a coordinate
+transform.
+
+Android inherits none of it. Different path, still uncompiled.
+
+### Two defects, two shared causes
+
+Both screenshots showed one page, and neither defect belonged to that page.
+
+The More gap is `Screen` applying `edges: ['top']` underneath a native header
+that had already consumed the status-bar inset — reserved twice, about fifty
+points of nothing, on all 46 header routes. One line fixes every one of them.
+
+The signal took a moment to get right. `useHeaderHeight()` is the obvious hook
+and it **throws** when there is no header, so it cannot be called
+unconditionally; `HeaderShownContext` defaults to `false` and is exactly the
+question being asked. Reading the context directly is both safe and more honest
+about what is being tested.
+
+The keyboard was an `autoFocus` prop on `ScanTarget` that two pages passed. I
+removed the prop rather than defaulting it to false — the defect arrived as one
+word on two pages, and a prop that still exists is one a third page can pass.
+
+Following the rules rather than the screenshot found two more: the post-scan
+price field on Sell, and the scanner's manual fallback. That second one is the
+one I would have missed by looking only at the picture — the fallback is also
+where a **denied camera permission** lands, so the keyboard was springing up
+over the explanation of what had just gone wrong.
+
+### Two tests were wrong, not the code
+
+One pinned the literal one-line body of `onScanPress`, so adding a keyboard
+dismissal broke it. The other asserted "no new dependency" against a hardcoded
+allowlist and failed on `@react-navigation/elements` — a package the app
+already ships. It was reporting a policy breach that had not happened, so it now
+checks `package.json`, which is the rule it was always trying to express.
+
+- **Mobile 28 pure suites** (14 new), lint 0, Doctor 18/18, parity 1 837, 68
+  routes. Scanner detection, ROI, machine and parsing untouched and asserted so.
+
+### 🔴 Still to check
+
+`docs/24` §9y, in EN, FR and Arabic RTL. And the Android patch has still never
+been through a compiler.
+
+**Commits:** `erp-mobile` `10901bf` · everything else unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

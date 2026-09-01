@@ -2269,3 +2269,105 @@ npx eas-cli build --platform android --profile preview
 fails now, it will be at Kotlin compilation, and the likely suspects are in
 §9v: the `@TransformExperimental` opt-in, `isUsingRotationDegrees` property
 syntax, and the `BarcodeAnalyzer` constructor arity at its call site.
+
+---
+
+## 9x. ✅ iPhone strict ROI — PHYSICALLY VERIFIED
+
+**The first green result in this component.** On a physical iPhone, a barcode is
+accepted **only when it is fully inside the visible frame**. The drawn rectangle
+and the real acceptance boundary agree.
+
+That closes §9u for iOS, and with it the question §9v step 7 was written to
+answer — on iOS. `previewLayer.transformedMetadataObject` returns corners in
+preview points, and comparing them against a rectangle measured by `onLayout`
+works in the hand as well as on paper.
+
+**Android is a separate answer.** Its patch has still never been compiled, and
+nothing here transfers: the two platforms reach the same predicate down
+completely different paths.
+
+### Still open
+
+- 🔴 §9v — the Android build, then its device retest. Step 1 (does the overlay
+  say `view`?), then step 7 (do the corners match the frame?).
+- 🔴 §9t — one, two and three visible IMEIs.
+- 🔴 §9s, §9r, §9q steps 8–15, §9n, §9o.
+
+---
+
+## 9y. Two UI corrections — one shared cause each
+
+### The gap under the navigation header
+
+"Ventes et retours" is a hub (`app/hub/[id].tsx`), and **every** route reachable
+from More renders through the same `Screen`. The cause was shared:
+
+> The native header already sits under the status bar and consumes that inset.
+> `Screen` then applied `edges: ['top']` and reserved it **again**.
+
+On a notched phone that is roughly fifty points of nothing between the title and
+the first line of content. `Screen` now drops the top edge when a header is
+shown, read from React Navigation's `HeaderShownContext` — the native stack sets
+it to `headerShown !== false`.
+
+Read as context rather than through `useHeaderHeight()`, which throws when there
+is no header; a hook that throws cannot be called unconditionally.
+
+**46 routes fixed by one change.** Tab pages are untouched — the root stack and
+the tab navigator both set `headerShown: false`, so the context is false there
+and they keep the inset they need. Spacing *inside* pages is unchanged.
+
+### The keyboard on scan-entry pages
+
+Also shared. `ScanTarget` took an `autoFocus` prop and two pages passed it, so
+Sell and Receive raised the keyboard over most of the screen before anybody had
+asked to type. On a scan-first page that is backwards.
+
+The prop is **removed**, not defaulted to false: a prop that still exists is one
+a future page can pass, and this arrived as one word on two pages.
+
+Two more places the rules reach that the screenshot did not:
+
+- the **post-scan price field** on Sell — a scan result must not raise the
+  keyboard over the confirmation somebody needs to read;
+- the scanner's **manual fallback**, which is also reached by a *denied camera
+  permission*, where the keyboard would cover the explanation.
+
+Opening the camera now dismisses the keyboard first. Blank-space dismissal was
+extended to the header and footer, which sit outside the scroll view — and on a
+scan-first page the input lives in the header, so the area right around it was
+the one place tapping did nothing. `Pressable`, not an overlay: a real control
+inside wins the touch.
+
+### 🔴 The device checks
+
+Run in **English, French and Arabic RTL**.
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Open More → **Ventes et retours**. | The description sits close under the header. No empty band. |
+| 2 | Open several other More routes — Catalogue, Dépenses, Objectifs, Consignations. | All the same. The fix is shared; none should differ. |
+| 3 | Switch to **Arabic**. Repeat 1–2. | Identical spacing; RTL layout intact. |
+| 4 | Check the tab pages — Stock, Vendre, Argent. | **Unchanged.** They keep their top inset. |
+| 5 | Small screen / large font. | No clipping under the header. |
+| 6 | Open **Vendre**. | **No keyboard.** The list and scan field are visible. |
+| 7 | Open **Recevoir**. | Same. |
+| 8 | Tap the scan field. | Keyboard opens, and only then. |
+| 9 | Type a few digits, then tap blank space, the header, or a result. | Keyboard closes; **the typed value is still there**. |
+| 10 | Tap the camera icon with the keyboard open. | Keyboard dismisses, camera opens full height. |
+| 11 | Scan something on Vendre that needs a price. | The confirmation is readable; **no keyboard until the price field is tapped**. |
+| 12 | Deny the camera permission, open the scanner. | The explanation is readable; no keyboard over it. |
+| 13 | Leave Vendre and come back; restore a draft. | **No keyboard** on return. |
+| 14 | With the keyboard open, tap a footer button. | It presses on the **first** tap. |
+| 15 | Scroll a long form with the keyboard open. | Scrolling works; nothing blocks it. |
+
+### What is proven, and what is not
+
+14 new assertions in `lib/screen-chrome.test.ts` covering the shared causes, all
+46 header routes not re-adding the inset themselves, the tab pages staying out
+of it, `autoFocus` being gone from the whole scan path, dismissal ordering, the
+value surviving dismissal, and the scanner internals being untouched.
+
+**These are source assertions.** Whether fifty points of space actually
+disappeared, and whether the keyboard behaves in a hand, are steps 1–15.

@@ -8,23 +8,16 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- **Android strict ROI is implemented via a committed `expo-camera` patch**
-  using CameraX's own `CoordinateTransform`. `.first()` is gone; every
-  barcode is forwarded.
-- 🔴 **STILL NOT COMPILED.** Build `6a141e15` failed at
-  `processReleaseResources` — **before Kotlin** — on a splash-drawable defect
-  that had nothing to do with the scanner. That defect is now fixed; the patch
-  has still never been through a compiler.
-- EAS is now configured and committed: project link, `eas.json`, preview APK
-  profile, `EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY=1`.
-- Enforcement is decided **per callback** from a marker the patch emits, so an
-  unpatched binary or Expo Go falls back safely instead of rejecting everything.
-- ⚠️ **§9u corrected**: Android was never short of information. The active path
-  mapped coordinates and mapped them wrongly — details below.
+- ✅ **iPhone strict ROI is PHYSICALLY VERIFIED.** A barcode is accepted only
+  when fully inside the visible frame. First green result in this component.
+- Two UI corrections, each a **single shared cause**: the More header gap
+  (46 routes, one line in `Screen`) and the scan-page keyboard.
+- 🔴 **Android remains uncompiled and unverified.** Nothing from the iOS result
+  transfers — the two platforms reach the same predicate by different paths.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `5734e7e` |
+| `erp-mobile` | `10901bf` |
 | `erp-backend` | `b5b9461` (untouched) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
@@ -75,6 +68,69 @@ three IMEIs in frame, using a real dual-SIM label or fixtures side by side) and
 
 
 
+
+
+### ✅ iPhone strict ROI verified, and two shared-cause UI fixes
+
+#### The first green device result
+
+On a physical iPhone, **a barcode is accepted only when fully inside the visible
+frame**. The drawn rectangle and the real acceptance boundary agree, which is
+what `docs/24` §9u step 8 and §9v step 7 were written to settle — on iOS.
+
+`previewLayer.transformedMetadataObject` returns preview-point corners, and
+comparing them with a rectangle measured by `onLayout` works in the hand as
+well as on paper.
+
+**Android carries none of this.** Its patch has still never been compiled.
+
+#### The gap under the navigation header — 46 routes, one line
+
+"Ventes et retours" is a hub, and every More route renders through the same
+`Screen`. The native header already sits under the status bar and consumes
+that inset; `Screen` then applied `edges: ['top']` and reserved it **again**.
+Roughly fifty points of nothing on a notched phone.
+
+`Screen` now drops the top edge when a header is shown, read from React
+Navigation's `HeaderShownContext` — as context, not via
+`useHeaderHeight()`, which throws without a header and so cannot be called
+unconditionally.
+
+Tab pages are untouched: the root stack and tab navigator both set
+`headerShown: false`, so the context is false there and they keep the inset
+they need.
+
+#### The scan-page keyboard
+
+`ScanTarget` took an `autoFocus` prop and two pages passed it. **Removed
+rather than defaulted to false** — a prop that still exists is one a future page
+can pass, and this arrived as one word on two pages.
+
+Two more places the rules reach that the screenshot did not: the **post-scan
+price field** on Sell (a scan result must not raise the keyboard over the
+confirmation), and the scanner's **manual fallback**, which a *denied camera
+permission* also reaches — the keyboard would have covered the explanation.
+
+Opening the camera dismisses the keyboard first. Blank-space dismissal now
+covers the header and footer, which sit outside the scroll view — on a
+scan-first page the input lives in the header, so the area right around it was
+the one place tapping did nothing. `Pressable`, not an overlay: a real control
+inside still wins the touch.
+
+#### Two tests were wrong, not the code
+
+One pinned the exact one-line `onScanPress` body. The other asserted "no new
+dependency" against a hardcoded allowlist and failed on
+`@react-navigation/elements`, which the app already ships — it now checks
+`package.json`, which is the rule it was always trying to express.
+
+#### Gates
+
+Mobile **28 pure suites** (14 new) · `tsc` clean · lint **0** · Doctor
+**18/18** · EN/AR/FR **1 837 identical** · export **68 routes**. Scanner
+detection, ROI geometry, the machine and parsing are untouched, and asserted so.
+
+---
 
 ### Android strict ROI: a committed native patch
 
@@ -409,29 +465,26 @@ file, and thirteen of them had accumulated — each naming a next action that ha
 already been done. They are merged here and the duplicates removed; the
 narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
-*On a device — nothing below has been confirmed by a camera:*
+*Confirmed on a device:*
 
-1. 🔴 **The Android patch has never been compiled.** No `eas.json`, no EAS
-   login here. `docs/24` §9v has the build command. **Check it compiles
-   first** — likely suspects if Gradle fails: the `@TransformExperimental`
-   opt-in, `isUsingRotationDegrees` property syntax, and the
-   `BarcodeAnalyzer` constructor arity at its call site.
-2. 🔴 **`docs/24` §9v** — the Android device retest. **Step 1** (does the
-   overlay say `view`?) proves the patch is in the binary; **step 7** (do the
-   overlay's corners agree with the drawn frame?) proves the mapping is right.
-   Neither is optional.
-3. 🔴 **§9u** — the iOS checklist. Untouched natively, but the shared JavaScript
-   gate changed, so it needs re-confirming rather than assuming.
+- ✅ **iPhone strict ROI** — a barcode is accepted only when fully inside the
+  visible frame (`docs/24` §9x).
+
+*Still unconfirmed by a camera:*
+
+1. 🔴 **The Android patch has never been compiled.** `docs/24` §9v has the
+   build command. **Check it compiles first** — likely suspects if Gradle
+   fails: the `@TransformExperimental` opt-in, `isUsingRotationDegrees`
+   property syntax, and the `BarcodeAnalyzer` constructor arity at its call
+   site. The iOS result transfers nothing.
+2. 🔴 **§9v** — the Android device retest. Step 1 (overlay says `view`), then
+   step 7 (corners match the frame).
+3. 🔴 **§9y** — the two UI corrections, in **EN, FR and Arabic RTL**. Fifteen
+   steps: the More gap, the tabs staying unchanged, and the keyboard.
 4. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
-5. 🔴 **§9s** — the crowded-label acquisition steps.
-6. 🔴 **§9q steps 8–15** — the model count moving after a save, using
-   scan-sheet case 12. Step 9 leaves Test Store at 21 units by design; restore
-   with `staging-verify-model-count.ts`.
-7. 🔴 **§9n, §9o, §9r** — earlier scanner checks, never independently confirmed.
-8. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
+5. 🔴 **§9s, §9r, §9q steps 8–15, §9n, §9o** — earlier scanner checks.
+6. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
    documented **because they have not met a phone**. Do not tune from simulation.
-9. ⚠️ The two screenshots behind §9u were never received; the frame geometry is
-   unverified against what the device displayed.
 
 *Known and deliberately not done:*
 
@@ -449,186 +502,9 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 ### Next exact action
 
 Build the Android internal binary (command above) and find out whether the
-patch **compiles**. Nothing else in the Android path can be judged until it
-does. Then `docs/24` §9v on a device — step 1, then step 7 — and re-run §9u on
-iOS.
-
----
-
-### The scanner: the state outlived the sheet
-
-The first scan worked; reopening showed the previous session's result before the
-camera existed, which reads as a frozen photograph.
-
-**The camera was not the cause.** `ScannerSheet` is permanently mounted by its
-parents — `open` only gates `if (!open) return null` — so the machine, the
-lookup, both guards and the `CameraView` instance all survived a close. The
-reset lived in an effect, and an effect runs one paint too late.
-
-  1. Reset **during render**, comparing `open` against its previous value.
-  2. `key={sessionId}` on `CameraView` — a new native view, not a reconcile
-     onto the one holding the last frame.
-  3. A `lookupSession` token, so a `/scan` response from a closed session
-     cannot write into the session that replaced it.
-
-**No delay was added.** Fast detection was correct; the test asserts the absence
-of `setTimeout`, `setInterval`, `await new Promise` and
-`requestAnimationFrame` in the sheet.
-
-### Counting by model, without stopping counting by IMEI
-
-`GET /inventory/by-model` groups `in_stock` units, company-scoped by the
-tenant client and branch-scoped by the same `assertAssignedToBranch` check
-`listStock` makes.
-
-**Folded by brand and model, not by product id.** Storage and colour live in
-`products.variant`, which is in the `(company, brand, model, variant)` unique
-key — so four 17 Pro Max in four colours are four product rows, and grouping by
-id reports `1, 1, 1, 1`. True, and useless. The colours sit one level down and
-always add up to the headline.
-
-Derived on every request. No stored total, no client counter: a maintained
-number drifts the first time a sale or a transfer takes a path nobody updated,
-and the drift is silent.
-
-### What `variant` actually means — audited, not assumed
-
-`schema.prisma` says it outright: *"`products.variant` already carries storage
-and colour"*. So:
-
-- **No market/region selector was built.** It would be a fact nothing has ever
-  recorded, and a fourth term in the unique key — a product row per market for a
-  distinction no shop has made. This is a **deliberate deviation** from the
-  checkpoint's conditional wording, and the audit is why.
-- `Pro`/`Plus`/`Ultra` are not variant values; they are model names.
-
-Storage and colour are now two lists from `/device-catalogue/attributes` — from
-the server, so the app holds none of its own. `Other` is an ordinary row and
-the no-signal fallback. Every legacy value opens, shows and saves.
-
-### A phone is never a quantity
-
-"How is it counted?" no longer offers Quantity for a phone — removed, not
-greyed out. The signal is the brand being in the device catalogue (server-owned,
-a catalogue of phones); a category's `defaultTrackingType` answers a different
-question. When it cannot tell it says "not a phone", so **accessories keep
-quantity tracking**.
-
-### Live verification, and the fixture put back
-
-`staging-verify-model-count.ts`: 20 units across 19 models → iPhone 11 **2 → 3**
-on one added unit → no other model moved → duplicate refused by the database
-itself → **back to 20**. The delete is in a `finally`.
-
-`audit-duplicate-products.ts` is permanently read-only: 13 products, 0
-duplicate groups. Merging moves cost and margin between products and is a
-human decision.
-
-Scan sheet is now **32 cards** — case 12 is a valid, recognised IMEI that is
-**not** in stock, so a device can finally watch a count go up. Its serial is
-checked against the database, not assumed free.
-
-### Gates
-
-Backend **109 suites / 1894 tests** · `tsc -p` clean.
-Mobile **25 pure suites** · `tsc` clean · lint **0 errors** · Doctor **18/18** ·
-EN/AR/FR **1826 identical** · export **68 routes**.
-Website, databases and migrations untouched — **no migration was needed**; the
-schema preserves every canonical and custom value as strings.
-
----
-
-### The second device test: my fix broke two other things
-
-Both regressions were the same kind of error — **right about the symptom, wrong
-about the mechanism.**
-
-#### The frozen frame
-
-I stopped the camera with `active={false}`. That does stop it, and leaves the
-last frame on screen, so the scanner looked like it had taken a photograph. The
-frame is whatever the sensor held when the decoder fired, which very often does
-not show the digits at all — so the "result" was a picture of a barcode half out
-of shot.
-
-The camera is now **unmounted**: no session, nothing to freeze. The panel shows
-the decoder's payload as selectable text through the `Identifier` primitive, so
-what is on screen no longer depends on where the lens was pointing.
-
-> The assertion pinning this has now been wrong **twice** — first "detach the
-> handler", then "deactivate" — and a phone said so both times. The test carries
-> that history so the third guess is not a repeat of the first.
-
-#### The disappearing product
-
-I sent the accepted IMEI down `/scan` through a `silent` `useScan` that had
-**no `onResult`**. The recognised product came back and was thrown away.
-"Silent" was meant to mean *no second buzz*; it also meant *no product*.
-
-The lookup now runs when the result APPEARS — keyed on the identifier, guarded
-by a ref so a render cannot fire it twice. Early enough to show the phone in the
-panel ("In your stock" when recognition is authoritative, "Might be" when it is
-a guess), and the complete result reaches the parent on accept: in the
-structured `AcceptedImei` **and** through `onResult`, the channel every
-embedding screen already listens on.
-
-#### Audited: it is not OCR
-
-The accepted identifier comes from `BarcodeScanningResult.data` → `classifyScan`
-→ payload, and nothing else. No `takePictureAsync`, no frame capture, no image
-OCR anywhere in the scan path — checked across the sheet, the target, the hook
-and both `lib/scan` modules. No camera frame is persisted or displayed. The OCR
-confusion table left from the retired milestone lives in `lib/imei.ts` and is
-unreachable from here; only `tacOf` is imported from it.
-
-#### Gates
-
-Mobile **24 pure suites** (scanner behaviour now **29 assertions**) · `tsc`
-clean · lint **0** · Doctor **18/18** · EN/AR/FR **1810** identical · export
-**68 routes**. Backend, website, databases and Test Store fixtures untouched.
-
----
-
-### The first physical-device test
-
-**Every one of the seven defects survived TypeScript, the linter, Expo Doctor, a
-68-route web export and a 20/20 HTTP recognition run.** The gates were green and
-the feature did not work. That is the finding; the individual bugs are almost
-secondary.
-
-#### The camera never stopped
-
-Detaching `onBarcodeScanned` stops us REACTING; it does not stop the camera. The
-preview stayed live behind the result, still decoding — which a person reads as
-"it is still scanning". `active={live}` deactivates the capture session itself.
-Both are needed and only one was there.
-
-#### "Use this IMEI" did three wrong things at once
-
-It waited for `/scan` before closing, so the accepted result appeared only after
-the sheet was closed by hand. `useScan` fired a SECOND haptic on top of the
-detection's. And `accepted` had no render branch, so the sheet fell through to
-the camera view and **looked like it had gone back to scanning**.
-
-It now transitions once, hands the parent the complete result — identifiers,
-classified payload, TAC suggestion, conflict flag — and closes itself. The
-`/scan` call still happens so recognition keeps learning, through a new
-`silent` mode. A synchronous `accepting` ref guards it: a double tap lands
-before React re-renders, and two accepts meant two `onClose` calls.
-
-#### Manual entry was in the wrong place
-
-Under a live viewfinder, in every state. Somebody who opened the camera has
-already chosen to scan. It moves to the field on the intake page beside the
-camera icon — which is where the choice actually happens. **The no-camera
-fallback stays**; without it a denied permission strands the user.
-
-#### The form was unfinishable with the keyboard open
-
-A pinned footer and a soft keyboard are natural enemies. Three fixes, all
-required:
-
-  1. `KeyboardAvoidingView` lifts the frame on iOS. Android resizes its own
+patch **compiles** — nothing in the Android path can be judged until it does.
+Then `docs/24` §9v on a device. §9y (the More gap and the keyboard, in all
+three languages) can be checked on any build, including iOS. Android resizes its own
      window and must NOT be given a behaviour, or the two corrections fight.
   2. The scroll area reserves the footer's **measured** height — a constant is
      wrong on every screen whose footer has two buttons instead of one.
