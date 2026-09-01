@@ -8,22 +8,30 @@
 
 - Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
 - Active account / Owner: **NONE** (last worked by CLAUDE-B)
-- ✅ **iPhone strict ROI is PHYSICALLY VERIFIED** — a barcode is accepted only
-  when fully inside the visible frame.
-- ✅ **The Android native patch COMPILES.** EAS build
-  `251f8b41-5b1d-4c9f-85a1-a0e59a95351a` completed successfully.
-- 🔴 **Android ROI behaviour is still unverified on a device.** Compiling proves
-  the transform is called correctly, not that the mapped corners land where the
-  frame is drawn. Rotation is the specific risk.
-- Keyboard dismissal fixed: it had been wired to the body branch that
-  **scan pages never render**.
+- ⚠️ **The running backend needs restarting.** Storage/Colour returned **404**
+  because the live process predates the commit that added
+  `/device-catalogue/attributes`. The code is correct; the process is stale.
+- The client also could not tell four failure modes apart. Fixed: loading,
+  error + **Retry**, genuinely empty, and filtered-to-nothing are now distinct.
+- ✅ iPhone strict ROI verified · ✅ Android patch compiles ·
+  🔴 Android ROI behaviour still unverified on a device.
 
 | Repository | HEAD |
 |---|---|
-| `erp-mobile` | `9f1146e` |
-| `erp-backend` | `b5b9461` (untouched) |
+| `erp-mobile` | `8ea4310` |
+| `erp-backend` | `b5b9461` (untouched — no change was needed) |
 | `retail-erp-control-web` | `c764d63` (untouched) |
 | `erp-docs` | *this commit* |
+
+## 🔁 Restart the backend before testing Storage or Colour
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  http://127.0.0.1:3011/api/v1/device-catalogue/attributes
+```
+
+**401** = the route is live. **404** = the process is stale and the selectors
+will fail no matter what the app does.
 
 ## 🔨 Build it before believing any of it
 
@@ -73,6 +81,68 @@ three IMEIs in frame, using a real dual-SIM label or fixtures side by side) and
 
 
 
+
+
+### Storage and Colour: a stale server, and four states collapsed into one
+
+#### The root cause was not in the app
+
+One digit settles it. The auth guard runs **after** routing, so `401` means
+the route exists and `404` means it does not:
+
+```
+/device-catalogue/brands      → 401
+/device-catalogue/version     → 401
+/device-catalogue/attributes  → 404  Cannot GET
+```
+
+A backend started from current source maps all four routes and answers
+`attributes` with 401 like the others. **The code was always correct; the
+running process was stale**, started before the commit that added the endpoint.
+Checked against `127.0.0.1:3011` directly, so the proxy on `:8088` is not
+involved.
+
+The established data source works. Nothing was duplicated locally, no backend
+change, no migration — the backend catalog suite (84 tests) passes untouched.
+
+#### What WAS wrong in the app
+
+A stale server will happen again. What must not happen again is the app being
+unable to say which of four things went wrong.
+
+Options were fetched into an array and **nothing recorded why the array might be
+empty**. A failed request and a search matching nothing produced the same empty
+array — so a failure rendered "Nothing matches" **and** "The list could not be
+loaded" at once, with no Retry.
+
+| State | Shows |
+|---|---|
+| `loading` | "Loading the list…" — an empty chooser during a request is the same lie in a smaller font |
+| `error` | the message **+ Retry**, manual entry still underneath |
+| loaded, genuinely empty | a true empty state |
+| loaded, filter excluded all | "No matches for *X*", naming the query |
+
+The error branch **returns before the filter is consulted**, so the two messages
+are structurally incapable of appearing together. Both choosers share one body,
+so Storage and Colour cannot drift apart.
+
+#### Gates
+
+Mobile **30 pure suites** (14 new) · `tsc` clean · lint **0** · Doctor
+**18/18** · EN/AR/FR **1 839 identical** · export **68 routes**. Backend catalog
+**84 tests**, untouched. Scanner ROI, keyboard dismissal and More-page spacing
+preserved.
+
+#### ⚠️ Two live processes I killed and restarted
+
+While identifying the process on `:8088` I ran a `Stop-Process` whose filter
+matched far more than intended, and it killed the `edge.js` proxy and the Expo
+dev server along with my probe instances. **Both were restarted and verified**
+(`:8088` proxying, Metro on `:8081`); the real backend on `:3011` was never
+touched. Recorded because a broad kill on a machine running live services is a
+mistake worth not repeating — match on the full command path, not a substring.
+
+---
 
 ### The dismissal was wired to the branch scan pages never render
 
@@ -534,19 +604,21 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 *Still unconfirmed by a camera:*
 
-1. 🔴 **Android ROI behaviour** — `docs/24` §9v. Compiling proves the
-   transform is *called* correctly and nothing about where the mapped corners
-   land. **Rotation is the specific risk**: ML Kit is handed a rotated
-   `InputImage` and `isUsingRotationDegrees = true` is a choice only a phone
-   can confirm. Step 1 (overlay says `view`), then step 7 (corners match the
-   frame).
-2. 🔴 **§9aa** — the keyboard dismissal, 14 steps. **Step 3** is the one that
-   decides: tapping the empty cart area, which is the exact tap that did
-   nothing before.
-3. 🔴 **§9y** — the More-page spacing, in EN, FR and Arabic RTL.
-4. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
-5. 🔴 **§9s, §9r, §9q steps 8–15, §9n, §9o** — earlier scanner checks.
-6. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
+1. ⚠️ **Restart the backend first.** Storage and Colour cannot work against a
+   process that predates their endpoint — see the curl check above.
+2. 🔴 **`docs/24` §9ab** — the Storage/Colour checks, 16 steps, in EN, FR and
+   Arabic RTL. **Step 13** is the one that matters: server off and cache
+   cleared, which is the exact state the device was in and the one that used to
+   show two contradictory messages at once.
+3. 🔴 **Android ROI behaviour** — `docs/24` §9v. The patch compiles; where the
+   mapped corners land is unproven, and **rotation is the specific risk**.
+   Step 1 (overlay says `view`), then step 7 (corners match the frame).
+4. 🔴 **§9aa** — the keyboard dismissal, 14 steps. Step 3 (tapping the empty
+   cart area) is the tap that failed.
+5. 🔴 **§9y** — the More-page spacing, in all three languages.
+6. 🔴 **§9t** — one, two and three visible IMEIs, both platforms.
+7. 🔴 **§9s, §9r, §9q steps 8–15, §9n, §9o** — earlier scanner checks.
+8. The acquisition constants and `ROI_TOLERANCE_PT` are exported and
    documented **because they have not met a phone**. Do not tune from simulation.
 
 *Known and deliberately not done:*
@@ -564,10 +636,9 @@ narrative each came from is kept, and the full history is in `SESSION_LOG.md`.
 
 ### Next exact action
 
-Install the Android build (`251f8b41`) on a phone and run `docs/24` §9v —
-step 1, then step 7. That is the last unanswered question about the scanner.
-§9aa (the keyboard, step 3 above all) and §9y (the More spacing) can be checked
-on any build, including iOS. Android resizes its own
+Restart the backend, then run `docs/24` §9ab — step 13 above all. After that,
+install the Android build (`251f8b41`) and run §9v steps 1 and 7, which is the
+last unanswered question about the scanner itself. Android resizes its own
      window and must NOT be given a behaviour, or the two corrections fight.
   2. The scroll area reserves the footer's **measured** height — a constant is
      wrong on every screen whose footer has two buttons instead of one.

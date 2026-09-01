@@ -7004,3 +7004,63 @@ And Android ROI on a device, now that there is a binary.
 
 **Commits:** `erp-mobile` `9f1146e` · everything else unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+
+---
+
+## 2026-09-01 — CLAUDE-B — **404 against 401, and a broad kill I should not have run**
+
+Takeover: mobile `9f1146e`, backend `b5b9461`, docs `b25c562`. Clean, level.
+
+### The diagnosis was one digit
+
+Storage and Colour showed no options and reported that the list could not be
+loaded. The brief was explicit about not reaching for a hardcoded list before
+auditing the data source, and the audit took one curl each:
+
+```
+/device-catalogue/brands      → 401
+/device-catalogue/attributes  → 404
+```
+
+The auth guard runs after routing, so 401 means the route exists and 404 means
+it does not — the two answers cannot be confused. A backend started from current
+source maps `attributes` and answers 401 like the rest. **The code was right
+and the running process was stale**, predating the commit that added the
+endpoint.
+
+I checked `:3011` directly rather than through the proxy, because "it works
+locally" is worth nothing if the thing being tested is a process that has been
+up for days.
+
+### The part that was genuinely mine
+
+A stale server will happen again; the app being unable to describe it should
+not. The options went into an array with nothing recording *why* it might be
+empty, so a failed request and a search matching nothing were the same value —
+and the screen showed "Nothing matches" beside "could not be loaded", with no
+retry. Four states now, and the error branch returns before the filter is ever
+consulted, so the contradiction is structurally impossible rather than merely
+avoided.
+
+### A mistake worth recording
+
+To find what was listening on `:8088` I ran a `Stop-Process` filtered on a
+substring, and it matched far more than the two probe servers I meant to stop —
+it killed the `edge.js` proxy and the Expo dev server the user had running. I
+restarted both and verified them, and the real backend on `:3011` was never
+touched, so nothing was lost. But that is luck rather than care: on a machine
+running live services, a kill filter has to match the full command path, not a
+word that happens to appear in it.
+
+- **Mobile 30 pure suites**, lint 0, Doctor 18/18, parity 1 839, 68 routes.
+  Backend untouched — no change was needed, and the catalog suite's 84 tests
+  confirm it.
+
+### 🔴 Next
+
+Restart the backend, then `docs/24` §9ab step 13 — server off, cache cleared,
+which is the exact state the device was in.
+
+**Commits:** `erp-mobile` `8ea4310` · `erp-backend` unchanged · `erp-docs`
+the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.

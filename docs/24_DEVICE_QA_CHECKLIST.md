@@ -2470,3 +2470,95 @@ handler is attached to **every** body branch — including the one that was
 missed.
 
 **None of that is a finger on glass.** Step 3 is the one that decides.
+
+---
+
+## 9ab. Storage and Colour showed no options — a stale server, and four states collapsed into one
+
+### Root cause: the running backend predated the endpoint
+
+The decisive evidence is one digit:
+
+```
+GET /api/v1/device-catalogue/brands      → 401   (route exists, needs auth)
+GET /api/v1/device-catalogue/version     → 401   (route exists)
+GET /api/v1/device-catalogue/attributes  → 404   Cannot GET
+```
+
+The auth guard runs **after** routing, so `401` means the route exists and
+`404` means it does not. A backend started from current source maps all four
+routes and answers `attributes` with `401` like the others:
+
+```
+Mapped {/api/device-catalogue/attributes, GET} (version: 1) route
+```
+
+**The code was always correct. The running process was stale** — started before
+the commit that added the endpoint, and never restarted. Confirmed against
+`127.0.0.1:3011` directly, so the nginx-substitute proxy on `:8088` is not
+involved.
+
+**Data source unchanged.** `/device-catalogue/attributes` is the established
+source, it works, and nothing was duplicated locally. No backend change, no
+migration; the backend catalog suite (84 tests) still passes untouched.
+
+### The client defect the outage exposed
+
+A stale server will happen again. What must not happen again is the app being
+unable to say which of four things went wrong.
+
+The options were fetched into an array and **nothing recorded why the array
+might be empty**. An empty array from a failed request was indistinguishable
+from an empty array from a search matching nothing — so a failure rendered
+"Nothing matches" **and** "The list could not be loaded" together, with no
+Retry, which is exactly the contradiction the brief forbids.
+
+Four states now, mutually exclusive, in the order somebody needs them:
+
+| State | Shows |
+| --- | --- |
+| `loading` | "Loading the list…" — the initial state, because an empty chooser during a request is the same lie in a smaller font |
+| `error` | "The list could not be loaded" **+ Retry**. Manual entry stays available underneath |
+| loaded, genuinely empty | a true empty state + "Something else" |
+| loaded, filter excluded all | "No matches for *X*" — naming the query, so it cannot be mistaken for a failure |
+
+The failure branch **returns before the filter is consulted**, so the two
+messages are now structurally incapable of appearing together. The bottom notice
+reports only the *cached* case; the failure lives in the chooser beside its
+Retry.
+
+Both choosers share one body, so Storage and Colour cannot drift apart.
+
+### 🔴 Device checks
+
+**First: restart the backend.** Nothing below is meaningful against a stale
+process — verify with `curl .../device-catalogue/attributes` returning **401**,
+not 404.
+
+| # | Step | What must happen |
+| --- | --- | --- |
+| 1 | Receive Stock → new product → select `iPhone 17`. | Brand and Model behave as before. |
+| 2 | Tap **Storage**. | Options appear **immediately**, with no typing. No keyboard forced open. |
+| 3 | Type `256`. | The list filters. |
+| 4 | Clear the search. | The full list returns. |
+| 5 | Type `zzz`. | "No matches for zzz" — **not** "could not be loaded". |
+| 6 | Pick `256 GB`. | The chooser closes and the row shows `256 GB`. |
+| 7 | Tap **Colour**. Repeat 2–6 with a colour. | Identical behaviour. |
+| 8 | Check Storage still reads `256 GB`. | The two are independent. |
+| 9 | Reopen **Storage**. | The current selection is ticked, and can be changed. |
+| 10 | Choose **Something else**, type `384 GB`. | Kept verbatim; the row shows it. |
+| 11 | Change Model. | Existing dependent-reset rules apply; no invalid hidden selection. |
+| 12 | Turn the server off, then reopen a chooser. | Cached options still appear, labelled as stored. |
+| 13 | Clear the app cache with the server off. | "Could not be loaded" **+ Retry**, and "Something else" still works. **"Nothing matches" must not appear.** |
+| 14 | Turn the server on, tap **Retry**. | The list loads. |
+| 15 | Repeat in **French** and **Arabic RTL**. | Natural wording; RTL intact. |
+| 16 | Scan an IMEI first, then do 1–10. | The pending IMEI survives throughout. |
+
+### What is proven, and what is not
+
+14 assertions on the state machine, the shared chooser body, retry wiring,
+independence, and the client/server contract — plus the live probe above that
+identified the stale process.
+
+**Step 13 is the one that matters**, because it is the exact state the device
+was in, and the one that used to show two contradictory messages at once.
