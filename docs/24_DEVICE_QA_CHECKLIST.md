@@ -2562,3 +2562,102 @@ identified the stale process.
 
 **Step 13 is the one that matters**, because it is the exact state the device
 was in, and the one that used to show two contradictory messages at once.
+
+---
+
+## 10. Expo SDK 54 → 57: restoring iPhone testing
+
+### Why this happened
+
+Expo Go is one App Store binary supporting one SDK at a time. It moved to SDK
+57 and stopped opening the SDK 54 project, which ended physical iPhone testing.
+On Windows with no paid Apple Developer membership, Expo Go **is** the iPhone
+route — an EAS device build does not substitute for it here.
+
+The path was `54 → 55 → 56 → 57.0.20`, with full gates at each stop. `57.0.20`
+rather than `57.0.0`: a Hermes V1 memory regression present at SDK 56 is fixed
+in `expo@57.0.9` and later.
+
+### 🔵 First: sign in, both sides, same account
+
+Expo Go now requires the CLI and the phone to be signed into the **same** Expo
+account. An Expo account is free.
+
+```bash
+cd mobile
+npx eas-cli@latest whoami        # already signed in? it prints the account
+npx eas-cli@latest login         # if not
+```
+
+On the iPhone: open **Expo Go → Profile tab → Log in**, with the same account.
+
+Then start the server and scan:
+
+```bash
+cd mobile
+npx expo start --lan
+```
+
+Scan the QR with the **Camera app** and let it hand off to Expo Go.
+
+**If the project does not appear:** the two sides are on different accounts, or
+the phone is on a different Wi-Fi. Both are silent failures.
+
+### 🔴 The device checks
+
+Nothing below may be marked green from an export, a type-check or Doctor. The
+upgrade replaced the navigation layer, the safe-area handling and the camera
+package; every one of these is a behaviour that has previously broken.
+
+**Reaching the app**
+
+1. The project opens in Expo Go and reaches the first screen.
+2. Sign in works.
+3. Tab navigation works; each tab renders.
+
+**The header and safe-area work (SDK 56 replaced the context this depends on)**
+
+4. A More route shows the native header with the *reduced* gap to the first
+   line of content — no reappearance of the ~50pt band.
+5. A headerless tab route still reserves the status-bar inset correctly.
+6. Neither is double-spaced.
+
+**Keyboard (verified before the upgrade; re-verify)**
+
+7. Opening a scan-entry page leaves the keyboard **closed**.
+8. Tapping an input opens it.
+9. Tapping outside dismisses it.
+10. Opening the scanner dismisses it first.
+11. Drag-dismiss still works on applicable lists.
+
+**Storage and Colour**
+
+12. Both open with choices visible *before* typing, keyboard closed.
+13. With the phone in airplane mode, both still list the bundled options, with
+    the amber "standard list" note and a working **Retry**.
+14. Back online, Retry replaces them with server values.
+
+**The scanner — the highest-risk area of this upgrade**
+
+15. The camera opens; the permission prompt behaves.
+16. A raw IMEI barcode scans.
+17. Strict iOS ROI: a code **outside** the drawn frame is **not** accepted.
+18. A code inside is accepted, and the scan pauses immediately on a result.
+19. Rescan works after the pause.
+20. Manual IMEI entry still works, with IMEI 2 optional.
+
+**Languages**
+
+21. English, French, and Arabic with RTL layout.
+
+### What is proven, and what is not
+
+| | |
+|---|---|
+| ✅ Automated | tsc clean · Doctor 21/21 · lint 0 errors · 32 suites / 640 assertions / 0 failing · i18n 1840 × 3 · web export 23 routes · patch verified 6 anchors after a clean `npm ci` |
+| 🟡 Compilation only | The Android EAS build proves the rebased Kotlin **compiles**. It proves nothing about where ROI coordinates land. |
+| 🔴 Unverified | Everything in the list above. And **Android strict-ROI placement on a handset**, which was already open before this upgrade and remains so. |
+
+The rebased patch changed the mapping's source (upstream fixed two of three
+defects; rotation and the `coordinateSpace` marker are still ours). A compile is
+not evidence that a rectangle lands where the drawn frame is.

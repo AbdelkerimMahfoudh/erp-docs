@@ -3606,3 +3606,74 @@ already device-verified behaviour.
 Storage `4 GB … 2 TB` and sixteen colours, keyed canonically (`128gb`, `gray`)
 with display labels. `128GB`, `128 gb`, `128 Go` and bare `128` all normalise to
 one option; `grey` normalises to `gray`. `Other` appears exactly once, last.
+
+---
+
+## Supported runtime: Expo SDK 57
+
+**Approved.** The app targets **Expo SDK 57** (`57.0.20` or later) on React
+Native 0.86.
+
+### Why the upgrade was forced
+
+Expo Go is a single App Store binary that supports one SDK at a time. When it
+moved to SDK 57 it stopped opening SDK 54 projects, and physical iPhone testing
+stopped with it. The owner develops on Windows with no paid Apple Developer
+membership, so Expo Go **is** the iPhone testing route — an EAS device build is
+not a substitute for this purpose.
+
+### The path taken
+
+`54 → 55 → 56 → 57`, deliberately, with the full gate set at each stop. The
+intermediate breaking changes are real and would have been invisible in a single
+jump:
+
+| Checkpoint | What broke, and why |
+|---|---|
+| **55** | Legacy Architecture dropped, so `newArchEnabled` no longer exists. `android.edgeToEdgeEnabled` removed — edge-to-edge is now always on. Expo package majors synchronise to the SDK (`expo-router` 6.x → 55.x, `expo-camera` 17.x → 55.x). |
+| **56** | `expo-router` **vendors** React Navigation; the published `@react-navigation/*` packages must not be direct dependencies. React Compiler lint rules promoted to errors. |
+| **57** | Hermes V1 memory regression present at 56, fixed in `expo@57.0.9`+. Hence 57.0.20, not 57.0.0. |
+
+### The react-navigation split is a correctness matter, not tidiness
+
+A standalone `@react-navigation/elements` is a **different module instance** from
+the one `expo-router` vendors, so its `HeaderShownContext` is a different React
+context object that no provider ever fills. `useContext` would return the
+default forever, `Screen` would believe no header is shown on routes that have
+one, and the status-bar inset would be reserved twice — silently restoring the
+~50pt of dead space that was already fixed once, visible only to somebody
+holding the phone.
+
+`lib/navigation/router-internals.ts` is the single place that reaches into
+Expo Router's vendored tree for the two symbols it does not re-export
+(`HeaderShownContext`, `usePreventRemove`). Deep internal paths may move, so a
+test asserts they still resolve and that nothing imports or declares the
+standalone packages.
+
+### React Compiler lint rules are warnings, deliberately
+
+SDK 56 promoted them to errors; they fire 32 times, and every one is a
+pre-existing pattern written and device-verified long before the rule existed.
+They are demoted to warnings — not silenced, not fixed. Rewriting eighteen
+`setState`-in-effect sites across the scanner, keyboard handling and catalogue
+selectors would risk exactly the behaviour the upgrade exists to preserve, to
+satisfy a linter. **That is its own task, with device retesting.**
+
+### The Android camera patch survives, smaller
+
+Of the three defects it fixed, upstream `expo-camera` 57.0.4 now fixes two — the
+missing translation on an aspect-fill crop, and the transposed corner-point
+read. Those hunks are gone (10 hunks → 8).
+
+Two reasons it still exists:
+
+1. **Rotation is still ignored upstream.** There is no rotation term anywhere in
+   that path, and a scale-and-offset model cannot express rotation without
+   becoming a matrix — at which point it is a worse `CoordinateTransform`.
+2. **`coordinateSpace` does not exist upstream.** That marker is what the app
+   gates strict ROI on, so a patch that failed to apply cannot be mistaken for
+   one that did. Without it the app silently stops enforcing a scan region.
+
+Upstream also still calls `barcodes.first()`, discarding every other code in the
+frame — on a phone box, where IMEI 1 and IMEI 2 are separate barcodes, one
+arrives and which one is arbitrary. The patch keeps one event per barcode.

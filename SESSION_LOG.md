@@ -7137,3 +7137,94 @@ the output claimed the API was down. Re-run properly, it reproduced the 502.
 fallback's on-device appearance has not been seen on a handset — the logic and
 the failure/recovery path are proven over HTTP and in tests, but that is
 automated and HTTP verification, not physical-device verification.
+
+---
+
+## 2026-09-08 — CLAUDE-A — Expo SDK 54 → 57
+
+**Task.** Upgrade the mobile app from Expo SDK 54 to the latest stable SDK 57,
+so the current App Store Expo Go will open it again and physical iPhone testing
+can resume. Infrastructure only.
+
+**Commits.** `erp-mobile` on branch `sdk-57-upgrade`: `4c2acac` (54→55),
+`7c1721f` (55→56), `f530c7c` (56→57 + patch rebase). `master` deliberately left
+at `f47a155`. Backend and control-web untouched — no compatibility defect
+required them. Docs: this entry.
+
+**Takeover.** No discrepancies; four trees clean and level at the exact expected
+HEADs. The premise was checked against the npm registry rather than assumed:
+SDK 57 exists, `latest` is `57.0.20`.
+
+**A correction to the previous entry's numbers.** The handoff I wrote last
+session recorded 19 suites / 311 assertions. That was wrong: the count globbed
+`lib/*.test.ts` and missed every nested suite, including all of `lib/scan/`. The
+true pre-upgrade baseline was **31 suites / 635 assertions / 0 failing**. This
+file is append-only, so the earlier entry stands as written and the correction
+lives here.
+
+**The path.** 54 → 55 → 56 → 57.0.20, deliberately, with the full gate set at
+each stop. The intermediate breaks were real and would have been invisible in a
+single jump. SDK 55 dropped the Legacy Architecture, so `newArchEnabled` and
+`android.edgeToEdgeEnabled` no longer exist as config keys, and Expo package
+majors began tracking the SDK. SDK 56 made `expo-router` vendor React
+Navigation. SDK 57.0.20 rather than 57.0.0 because a Hermes V1 memory
+regression present at 56 is fixed in 57.0.9 and later.
+
+**The react-navigation split was the real work, and it was a correctness
+matter.** A standalone `@react-navigation/elements` is a different module
+instance from the one expo-router vendors, so its `HeaderShownContext` is a
+different React context object that no provider ever fills. `useContext` would
+have returned the default forever, `Screen` would have believed no header was
+shown on routes that have one, the status-bar inset would have been reserved
+twice, and the ~50pt band between a native title and the first line of content
+would have quietly come back — visible only to somebody holding the phone.
+`lib/navigation/router-internals.ts` is now the single place reaching into the
+vendored tree, with a test asserting the paths resolve and that nothing imports
+or declares the standalone packages.
+
+**The camera patch was rebased after reading the upstream source, not assumed.**
+`expo-camera@57.0.4` now fixes two of the three defects the patch addressed —
+the missing translation on an aspect-fill crop, and the transposed corner-point
+read — so those hunks are gone and the patch went from 10 hunks to 8. It
+survives because rotation is still ignored upstream with no rotation term
+anywhere in that path, and because `coordinateSpace` does not exist upstream at
+all; that marker is what the app gates strict ROI on, so that a patch which
+failed to apply cannot be mistaken for one that did. Upstream also still calls
+`barcodes.first()`, which on a phone box means one of the two IMEI barcodes
+arrives and which one is arbitrary.
+
+Two upstream changes the rebase had to notice: `BarcodeAnalyzer` lost its
+`lensFacing` parameter, and the event records gained `@OptimizedRecord`. The
+verifier's anchors were updated accordingly; the transposition anchor is kept,
+relabelled, as a guard against upstream regressing what it just fixed.
+
+**A judgement call, recorded rather than hidden.** SDK 56 promoted the React
+Compiler lint rules to errors. They fire 32 times, and every one is a
+pre-existing pattern written and device-verified long before the rule existed —
+nothing regressed, the rule arrived. They are demoted to warnings with the
+reasoning in `eslint.config.js`, not fixed. Rewriting eighteen
+`setState`-in-effect sites across the scanner, keyboard handling and catalogue
+selectors would have risked exactly the behaviour this upgrade exists to
+preserve, in order to satisfy a linter.
+
+**Verification.** After a clean `npm ci`: patch verified 6 anchors · tsc clean ·
+Doctor 21/21 · lint 0 errors, 33 warnings · **32 suites, 640 assertions, 0
+failing** · i18n 1840 × 3 identical order · web export clean, 23 routes · no
+OCR · no raw colours or hardcoded copy introduced.
+
+**Android compilation: submitted, not finished.** EAS build
+`f77fe728-5c72-49b8-81e0-e5b86124d61a` (profile `preview`, account
+`salah_rim`) was still in queue when this was written. A green build would prove
+the rebased Kotlin compiles and nothing more — it says nothing about where ROI
+coordinates land.
+
+**Left on a branch on purpose.** `master` still holds the SDK 54 app that is
+known to work. Nothing is staked on an upgrade whose device behaviour nobody
+has seen. Merge after the iPhone run passes.
+
+**Unverified, and not to be called otherwise.** The entire iPhone acceptance
+run — navigation, the header and safe-area work SDK 56 replaced the context
+for, the keyboard behaviours, Storage/Colour including the airplane-mode
+fallback, and the scanner including strict iOS ROI. Android strict-ROI
+placement on a handset was open before this upgrade and is still open, now on a
+rebased mapping.
