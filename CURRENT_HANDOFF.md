@@ -6,8 +6,18 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` `2026-09-08T12:05Z`
+- **Authorised task — Expo SDK 54 → 57 upgrade**, to restore physical iPhone
+  testing through the current App Store Expo Go, which refuses SDK 54.
+  Infrastructure only; no new product feature.
+- HEADs at takeover — `erp-mobile` `f47a155` · `erp-backend` `b5b9461` ·
+  `retail-erp-control-web` `c764d63` · `erp-docs` `e41d97f`. All verified
+  clean, level and matching the expected values. **No discrepancies.**
+- Registry checked: SDK 57 latest stable is **57.0.20** (29 patch releases);
+  55 → 55.0.31, 56 → 56.0.21. Backend and control-web will not be touched
+  unless a concrete compatibility defect proves it necessary.
 - ✅ iPhone strict ROI verified · ✅ Android CameraX patch compiles ·
   🔴 **Android ROI behaviour still unverified on a device.**
 - ✅ The More-page spacing correction is untouched.
