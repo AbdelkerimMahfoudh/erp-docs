@@ -288,6 +288,17 @@ the SDK 57 upgrade nor this inventory work may be called device-verified, and
 
 ## Running services
 
-API `:3011` and edge `:8088` were up during this session for the phone-facing
-stack. Restart with `.env.staging` loaded before `dist/src/main.js`;
-`401` on `/api/v1/device-catalogue/attributes` means live, `404` means stale.
+**Nothing is left running by this session except MySQL.**
+
+- **MySQL is up**, started directly as `mysqld.exe --defaults-file=… --console`
+  because `Start-Service wampmysqld64` needs elevation this session did not
+  have. It is listening on `3306`. If it is gone, that is why.
+- The API was started on `:3010` from a **fresh** `nest build` for verification
+  and **has been stopped again**. The `dist/` in the tree is that build.
+
+⚠️ **Check freshness before trusting any server you find running.** Three
+separate failures this project has hit — a 404 on an endpoint that existed, a
+Metro bundler predating a fix, and a `PluginError` from a bundler started before
+`node_modules` was wiped — were all one stale process. Resolve the PID and
+compare its start time against the last build before concluding anything from
+what it returns.
