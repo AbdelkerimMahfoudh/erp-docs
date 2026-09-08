@@ -7064,3 +7064,76 @@ which is the exact state the device was in.
 
 **Commits:** `erp-mobile` `8ea4310` · `erp-backend` unchanged · `erp-docs`
 the commit carrying this entry. `READY_FOR_HANDOFF`, owner `NONE`.
+
+---
+
+## 2026-09-08 — CLAUDE-A — Storage and Colour: a bundled floor
+
+**Task.** Correct the Storage and Colour selectors in New Product / Receive
+Stock, after a real iPhone showed both as a search box with no options and "The
+list could not be loaded." Trace the cause before claiming a fix.
+
+**Commits.** `erp-mobile` `ade5052` (handoff claim), `f47a155`. Backend and
+website needed no change and are unchanged at `b5b9461` / `c764d63`. Docs: this
+entry.
+
+**Takeover.** No discrepancies. Four trees clean, level and pushed at the HEADs
+the handoff recorded; `READY_FOR_HANDOFF`, owner `NONE`.
+
+**The cause, and it was not a code defect.** `GET /device-catalogue/attributes`
+returns **200** on the current build with 11 storage and 16 colour options. The
+route was added seven commits after `brands`/`models`, so a process built
+between them serves Brand and Model and 404s attributes — precisely the reported
+asymmetry. `attributes()` reads no database, so no seed, tenant filter, branch
+context or Model-ID dependency could ever have affected it. The previous
+session's diagnosis was right; this session verified it independently rather
+than trusting it.
+
+**There was no stale process left to kill.** Ports 8088 and 8081 were empty at
+takeover and nothing held 3010/3011 — the offending process died with an earlier
+session. The phone-facing stack was stood up fresh on the current build instead,
+with the PID resolved explicitly before any signal. No unrelated process was
+touched.
+
+**What was actually built.** The stale process is gone, but the failure mode it
+exposed outlives it: any genuine network failure emptied both lists and pushed
+the shopkeeper into typing, at a counter, holding a handset. So the order is now
+server → last saved copy → a bundled baseline, with `fallback` as a first-class
+origin. Folding it into `live` would hide a failure; folding it into
+`unavailable` would go back to showing nothing. The screen renders the options
+with a non-blocking warning and Retry, never the blocking error state.
+
+Brands and models keep the strict no-bundle rule. Capacities and basic colour
+names are the two parts of the catalogue that genuinely do not change, and that
+is the whole reason bundling these is safe when bundling models would not be.
+A drift test reads the server's own list and fails when either side moves.
+
+**Deliberately not done.** Company-history aggregation — it would make an
+unscoped reference endpoint tenant-scoped for values the curated list already
+covers. Model-specific variants — no reliable mapping exists, and inventing one
+would put false facts in front of a shopkeeper.
+
+**Verification.** tsc clean · Expo lint 0 errors (1 pre-existing warning) ·
+Expo Doctor 18/18 · 19 pure suites, 311 assertions, 0 failing (16 new) ·
+EN/AR/FR 1840 keys each in identical order · web export clean, 23 routes ·
+raw-colour and hardcoded-copy audits clean on changed files. No backend gates
+were run because no backend change was made.
+
+**Live: 11/11** against `http://192.168.100.3:8088/api/v1`, the exact base the
+app resolves — including `iPhone 17` being selectable, the reported scenario.
+Failure and recovery were reproduced: the API stopped by resolved PID gave a
+genuine **502** through the edge, and after restart the same call returned
+**200** with both lists.
+
+**My own mistakes, corrected.** Three assertions matched prose in comments
+rather than code — the fallback module's header names the iPhone the defect was
+found on, and the error branch's existing commentary uses the word "fallback"
+for manual entry. All now assert against source with comments stripped. And one
+narration was printed before its check ran: a PID lookup returned empty because
+the API binds `0.0.0.0` rather than `127.0.0.1`, so nothing was stopped while
+the output claimed the API was down. Re-run properly, it reproduced the 502.
+
+**Still open.** Android strict-ROI on a physical device, unchanged. And the
+fallback's on-device appearance has not been seen on a handset — the logic and
+the failure/recovery path are proven over HTTP and in tests, but that is
+automated and HTTP verification, not physical-device verification.

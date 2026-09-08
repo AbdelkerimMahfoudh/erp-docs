@@ -3537,3 +3537,72 @@ say `view`?) tells you the patch is in the binary; step 7 (do the overlay's
 corners agree with the drawn frame?) tells you the mapping is right.
 
 **Android strict ROI is not complete until both pass on a physical device.**
+
+---
+
+## Storage and Colour: searchable selectors, with a bundled floor
+
+**Approved.** Storage and Colour are searchable selectors with the same shape as
+Brand and Model, and they never depend on what a shop happens to have registered
+before.
+
+### Where the options come from
+
+| Order | Source | Notes |
+|---|---|---|
+| 1 | The server, `GET /device-catalogue/attributes` | **Authoritative.** When it answers, its lists are used. |
+| 2 | The last saved copy on the device | Used when the request fails and a copy exists. |
+| 3 | A bundled baseline in the app | Used **only** when the request fails and no copy exists. |
+| — | `Other` | Always present, always last. Reveals a text field; the typed value is stored verbatim. |
+
+The origin travels with the answer — `live`, `cached`, `fallback`,
+`unavailable` — so the screen never presents a failure as a normal result.
+
+### Company history is deliberately NOT a source
+
+Considered and rejected. `/device-catalogue/attributes` is unscoped reference
+data with no tenant filter, and aggregating "values this company used before"
+would make it company-scoped — a real isolation surface — to add capacities and
+colours the curated list already covers. The curated defaults are what make a
+brand-new company useful on day one; history adds little and risks more.
+
+### Model-specific variants
+
+**Not implemented, deliberately.** There is no reliable mapping from a model to
+its official capacities and colours, and inventing one would put false facts in
+front of a shopkeeper. If such a mapping ever exists, model-specific options are
+shown first — until then the lists are generic and nothing claims otherwise.
+
+### Why a bundled list exists at all, against the no-second-catalogue rule
+
+Brands and models keep the strict rule: **the app holds no list of its own**,
+because they change constantly and a stale bundled copy would be worse than
+none. Storage and colour are a narrow exception, for one reason: capacities and
+basic colour names do not change. 128 GB and "Black" will mean the same thing
+next year, while models appear every autumn.
+
+The failure that forced it: when the attributes request failed, **both lists
+came back empty** and the shopkeeper was pushed into typing — at a counter,
+holding a handset. A bundled floor is worth the drift risk there, and the drift
+risk is contained by a test that reads the server's own list and fails when
+either side moves.
+
+### The four states stay distinct
+
+| State | What is shown |
+|---|---|
+| Loading | A loading line. |
+| Loaded with results | The options, immediately, before any typing. |
+| Successful empty response | "The list is empty. Choose *Something else*." **Not** a failure. |
+| Request failure | The bundled options, a non-blocking warning that the latest could not be fetched, and **Retry**. |
+| Search matched nothing | "No matches for …" and *Something else*. **Never** alongside a load failure. |
+
+Opening a chooser shows options without opening the keyboard. The keyboard opens
+only when the search input is tapped, and outside-tap dismissal follows the
+already device-verified behaviour.
+
+### Canonical values
+
+Storage `4 GB … 2 TB` and sixteen colours, keyed canonically (`128gb`, `gray`)
+with display labels. `128GB`, `128 gb`, `128 Go` and bare `128` all normalise to
+one option; `grey` normalises to `gray`. `Other` appears exactly once, last.
