@@ -3677,3 +3677,108 @@ Two reasons it still exists:
 Upstream also still calls `barcodes.first()`, discarding every other code in the
 frame — on a phone box, where IMEI 1 and IMEI 2 are separate barcodes, one
 arrives and which one is arbitrary. The patch keeps one event per barcode.
+
+---
+
+## Category-aware intake: phones are counted one by one, everything else is counted
+
+**Decision.** A product's **category** decides how it is received, and the
+server is the only thing that decides it.
+
+- **Phone categories → `imei`.** Each handset is registered individually. The
+  primary IMEI is required; the second is optional and lives on the same `Unit`
+  row, so either IMEI finds the same phone. One phone is one unit of stock.
+- **Every other category → `quantity`.** No IMEI field, no scanner instruction,
+  no duplicate check. Stock arrives as a number, and a second delivery of the
+  same thing increases the number rather than creating rows. **Nobody registers
+  identical pieces one at a time.**
+- A product barcode stays optional and company-scoped. It identifies the
+  reusable *product*, never an individual unit, and is never an IMEI.
+
+### Nothing reads a category name
+
+Category names are company-owned free text and are translated in the UI, so
+"Phone", "Téléphone" and "هاتف" are one workflow. Behaviour keyed to a label
+would depend on a shop's spelling. The stable server-side
+`ProductCategory.defaultTrackingType` is the only signal, and
+`src/tracking/tracking-modes.ts` is the only place the rule lives.
+
+### The category is authoritative, and a contradiction is refused
+
+The old code read `trackingType ?? category.defaultTrackingType` under a comment
+claiming the category drove it. It did the opposite — the client won. A request
+could name the Phone category and ask for `quantity`, producing a phone received
+in bulk that never gets an IMEI, or name Accessories and ask for `imei`,
+demanding a serial number for a charging cable.
+
+A contradicting mode is now a **400**, not a silent override, so the form and the
+server can never tell the employee different stories. Re-filing a product under a
+different category re-derives the mode, because that is a tracking change even
+when the request never mentions one.
+
+### `serial` is retired, not deleted
+
+Only `imei` and `quantity` may be chosen. `serial` remains in the enum, keeps
+working, and may be re-saved unchanged — the development database has a
+`Televisions` category holding **five serial-tracked units**, and reinterpreting
+them was never on the table. What is refused is *newly choosing* it.
+
+> This is a deliberate, recorded exception to "all non-phone categories use
+> quantity". That rule governs what may be *chosen from now on*; it does not
+> authorise rewriting stock that already exists. Converting Televisions would
+> require a decision about those five units that nobody has made.
+
+### Existing stock is never reinterpreted
+
+A tracking mode freezes as soon as the product has units, stock, purchases,
+sales **or transfers** — transfers were previously missed, so a product that had
+only ever moved between branches looked untouched. Reservations ride on the
+stock row and returns on the sale line, so both were already covered.
+
+The same protection applies one level up: a **category's** mode cannot change
+while products use it. That is the realistic accident — an owner tidying up
+categories turning a shelf of counted accessories into things the app demands
+IMEIs for. The refusal says how many products are affected.
+
+Five `Unit` rows are not a `StockItem` of five: each carried its own cost and its
+own IMEI. There is no honest automatic conversion, so none is offered. The answer
+is a new product.
+
+### A retry must not deliver the goods twice
+
+Serialized intake was always retry-safe by accident of design: the `Unit` row is
+the event and the IMEI is a natural key, so a duplicate collides on the index.
+Counted goods had neither. `stock_items` holds a *balance*, never the receipts
+behind it, so a lost response followed by a second tap added the goods again —
+stock rose, the weighted average absorbed items that never arrived, and nothing
+recorded that it had happened.
+
+`stock_receipts` (migration **0064**) is that missing event, carrying the same
+`client_uuid` + `client_request_hash` pair purchases, transfers and corrections
+have used since 0013. Same key and same payload replays the first answer; same
+key and a *different* payload is a conflict, because that is a second delivery
+wearing the first one's identity. The unique index decides the race, not an
+application read — verified on real MySQL with five simultaneous identical
+requests, of which exactly one survived.
+
+It is deliberately not back-filled: a balance cannot be decomposed into the
+receipts that produced it.
+
+### Costing is unchanged
+
+Receiving still goes through `receiveQuantityAtCost` — one
+`INSERT … ON DUPLICATE KEY UPDATE`, weighted average on physical quantity, cost
+assigned before quantity because MySQL evaluates left to right. **Receiving never
+reprices the shelf.** No FIFO, LIFO or new averaging rule was introduced.
+
+### "Details" is gone from the form; the data is not
+
+The free-form key/value **Details** editor is removed — it duplicated, in worse
+form, what category attribute schemas already do. `Product.specifications` stays:
+it is searched by raw SQL, returned as `keySpecifications`, shown on the detail
+screen and validated against the category's schema. The form simply omits the
+key, which on a PATCH means "leave it alone", so historical values survive
+untouched. **No migration was added to drop a column that is still load-bearing.**
+
+Storage and colour were never in that object. They live in `products.variant` via
+`VariantSelect` and remain structured selectors.

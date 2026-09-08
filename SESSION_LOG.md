@@ -7228,3 +7228,100 @@ for, the keyboard behaviours, Storage/Colour including the airplane-mode
 fallback, and the scanner including strict iOS ROI. Android strict-ROI
 placement on a handset was open before this upgrade and is still open, now on a
 rebased mapping.
+
+---
+
+## 2026-09-08 · CLAUDE-A · Category-aware product creation and stock intake
+
+Took over at `20:18:38Z` with all four trees clean and level: `erp-docs`
+`8ea65be`, `erp-backend` `b5b9461`, `erp-mobile` `sdk-57-upgrade` `f530c7c`
+(`master` preserved at `f47a155`), `retail-erp-control-web` `c764d63`. No
+discrepancy between the handoff and actual local or remote state.
+
+**Pushed:** `erp-backend` → `0ec9d4b` (four commits), `erp-mobile` → `3622280`.
+
+### The audit changed the shape of the task
+
+Most of what looked missing already existed. `ProductCategory.defaultTrackingType`,
+the `TrackingType` enum, `Unit` rows, `StockItem` balances and a strategy-based
+`quickAdd` were all in place, and `catalog.getDetail` already counted stock
+correctly per mode. **No new endpoint was created** — the existing contract was
+extended and hardened, which is what the brief asked for.
+
+**I got the costing answer wrong on first read and corrected it.**
+`imports.service.ts` increments quantity and only sets cost on create, and I
+took that for the model. `stock-cost.ts` says in terms that this was the *old*
+behaviour, replaced in H1.4.1 by one weighted-average
+`INSERT … ON DUPLICATE KEY UPDATE` shared by every inflow. Nothing about costing
+was changed; `receiveQuantityAtCost` is called unmodified.
+
+**`Details` turned out not to be a column.** It was the
+`catalog.form.section.specs` editor writing into `Product.specifications` — a
+column that is searched by raw SQL, returned as `keySpecifications`, displayed,
+and validated against the category's attribute schema. So the *input* was
+removed and the *column* kept, and no migration was written to drop it. Storage
+and Colour were never in that object; they live in `variant`.
+
+### Six defects, all of them quiet
+
+1. `trackingType ?? category.defaultTrackingType` claimed in its comment that
+   the category drove the mode and did the opposite. A request could name the
+   Phone category and ask for `quantity`, or name Accessories and ask for
+   `imei`. Now refused with a 400.
+2. Re-filing a product under a different category silently kept the old mode.
+3. A **category's** mode could be changed while products used it, reinterpreting
+   all of them at once — the realistic accident, not the exotic one.
+4. `hasHistory` missed `transferItem`, so a product that had only ever moved
+   between branches looked untouched.
+5. `quickAdd` discarded contradictory fields instead of refusing them.
+   "Receive 50" on a phone created **one** unit, threw 49 away, and reported
+   success; an IMEI sent for a cable vanished the same way.
+6. A retried quantity receipt delivered the goods twice, and nothing in the
+   database could tell that from a real second delivery.
+
+### Migration 0064 — and a shortcut I had to take
+
+`stock_receipts`, purely additive: one `CREATE TABLE`, no ALTER, no back-fill.
+Backup `~/erp-backups/phonestore-20260908-204622.sql` taken and verified first
+(598K, ends `-- Dump completed`).
+
+**The disposable-database rehearsal could not be done.** `phonestore_migrator`
+has no `CREATE DATABASE` privilege and elevation was unavailable, so the
+migration was applied directly to `phonestore`. That was defensible *only*
+because a `CREATE TABLE` cannot corrupt an existing row and leaves nothing
+behind if it fails. **A migration that alters or back-fills anything must not
+take this shortcut.** Separately, `docs/22` line 49 shows the option file
+holding `user=root` while `~/.my.cnf` authenticates as `phonestore_migrator` —
+recorded, not changed.
+
+### Verified
+
+Backend **112 suites / 1963 tests / 0 failing** (from 109 / 1901). Mobile
+**32 suites / 645 assertions / 0 failing** (from 640), `tsc` clean, lint 0
+errors and the same 33 pre-existing warnings, i18n **1838 × 3 in identical
+order**, no raw colours or hardcoded copy.
+
+**Live, against the real `phonestore` database, 10/10**: the weighted average
+through two receipts at different costs (10 @ 100 then 30 @ 200 → 40 @ 175.00),
+price left unpriced, a duplicate idempotency key refused, **five simultaneous
+identical retries leaving exactly one survivor** — proving the unique index
+decides the race rather than an application read — and the CHECK refusing zero
+and negative quantities. Fixtures created under a marker brand and all removed,
+confirmed by re-count.
+
+### Not verified, and not to be called otherwise
+
+No authenticated HTTP round trip was made — that needs real credentials, and
+none were invented. **Nothing ran on a handset.** This work sits on
+`sdk-57-upgrade`, whose own iPhone acceptance run is still owed, so it inherits
+that gap rather than closing it. `docs/24` §11 is the checklist; every row is
+red.
+
+### One thing a person has to decide
+
+`Televisions` is a `serial` category holding **five units of real stock**. The
+rule going forward is imei-or-quantity, but converting it would reinterpret
+those five units — precisely what this work forbids everywhere else. So `serial`
+was retired rather than deleted: it cannot be newly chosen, existing rows keep
+working, and the category can still be renamed. **What happens to those five
+units is not a decision I should make.**

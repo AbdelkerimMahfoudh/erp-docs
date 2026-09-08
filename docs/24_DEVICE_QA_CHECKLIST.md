@@ -2661,3 +2661,59 @@ package; every one of these is a behaviour that has previously broken.
 The rebased patch changed the mapping's source (upstream fixed two of three
 defects; rotation and the `coordinateSpace` marker are still ours). A compile is
 not evidence that a rectangle lands where the drawn frame is.
+
+---
+
+## 11. Category-aware intake — UNVERIFIED ON ANY DEVICE
+
+Runs on the same `sdk-57-upgrade` build as §10, so do §10 first: a failure there
+explains a failure here, and the reverse is not true.
+
+The rule being checked: **a phone is registered one handset at a time, and
+nothing else is.** The category decides, and the app should never ask.
+
+### On the product form
+
+| # | Do this | Expect |
+|---|---|---|
+| 11.1 | New product → pick a **phone** category | The "how it is received" card reads *registered one by one, each with its own IMEI*, and names the category |
+| 11.2 | Switch the category to **Accessories** | The card changes to *received by quantity — no IMEI needed*, immediately, with no save |
+| 11.3 | Look for a tracking picker | **There is none.** If a segmented control appears, this work has regressed |
+| 11.4 | Leave the category empty | The card says to choose a category |
+| 11.5 | Look for a free-form **Details** section | **Gone.** Storage and Colour must still be there, still as pickers |
+| 11.6 | Open an existing product that has old Details values | Its specifications still show on the detail screen and still match in search |
+| 11.7 | Edit that product's brand and save | The old specification values are **still there** afterwards |
+
+### Receiving
+
+| # | Do this | Expect |
+|---|---|---|
+| 11.8 | Receive a **phone**: scan an IMEI | One unit staged. The quantity field is absent |
+| 11.9 | Scan the same IMEI again | Refused as already in the delivery — not a second unit |
+| 11.10 | Receive an **accessory**: scan its barcode | Asks cost **and quantity, once**. Type 40 |
+| 11.11 | Confirm | 40 in stock — **not 40 scans**. This is the whole point |
+| 11.12 | Receive the same accessory again at a different cost | Stock increases; the shelf **price does not change** |
+| 11.13 | Scan a box barcode while receiving a phone | Refused with the "scan the IMEI" guidance, not staged |
+
+### Category management
+
+| # | Do this | Expect |
+|---|---|---|
+| 11.14 | Create a category | Only **IMEI** and **Quantity** offered — no "Serial number" |
+| 11.15 | Open **Televisions** (already `serial`) | Its serial option is visible so renaming does not retype it, and its stock is intact |
+| 11.16 | Try to change a category that has products | Refused, saying how many products are affected |
+
+### The retry (do this one deliberately)
+
+| # | Do this | Expect |
+|---|---|---|
+| 11.17 | Start receiving accessories, then turn Wi-Fi and data **off** mid-submit | An error, not a crash |
+| 11.18 | Turn the network back on and retry the same submission | Stock increases **once**. If it doubles, stop and report it — this is the defect `stock_receipts` exists to prevent |
+
+> 11.18 is the only one of these that cannot be checked by reading the screen
+> afterwards alone: check the stock figure **before** starting, so "once" is a
+> number you can compare against rather than an impression.
+
+| | |
+|---|---|
+| 🔴 Unverified | **Every row above.** Nothing here has run on a handset. |
