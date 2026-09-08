@@ -6,8 +6,15 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all four trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-B)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` `2026-09-08T10:55Z`
+- **Authorised task — a bundled mobile fallback for Storage and Colour**, plus
+  restarting the actual phone-facing backend process onto the current build.
+  Company-history aggregation is explicitly OUT of scope.
+- HEADs at takeover — `erp-mobile` `8ea4310` · `erp-backend` `b5b9461` ·
+  `retail-erp-control-web` `c764d63` · `erp-docs` `9c09dfa`. Verified clean,
+  level and pushed; no discrepancies.
 - ⚠️ **The running backend needs restarting.** Storage/Colour returned **404**
   because the live process predates the commit that added
   `/device-catalogue/attributes`. The code is correct; the process is stale.
