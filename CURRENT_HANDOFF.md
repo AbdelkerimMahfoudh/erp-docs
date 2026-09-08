@@ -6,15 +6,34 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
-- Completed: **category-aware product creation and stock intake.** Phones stay
-  individually IMEI-tracked; every other category is received by quantity, and
-  the category — not the client — decides which.
-- 🔵 The SDK 57 **iPhone acceptance run is still owed**, and this work sits on
-  that branch. Nothing below is device-verified.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-08T23:22:26Z**
+- Active phase and scope: **indigo visual refresh and motion system, mobile
+  only.** A UI refinement — no navigation change, no workflow semantics, no new
+  milestone. Every business rule, scanner correction and category-aware intake
+  behaviour below must survive intact.
+- Next intended action: retune the existing brand/neutral anchors to the
+  approved indigo, add the missing semantic aliases, then the motion layer.
+- **Checkpoint:** tag `pre-indigo-refresh` → `3622280`, pushed. A palette change
+  touches every screen at once, so the last known-good visual state is pinned
+  before shared primitives move.
 
-### HEAD now
+### HEAD at takeover
+
+| Repository | Branch | HEAD |
+|---|---|---|
+| `erp-docs` | `master` | `36c2dde` |
+| `erp-backend` | `master` | `0ec9d4b` |
+| `erp-mobile` | `sdk-57-upgrade` | `3622280` |
+| `erp-mobile` `master` | — | `f47a155`, preserved |
+| `retail-erp-control-web` | `master` | `c764d63` |
+
+All four clean, level with their remotes, and matching the previous handoff.
+Mobile baseline independently recalculated across nested suites: **32 suites,
+645 assertions, 0 failing.**
+
+### Previous session's HEAD table (retained)
 
 | Repository | Branch | HEAD | Was |
 |---|---|---|---|
