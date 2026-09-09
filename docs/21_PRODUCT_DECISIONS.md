@@ -3909,3 +3909,58 @@ Opaque surface, grabber, title, close, search — and the list **already full**
 before anybody types, with the keyboard closed. A picker that opens empty and
 waits to be searched only helps someone who already knows what they want. Both
 properties are now pinned by tests rather than left to be rediscovered.
+
+---
+
+## Completing the redesign: three surfaces, not one
+
+**Decision.** The app uses three container shapes, chosen by what the content
+*is* rather than by taste. Getting this wrong in either direction is how the
+screens drifted.
+
+| Shape | For | Why |
+|---|---|---|
+| **Flat rows + hairlines** | repeated operational records — products, stock, sales, notifications | Forty of them, scanned down a column for one name. A border, corner and gap on every line makes a list read as a pile |
+| **`RowGroup`** | related facts about ONE thing — an order's status, branch and payment | The border says "these belong together"; the internal hairlines say "these are separate facts" |
+| **`Card`** | metrics, warnings, financial summaries | Meant to be *looked at*, not read through. Flattening these until they lose hierarchy is the opposite mistake |
+
+The failure this replaces: detail screens wrapped every field in its own card,
+so a sale became six floating boxes with nothing more important than anything
+else — and the naive correction, flat rows everywhere, would have destroyed the
+financial summaries that need to stand out.
+
+### Separation belongs to the container
+
+A flat row draws **no separator of its own**. A `FlatList` separator or a
+`RowGroup` draws it. Separation is a fact about the gap *between* two rows, so
+whatever owns both owns the rule. A row drawing its own bottom hairline left a
+stray rule under the last item and doubled up inside any group.
+
+Separator insets are **start-side margins**, never `marginLeft`. In Arabic a
+physical margin indents from the wrong side — the rule cuts under the text and
+stops short of the icon, exactly inverted.
+
+### The token layer is the whole point
+
+Re-anchoring the accent on `#5146D9` reached all 56 authenticated routes without
+any screen being edited. That only works while **zero screens hold a colour**,
+which is now a test rather than a habit — along with no NativeWind styling, no
+utility colour class hiding in a lookup table (how `text-slate-700` survived an
+earlier audit and put 1.7:1 text on the dark canvas), and no untranslated
+`trackingLabel` showing "Quantity" to Arabic readers.
+
+### Direction is shown, not coloured
+
+Profit and loss were told apart by red and green text of identical shape. Any
+auto-toned money is now also **signed**, so the direction survives colour
+blindness and a monochrome screenshot. Money uses tabular figures so a column
+can be compared down the page.
+
+### Motion is centralised or it is not motion
+
+No component holds a millisecond literal. Dialogs and toasts defer to
+`ReduceMotion.System`; nothing springs, overshoots or bounces — a dialog asking
+whether to refund money is the worst possible place for a control that bounces
+cheerfully into view. All of it is asserted, because the sign-in crash proved
+that an animation defect can be invisible to every non-device gate in this
+project.

@@ -2797,3 +2797,62 @@ them can see a frame land, a keyboard appear, or a colour under shop lighting.
 |---|---|
 | 🔴 Unverified | **Every row above.** |
 | ⚠️ Highest risk | 12.12 (reticle on a bright surface) and 12.15–12.16 (one result, one haptic, through the reveal). |
+
+---
+
+## 13. The consolidated redesign run — UNVERIFIED
+
+**Do this one in order.** It replaces §11 and §12 as the single session to work
+through: they were written before the sign-in crash was found, and running them
+separately means signing in three times.
+
+Sign in with **`devtest@example.com`**. The password is deliberately not written
+here or anywhere in Git — ask whoever set it up.
+
+> Everything in this section is 🔴 **unverified** until you tick it. TypeScript,
+> lint, 706 assertions, Expo Doctor and a web export all passed while it was
+> written, and **none of them can see a frame land, a keyboard appear, or a
+> colour under shop lighting.** The sign-in crash proved that precisely: it was
+> a worklet dying on the UI thread, which no gate in this project can execute.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | **Sign in** | Lands in the app. No crash on pressing the button — that is the specific regression `2b58d4b` fixed |
+| 2 | Sign in with a wrong password | Stays in the app, shows "Incorrect email, number or password" in your language |
+| 3 | **Home** | Waiting-work, stock and destinations each read as ONE grouped list, not as stacked bordered boxes |
+| 4 | Home as an employee account | No cost, margin or restricted metric visible |
+| 5 | **Catalog**, scroll | Flat rows, hairlines between them, product name strongest. No gaps making rows look like broken cards |
+| 6 | Catalog search | Filters as you type; the shared search field, not a bespoke one |
+| 7 | Catalog filters | Selected chip is indigo; tapping another switches cleanly |
+| 8 | **Product detail** | Identity and specs grouped; per-branch stock is one surface with internal rules |
+| 9 | **Create a Phone product** | Category first; the mode is *stated*, not chosen; no quantity field |
+| 10 | **Create a quantity product** | Same form, no IMEI language anywhere |
+| 11 | **Storage selector** | Opens with options visible and **the keyboard closed** |
+| 12 | **Colour selector** | Same, plus swatch and localised name |
+| 13 | Select an option | Pale indigo row + checkmark; reads as selected without relying on colour |
+| 14 | **Receive quantity stock** | Cost and quantity asked once. 40 arrives as 40, not 40 scans |
+| 15 | **Scan one IMEI** | Indigo reticle; camera stops immediately; one haptic; result fades in |
+| 16 | Sweep across several barcodes | **One** accepted result, **one** haptic |
+| 17 | **Add IMEI 2** | Optional and clearly marked as optional |
+| 18 | **Manual IMEI entry** | Reachable without the camera |
+| 19 | **Scan a product barcode** | Fills the barcode field. An IMEI must NOT |
+| 20 | **A sale** | Financial summary still stands out from the item rows |
+| 21 | **A return / refund state** | Pending payout reads **amber**, never green |
+| 22 | **Notifications** | Unread shown by wash *and* an explicit indicator |
+| 23 | **More / settings** | Grouped destinations; sign-out visually separate |
+| 24 | **Dark mode** everywhere above | Selected rows are a DEEP indigo, not a pale wash. Nothing washed out |
+| 25 | **Arabic RTL** | Rows, sheets, icons mirror. **Separator indents from the correct side** |
+| 26 | **Reduce Motion** on | Sheets fade in place; buttons do not scale; dialog does not zoom; toast does not slide |
+| 27 | Reduce Motion + a scan | Result still appears, still no movement |
+| 28 | **Offline** — turn the network off mid-action | Clear offline state, safe retry, no raw backend error |
+| 29 | Rotate / large text | Nothing clipped; primary actions still reachable |
+| 30 | VoiceOver on a selected row | Announced as selected |
+
+### Highest risk, in order
+
+1. **#15–16, #27** — the scanner through the reveal animation. Logic is covered
+   by tests; frames are not.
+2. **#25** — RTL separator indentation. It is a start-margin, so it *should*
+   follow direction, but that is an assertion about a layout engine.
+3. **#24** — dark mode across newly grouped surfaces.
+4. **#1** — regression check on the crash that blocked the last run.
