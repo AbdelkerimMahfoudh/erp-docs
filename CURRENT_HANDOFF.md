@@ -6,42 +6,90 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-08T23:22:26Z**
-- Active phase and scope: **indigo visual refresh and motion system, mobile
-  only.** A UI refinement — no navigation change, no workflow semantics, no new
-  milestone. Every business rule, scanner correction and category-aware intake
-  behaviour below must survive intact.
-- Next intended action: retune the existing brand/neutral anchors to the
-  approved indigo, add the missing semantic aliases, then the motion layer.
-- **Checkpoint:** tag `pre-indigo-refresh` → `3622280`, pushed. A palette change
-  touches every screen at once, so the last known-good visual state is pinned
-  before shared primitives move.
+- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
+- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Completed: **the indigo visual refresh and motion system**, mobile only. A UI
+  refinement — no navigation change, no workflow semantics, no business rule,
+  scanner correction or category-aware intake behaviour altered.
+- 🔵 **Nothing visual or animated here has run on a device.** It also sits on
+  `sdk-57-upgrade`, whose own iPhone acceptance run is still owed.
 
-### HEAD at takeover
-
-| Repository | Branch | HEAD |
-|---|---|---|
-| `erp-docs` | `master` | `36c2dde` |
-| `erp-backend` | `master` | `0ec9d4b` |
-| `erp-mobile` | `sdk-57-upgrade` | `3622280` |
-| `erp-mobile` `master` | — | `f47a155`, preserved |
-| `retail-erp-control-web` | `master` | `c764d63` |
-
-All four clean, level with their remotes, and matching the previous handoff.
-Mobile baseline independently recalculated across nested suites: **32 suites,
-645 assertions, 0 failing.**
-
-### Previous session's HEAD table (retained)
+### HEAD now
 
 | Repository | Branch | HEAD | Was |
 |---|---|---|---|
-| `erp-backend` | `master` | **`0ec9d4b`** | `b5b9461` |
-| `erp-mobile` | `sdk-57-upgrade` | **`3622280`** | `f530c7c` |
+| `erp-mobile` | `sdk-57-upgrade` | **`993cf13`** | `3622280` |
 | `erp-mobile` `master` | — | `f47a155`, preserved untouched | — |
+| `erp-backend` | `master` | `0ec9d4b` (untouched this session) | — |
 | `retail-erp-control-web` | `master` | `c764d63` (untouched) | — |
-| `erp-docs` | `master` | *this commit* | `8ea65be` |
+| `erp-docs` | `master` | *this commit* | `36c2dde` |
+
+**Checkpoint:** tag `pre-indigo-refresh` → `3622280`, pushed. A palette change
+touches every screen at once, so the last known-good visual state is a thing you
+can check out rather than reconstruct.
+
+At takeover (2026-09-08T23:22:26Z) all four trees were clean, level with their
+remotes and matching the previous handoff. The mobile baseline was independently
+recalculated across nested suites: **32 suites, 645 assertions, 0 failing** —
+matching the recorded figure.
+
+### Mobile commits this session
+
+| Commit | |
+|---|---|
+| `144d530` | the approved indigo palette + the motion layer |
+| `716c705` | sheets and scanner on the shared motion tokens |
+| `993cf13` | flatter catalog/stock lists, category-led product form |
+
+### What changed
+
+**Shared primitives** — `lib/design/colors.ts` (ramp re-anchored, `semantic`
+aliases, `border.reticle`), new `lib/design/motion.ts` and `motion-easing.ts`,
+`components/ui/Button.tsx` (press scale), `components/ui/ListRow.tsx` (`flat`
+mode), `components/overlay/BottomSheet.tsx` (motion tokens + Reduce Motion),
+`components/overlay/SelectSheet.tsx` + new `select-filter.ts`.
+
+**Screens** — `app/catalog/index.tsx`, `app/(tabs)/inventory.tsx`,
+`components/catalog/ProductForm.tsx`, `components/scanner/ScannerSheet.tsx`,
+`app/catalog/categories.tsx`.
+
+**Animation** is Reanimated only — already the app's animation layer, so **no
+dependency was added**. `motion.ts` imports nothing so the timings and the
+Reduce Motion decision are testable under bare node.
+
+**Accessibility** — Reduce Motion removes movement rather than shortening it
+(100 ms cross-fade instead); selected rows already announce `selected`; touch
+targets unchanged; destructive buttons deliberately excluded from the press
+scale.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `tsc --noEmit` | clean |
+| Expo lint | **0 errors**, 33 warnings — the same pre-existing React Compiler debt, none added |
+| Pure suites | **34 suites, 686 assertions, 0 failing** (from 32 / 645) |
+| EN/FR/AR parity | **1838 keys each, identical order** |
+| Web export | clean — **68 routes**; catalog, new, edit, categories and receive all present |
+| Camera patch | applies on `expo-camera@57.0.4`, guard verified **6 anchors** |
+| Raw-colour audit | **0 raw colours** in every file changed; colour exists only in the palette |
+| Contrast | asserted in the suite, both themes |
+| **Expo Doctor** | ⚠️ **1 check failed** — see below |
+
+⚠️ **Expo Doctor is no longer 21/21.** It reports `expo@57.0.20 → 57.0.21` and
+`expo-router@57.0.19 → 57.0.20`. **This session did not cause it:**
+`git diff pre-indigo-refresh -- package.json package-lock.json` is empty. These
+are upstream patch releases published since the SDK-57 session.
+
+They were deliberately **not** bumped. A dependency change on a branch whose
+device acceptance is already owed adds an unverified variable to an unverified
+branch, for a cosmetic doctor result. Bump them as part of the SDK-57 device
+run, not before it.
+
+Also noted: this session measured **68 routes** where the previous handoff
+recorded 23. `app/` holds 59 route files and the export emits 68 HTML files, so
+68 is the real figure and the earlier number was a narrower count. Recorded so
+the next account does not read it as a regression.
 
 All four trees were clean and level with their remotes at takeover
 (2026-09-08T20:18:38Z), and are clean and pushed now. No discrepancy was found
@@ -280,8 +328,18 @@ including the airplane-mode fallback, and the scanner including strict iOS ROI.
 
 ## Still open
 
-- 🔵 **The whole iPhone acceptance run.** Nothing about it is verified, and this
-  inventory work now rides on the same branch.
+- 🔵 **The whole iPhone acceptance run.** Nothing about it is verified, and both
+  the inventory work and now the visual refresh ride on the same branch.
+- 🔴 **Every visual and motion claim is unverified on hardware.**
+  [`docs/24` §12](docs/24_DEVICE_QA_CHECKLIST.md) is 35 checks, all red. Two
+  carry real risk: **12.12**, whether the indigo reticle survives a glossy white
+  box under a strip light — that colour sits on a camera image, so its contrast
+  could not be computed, only chosen; and **12.15–12.16**, one accepted result
+  and one haptic *through* the new reveal. The logic is covered by tests; the
+  frames are not.
+- 🟡 **Expo Doctor is 1-check-failed on two upstream patch releases**
+  (`expo`, `expo-router`). Not caused by this session — the lockfile is
+  untouched. Bump them with the SDK-57 device run, not before it.
 - 🔴 **Android strict-ROI placement on a handset.** Open before the upgrade,
   still open, on a rebased mapping — so it matters more, not less.
 - 🟠 **`Televisions` is still `serial`, with five units of stock.** The rule
@@ -300,10 +358,24 @@ including the airplane-mode fallback, and the scanner including strict iOS ROI.
 
 ## The next exact action
 
-Run the iPhone acceptance in [`docs/24` §10](docs/24_DEVICE_QA_CHECKLIST.md),
-which now also covers category-aware intake (§11). Until that is done, neither
-the SDK 57 upgrade nor this inventory work may be called device-verified, and
-`sdk-57-upgrade` must not be merged into `master`.
+Get a phone in front of `sdk-57-upgrade` and work
+[`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) in order: **§10** (the SDK 57
+acceptance), then **§11** (category-aware intake), then **§12** (the visual
+refresh and motion).
+
+Three sessions of work now sit on this branch with no device behind any of it.
+None of it may be called verified, and `sdk-57-upgrade` must not merge into
+`master`, until §10 passes at minimum.
+
+Setup is unchanged: Expo Go on the phone signed in as `salah_rim`, the CLI
+already signed in, same Wi-Fi.
+
+```bash
+cd mobile
+git checkout sdk-57-upgrade
+npm ci
+npx expo start --lan
+```
 
 ## Running services
 

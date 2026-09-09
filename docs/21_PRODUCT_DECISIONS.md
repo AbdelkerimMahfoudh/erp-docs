@@ -3782,3 +3782,130 @@ untouched. **No migration was added to drop a column that is still load-bearing.
 
 Storage and colour were never in that object. They live in `products.variant` via
 `VariantSelect` and remain structured selectors.
+
+---
+
+## The indigo refresh, and a motion system that is never in the way
+
+**Decision.** Indigo is the app's one interaction colour. It marks what is
+*actionable or chosen* — primary actions, selection, focus, navigation
+emphasis — and nothing else. It never means "good".
+
+### Status colour, and never colour alone
+
+| Meaning | Colour |
+|---|---|
+| Selected, actionable, primary | **indigo** |
+| Completed, confirmed | **green** |
+| Pending, low stock, needs attention | **amber** |
+| Error, destructive, invalid | **red** |
+| Informational, inactive | **neutral** |
+
+Green is reserved for a **server-confirmed business outcome**. A barcode being
+detected is not success — it is a reading, and it may still be rejected. This is
+why the scanner's accepted-detection mark is indigo, not green: the phone has
+been *identified*, not *added*.
+
+Every one of these is paired with a word, an icon, or both. `status.ts` is where
+that pairing lives, and it is the reason no state in the app is expressible in
+colour alone.
+
+### The palette is measured, not chosen by eye
+
+Approved values: primary `#5146D9`, selected wash `#EEECFC`, background
+`#F7F8FB`, text `#172033`, surfaces white. The accent ramp was re-cut around the
+two approved anchors rather than having them dropped into the old scale, because
+two transplanted steps band visibly exactly where the accent is used most.
+
+Contrast is asserted in the test suite, not asserted in prose: white on primary
+6.51:1, primary on the selected wash 5.59:1, text on surface 16.27:1.
+
+**Dark mode is chosen, not derived.** The readable accent becomes a light indigo
+and the selected wash a deep one — `#EEECFC` behind a selected row at night is a
+torch. A test fails if any dark semantic token equals its light counterpart.
+
+A flat `semantic` vocabulary (`primary`, `primarySoft`, `divider`, `textMuted`,
+…) exists as **aliases onto the palette**, never a second source of truth.
+Components may use either vocabulary; they may not invent a third, and they may
+not reach into the raw ramp — the theme suite enforces that, and caught the
+scanner reticle doing it.
+
+### Motion
+
+| What | Duration |
+|---|---|
+| Button press (scale to 0.98) | 120 ms |
+| Selection, checkmark | 150 ms |
+| Content or result reveal | 200 ms |
+| Bottom sheet in/out | 260 ms |
+
+**Animation is presentation. It never gates behaviour.** No save, mutation,
+validation, scanner lock or navigation decision waits on an animation. The
+motion module contains no timer, no promise and no `await`, and a test asserts
+that — the tempting failure is making a caller wait so the animation "finishes
+first", which is exactly how a fade ends up delaying a lock.
+
+`motion.ts` imports nothing at all, so the timings and the Reduce Motion
+decision are testable under bare node; `motion-easing.ts` binds the curves to
+Reanimated. That boundary is asserted too.
+
+**Reduce Motion removes movement, it does not shorten it.** For some people
+travelling UI causes genuine nausea, and a fast lurch is still a lurch. Movement
+is replaced by a 100 ms cross-fade — never an instant swap, which is its own
+accessibility problem. The sheet stops travelling and fades in place; buttons do
+not scale at all.
+
+Destructive buttons are excluded from the press scale. A refund should feel like
+a decision, not a satisfying tap — the friction is the feature.
+
+No looping, decorative, bouncing or attention-seeking animation exists anywhere,
+and none may be added.
+
+### The scanner may animate, under conditions
+
+The result surface fades in over 200 ms, opacity only — text that slides while
+somebody reads back a 15-digit number is worse than no animation.
+
+It is safe **structurally, not carefully**: the result branch renders only once
+the machine is in `result`, by which point the synchronous lock has been held
+since inside the camera callback, the camera is stopped and the haptic has
+fired. A hundred callbacks during the reveal change nothing, and tests hold that
+line. The strict ROI rules and the `coordinateSpace` trust marker are untouched.
+
+The reticle is the accent, using a **light** step: it is drawn over a live camera
+feed, which may be a dark stockroom or a glossy white box under a strip light.
+Its contrast cannot be computed against an unknown photograph — it is a device
+check, not a test.
+
+### Flatter operational lists
+
+Catalog and stock rows are flat, full-bleed and hairline-separated rather than
+stacked cards. A card suits rows considered one at a time; it is wrong when
+there are forty and the job is scanning a column for one name.
+
+`flat` is a **mode on the shared row**, not a second row component, so a stock
+list and a picker cannot drift apart. The leading mark is a category icon:
+there is no product image in the API or the model, and adding one would mean a
+storage feature nobody asked for.
+
+### The product form is led by the category
+
+Category, then how it will be received (**derived, never chosen**), then brand
+and model, then structured attributes, then the optional barcode.
+
+The category decides the intake workflow, so asking for it last would let the
+answer change underneath a form already filled in. The tracking mode is no
+longer a control at all — the server derives it and would refuse a
+contradiction, so a picker here could only produce a rejection the employee did
+not cause and cannot fix.
+
+Storage and Colour remain structured selectors, the free-form `Details` editor
+stays removed, and `Product.specifications` and category attribute validation
+are untouched. A scanned IMEI can never populate the product barcode.
+
+### Selector sheets
+
+Opaque surface, grabber, title, close, search — and the list **already full**
+before anybody types, with the keyboard closed. A picker that opens empty and
+waits to be searched only helps someone who already knows what they want. Both
+properties are now pinned by tests rather than left to be rediscovered.

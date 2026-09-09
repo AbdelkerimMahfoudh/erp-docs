@@ -7325,3 +7325,136 @@ those five units — precisely what this work forbids everywhere else. So `seria
 was retired rather than deleted: it cannot be newly chosen, existing rows keep
 working, and the category can still be renamed. **What happens to those five
 units is not a decision I should make.**
+
+---
+
+## 2026-09-09 · CLAUDE-A · The indigo visual refresh and motion system
+
+Took over at `2026-09-08T23:22:26Z`. All four trees clean, level, and matching
+the previous handoff: `erp-docs` `36c2dde`, `erp-backend` `0ec9d4b`,
+`erp-mobile` `sdk-57-upgrade` `3622280` (`master` preserved `f47a155`),
+`retail-erp-control-web` `c764d63`. Mobile baseline recalculated independently
+across nested suites: 32 suites / 645 assertions / 0 failing — the recorded
+figure was right.
+
+Tagged `pre-indigo-refresh` at `3622280` before touching shared primitives. A
+palette change repaints every screen at once, so the last known-good visual
+state should be something you can check out rather than reconstruct.
+
+**Pushed:** `erp-mobile` → `993cf13` (three commits). Backend and website
+untouched.
+
+### The refresh was smaller than the brief assumed, and that was the finding
+
+An indigo design system already existed — a brand ramp, light and dark palettes,
+intents, and `status.ts` pairing every tone with a word so no state is
+expressible in colour alone. So this was a **retune, not a build**: the ramp was
+re-anchored on the approved `#5146D9` / `#EEECFC`, with every step between them
+re-cut. Dropping two approved values into an otherwise unchanged scale bands
+visibly exactly where the accent is used most.
+
+`text.primary` got its own value rather than moving `neutral[900]` — that step
+is also the dark card surface, so moving it would have repainted dark mode as a
+side effect.
+
+Contrast was measured, not judged: white on primary 6.51:1, primary on the
+selected wash 5.59:1, text on surface 16.27:1. Dark mode is chosen rather than
+derived, and a test now fails if any dark semantic token equals its light
+counterpart — the specific failure being guarded is copying `#EEECFC` across,
+which behind a selected row at night is a torch.
+
+The flat `semantic` vocabulary the brief asked for was added as **aliases**, not
+a second palette.
+
+### Motion, and the boundary that makes it testable
+
+`motion.ts` imports **nothing**. The pure suites run under bare node where
+Reanimated cannot even be resolved, so the moment it imports Reanimated the
+timings and the Reduce Motion decision stop being checkable anywhere;
+`motion-easing.ts` binds the curves. That boundary is asserted, as is the
+absence of any timer, promise or `await` — the tempting failure is making a
+caller wait so the animation "finishes first", which is precisely how a fade
+ends up gating a save or a scanner lock.
+
+Reduce Motion **removes** movement rather than shortening it. A fast lurch is
+still a lurch; it becomes a 100 ms cross-fade, never an instant swap.
+
+Buttons scale to 0.98 over 120 ms. **Destructive buttons are excluded** — a
+refund should feel like a decision, not a satisfying tap.
+
+No dependency was added: Reanimated was already the app's animation layer and
+already ships `useReducedMotion`.
+
+### Two things caught me, both correctly
+
+The React Compiler rules flagged the imperative shared-value write in the
+button. The declarative form — deriving the scale from the press state that
+already existed for the background colour — is simpler, has no mutation, and
+cannot leave a button stuck at 0.98 on a cancelled press. Warning count stayed
+at 33; no new debt.
+
+The theme suite refused `colors.brand[300]` on the scanner reticle: components
+may not reach into the raw ramp. That was right, and forcing it into a named
+token (`border.reticle`) gave the value somewhere to explain itself — it is the
+one border drawn over a **photograph**, so it is identical in both themes and
+its contrast cannot be computed at all, only checked on a device.
+
+### The scanner animates, but only structurally safely
+
+The result surface fades in over 200 ms, opacity only. It is safe because of
+where it sits, not because of care taken: the branch renders only once the
+machine is in `result`, by which point the synchronous lock has been held since
+inside the camera callback, the camera is stopped and the haptic has fired.
+Three new machine tests hold that — a hundred callbacks during the reveal change
+nothing, the camera is already paused before a result can exist, and one
+accepted result stays one. ROI rules and the `coordinateSpace` marker untouched.
+
+### Lists and the form
+
+Catalog rows were bordered, rounded cards with a gap each — forty products were
+forty boxes, and the eye crossed a border, a corner and a gap per line while
+scanning a column for one name. They are now flat and hairline-separated.
+
+`flat` is a **mode on the shared `ListRow`**, not a second row component, so a
+stock list and a picker cannot drift into different padding or selected states.
+Flat rows abut and carry their own bottom hairline, and the container gap goes
+to zero — borderless rows with a gap would have read worse than the cards.
+
+The product form now asks for the **category first**. It decides how the product
+is received, so asking last lets that answer change under a form already filled
+in. The tracking picker is gone entirely: the server derives the mode and
+refuses contradictions, so a control here could only produce a rejection the
+employee did not cause and cannot fix.
+
+The selector sheet already opened with a full list and no keyboard — the two
+things that matter most about it. Rather than "fixing" what was right, the
+filter moved to `select-filter.ts` so *an empty query shows everything* is now
+asserted instead of waiting to be broken.
+
+### Verified
+
+`tsc` clean · Expo lint **0 errors, 33 warnings** (the same pre-existing React
+Compiler debt) · **34 suites / 686 assertions / 0 failing** (from 32 / 645) ·
+EN/FR/AR **1838 keys each, identical order** · web export clean, **68 routes** ·
+camera patch applies with **6 anchors** · **0 raw colours** in every changed
+file · contrast asserted in both themes.
+
+### Not verified, and not to be called otherwise
+
+**Nothing visual or animated ran on a device.** Not one frame, not one keyboard,
+not one colour under shop lighting. TypeScript, tests, Doctor and a web export
+all passed while `docs/24` §12 was being written, and none of them can see any
+of it. §12 is 35 checks, every one red; **12.12** (the indigo reticle against a
+glossy white box) and **12.15–12.16** (one result, one haptic, through the
+reveal) are the two that carry real risk.
+
+**Expo Doctor is no longer 21/21** — `expo` and `expo-router` each have a newer
+patch upstream. This session did not cause it: the diff of `package.json` and
+the lockfile against the checkpoint tag is empty. They were deliberately not
+bumped, because adding an unverified dependency change to a branch whose device
+acceptance is already owed trades a real risk for a cosmetic result.
+
+**Route count discrepancy resolved, not a regression.** This session measured 68
+routes against the 23 recorded previously; `app/` holds 59 route files and the
+export emits 68 HTML files, so 68 is the true figure and the old number was a
+narrower count.

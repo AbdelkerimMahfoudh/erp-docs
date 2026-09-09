@@ -2717,3 +2717,83 @@ nothing else is.** The category decides, and the app should never ask.
 | | |
 |---|---|
 | 🔴 Unverified | **Every row above.** Nothing here has run on a handset. |
+
+---
+
+## 12. The indigo refresh and motion — UNVERIFIED ON ANY DEVICE
+
+Runs on `sdk-57-upgrade`, so §10 first, then §11, then this.
+
+**Nothing in this section can be checked by TypeScript, tests, Expo Doctor or
+the web export.** Every one of them passed while this list was written; none of
+them can see a frame land, a keyboard appear, or a colour under shop lighting.
+
+### Motion
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.1 | Press and hold a primary button | It settles slightly smaller (~2%), and returns cleanly on release |
+| 12.2 | Press, then slide your thumb off before releasing | It returns to full size — no button left stuck small |
+| 12.3 | Press a **destructive** button (delete, refund) | **No scale.** If it springs, the high-friction control has been made to feel casual |
+| 12.4 | Press a button mid-save (while it shows a spinner) | Nothing happens — no scale, no second submission |
+| 12.5 | Open and close a bottom sheet | Rises and falls in ~¼ second, no wobble or overshoot |
+| 12.6 | Scroll a long list hard, then flick back | Smooth; no stutter introduced by row changes |
+
+### Reduce Motion  *(iOS: Settings → Accessibility → Motion)*
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.7 | Turn Reduce Motion on, open a sheet | It **fades in place** — it must not travel up the screen |
+| 12.8 | Press a button | **No scale at all**; the colour change and haptic still report the press |
+| 12.9 | Scan a code | The result still appears, still fades, still no movement |
+| 12.10 | Turn Reduce Motion back off | Movement returns without restarting the app |
+
+### The scanner  *(the highest-risk area on this list)*
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.11 | Aim at a barcode | The reticle is **indigo** and clearly visible |
+| 12.12 | Aim at a glossy white box under bright light | The reticle is still visible. **Report it if it washes out** — this colour could not be contrast-tested against a photograph |
+| 12.13 | Aim at a dark shelf | Still visible |
+| 12.14 | Scan a valid IMEI | The camera stops **immediately**, one haptic, result fades in |
+| 12.15 | Sweep across a label carrying several barcodes | **One** accepted result, **one** haptic. Not one per code |
+| 12.16 | Keep the phone over the label during the fade | No second result, no second buzz, no flicker |
+| 12.17 | Look at the accepted mark | **Indigo, not green.** Green means a completed business outcome; a detection is only a reading |
+| 12.18 | Background the app mid-fade, return | The result is intact; the camera has not resumed behind it |
+| 12.19 | Tap "Scan again" | The camera restarts cleanly |
+| 12.20 | Check the ROI frame still rejects a barcode half outside it | Unchanged from §10 |
+
+### Lists and sheets
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.21 | Open the catalog | Flat rows, hairline separators, product name strongest. No stack of cards |
+| 12.22 | Open the stock list | Rows abut with hairlines; quantities aligned down the column |
+| 12.23 | Open the Storage selector | **Options visible immediately and the keyboard closed.** If the keyboard covers the list, the sheet has regressed |
+| 12.24 | Open the Colour selector | Same, plus swatches and localised names |
+| 12.25 | Select an option | Pale indigo row, indigo checkmark, and it reads as selected without relying on colour |
+| 12.26 | Drag a sheet down | Dismisses; the list inside still scrolls independently |
+
+### Dark mode, RTL, and contrast
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.27 | Switch to dark mode, revisit catalog, stock, form, scanner | Nothing washed out; the selected row is a **deep** indigo, not a pale one |
+| 12.28 | Switch to Arabic | Sheets, rows, icons, spacing and the sheet transition all mirror correctly |
+| 12.29 | Arabic, dark mode, Reduce Motion together | Still coherent — these interact and are usually tested apart |
+| 12.30 | Check low stock, pending, confirmed and error surfaces in both themes | Readable, and each carries a word or icon as well as its colour |
+| 12.31 | French: check the longest labels do not truncate | Especially buttons and the derived-tracking line |
+
+### VoiceOver
+
+| # | Do this | Expect |
+|---|---|---|
+| 12.32 | Focus a selected option | Announced as **selected** |
+| 12.33 | Focus a disabled or loading button | Announced as disabled/busy |
+| 12.34 | Open then dismiss a sheet | Focus returns sensibly to the screen behind |
+| 12.35 | Scan a code with VoiceOver on | Status change announced **once**, not repeatedly |
+
+| | |
+|---|---|
+| 🔴 Unverified | **Every row above.** |
+| ⚠️ Highest risk | 12.12 (reticle on a bright surface) and 12.15–12.16 (one result, one haptic, through the reveal). |
