@@ -8,26 +8,48 @@
 
 - Status: **IN_PROGRESS**
 - Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-09T18:39:07Z**
-- Active phase and scope: 🔴 **release-blocking crash on iPhone sign-in.** The
-  device run reached §10 and the app terminates on "Sign in". Diagnosis from
-  runtime evidence only. **The visual milestone is stopped** until login works
-  on the handset.
-- Next intended action: verify whether `store@test.com` exists and whether it
-  authenticates through the real HTTP endpoint, before touching any code.
+- `started_at_utc:` **2026-09-09T23:11:08Z** (continuing without a break; the
+  previous phase never returned ownership — see the discrepancy below)
+- Active phase and scope: **complete the indigo redesign across the mobile app.**
+  Authorised to finish without pausing for subjective approval. No backend
+  change, no rename, no merge to `master`.
+- Next intended action: finish the token migration on `catalog/index.tsx` and
+  `analytics.tsx`, then the shared primitives the rest of the work depends on.
 
 ### HEAD at takeover
 
 | Repository | Branch | HEAD |
 |---|---|---|
-| `erp-docs` | `master` | `22b6ba9` |
+| `erp-docs` | `master` | `bddaf6b` |
 | `erp-backend` | `master` | `0ec9d4b` |
-| `erp-mobile` | `sdk-57-upgrade` | `993cf13` |
+| `erp-mobile` | `sdk-57-upgrade` | `ca8525d` |
 | `erp-mobile` `master` | — | `f47a155`, preserved |
 | `retail-erp-control-web` | `master` | `c764d63` |
 
-All four clean and level with their remotes at takeover. Checkpoint for the
-visual work: tag `pre-indigo-refresh` → `3622280`.
+All four clean and level with their remotes. Baseline recalculated
+independently rather than trusted: **35 suites, 692 assertions, 0 failing**;
+i18n 1838 × 3; tsc clean; lint 0 errors / 33 warnings.
+
+Checkpoints: `pre-indigo-refresh` → `3622280` (before any visual work) and
+**`pre-redesign-completion` → `ca8525d`** (the verified foundation: SDK 57, the
+sign-in crash fix, overlay motion obeying Reduce Motion).
+
+### Discrepancies found at takeover
+
+1. **The handoff was not `READY_FOR_HANDOFF`.** It still read `IN_PROGRESS` /
+   `CLAUDE-A` from the crash investigation, which ended by handing the user a QR
+   rather than closing the session. Same account continuing, so no ownership
+   conflict — recorded because the protocol expects a clean claim.
+2. **Its HEAD table was three commits stale** for `erp-mobile` (`993cf13`,
+   actually `ca8525d`) and one behind for `erp-docs` (`22b6ba9` → `bddaf6b`).
+   The missing commits are `2b58d4b` (sign-in crash fix), `a0eaaaf` (sign-in
+   error copy) and `ca8525d` (overlay motion). **Both required commits are
+   present and verified.**
+3. **The development database was mutated** during the crash session: one new
+   user `devtest` (owner, both branches) created with the project's own
+   `prisma/create-user.ts`, and a reserved `@example.com` address set on that
+   same new user. Nothing existing was changed or deleted. The password is
+   deliberately absent from Git and from these documents.
 
 ### Previously completed (retained)
 
