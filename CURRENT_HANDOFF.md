@@ -6,13 +6,35 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
-- Completed: **the indigo visual refresh and motion system**, mobile only. A UI
-  refinement — no navigation change, no workflow semantics, no business rule,
-  scanner correction or category-aware intake behaviour altered.
-- 🔵 **Nothing visual or animated here has run on a device.** It also sits on
-  `sdk-57-upgrade`, whose own iPhone acceptance run is still owed.
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-09T18:39:07Z**
+- Active phase and scope: 🔴 **release-blocking crash on iPhone sign-in.** The
+  device run reached §10 and the app terminates on "Sign in". Diagnosis from
+  runtime evidence only. **The visual milestone is stopped** until login works
+  on the handset.
+- Next intended action: verify whether `store@test.com` exists and whether it
+  authenticates through the real HTTP endpoint, before touching any code.
+
+### HEAD at takeover
+
+| Repository | Branch | HEAD |
+|---|---|---|
+| `erp-docs` | `master` | `22b6ba9` |
+| `erp-backend` | `master` | `0ec9d4b` |
+| `erp-mobile` | `sdk-57-upgrade` | `993cf13` |
+| `erp-mobile` `master` | — | `f47a155`, preserved |
+| `retail-erp-control-web` | `master` | `c764d63` |
+
+All four clean and level with their remotes at takeover. Checkpoint for the
+visual work: tag `pre-indigo-refresh` → `3622280`.
+
+### Previously completed (retained)
+
+**The indigo visual refresh and motion system**, mobile only — a UI refinement
+that altered no business rule, scanner correction or category-aware intake
+behaviour. **Nothing visual or animated has run on a device**, and it sits on
+`sdk-57-upgrade`, whose own iPhone acceptance run is still owed.
 
 ### HEAD now
 
