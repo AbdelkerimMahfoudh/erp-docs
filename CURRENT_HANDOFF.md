@@ -6,8 +6,13 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T01:13:06Z**
+- Active phase: **two objective gaps before the device test** — the scan
+  duplicate contract, then an isolated SDK 57 patch bump. Not a redesign phase.
+- Checkpoints: `pre-scan-contract` on both `erp-mobile` (`337719f`) and
+  `erp-backend` (`0ec9d4b`). No discrepancies at takeover.
 - Completed: **the indigo redesign is applied across every named surface.** All
   19 `ListRow` consumers are deliberately classified and the classification is
   asserted by tests.
