@@ -6,160 +6,178 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-10T01:13:06Z**
-- Active phase: **two objective gaps before the device test** — the scan
-  duplicate contract, then an isolated SDK 57 patch bump. Not a redesign phase.
-- Checkpoints: `pre-scan-contract` on both `erp-mobile` (`337719f`) and
-  `erp-backend` (`0ec9d4b`). No discrepancies at takeover.
-- Completed: **the indigo redesign is applied across every named surface.** All
-  19 `ListRow` consumers are deliberately classified and the classification is
-  asserted by tests.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-10T01:13:06Z` → `2026-09-10T02:10Z`
+- Phase closed: **the two objective gaps before the device test.** Both done.
+  Not a redesign phase; the indigo UI is untouched.
 - 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md)
-  is the single 30-step script; every row is red.
+  is the single script — now **32 checks**, every row red.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Was |
 |---|---|---|---|
-| `erp-mobile` | `sdk-57-upgrade` | **`337719f`** | `7d7a7ce` |
+| `erp-backend` | `master` | **`67352af`** | `0ec9d4b` |
+| `erp-mobile` | `sdk-57-upgrade` | **`c2422c6`** | `337719f` |
 | `erp-mobile` `master` | — | `f47a155`, preserved untouched | — |
-| `erp-backend` | `master` | `0ec9d4b` (untouched) | — |
 | `retail-erp-control-web` | `master` | `c764d63` (untouched) | — |
-| `erp-docs` | `master` | *this commit* | `8d3dabd` |
+| `erp-docs` | `master` | *this commit* | `d1e3134` |
 
-Checkpoints: `pre-indigo-refresh` → `3622280`, `pre-redesign-completion` →
-`ca8525d`, **`pre-redesign-part2` → `7d7a7ce`**.
+All clean, level with their remotes, and pushed.
 
-No discrepancies at takeover: all four repositories clean, level,
-`READY_FOR_HANDOFF`, and every prior redesign commit present and verified.
+Checkpoints: `pre-scan-contract` on `erp-mobile` (`337719f`) and `erp-backend`
+(`0ec9d4b`); earlier, `pre-redesign-part2` → `7d7a7ce`.
 
 ### Commits this session
 
-| Commit | |
-|---|---|
-| `ce5b8de` | every repeated operational record grouped; `ListSeparator` added |
-| `337719f` | scanner paused-state and indigo detection; surface classification tests |
+| Repository | Commit | |
+|---|---|---|
+| `erp-backend` | `67352af` | `/scan` answers "do we already have this phone?" |
+| `erp-mobile` | `7e36929` | the warning, and the intake it refuses |
+| `erp-mobile` | `c2422c6` | expo 57.0.21 / expo-router 57.0.20, isolated |
 
-### Screens completed this session
+## What changed
 
-`sales/[id]` (items + payments grouped, totals card kept), `returns/[id]` (item
-and source sale grouped, refund summary card kept), `suppliers/[id]` (deliveries
-and both settlement lists grouped, separately), `transfers/new` (review list
-grouped; form steps kept one surface per step), `(tabs)/more` (grouped
-destinations, sign-out isolated), `notifications` (flat list, unread wash + word
-+ accessibility label), the scanner result panel, and eight index lists —
-suppliers, expenses, loans, consignments, discrepancies, imports, team, devices.
+### The scan duplicate contract
 
-### The 19 `ListRow` consumers, classified
+`POST /api/v1/scan { code, secondary?, hint? }` now also returns **`inventory`**:
 
-**grouped (13)** — Home, Inventory, More, Analytics, `catalog/[id]`,
-consignments, devices, discrepancies, expenses, imports, loans, suppliers, team.
+```
+alreadyInInventory          boolean
+matchedIdentifierPosition   'primary' | 'secondary' | null
+unit                        { productLabel, branchName, status } | null
+elsewhere                   boolean
+conflictingUnits            boolean
+```
 
-**card retained (3)** — Money hub, `hub/[id]`, settings: metrics and panels
-meant to be looked at rather than read through.
+`null` for a barcode — a barcode names a reusable product, not one physical
+thing. `secondary` carries the second IMEI of a dual-SIM phone so both are
+checked as **one handset**, in one request.
 
-**custom retained (3)** — `select-branch`, `catalog/categories`, `dev/gallery`:
-a one-off pre-app choice, a management sheet, and a component gallery.
+**Recognition is not existence.** `recognized` is a catalogue fact (a TAC
+resolved); `inventory` is a stock fact. Nothing is inferred from the first.
 
-Asserted in `lib/design/surface-classification.test.ts`, which also enforces
-that a grouped screen actually separates its rows and that financial summaries
-were **not** flattened.
+**Tenant and branch privacy.** IMEI uniqueness is global (migration 0042's
+trigger, no company filter) while the tenant client is company-scoped. The
+scoped client returns the safe summary for a unit this user can reach. The
+system client is asked for a **`count`** and nothing else — a number has no
+shape for another tenant's data to travel in. Anything out of reach (another
+company, or a branch this user is not assigned to) sets `elsewhere: true` and
+carries no company, branch, product, owner or identifier position. Intake is
+refused; the holder is not named. **Global cross-column uniqueness is
+untouched.** Full reasoning: `docs/21`, "Recognition is not existence".
 
-### Shared primitives changed
+Home of the logic: `InventoryService.describeIdentifierConflict`, reusing the
+both-columns lookup `findByIdentifier` already owns.
 
-`ListSeparator` (new) — one place that decides the row rule and its start-side
-inset. `Section` gained an icon slot in the previous pass; `RowGroup` and
-`ListRow.flat` unchanged this session.
+On the phone: the localized sentence, product and branch **only** when the
+server sent a summary, and **"Use this IMEI" disabled** while it stands. No
+cost, no margin, no internal id, anywhere. Scan lock, camera pause, animation
+order and the single haptic are unchanged.
 
-### Verification
+### The dependency checkpoint
+
+| Package | Before | After |
+|---|---|---|
+| `expo` | 57.0.20 | **57.0.21** |
+| `expo-router` | 57.0.19 | **57.0.20** |
+| `expo-modules-jsi` (transitive) | 57.0.8 | **57.1.0** |
+| `expo-camera` | 57.0.4 | **57.0.4 — deliberately unchanged** |
+
+Both are the versions the installed SDK 57 asks for. Everything else that moved
+is an `@expo/*` patch release. `expo-camera+57.0.4.patch` still names the
+installed version, applies cleanly, **6 anchors verified**, no rebase needed,
+strict ROI trust handling as written.
+
+## Verification
 
 | Gate | Result |
 |---|---|
-| `tsc --noEmit` | clean |
-| Expo lint | **0 errors**, 33 warnings — unchanged, no new debt |
-| Pure suites | **38 suites, 713 assertions, 0 failing** (from 37 / 706) |
-| EN/FR/AR parity | **1840 keys each, identical order** |
-| Web export | clean — **68 routes**; every redesigned route present |
-| Camera patch | applies on `expo-camera@57.0.4`, **6 anchors** |
-| Raw-colour audit | **0** across 56 authenticated routes (test) |
-| NativeWind audit | **0** across 56 (test) |
-| Hardcoded-copy audit | no `trackingLabel` in screens (test) |
-| Worklet-safety audit | no `withTiming` inside any `useAnimatedStyle` (test) |
-| Reduce Motion audit | every layout animation defers to `ReduceMotion.System` (test) |
-| Live HTTP login | `devtest@example.com` → **200** (password absent from Git and docs) |
-| **Expo Doctor** | ⚠️ **1 check failed** — two upstream patch releases |
+| Backend suite | **113 suites / 1973 tests**, 0 failing |
+| Backend `tsc` / Prisma validate | clean |
+| Migrations | **63, up to date** |
+| Permission catalogue | **61/61**, no drift |
+| **Live HTTP vs real MySQL** | **16/16** — fixtures created and removed under `ZZ-SCAN-VERIFY`, audit rows preserved |
+| Mobile `tsc --noEmit` | clean |
+| Expo lint | **0 errors**, 33 warnings — unchanged |
+| Pure suites | **39 suites**, 0 failing (from 38) |
+| EN/FR/AR parity | **1840 keys each, identical order** — no new keys needed |
+| Web export | clean, **68 routes** |
+| Camera patch | **6 anchors**, filename matches installed 57.0.4 |
+| **Expo Doctor** | ✅ **21/21 — no issues** |
+| Raw-colour / NativeWind / hardcoded-copy | clean |
+| Worklet safety / Reduce Motion | clean |
 
-⚠️ **Expo Doctor** reports `expo@57.0.20 → 57.0.21` and `expo-router@57.0.19 →
-57.0.20`. Not caused here — the lockfile is untouched across all three redesign
-sessions. Deliberately not bumped: mixing a dependency upgrade into a UI
-milestone is forbidden by the brief, and the branch's device acceptance is still
-owed. Do it as an isolated checkpoint and re-verify the camera patch.
+`zod` was **not** removed. A simple import search calls it unused; that is not
+the same as being unused, and dependency cleanup was not the purpose of this
+closure.
 
-### One concrete blocker, not a design concern
+## The consolidated device test — running now
 
-**The scanner's existing-inventory warning cannot be built.** `docs/24` asks the
-result panel to warn when a scanned IMEI is already in stock, and the string
-`scan.alreadyInInventory` exists — but `ScanResult` carries no such field and
-`/scan` does not return one. Rendering it needs a backend change, which this
-milestone forbids. The key is left in place for whoever adds the field.
+| | |
+|---|---|
+| API | **`http://172.20.10.2:3010`**, LAN-reachable, serving `67352af` |
+| Metro | **`exp://172.20.10.2:8081`**, started `--clear --lan` |
+| MySQL | up on `3306` |
+| Sign in as | **`devtest@example.com`** (or personal ID `U-QZRNQJV5`) — Owner, branches Main Store and Warehouse |
+| Password | **not written here.** Handed to the user in chat; reset with `npx ts-node prisma/create-user.ts <login> <password> owner` |
+
+Login was verified over the LAN address and returns an access token; `/scan` was
+verified over the same address and returns the `inventory` object.
+
+⚠️ `mobile/.env.local` was repointed from `192.168.100.3` to **`172.20.10.2`** —
+the old address was a previous network and the phone could not have reached the
+API. It is gitignored, so a future network change has to be made by hand again.
+
+**The script is [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md) — 32 checks.**
+Rows 1–30 are the redesign; **#31–32** are the duplicate warning. Every row
+needs the physical iPhone; #9–13 and #31–32 additionally need real handsets with
+real IMEIs, and #31 needs one whose IMEI is already in stock.
+
+**No device verification is claimed.**
 
 ## Still open
 
-- 🔵 **The whole iPhone acceptance run.** Nothing about it is verified, and both
-  the inventory work and now the visual refresh ride on the same branch.
-- 🔴 **Every visual and motion claim is unverified on hardware.** The single
-  script is [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md) — 30 checks, all
-  red; it supersedes §11–§13. Highest risk, in order: the **RTL separator
-  inset** (a `marginStart`, so it *should* follow direction, but that is an
-  assertion about a layout engine and is invisible in English); the scanner
-  **through** the reveal animation; **first/last row treatment** across eight
-  converted lists; and dark mode over many newly grouped surfaces.
-- 🟡 **Expo Doctor is 1-check-failed on two upstream patch releases**
-  (`expo`, `expo-router`). Not caused by this session — the lockfile is
-  untouched. Bump them with the SDK-57 device run, not before it.
-- 🔴 **Android strict-ROI placement on a handset.** Open before the upgrade,
-  still open, on a rebased mapping — so it matters more, not less.
+- 🔴 **The whole iPhone acceptance run**, 32 checks, all red. Four sessions of
+  work sit on this branch with no device behind any of it. Highest risk, in
+  order: the **RTL separator inset** (#26 — a `marginStart`, so it *should*
+  follow direction, but that is an assertion about a layout engine and is
+  invisible in English); the scanner **through** the reveal (#9–11); first/last
+  row treatment across eight converted lists (#24); dark mode over the newly
+  grouped surfaces (#25).
+- 🔴 **Android strict-ROI placement on a handset** — open before the SDK
+  upgrade, still open, on a rebased mapping.
 - 🟠 **`Televisions` is still `serial`, with five units of stock.** The rule
-  going forward is imei-or-quantity, but converting an existing category would
-  reinterpret real stock, which is exactly what this work forbids. **A person
-  must decide what happens to those five units.** Nothing is broken meanwhile:
-  the category keeps working and can still be renamed.
-- 🟡 **A staged quantity cannot be edited after the fact** in the receive flow.
-  The quantity is typed once when the product is first scanned — so nobody
-  registers pieces one at a time — but correcting it means removing the line and
-  re-scanning. Noticed while tracing the flow; out of scope here.
-- 🟡 **No authenticated HTTP verification** of the new refusals. They are covered
-  by unit tests and by real-database tests, not by a live round trip.
+  going forward is imei-or-quantity, but converting the category would
+  reinterpret real stock. **A person must decide about those five units.**
+  Nothing is broken meanwhile.
+- 🟡 **A staged quantity cannot be edited after the fact** in the receive flow;
+  correcting it means removing the line and re-scanning.
 - 🟡 **React Compiler lint debt** — 32 warnings, deliberately deferred.
-- 🟡 **Merge to `master`** once the iPhone run passes.
+- 🟡 **Merge `sdk-57-upgrade` → `master`** once the run passes. Not before.
+- 🟢 A stray staff account created by a mis-typed password reset was deactivated
+  and soft-deleted the same minute. It never authenticated and holds no data.
 
 ## The next exact action
 
-**Work `docs/24` §14 on a handset.** 30 checks, all red. Sign in as
-`devtest@example.com`. Four sessions of work now sit on this branch with no
-device behind any of it.
+**Work `docs/24` §14 on the iPhone — 32 checks.** The QR, the API and MySQL are
+running and were verified from this machine minutes ago. Sign in as
+`devtest@example.com`.
 
-After it passes, two isolated follow-ups — each its own checkpoint, never mixed:
-bump the two Expo patch releases and re-verify the camera patch, then merge
-`sdk-57-upgrade` into `master`.
-
-Do not merge before §10 passes at minimum.
+Do not start another feature and do not merge to `master` before the run.
 
 ## Running services
 
-**Nothing is left running by this session except MySQL.**
+Left **running deliberately** for the device test:
 
-- **MySQL is up**, started directly as `mysqld.exe --defaults-file=… --console`
-  because `Start-Service wampmysqld64` needs elevation this session did not
-  have. It is listening on `3306`. If it is gone, that is why.
-- The API was started on `:3010` from a **fresh** `nest build` for verification
-  and **has been stopped again**. The `dist/` in the tree is that build.
+- **API on `:3010`** — a build of `67352af`, LAN-reachable at `172.20.10.2`.
+- **Metro on `:8081`** — `expo start --clear --lan`, `exp://172.20.10.2:8081`.
+- **MySQL on `:3306`**.
 
 ⚠️ **Check freshness before trusting any server you find running.** Three
-separate failures this project has hit — a 404 on an endpoint that existed, a
-Metro bundler predating a fix, and a `PluginError` from a bundler started before
-`node_modules` was wiped — were all one stale process. Resolve the PID and
-compare its start time against the last build before concluding anything from
-what it returns.
+separate failures on this project — a 404 on an endpoint that existed, a Metro
+predating a fix, and a `PluginError` from a bundler started before
+`node_modules` was wiped — were all one stale process. A stale Metro on `8081`
+was found and stopped during this very session. Resolve the PID and compare its
+start time against the last build before concluding anything.

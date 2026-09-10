@@ -111,7 +111,9 @@ Prisma `schema.prisma`: `imeiPrimary String?` (drop `@@unique`), `serialNo Strin
 
 ## 5. Smart Product Scanner architecture (a learning system)
 
-**`POST /api/v1/scan { code, hint? }` → `ScanResult`** (auth). One entry point that resolves the code by a fixed **recognition priority** and **learns** every result. The heart is the `product_recognition` map (§2.5) plus the global `tac_catalog` seed.
+**`POST /api/v1/scan { code, secondary?, hint? }` → `ScanResult`** (auth). One entry point that resolves the code by a fixed **recognition priority** and **learns** every result. The heart is the `product_recognition` map (§2.5) plus the global `tac_catalog` seed.
+
+The result also carries **`inventory`** — whether this *physical unit* is already held, which is a different question from whether the *product* was recognised. `secondary` carries the second IMEI of a dual-SIM phone so both are checked as one handset. Shape, privacy rule and the cross-tenant behaviour are in [`21_PRODUCT_DECISIONS.md`](21_PRODUCT_DECISIONS.md) — "Recognition is not existence".
 
 ### 5.1 Recognition priority (as specified)
 ```

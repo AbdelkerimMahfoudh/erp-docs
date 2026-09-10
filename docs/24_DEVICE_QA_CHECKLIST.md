@@ -91,6 +91,9 @@ counter.
 | 5.6 | Deny camera permission, then open the scanner | Explains, and manual entry still works | |
 | 5.7 | Type the IMEI by hand | Same result as scanning | |
 | 5.8 | Scan a **box** instead of the phone screen | Note what happens — the box is deliberately not the documented route | |
+| 5.9 | Scan an IMEI **already in your stock** | "This phone is already in inventory", with the product and branch. **Use this IMEI is disabled**; Scan again, manual entry and Cancel still work | |
+| 5.10 | Scan an IMEI of a phone your shop has **sold before** (not in stock) | **No warning.** Recognising the model is not the same as holding the handset | |
+| 5.11 | Check the warning carefully | **No cost, no margin, no other company or branch you cannot see** | |
 
 ## 6. Keyboard, sheets, haptics
 
@@ -2861,6 +2864,8 @@ here or anywhere in Git — ask whoever set it up.
 
 ## 14. The completed redesign — UNVERIFIED
 
+*32 checks: the 30 redesign rows, plus #31–32 for the scan duplicate contract.*
+
 Supersedes §13. Same account (`devtest@example.com`, password not written here),
 same order, extended to the screens finished in this pass.
 
@@ -2901,6 +2906,8 @@ same order, extended to the screens finished in this pass.
 | 28 | Offline mid-action | Clear offline state, safe retry, no raw error |
 | 29 | Large text | Nothing clipped; primary actions still reachable |
 | 30 | Scroll a long list hard | No stutter from the new grouping |
+| 31 | **Scan an IMEI already in your stock** | "This phone is already in inventory", product and branch shown, **Use this IMEI disabled**. Scan again / manual / Cancel still work |
+| 32 | Scan an IMEI of a model you stock but a handset you do NOT hold | **No warning.** Recognising the model is not holding the phone. And no cost or margin anywhere in the warning |
 
 ### Highest risk
 

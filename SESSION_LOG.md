@@ -7637,3 +7637,88 @@ has not been touched in any of these sessions.
 30-step script; every row is red. Highest risk is the **RTL separator inset** —
 it is a `marginStart`, so it should follow the writing direction, but that is an
 assertion about a layout engine and is invisible to anyone testing in English.
+
+---
+
+## 2026-09-10 — CLAUDE-A — the two objective gaps
+
+Two things stood between four sessions of work and a handset: the scanner had
+no trustworthy answer to "do we already have this phone?", and Expo Doctor was
+one check short on two upstream patch releases. Both are closed. Neither is a
+redesign; the indigo UI is untouched.
+
+### Gap 1 — recognition is not existence
+
+The previous session recorded this as a blocker: `scan.alreadyInInventory`
+existed in all three languages and nothing could render it, because `/scan`
+returned no such fact. The audit found the deeper version of the problem —
+`recognized` was the only signal available, and it is a fact about the
+**product**. Every iPhone 15 shares a TAC. Inferring stock from it would have
+warned about every phone the shop had ever sold.
+
+Worse, the two rules already in the database pulled against each other. IMEI
+uniqueness is **global** (migration 0042's trigger has no company filter) while
+the tenant client is **company-scoped**, so a duplicate held by another shop was
+invisible *and* unreceivable: the employee learned about it from a constraint
+error, after typing a cost.
+
+The contract now asks twice. The scoped client returns a safe summary —
+`productLabel`, `branchName`, `status` — for a unit this user can actually
+reach. The system client is asked for a **`count`**, never for rows: a number
+has no shape for another tenant's data to travel in. Out of reach means
+`elsewhere: true` and nothing else — no company, no branch, no product, no
+owner, no identifier position. That reveals nothing the insert trigger would
+not reveal a minute later in plainer words.
+
+`InventoryService.describeIdentifierConflict` is where it lives, reusing the
+both-columns lookup `findByIdentifier` already owns rather than writing a second
+definition of "already have it". Both IMEIs of a dual-SIM phone go in one
+request; two identifiers resolving to two different units sets
+`conflictingUnits` and shows **nothing**, because picking one would silently
+attach the pair to whichever row the query happened to return first.
+
+On the phone: the localized sentence, product and branch only when the server
+sent a summary, and **"Use this IMEI" disabled** while it stands — so the
+refusal arrives with its reason instead of as a failure two forms later. No
+cost, no margin, no internal id, in the response or on the screen. The scan
+lock, the camera pause, the animation order and the single haptic are
+untouched, and a test asserts the warning renders without driving the machine.
+
+### Gap 2 — the dependency checkpoint, on its own
+
+`expo` 57.0.20 → **57.0.21**, `expo-router` 57.0.19 → **57.0.20**; both are what
+the installed SDK 57 asks for. Transitive movement is contained to `@expo/*`
+patch releases plus `expo-modules-jsi` 57.0.8 → **57.1.0**, which expo 57.0.21
+pulls in. `expo-camera` stays at **57.0.4**, so `expo-camera+57.0.4.patch` still
+names the installed version, applies cleanly and verifies all **six anchors**.
+No rebase was needed and strict ROI trust handling stands as written. Committed
+separately from the scanner contract.
+
+**Expo Doctor is now 21/21.**
+
+### Verified
+
+Backend: **113 suites / 1973 tests**, Prisma validate, migrate status **63
+migrations up to date**, permission catalogue **61/61**, and a **16/16 live HTTP
+run against real MySQL** with fixtures created and removed under marker
+`ZZ-SCAN-VERIFY` (audit rows deliberately preserved).
+
+Mobile: tsc clean · lint **0 errors, 33 warnings** (unchanged) · **39 suites,
+0 failing** (from 38) · i18n **1840 × 3, identical order** — no new keys, the
+strings were already there · web export clean, **68 routes** · camera patch **6
+anchors** · Expo Doctor **21/21** · raw-colour, NativeWind, worklet-safety and
+Reduce Motion audits all still clean. `zod` was **not** removed: dependency
+cleanup was not the purpose of this closure.
+
+### Not verified
+
+**Nothing ran on a handset.** `docs/24` §14 is now **32 checks** — the 30
+redesign rows plus #31–32 for the duplicate warning. Every row is red.
+
+### One correction to the record
+
+Resetting the test account's password, I passed the email where the script
+takes a **login**, and it created a second user rather than updating the first.
+The stray was deactivated and soft-deleted the same minute; the real account was
+then reset by its login. It never authenticated and holds no data. Recorded
+because a stray staff account is exactly the kind of thing that goes unnoticed.

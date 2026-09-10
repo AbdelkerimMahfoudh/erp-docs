@@ -4015,3 +4015,50 @@ Approved-but-unpaid and reported-but-unconfirmed are both **amber**; only a
 confirmed payout is **green**. Each carries a word as well as a tone, so the
 distinction survives a colour-blind reader. Reported is a claim; confirmed is a
 settlement; the app must never let the first look like the second.
+
+### Recognition is not existence
+
+`POST /scan` answers two different questions and keeps them apart:
+
+- **`recognized`** — a catalogue fact. A TAC resolved to a product. Every
+  iPhone 15 on earth shares that TAC, so this says nothing about stock.
+- **`inventory`** — a stock fact. The server looked for *this* handset.
+
+Collapsing them would warn about every phone the shop has ever sold, and the
+scanner previously did neither: the duplicate surfaced only when intake hit the
+global IMEI uniqueness trigger, after a cost had been typed, as a database
+error two forms later.
+
+**`inventory` shape.** `alreadyInInventory`, `matchedIdentifierPosition`
+(`primary` | `secondary` | `null`), `unit` (a safe `productLabel` /
+`branchName` / `status` summary, or `null`), `elsewhere`, `conflictingUnits`.
+It is `null` for a barcode, which names a reusable product rather than one
+physical thing. Both IMEIs of a dual-SIM phone are checked together, in one
+request, because checking them separately is how two numbers off one box get
+attached to two different units.
+
+**The privacy rule.** IMEI uniqueness in this database is global — migration
+0042's trigger queries `units` with no company filter — while the tenant client
+is company-scoped. Left alone that is the worst of both: the duplicate is
+invisible *and* unreceivable. So the contract asks twice. The **scoped** client
+returns a safe summary for a unit this user can actually reach. The **system**
+client is asked for a `count` and nothing else: a number has no shape for
+another tenant's data to travel in.
+
+A unit outside the caller's reach — another company, or a branch they are not
+assigned to — sets `elsewhere: true` and carries no company, branch, product,
+owner, status or identifier position. Intake is refused; the holder is not
+named. This reveals nothing the insert trigger would not reveal a minute later
+in plainer words.
+
+**Never cost, never margin, never an internal id.** Not in the response, not on
+the screen. The mobile warning shows the localized sentence, plus product and
+branch only when the server sent a summary at all, and disables "Use this
+IMEI" while it stands — so the refusal arrives with its reason attached rather
+than as a failure the employee cannot act on.
+
+**Two identifiers, two units, no guess.** If the primary and secondary IMEIs
+resolve to *different* units, `conflictingUnits` is true and `unit` is `null`.
+Something is wrong with the box, the label or the data, and picking one to
+display would silently attach the pair to whichever the query happened to
+return first.
