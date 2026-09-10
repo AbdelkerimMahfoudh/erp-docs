@@ -6,9 +6,12 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T02:40Z` → `2026-09-10T04:05Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T04:20Z**
+- Active phase: **release-readiness audit and staging preparation.** No product feature, no UI work, no merge, no deploy.
+- Baseline verified at takeover, no discrepancies: backend `51c93ad` (`b0f3fc5` an ancestor), mobile `ed7d614`, docs `37f381a`, `reports-export` on both code repositories, `pre-reports` tags at `67352af` and `c2422c6`, all four trees clean and level.
+- Previous session: **CLAUDE-A**, `2026-09-10T02:40Z` → `2026-09-10T04:05Z`, handoff complete.
 - Phase closed: **Phase 5 report export (CSV).** Six reports leave the app as
   spreadsheets. Full contract in [`docs/40`](docs/40_REPORT_EXPORT.md).
 - 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md)
