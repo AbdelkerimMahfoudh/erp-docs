@@ -3964,3 +3964,54 @@ whether to refund money is the worst possible place for a control that bounces
 cheerfully into view. All of it is asserted, because the sign-in crash proved
 that an animation defect can be invisible to every non-device gate in this
 project.
+
+---
+
+## Which surface, decided once
+
+Applying the three-surface rule across every remaining screen produced one
+useful artefact: a **classification of all 19 `ListRow` consumers**, asserted in
+`lib/design/surface-classification.test.ts`. The target was never "everything
+flat" — it was "nothing un-decided".
+
+| Kind | Screens |
+|---|---|
+| **grouped** | Home, Inventory, More, Analytics, product detail, consignments, devices, discrepancies, expenses, imports, loans, suppliers, team |
+| **card** | Money hub, hub landings, settings — metrics and panels meant to be looked at |
+| **custom** | branch chooser, category management, dev gallery — a shape that is the point |
+
+Two rules the test enforces, because each had already been broken once:
+
+1. **A grouped screen must actually separate its rows.** Marking a row `flat`
+   and forgetting the container leaves borderless text blocks with a gap —
+   worse than the cards they replaced, because at least a card had an edge. The
+   test caught `imports/index.tsx` doing exactly this.
+2. **Financial summaries were not flattened.** Sale totals and the refund
+   summary stay cards. Flattening what somebody opens the screen to read is the
+   mistake in the other direction, and a "make everything flat" pass causes it.
+
+### Separation is decided in one place
+
+`ListSeparator` exists because eight index screens each needed a rule between
+rows, and eight screens each choosing an inset is eight chances to write
+`marginLeft` and have it indent from the wrong side in Arabic — invisible to
+anyone testing in English. Decided once, it can be wrong only once.
+
+### The scanner says the camera stopped
+
+The result panel leads with an indigo glyph, "IMEI detected", and an explicit
+**"Scanner paused"**. A still camera is ambiguous: it looks exactly like a
+frozen app. The state machine has already left `scanning` before this renders,
+so the panel reports a fact rather than creating one.
+
+**Indigo, never green.** A detected IMEI is a *reading* — the phone has been
+identified, not added to stock, and it can still be rejected on the next
+screen. Green is reserved for a server-confirmed outcome, and using it here is
+how somebody walks away believing the intake finished.
+
+### Refund tone is a money rule, not a palette choice
+
+Approved-but-unpaid and reported-but-unconfirmed are both **amber**; only a
+confirmed payout is **green**. Each carries a word as well as a tone, so the
+distinction survives a colour-blind reader. Reported is a claim; confirmed is a
+settlement; the app must never let the first look like the second.

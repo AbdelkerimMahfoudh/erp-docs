@@ -6,149 +6,111 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-10T00:28:06Z**
-- Active phase: **complete the remaining redesign screens.** Binding visual rule
-  supplied by the user, so no screen stops for design judgement.
-- Checkpoint: `pre-redesign-part2` → `7d7a7ce`. No discrepancies at takeover:
-  all four repos clean, level, READY_FOR_HANDOFF, and every prior redesign
-  commit present.
-- Completed: **the token migration is finished and the shared surface system is
-  in place.** Every authenticated route is free of raw colours and NativeWind
-  styling, and the audit is now enforced by tests rather than by habit.
-- 🔴 **Nothing here has run on a handset.** The consolidated device script is
-  [`docs/24` §13](docs/24_DEVICE_QA_CHECKLIST.md) — 30 checks, all red.
-- ⚠️ **The redesign is NOT complete.** See "what remains" below; several screens
-  named in the brief were deliberately not touched.
+- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
+- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Completed: **the indigo redesign is applied across every named surface.** All
+  19 `ListRow` consumers are deliberately classified and the classification is
+  asserted by tests.
+- 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md)
+  is the single 30-step script; every row is red.
 
-### HEAD at takeover
+### HEAD now
 
-| Repository | Branch | HEAD |
-|---|---|---|
-| `erp-docs` | `master` | `bddaf6b` |
-| `erp-backend` | `master` | `0ec9d4b` |
-| `erp-mobile` | `sdk-57-upgrade` | `ca8525d` |
-| `erp-mobile` `master` | — | `f47a155`, preserved |
-| `retail-erp-control-web` | `master` | `c764d63` |
+| Repository | Branch | HEAD | Was |
+|---|---|---|---|
+| `erp-mobile` | `sdk-57-upgrade` | **`337719f`** | `7d7a7ce` |
+| `erp-mobile` `master` | — | `f47a155`, preserved untouched | — |
+| `erp-backend` | `master` | `0ec9d4b` (untouched) | — |
+| `retail-erp-control-web` | `master` | `c764d63` (untouched) | — |
+| `erp-docs` | `master` | *this commit* | `8d3dabd` |
 
-All four clean and level with their remotes. Baseline recalculated
-independently rather than trusted: **35 suites, 692 assertions, 0 failing**;
-i18n 1838 × 3; tsc clean; lint 0 errors / 33 warnings.
+Checkpoints: `pre-indigo-refresh` → `3622280`, `pre-redesign-completion` →
+`ca8525d`, **`pre-redesign-part2` → `7d7a7ce`**.
 
-Checkpoints: `pre-indigo-refresh` → `3622280` (before any visual work) and
-**`pre-redesign-completion` → `ca8525d`** (the verified foundation: SDK 57, the
-sign-in crash fix, overlay motion obeying Reduce Motion).
+No discrepancies at takeover: all four repositories clean, level,
+`READY_FOR_HANDOFF`, and every prior redesign commit present and verified.
 
-### What was done
+### Commits this session
 
 | Commit | |
 |---|---|
-| `e647c22` | token migration finished; `RowGroup` added; `ListRow.flat` stopped self-separating |
-| `7d7a7ce` | Home and product-detail grouping; the audit turned into tests |
+| `ce5b8de` | every repeated operational record grouped; `ListSeparator` added |
+| `337719f` | scanner paused-state and indigo detection; surface classification tests |
 
-**Screens redesigned:** `catalog/index` (fully off NativeWind — shared
-`SearchInput`, `FilterChip`, `ErrorState` replace hand-rolled copies),
-`analytics` (rebuilt on tokens; tabular money; signed profit; localised tracking
-badge), `(tabs)/index` (three grouped runs instead of stacked bordered cards),
-`(tabs)/inventory` (row runs grouped), `catalog/[id]` (per-branch stock
-grouped).
+### Screens completed this session
 
-**Shared primitives changed:** new `RowGroup`; `ListRow.flat` no longer draws
-its own hairline; `Section` gained an optional icon.
+`sales/[id]` (items + payments grouped, totals card kept), `returns/[id]` (item
+and source sale grouped, refund summary card kept), `suppliers/[id]` (deliveries
+and both settlement lists grouped, separately), `transfers/new` (review list
+grouped; form steps kept one surface per step), `(tabs)/more` (grouped
+destinations, sign-out isolated), `notifications` (flat list, unread wash + word
++ accessibility label), the scanner result panel, and eight index lists —
+suppliers, expenses, loans, consignments, discrepancies, imports, team, devices.
 
-### What remains — the redesign is not finished
+### The 19 `ListRow` consumers, classified
 
-Deliberately not touched, and **not** because they are correct:
+**grouped (13)** — Home, Inventory, More, Analytics, `catalog/[id]`,
+consignments, devices, discrepancies, expenses, imports, loans, suppliers, team.
 
-| Screen | State |
-|---|---|
-| `sales/[id]` | 6 nested cards — brief asks for 4 grouped sections |
-| `returns/[id]` | 7 nested cards — brief asks for 5, with amber pending payout |
-| `suppliers/[id]` | 6 nested cards |
-| `transfers/new` | 8 nested cards |
-| `(tabs)/more` | 4 cards — brief asks for grouped destinations |
-| `notifications` | flat-list treatment not applied |
-| `receive` | category-aware presentation not refined |
-| Scanner | presentation refinements (explicit "Scanner paused", labelled IMEI 2) not done |
-| Selector sheets | already correct on keyboard/options; the confirm-action pattern was not revisited |
+**card retained (3)** — Money hub, `hub/[id]`, settings: metrics and panels
+meant to be looked at rather than read through.
 
-Flat-list coverage is **3 of 19** `ListRow` consumers. The system and the
-primitives to finish the rest are in place; the remaining work is applying them
-screen by screen.
+**custom retained (3)** — `select-branch`, `catalog/categories`, `dev/gallery`:
+a one-off pre-app choice, a management sheet, and a component gallery.
 
-I stopped here rather than continuing because the quality of each screen matters
-more than the count, and a half-applied treatment across nine more screens would
-be worse than none. The next account should work the table above in order.
+Asserted in `lib/design/surface-classification.test.ts`, which also enforces
+that a grouped screen actually separates its rows and that financial summaries
+were **not** flattened.
 
-### Discrepancies found at takeover
+### Shared primitives changed
 
-1. **The handoff was not `READY_FOR_HANDOFF`.** It still read `IN_PROGRESS` /
-   `CLAUDE-A` from the crash investigation, which ended by handing the user a QR
-   rather than closing the session. Same account continuing, so no ownership
-   conflict — recorded because the protocol expects a clean claim.
-2. **Its HEAD table was three commits stale** for `erp-mobile` (`993cf13`,
-   actually `ca8525d`) and one behind for `erp-docs` (`22b6ba9` → `bddaf6b`).
-   The missing commits are `2b58d4b` (sign-in crash fix), `a0eaaaf` (sign-in
-   error copy) and `ca8525d` (overlay motion). **Both required commits are
-   present and verified.**
-3. **The development database was mutated** during the crash session: one new
-   user `devtest` (owner, both branches) created with the project's own
-   `prisma/create-user.ts`, and a reserved `@example.com` address set on that
-   same new user. Nothing existing was changed or deleted. The password is
-   deliberately absent from Git and from these documents.
+`ListSeparator` (new) — one place that decides the row rule and its start-side
+inset. `Section` gained an icon slot in the previous pass; `RowGroup` and
+`ListRow.flat` unchanged this session.
 
-### Previously completed (retained)
-
-**The indigo visual refresh and motion system**, mobile only — a UI refinement
-that altered no business rule, scanner correction or category-aware intake
-behaviour. **Nothing visual or animated has run on a device**, and it sits on
-`sdk-57-upgrade`, whose own iPhone acceptance run is still owed.
-
-### Verification (this session)
+### Verification
 
 | Gate | Result |
 |---|---|
 | `tsc --noEmit` | clean |
-| Expo lint | **0 errors**, 33 warnings — the same pre-existing React Compiler debt, none added |
-| Pure suites | **37 suites, 706 assertions, 0 failing** (from 35 / 692) |
-| EN/FR/AR parity | **1839 keys each, identical order** |
-| Web export | clean — **68 routes**; catalog, new, edit, categories, analytics, receive, notifications, settings all present |
-| Camera patch | applies on `expo-camera@57.0.4`, **6 anchors** verified |
-| Raw-colour audit | **0** across all 56 authenticated routes — now a test |
-| NativeWind audit | **0** across all 56 — now a test |
-| Hardcoded-copy audit | `trackingLabel` removed from screens; now a test |
-| Worklet-safety audit | no `withTiming` family call inside any `useAnimatedStyle` |
-| Reduce Motion audit | every `entering`/`exiting` defers to `ReduceMotion.System`; no duration literals |
-| Live HTTP login | `devtest@example.com` → **200** (password not recorded in Git or docs) |
-| **Expo Doctor** | ⚠️ **1 check failed** — two upstream patch releases, unchanged from before |
+| Expo lint | **0 errors**, 33 warnings — unchanged, no new debt |
+| Pure suites | **38 suites, 713 assertions, 0 failing** (from 37 / 706) |
+| EN/FR/AR parity | **1840 keys each, identical order** |
+| Web export | clean — **68 routes**; every redesigned route present |
+| Camera patch | applies on `expo-camera@57.0.4`, **6 anchors** |
+| Raw-colour audit | **0** across 56 authenticated routes (test) |
+| NativeWind audit | **0** across 56 (test) |
+| Hardcoded-copy audit | no `trackingLabel` in screens (test) |
+| Worklet-safety audit | no `withTiming` inside any `useAnimatedStyle` (test) |
+| Reduce Motion audit | every layout animation defers to `ReduceMotion.System` (test) |
+| Live HTTP login | `devtest@example.com` → **200** (password absent from Git and docs) |
+| **Expo Doctor** | ⚠️ **1 check failed** — two upstream patch releases |
 
-⚠️ **Expo Doctor** still reports `expo@57.0.20 → 57.0.21` and
-`expo-router@57.0.19 → 57.0.20`. Not caused by this session — the lockfile is
-untouched. Deliberately **not** bumped: the brief forbids mixing a dependency
-upgrade into a UI correction, and the branch's device acceptance is still owed.
-Do it as an isolated checkpoint and re-verify the camera patch afterwards.
+⚠️ **Expo Doctor** reports `expo@57.0.20 → 57.0.21` and `expo-router@57.0.19 →
+57.0.20`. Not caused here — the lockfile is untouched across all three redesign
+sessions. Deliberately not bumped: mixing a dependency upgrade into a UI
+milestone is forbidden by the brief, and the branch's device acceptance is still
+owed. Do it as an isolated checkpoint and re-verify the camera patch.
 
-**Dependency audit caveat.** A naive import scan flags nine packages as unused;
-eight are Expo/expo-router peers used through config rather than imports
-(`react-dom`, `react-native-web`, `react-native-screens`, `expo-font`,
-`expo-system-ui`, `expo-image`, `@expo/vector-icons`, `react-native-svg`).
-**`zod` is genuinely unimported** — a real candidate for removal, left alone
-because a dependency change does not belong in a UI milestone.
+### One concrete blocker, not a design concern
+
+**The scanner's existing-inventory warning cannot be built.** `docs/24` asks the
+result panel to warn when a scanned IMEI is already in stock, and the string
+`scan.alreadyInInventory` exists — but `ScanResult` carries no such field and
+`/scan` does not return one. Rendering it needs a backend change, which this
+milestone forbids. The key is left in place for whoever adds the field.
 
 ## Still open
 
 - 🔵 **The whole iPhone acceptance run.** Nothing about it is verified, and both
   the inventory work and now the visual refresh ride on the same branch.
 - 🔴 **Every visual and motion claim is unverified on hardware.** The single
-  consolidated script is [`docs/24` §13](docs/24_DEVICE_QA_CHECKLIST.md) — 30
-  checks, all red; it supersedes §11 and §12, which were written before the
-  sign-in crash was found. Highest risk: the scanner **through** the reveal
-  animation (one result, one haptic), the indigo reticle against a glossy box
-  under a strip light — a colour on a camera image, so its contrast could only
-  be chosen, never computed — and the RTL separator indentation.
-- ⚠️ **The redesign itself is incomplete.** Nine screens named in the brief were
-  not touched; see "what remains". The primitives to finish them exist.
+  script is [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md) — 30 checks, all
+  red; it supersedes §11–§13. Highest risk, in order: the **RTL separator
+  inset** (a `marginStart`, so it *should* follow direction, but that is an
+  assertion about a layout engine and is invisible in English); the scanner
+  **through** the reveal animation; **first/last row treatment** across eight
+  converted lists; and dark mode over many newly grouped surfaces.
 - 🟡 **Expo Doctor is 1-check-failed on two upstream patch releases**
   (`expo`, `expo-router`). Not caused by this session — the lockfile is
   untouched. Bump them with the SDK-57 device run, not before it.
@@ -170,14 +132,15 @@ because a dependency change does not belong in a UI milestone.
 
 ## The next exact action
 
-Two things, in this order:
+**Work `docs/24` §14 on a handset.** 30 checks, all red. Sign in as
+`devtest@example.com`. Four sessions of work now sit on this branch with no
+device behind any of it.
 
-1. **Work `docs/24` §13 on a handset** — 30 checks, all red. Sign in with
-   `devtest@example.com`. Nothing in this milestone is device-verified.
-2. **Finish the screens in "what remains"**, in the order listed. The
-   primitives are in place; it is application, not design.
+After it passes, two isolated follow-ups — each its own checkpoint, never mixed:
+bump the two Expo patch releases and re-verify the camera patch, then merge
+`sdk-57-upgrade` into `master`.
 
-Do not merge `sdk-57-upgrade` into `master` until §10 passes at minimum.
+Do not merge before §10 passes at minimum.
 
 ## Running services
 

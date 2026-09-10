@@ -7550,3 +7550,90 @@ alone for the same reason.
 replacing §11 and §12, and every row is red. The sign-in crash is the standing
 proof of why that matters: a worklet dying on the UI thread, invisible to
 TypeScript, lint, every assertion, Doctor and the web export.
+
+---
+
+## 2026-09-10 · CLAUDE-A · The redesign, finished
+
+Took over at `00:28:06Z`. **No discrepancies**: all four repositories clean,
+level, `READY_FOR_HANDOFF`, and every prior redesign commit present and
+verified. Checkpoint `pre-redesign-part2` tagged at `7d7a7ce`.
+
+**Pushed:** `erp-mobile` → `337719f` (two commits).
+
+### What the binding rule changed
+
+The previous session stopped with nine screens untouched, and the honest reason
+was that each needed a judgement about what deserves a card. The user supplied
+the rule, which removed the question entirely: repeated records group, key/value
+facts about one object group, metrics and financial summaries stay cards, form
+steps get one surface per step.
+
+With that fixed, the work was mechanical in the good sense — every screen had a
+determinate answer:
+
+`sales/[id]` items and payments grouped, **totals card kept**. `returns/[id]`
+item and source sale grouped, **refund summary card kept**. `suppliers/[id]`
+deliveries and both settlement lists grouped, and deliberately kept in separate
+sections — what was delivered and what was paid are different questions, and a
+supplier page that merges them is how a shop loses track of what it owes.
+`transfers/new` review list grouped; its form steps left alone, because they are
+stages of a task rather than records and the rule says sections, not one card
+per input. `(tabs)/more` grouped with **sign-out isolated below in the danger
+tone** — it ends the session, and a row that looks like "Devices" is a row
+somebody taps while scanning a menu. `notifications` flattened, with unread
+carrying the wash, the existing word chip, *and* an accessibility label that
+says "unread" before the title. Eight index lists converted.
+
+### Two things the tests caught that review would not have
+
+`surface-classification.test.ts` records what all 19 `ListRow` consumers were
+decided to be. It failed immediately on `imports/index.tsx`: that screen renders
+into a `ScrollView` rather than a `FlatList`, so the separator pass had silently
+skipped it and its rows would have floated with nothing between them.
+
+It also asserts the opposite mistake — that sale totals and the refund summary
+are **still cards**. A "make everything flat" pass would have destroyed exactly
+the surfaces somebody opens those screens to read.
+
+`ListSeparator` exists for the same reason: eight screens each needed a rule
+between rows, and eight screens each choosing an inset is eight chances to write
+`marginLeft` and have it indent from the wrong side in Arabic — invisible to
+anyone testing in English.
+
+### Scanner
+
+Presentation only; the state machine, the synchronous lock, the ROI rules and
+the coordinate-space marker are untouched, and its 31 machine plus 58 behaviour
+assertions still pass. The result panel now leads with an indigo glyph, "IMEI
+detected", and an explicit **"Scanner paused"** — a still camera is ambiguous,
+because it looks exactly like a frozen app.
+
+**Indigo, never green.** A detected IMEI is a reading: the phone has been
+identified, not added to stock, and it can still be rejected on the next screen.
+
+### One concrete blocker
+
+`docs/24` asks the scanner to warn when a scanned IMEI is already in inventory,
+and the string `scan.alreadyInInventory` exists — but `ScanResult` carries no
+such field and `/scan` does not return one. Rendering it needs a backend change
+this milestone forbids. This is a technical blocker, not a design concern, and
+the key is left in place for whoever adds the field.
+
+### Verified
+
+tsc clean · lint **0 errors, 33 warnings** (unchanged across all three redesign
+sessions) · **38 suites / 713 assertions / 0 failing** · i18n **1840 × 3,
+identical order** · web export clean, **68 routes**, every redesigned route
+present · camera patch **6 anchors** · live HTTP login **200**, password absent
+from Git and from documentation.
+
+Expo Doctor still fails one check on two upstream patch releases. The lockfile
+has not been touched in any of these sessions.
+
+### Not verified
+
+**Nothing ran on a handset.** `docs/24` §14 supersedes §11–§13 as the single
+30-step script; every row is red. Highest risk is the **RTL separator inset** —
+it is a `marginStart`, so it should follow the writing direction, but that is an
+assertion about a layout engine and is invisible to anyone testing in English.

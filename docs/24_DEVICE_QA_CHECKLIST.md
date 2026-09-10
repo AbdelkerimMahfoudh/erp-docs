@@ -2856,3 +2856,57 @@ here or anywhere in Git — ask whoever set it up.
    follow direction, but that is an assertion about a layout engine.
 3. **#24** — dark mode across newly grouped surfaces.
 4. **#1** — regression check on the crash that blocked the last run.
+
+---
+
+## 14. The completed redesign — UNVERIFIED
+
+Supersedes §13. Same account (`devtest@example.com`, password not written here),
+same order, extended to the screens finished in this pass.
+
+> 🔴 Every row is unverified. tsc, lint, 713 assertions, Expo Doctor and a web
+> export all passed while this was written, and **none of them can see a frame
+> land or a colour under shop lighting.** The sign-in crash remains the proof:
+> a worklet dying on the UI thread, invisible to every gate in this project.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Sign in | No crash on the button. Wrong password stays in-app with a localized message |
+| 2 | Home | Waiting-work, stock and destinations each ONE grouped list |
+| 3 | Catalog, scroll, search, filter | Flat rows, hairlines, shared search field and chips |
+| 4 | Product detail | Per-branch stock grouped; identity and specs still readable blocks |
+| 5 | Create a Phone product | Category first, mode stated not chosen, no quantity field |
+| 6 | Create a quantity product | No IMEI language anywhere |
+| 7 | Storage + Colour selectors | Options visible, **keyboard closed**, swatch and localized name |
+| 8 | Receive quantity stock | Cost and quantity once; 40 arrives as 40 |
+| 9 | Scan an IMEI | Indigo reticle → **indigo** glyph, "IMEI detected", **"Scanner paused"** |
+| 10 | Sweep several barcodes | ONE result, ONE haptic |
+| 11 | Add IMEI 2 | "Add second IMEI — optional"; "Both IMEIs belong to one phone" appears |
+| 12 | Manual IMEI entry | Reachable from the field beside the camera button |
+| 13 | Scan a product barcode | Fills barcode. An IMEI must NOT |
+| 14 | **Sales detail** | Items and payments grouped; the totals card still stands out |
+| 15 | **Returns detail** | Item and sale grouped; refund summary still a card |
+| 16 | A refund reported but not confirmed | **Amber**, with the waiting-for-confirmation wording. Never green |
+| 17 | A confirmed refund | Green — the only place it is allowed |
+| 18 | **Supplier detail** | Deliveries and payments in SEPARATE grouped lists |
+| 19 | **Transfer creation** | Form steps keep their surfaces; the review list is one group |
+| 20 | Transfer to the same branch | Not offered |
+| 21 | **Notifications** | Flat rows; unread has the wash AND the word |
+| 22 | Notifications with VoiceOver | Announces "unread" before the title |
+| 23 | **More** | Grouped destinations; **sign-out separate, below, in danger tone** |
+| 24 | Any index list (expenses, loans, suppliers…) | Adjoining rows, hairline between, **no rule under the last row** |
+| 25 | Dark mode, all of the above | Selected/unread wash is a DEEP indigo, not pale |
+| 26 | **Arabic RTL** | Rows mirror; **separator indents from the correct side** |
+| 27 | Reduce Motion | Sheets fade in place; buttons do not scale; dialog does not zoom |
+| 28 | Offline mid-action | Clear offline state, safe retry, no raw error |
+| 29 | Large text | Nothing clipped; primary actions still reachable |
+| 30 | Scroll a long list hard | No stutter from the new grouping |
+
+### Highest risk
+
+1. **#26** — the RTL separator inset. It is a `marginStart`, so it *should*
+   follow direction, but that is an assertion about a layout engine, and it is
+   invisible to anyone testing in English.
+2. **#9–11** — the scanner through the reveal.
+3. **#24** — first/last row treatment across eight converted lists.
+4. **#25** — dark mode over many newly grouped surfaces.
