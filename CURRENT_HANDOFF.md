@@ -6,9 +6,12 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T04:20Z` → `2026-09-10T05:10Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T05:30Z**
+- Active phase: **pre-implementation approval checkpoint** for the Phase 5 mistake-prevention suite, plus an audit of the new production bind guard. **No feature implementation.**
+- Baseline verified at takeover: backend `6bb0d53` **116 suites / 2071 tests**, **63 migrations up to date**, permissions **61/61**; mobile `ed7d614` **40 suites**, i18n **1860 × 3**, camera **6 anchors**, Doctor **21/21**; all four trees clean and level. One transient discrepancy, resolved — see the session log.
+- Previous session: **CLAUDE-A**, `2026-09-10T04:20Z` → `2026-09-10T05:10Z`, handoff complete.
 - Phase closed: **release-readiness audit and staging preparation.** No feature,
   no UI work, no merge, no deploy, no vendor.
 - ⚠️ The session was asked to continue as `CLAUDE-B`. This account is
