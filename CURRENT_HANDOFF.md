@@ -6,16 +6,91 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-10T05:30Z**
-- Active phase: **pre-implementation approval checkpoint** for the Phase 5 mistake-prevention suite, plus an audit of the new production bind guard. **No feature implementation.**
-- Baseline verified at takeover: backend `6bb0d53` **116 suites / 2071 tests**, **63 migrations up to date**, permissions **61/61**; mobile `ed7d614` **40 suites**, i18n **1860 × 3**, camera **6 anchors**, Doctor **21/21**; all four trees clean and level. One transient discrepancy, resolved — see the session log.
-- Previous session: **CLAUDE-A**, `2026-09-10T04:20Z` → `2026-09-10T05:10Z`, handoff complete.
-- Phase closed: **release-readiness audit and staging preparation.** No feature,
-  no UI work, no merge, no deploy, no vendor.
-- ⚠️ The session was asked to continue as `CLAUDE-B`. This account is
-  `CLAUDE-A`, per a standing correction from the user. Noted, not acted on.
+- Status: **AWAITING_OWNER_APPROVAL**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-10T05:30Z` → `2026-09-10T06:40Z`
+- Phase closed: **pre-implementation approval checkpoint** for the Phase 5
+  mistake-prevention suite, plus a correction to the production bind guard.
+  **No feature implementation started.**
+- 🟡 **Four approval statements are waiting on the owner** — [`docs/46`](docs/46_MISTAKE_PREVENTION_APPROVAL.md) §9.
+  The rulebook requires approval before anything touching the sacred rules, and
+  all three features touch margin, cost and permissions.
+- 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md),
+  **35 checks, every row red.**
+
+### What changed this session
+
+**The bind rule I added last session was wrong and would have blocked staging.**
+`6bb0d53` rejected `API_BIND=0.0.0.0` outright; the project is containerised and
+`deploy/docker-compose.staging.yml` says explicitly not to bind loopback inside
+a container. `docs/39` §3 states the real invariant — *the API port is reachable
+only through the edge* — which two implementations satisfy with **opposite** bind
+addresses. Corrected in `3833677` with `API_INGRESS=loopback|network`, declared
+rather than detected, neither value recommended.
+
+The same declaration fixed a second defect it exposed: **`trust proxy` was never
+configured**, so behind the edge `req.ip` was the edge — making
+`AUTH_THROTTLE_LIMIT` a budget shared by every user on the platform rather than
+per-client. And a third instance of the same error class was removed: the
+`APP_DATABASE_URL` localhost check refused an ordinary single-VPS deployment.
+
+Every other protection from `6bb0d53` stands.
+
+### Verified this session
+
+| Backend | |
+|---|---|
+| `tsc --noEmit` | clean |
+| Full suite | **116 suites / 2094 tests** (from 116 / 2071) |
+| `prisma validate` | valid |
+| `prisma migrate status` | **63 applied, up to date** |
+| Permission drift | **61 / 61** |
+| Production-guard focused | **48 tests** (from 25) |
+
+**Four startup proofs, all run:** invalid production refuses with three reasons ·
+`API_INGRESS=network` starts on `0.0.0.0:3011` (the deployment the old rule
+blocked) · `API_INGRESS=loopback` starts on `127.0.0.1:3012` · development
+unchanged. All four answered `/api/health` 200 where they started.
+
+| Mobile — unchanged tree at `ed7d614` | |
+|---|---|
+| Pure suites | **40 suites** |
+| EN/FR/AR parity | **1860 keys each, identical order** |
+| Expo Doctor | **21/21** |
+| Camera patch | **6 anchors** |
+
+Expo Doctor first reported "2 checks failed" under heavy parallel load and
+**21/21** on a clean rerun; it performs registry lookups and is not hermetic.
+Not a defect. The **68-route web export was not rerun** — the mobile tree is
+unchanged since it was last measured, and re-exporting an identical tree proves
+nothing new.
+
+### Commits this session
+
+| Repository | Commit | |
+|---|---|---|
+| `erp-backend` | `3833677` | the API bind rule was wrong, and would have blocked staging |
+| `erp-docs` | `9aeff3e` | ownership claim |
+| `erp-docs` | *this commit* | the approval packet |
+
+### What the owner is being asked
+
+Four statements in [`docs/46`](docs/46_MISTAKE_PREVENTION_APPROVAL.md) §9:
+
+- **A0** — bound every money field to `DECIMAL(14,2)` with one shared constant.
+  This closes a defect that exists **today**: `SaleLineDto.price`, `discount`,
+  `PaymentInputDto.amount` and `CreateExpenseDto.amount` have no upper bound,
+  while `pricing.dto.ts` defines a correct one locally and shares it with nobody.
+  **The smallest of the four, and it can ship alone.**
+- **A1** — order-of-magnitude warnings, 10×, advisory, never auto-correcting,
+  silent where there is no reference.
+- **A2** — a single-use, 30-minute, one-unit discount approval. Requested by
+  `sale.create`, granted by `discount.override`, **no new permission key**, never
+  a reusable licence to sell below cost.
+- **A3** — six deterministic anomaly rules, Owner-only for the two involving
+  margin, dismissible for 7 days. No machine learning, no external service.
+
+A short "approve A0–A3" or a targeted correction is enough to proceed.
 
 ## 1. The roadmap conclusion
 

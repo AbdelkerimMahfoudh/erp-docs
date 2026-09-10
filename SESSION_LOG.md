@@ -7924,3 +7924,105 @@ matrix · `docs/43` merge and rollback plan · `docs/44` staging and launch
 checklists · `docs/45` external decision register. Ten owner decisions, of which
 **D4 hosting, D5 database hosting and D6 backups are the critical path** and
 block staging.
+
+---
+
+## 2026-09-10 — CLAUDE-A — the bind rule was wrong, and the approval packet
+
+Two things: a correction to my own work from the previous session, and the
+pre-implementation approval checkpoint for the mistake-prevention suite. **No
+feature was implemented.**
+
+### I got the bind rule wrong, and it would have blocked staging
+
+The guard I added in `6bb0d53` rejected `API_BIND=0.0.0.0` outright. The
+challenge to it was correct, and the evidence was already in this repository
+before I ever touched it. `deploy/docker-compose.staging.yml` says:
+
+> "Do NOT set `API_BIND=127.0.0.1` here. That variable exists for running the
+> API directly on a host … Inside a container it would bind the container's own
+> loopback and the edge could never reach it."
+
+The project **is** containerised — `backend/Dockerfile`, `backend/docker-compose.yml`,
+`deploy/docker-compose.staging.yml`, `retail-erp-control-web/Dockerfile` — and I
+had not looked. My rule would have refused to start this project's own staging
+stack.
+
+`docs/39` §3 states the invariant properly: *the API port is reachable only
+through the edge*. Two implementations satisfy it and they need **opposite** bind
+addresses. I had encoded one as if it were the rule.
+
+The correction is a **declaration, not a detection**: `API_INGRESS=loopback|network`.
+The application cannot tell which it is in — `/.dockerenv` is a convention, a
+container can run `--network host`, and a bare-metal process can sit behind a
+firewall that isolates it just as well. Guessing is silent in both directions.
+Neither value is recommended; the owner chooses the architecture.
+
+**The same declaration exposed a second, larger defect.** `trust proxy` was never
+configured, so behind the edge `req.ip` is the EDGE — and `req.ip` is what the
+rate limiter keys on and what the login audit row records. `AUTH_THROTTLE_LIMIT`
+was a budget shared by **every user on the platform** rather than a per-client
+one: one noisy client locks everybody out, and a distributed brute force is
+invisible. Trusting forwarded headers is only safe once the ingress is known,
+which is exactly why it now follows the declaration.
+
+**A third instance of the same mistake, found while proving the fix.** My
+`APP_DATABASE_URL` localhost check refused a single-VPS deployment where the app
+and MySQL share a host and talk over loopback. That is an ordinary architecture,
+not a copied `.env`. Removed. What actually catches a copied `.env` is the
+placeholder-secret check, which tests the value rather than the topology.
+
+And `.env.staging.example` told operators to set `API_BIND=127.0.0.1` — directly
+contradicting the compose file it ships beside. Corrected.
+
+Everything else from `6bb0d53` stands: secure cookies, Swagger off, no
+development CORS origins, no placeholder secrets, and the auth throttle reading
+its variable.
+
+**The lesson worth keeping:** I wrote a security rule from a code comment
+without checking how the thing is actually deployed. The comment was true for
+the deployment it described and I generalised it. Encoding one architecture as a
+security property is how a guard blocks a legitimate deployment — and the
+symptom would have been a failed deploy, not a failed test.
+
+### Proofs
+
+- Invalid production config → **refuses**, listing all three reasons.
+- `API_INGRESS=network`, default bind → **starts**, `API listening on 0.0.0.0:3011`,
+  `/api/health` 200. This is the deployment my previous rule would have blocked.
+- `API_INGRESS=loopback`, `API_BIND=127.0.0.1` → **starts**,
+  `API listening on 127.0.0.1:3012`, `/api/health` 200.
+- Development, unchanged → **starts**, `/api/health` 200.
+
+Backend **116 suites / 2094 tests** (from 116 / 2071), tsc clean, Prisma valid,
+63 migrations up to date, permissions **61/61**. Commit `3833677`, separate from
+the packet.
+
+### The approval packet
+
+`docs/46`. Four decisions — **A0** bound the money fields (a real defect found
+during discovery: `SaleLineDto.price`, `discount`, `PaymentInputDto.amount` and
+`CreateExpenseDto.amount` have no upper bound at all, while `pricing.dto.ts`
+defines a correct `MONEY` constant locally and shares it with nobody); **A1**
+order-of-magnitude warnings; **A2** discount approval; **A3** anomaly rules.
+
+Discovery findings worth recording:
+
+- **The pricing floor is COST**, enforced by `assertBelowCostAllowed`, and it is
+  a **permission**, not an approval. There is no request, no approver, no
+  waiting state, no approval record — the concept does not exist today.
+- **No order-of-magnitude check exists anywhere.** `resolvePrice` takes whatever
+  it is given.
+- Idempotency, optimistic versioning, cost gating, audit, notifications, money
+  parsing, confirm dialogs and the offline classifier all already exist and are
+  reused rather than duplicated.
+
+Deliberately **not** implemented, per the rulebook's four-step rule for anything
+touching the sacred rules. Status is `AWAITING_OWNER_APPROVAL`.
+
+### Baseline note
+
+One transient discrepancy at takeover: Expo Doctor reported "2 checks failed"
+while running alongside forty node processes, and reported **21/21** on a clean
+rerun. Doctor performs registry lookups and is not hermetic. Not a project
+defect; recorded because the first number was the one I saw first.

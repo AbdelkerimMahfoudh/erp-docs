@@ -148,7 +148,7 @@ than the documentation claims.
 |---|---|---|
 | `COOKIE_SECURE` | follows `NODE_ENV`, but `false` is accepted | Session cookies travel **in clear text**. `cookies.ts` said so; nothing checked |
 | `SWAGGER_ENABLED` | **`true`** | The whole API surface published to anyone who asks |
-| `API_BIND` | **`0.0.0.0`** | Administration endpoints answer **beside** the proxy meant to gate them — and administrator MFA does not exist, so `main.ts` itself calls this "a password alone" |
+| `API_INGRESS` | *(was: a blanket rejection of `0.0.0.0`)* | ⚠️ **This rule was wrong and was corrected in `3833677`.** It would have refused this project's own containerised staging stack. The invariant is that the API port is reachable only through the edge, which loopback binding and network isolation both satisfy — see [`docs/46`](46_MISTAKE_PREVENTION_APPROVAL.md) and the session log |
 | `CORS_ORIGINS` | fail-closed when empty | A list still naming `localhost` is a copied `.env`, granting a laptop browser a credentialed path into real data |
 
 `assertProductionConfig()` now runs **before anything is built or bound**,
