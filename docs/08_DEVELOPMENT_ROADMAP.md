@@ -53,7 +53,7 @@ Guiding order: **first replace the notebook, then prevent mistakes, then make it
 ## Phase 5 — Insight & Polish — P1/P2
 **Goal:** decisions get easier; edges get smoother.
 - ✅ **Reports** (profit by product/employee/branch, movers, dead stock, debtors/creditors) — the figures were already on screen; the **CSV export** is done and documented in [`docs/40`](40_REPORT_EXPORT.md). PDF was deliberately deferred. Native sharing and spreadsheet compatibility are unverified — see `docs/24` §14 #33–35.
-- **Full mistake-prevention suite** (order-of-magnitude typo catch, discount-limit approvals, anomaly detection).
+- 🔵 **Full mistake-prevention suite** — approved and **in progress**. The monetary boundary, the warning/acknowledgement engine and the Owner approval lifecycle are built (CP1–CP3); the mobile workflow and the anomaly rules are not (CP4–CP5). See [`docs/46`](46_MISTAKE_PREVENTION_APPROVAL.md).
 - **Offline-first hardening** + sync conflict resolution.
 - Bulk actions, templates, onboarding/empty-state polish.
 **Done when:** the shop is faster and safer than any notebook or spreadsheet could ever be.

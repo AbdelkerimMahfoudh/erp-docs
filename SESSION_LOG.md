@@ -8092,3 +8092,140 @@ No discrepancies.
 The API on `:3010` and the Expo server on `:8081` were both started by **this
 account** in the previous turn, at the user's request to "make sure the app is
 running" — ownership is positively established, so they are mine to manage.
+
+---
+
+## 2026-09-10 — CLAUDE-A — CP1–CP3 of the mistake-prevention suite
+
+Three of six checkpoints, each committed only after its own gates passed.
+**CP4–CP6 are not started**, and were deliberately not rushed: the owner
+confirmed that stopping cleanly beats a hurried mobile layer.
+
+### CP1 — one monetary boundary (`d3ab914`)
+
+Every money column is `DECIMAL(14,2)`. That fact lived in **one DTO** and
+nowhere else, so a sale line priced `1e15` passed validation and reached MySQL,
+where the column overflows or truncates.
+
+**A database overflow is not a validation mechanism.** It reports the wrong
+thing, at the wrong layer, in the wrong language, inside a transaction that has
+already begun. The check now happens before Prisma is called, using
+`Prisma.Decimal` — exact. Doing it in floating point would compare a rounded
+copy of the value against a rounded copy of the limit, and a scale check written
+`n * 100 === Math.round(n * 100)` is wrong for precisely the values at the edge.
+
+28 money fields across 13 DTOs share it. Each keeps its own **minimum**, because
+a floor is a business question; the ceiling belongs to the column. CSV import now
+reports an oversized row with a reason the shop can act on rather than failing
+the whole file later. No message names a column, a type or MySQL.
+
+One decimal column is deliberately not money and is named in the test:
+`Product.taxRate` is `DECIMAL(6,4)`, because a rate is a fraction. My first test
+assumed every decimal was money and correctly failed.
+
+### CP2 — the warning and acknowledgement engine (`e2cb6b1`, `483cab9`)
+
+A warning is advisory: it never blocks, never alters a value, never authorises
+anything. What it changes is that a warned mutation **is not persisted** — the
+caller returns with an acknowledgement, or nothing happened.
+
+The security question is what that acknowledgement is attached to. A boolean in
+the body is something any client can send. A per-user "confirmed once" flag is
+worse: confirm 170 000, then submit 1 700 000 with the flag still set. So the
+token covers a hash of the **normalized payload**, bound to actor, company,
+branch, operation, warning set and expiry.
+
+The **warning-set binding** is what makes offline replay behave as specified: if
+the server would now raise a different warning, verification fails with
+`warnings_changed`, which is precisely the "pause for human review" signal
+rather than a silent proceed or a silent drop.
+
+**Owner safeguard applied mid-checkpoint** (`483cab9`): the fingerprint now binds
+**code, field, severity and parameters**, not the code alone. `magnitude.sale_price`
+at `caution` for "ten times too high" and the same code at `info` for "ten times
+too low" would otherwise have shared one acknowledgement. `reference` stays
+excluded so a median drifting by one unit does not force a re-confirmation — that
+holds only because `factor` is a bucket, not a computed ratio.
+
+Two bugs found and fixed by their own tests: claims joined by dots broke because
+`operation` is `sale.create`; and the signature is now checked **before** the
+body is decoded, so a forgery reports as a forgery rather than as "wrong actor".
+
+### CP3 — the configured-price floor and the Owner approval (`6287b61`)
+
+**The correction the owner made is the whole checkpoint.** The previous rule
+checked `margin < 0` and called cost the floor. That was never the product rule,
+and it made `discount.override` a bypass — the person who wanted the discount was
+the person who granted it.
+
+The floor is the **configured selling price**: the existing ladder,
+`UnitPriceOverride` → `BranchVariantPrice` → `Product.defaultPrice`. Selling
+below it needs the Owner's approval **even when the sale is still profitable**.
+Below cost is a high-risk subset — same approval, plus a reason. **No second
+editable floor was invented**; the ladder already is one, and its `version` is
+what voids a stale approval.
+
+**One correction to my own earlier report.** `store_manager` never held
+`discount.override`. The holders were `owner` and the legacy `branch_manager`.
+It was removed from `branch_manager` — retired, but still mapped for older
+sessions, so leaving it would have let a legacy assignment approve its own
+discounts. The catalogue is unchanged at **61 keys**.
+
+Three invariants worth keeping:
+
+- **Consumption is a conditional update inside the sale's transaction.** Two
+  concurrent sales racing for one approval produce exactly one winner; reading
+  first and writing after would let both through.
+- **The sale uses the APPROVED price**, never the requested one — otherwise an
+  approval for 15 000 would authorise a sale at 1 500.
+- **The floor is checked per line**, not on the sale's total margin. An aggregate
+  check lets a healthy accessory line pay for a phone sold far below its price.
+
+An Owner may approve their own request. That is deliberate: it routes their
+exception through the same audited workflow rather than letting it happen
+invisibly.
+
+### Migration 0065, and the backup that preceded it
+
+Additive: one table, no column altered, no data migrated. A code rollback leaves
+it in place and unused.
+
+**Backup and restore proof, before the migration** (this also satisfies CP6's
+first requirement):
+
+- Dump: `~/erp-backups/phonestore-20260910-174638.sql`, 684 483 bytes, 86 tables,
+  `--hex-blob`, `-- Dump completed` trailer present.
+- Restored into a **disposable** database `phonestore_restore_20260910174638`.
+- Proved equal: row counts (units 11, sales 7, audit_logs 669, products 14,
+  payments 7), money sums (sales.total 10 051.00, units.cost 9 800.00,
+  payments.amount 10 051.00), **binary-id SHA-256 checksums** for `units.id`,
+  `units.company_id` and `audit_logs.entity_id`, and **all 24 triggers**.
+- The temporary database was **dropped** and its absence verified.
+
+`prisma migrate diff` against the migration history produced **1172 lines that
+dropped foreign keys across unrelated tables** — the history carries hand-tuned
+SQL (triggers, generated columns) the datamodel does not describe, so the diff
+read that difference as drift to be undone. Only the additive part was taken,
+and the migration says so in its own header.
+
+### Two things provisioned as root, recorded because they did not exist before
+
+- **`phonestore_shadow`** created and granted to `phonestore_migrator`.
+  `prisma migrate diff` needs a shadow database and the migrator could not create
+  one. It persists.
+- The restore-proof database, created and dropped in the same session.
+
+### Verified
+
+Backend **119 suites / 2232 tests** (from 116 / 2094), tsc clean, Prisma valid,
+**64 migrations up to date**, permissions **61/61**, and a real boot proving all
+four `discount-approvals` routes map.
+
+Mobile is **untouched** at `ed7d614` — CP4 has not begun.
+
+### Not done, and not claimed
+
+CP4 (mobile approval workflow), CP5 (the six anomaly rules), and the remaining
+CP6 live HTTP run. No device claim of any kind; `docs/24` §14 checks 1–35 remain
+open and no approval-UI checks have been added yet, because the UI does not
+exist.

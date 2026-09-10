@@ -6,97 +6,137 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-10T11:10Z**
-- Active phase: **implementing A0–A3**, approved by the owner with a binding
-  correction to A2. Checkpoints CP1–CP6.
-- Baseline verified at takeover, no discrepancies: backend `3833677` **116
-  suites / 2094 tests**, **63 migrations**, permissions **61/61**; mobile
-  `ed7d614`; all four trees clean and level.
-- Previous session: **CLAUDE-A**, `2026-09-10T05:30Z` → `2026-09-10T06:40Z`.
-- Phase closed: **pre-implementation approval checkpoint** for the Phase 5
-  mistake-prevention suite, plus a correction to the production bind guard.
-  **No feature implementation started.**
-- 🟡 **Four approval statements are waiting on the owner** — [`docs/46`](docs/46_MISTAKE_PREVENTION_APPROVAL.md) §9.
-  The rulebook requires approval before anything touching the sacred rules, and
-  all three features touch margin, cost and permissions.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-10T11:10Z` → `2026-09-10T18:20Z`
+- Phase: **implementing A0–A3** (owner-approved, with the binding A2 correction).
+  **CP1, CP2 and CP3 are complete and pushed. CP4 is the next checkpoint.**
 - 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md),
-  **35 checks, every row red.**
+  **35 checks, every row red.** No approval-UI checks are added yet because the
+  UI does not exist.
 
-### What changed this session
+### Checkpoint state
 
-**The bind rule I added last session was wrong and would have blocked staging.**
-`6bb0d53` rejected `API_BIND=0.0.0.0` outright; the project is containerised and
-`deploy/docker-compose.staging.yml` says explicitly not to bind loopback inside
-a container. `docs/39` §3 states the real invariant — *the API port is reachable
-only through the edge* — which two implementations satisfy with **opposite** bind
-addresses. Corrected in `3833677` with `API_INGRESS=loopback|network`, declared
-rather than detected, neither value recommended.
+| CP | Scope | State |
+|---|---|---|
+| **CP1** | one shared `DECIMAL(14,2)` monetary boundary | ✅ `d3ab914` |
+| **CP2** | warning + acknowledgement engine | ✅ `e2cb6b1`, safeguard `483cab9` |
+| **CP3** | configured-price floor, Owner approval lifecycle, migration 0065 | ✅ `6287b61` |
+| **CP4** | **mobile approval workflow** | 🔵 **next — not started** |
+| CP5 | six deterministic anomaly rules | 🔵 not started |
+| CP6 | live HTTP run (its backup/restore half is **done** — see below) | 🔵 partly done |
 
-The same declaration fixed a second defect it exposed: **`trust proxy` was never
-configured**, so behind the edge `req.ip` was the edge — making
-`AUTH_THROTTLE_LIMIT` a budget shared by every user on the platform rather than
-per-client. And a third instance of the same error class was removed: the
-`APP_DATABASE_URL` localhost check refused an ordinary single-VPS deployment.
+### HEAD now
 
-Every other protection from `6bb0d53` stands.
+| Repository | Branch | HEAD | Upstream | Dirty |
+|---|---|---|---|---|
+| `erp-docs` | `master` | *this commit* | level | 0 |
+| `erp-backend` | **`reports-export`** | **`6287b61`** | level | 0 |
+| `erp-mobile` | **`reports-export`** | **`ed7d614`** — untouched | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
 ### Verified this session
 
 | Backend | |
 |---|---|
 | `tsc --noEmit` | clean |
-| Full suite | **116 suites / 2094 tests** (from 116 / 2071) |
+| Full suite | **119 suites / 2232 tests** (from 116 / 2094) |
 | `prisma validate` | valid |
-| `prisma migrate status` | **63 applied, up to date** |
+| `prisma migrate status` | **64 applied, up to date** (0065 added) |
 | Permission drift | **61 / 61** |
-| Production-guard focused | **48 tests** (from 25) |
+| Boot proof | all four `discount-approvals` routes mapped, `/api/health` 200 |
 
-**Four startup proofs, all run:** invalid production refuses with three reasons ·
-`API_INGRESS=network` starts on `0.0.0.0:3011` (the deployment the old rule
-blocked) · `API_INGRESS=loopback` starts on `127.0.0.1:3012` · development
-unchanged. All four answered `/api/health` 200 where they started.
+**Mobile was not touched** and its gates were not rerun — the tree is identical
+to the last measurement (40 suites, 1860 × 3 keys, Doctor 21/21, 68 routes,
+6 camera anchors).
 
-| Mobile — unchanged tree at `ed7d614` | |
-|---|---|
-| Pure suites | **40 suites** |
-| EN/FR/AR parity | **1860 keys each, identical order** |
-| Expo Doctor | **21/21** |
-| Camera patch | **6 anchors** |
+### The A2 correction, as implemented
 
-Expo Doctor first reported "2 checks failed" under heavy parallel load and
-**21/21** on a clean rerun; it performs registry lookups and is not hermetic.
-Not a defect. The **68-route web export was not rerun** — the mobile tree is
-unchanged since it was last measured, and re-exporting an identical tree proves
-nothing new.
+**The floor is the configured selling price**, from the existing ladder
+(`UnitPriceOverride` → `BranchVariantPrice` → `Product.defaultPrice`). Selling
+below it needs Owner approval **even when the sale is still profitable**. Below
+cost is a high-risk subset: same approval, plus a reason. **No second editable
+floor was invented** — the ladder already is one, and its `version` voids a
+stale approval.
 
-### Commits this session
+`discount.override` is now **Owner-only approval authority** and no longer a
+bypass. ⚠️ **Correction to the earlier handoff: `store_manager` never held it.**
+The holders were `owner` and the legacy `branch_manager`; it was removed from
+`branch_manager`, which is retired but still mapped for older sessions.
+Catalogue unchanged at **61**.
 
-| Repository | Commit | |
-|---|---|---|
-| `erp-backend` | `3833677` | the API bind rule was wrong, and would have blocked staging |
-| `erp-docs` | `9aeff3e` | ownership claim |
-| `erp-docs` | *this commit* | the approval packet |
+An approval is one sale, one unit, one exact price, one branch, thirty minutes,
+then spent. Consumption is a **conditional update inside the sale's
+transaction**, so two concurrent sales produce exactly one winner. The sale uses
+the **approved** price, never the requested one. The floor is checked **per
+line**, never on the sale's total margin.
 
-### What the owner is being asked
+### Migration 0065, and the backup that preceded it
 
-Four statements in [`docs/46`](docs/46_MISTAKE_PREVENTION_APPROVAL.md) §9:
+Additive: one table, no column altered, no data migrated. A code rollback leaves
+it in place and unused.
 
-- **A0** — bound every money field to `DECIMAL(14,2)` with one shared constant.
-  This closes a defect that exists **today**: `SaleLineDto.price`, `discount`,
-  `PaymentInputDto.amount` and `CreateExpenseDto.amount` have no upper bound,
-  while `pricing.dto.ts` defines a correct one locally and shares it with nobody.
-  **The smallest of the four, and it can ship alone.**
-- **A1** — order-of-magnitude warnings, 10×, advisory, never auto-correcting,
-  silent where there is no reference.
-- **A2** — a single-use, 30-minute, one-unit discount approval. Requested by
-  `sale.create`, granted by `discount.override`, **no new permission key**, never
-  a reusable licence to sell below cost.
-- **A3** — six deterministic anomaly rules, Owner-only for the two involving
-  margin, dismissible for 7 days. No machine learning, no external service.
+**Backup:** `~/erp-backups/phonestore-20260910-174638.sql` — 684 483 bytes,
+86 tables, `--hex-blob`, trailer present.
 
-A short "approve A0–A3" or a targeted correction is enough to proceed.
+**Restore proof** into disposable `phonestore_restore_20260910174638`: row
+counts, money sums, **binary-id SHA-256 checksums** and **all 24 triggers**
+matched. The temporary database was **dropped** and its absence verified. This
+satisfies CP6's pre-migration requirement.
+
+⚠️ `prisma migrate diff` against the history produced **1172 lines dropping
+foreign keys on unrelated tables** — the history carries hand-tuned SQL the
+datamodel does not describe. Only the additive part was taken. **Do not run that
+diff and apply it.**
+
+### Provisioned as root, and recorded because it did not exist before
+
+- **`phonestore_shadow`** created and granted to `phonestore_migrator`.
+  `prisma migrate diff` needs a shadow database and the migrator cannot create
+  one. **It persists.**
+- The restore-proof database — created and dropped in the same session.
+
+### The next exact action — CP4
+
+**Mobile approval workflow**, into the existing sale flow, with no parallel
+sales screen. `mobile/` is clean at `ed7d614` and nothing is half-applied.
+
+- **Requester:** below the configured price → explain that Owner approval is
+  needed, show configured and proposed price and the discount, require a reason,
+  submit one idempotent request, show `Pending Owner approval`. Never create or
+  locally infer a sale. Below cost shows the stronger loss warning **only** to
+  users with `cost.view`; others get a safe "enhanced approval is required".
+- **Owner:** a notification-linked review surface — unit, product, branch,
+  configured price, requested price, requester, reason, expiry; cost and margin
+  only when authorized; approve and reject with **high-friction** confirmation
+  stating one sale, that exact price, thirty minutes.
+- **Completion:** refresh server state, complete the exact sale, consume on
+  success, show conflict / expired / voided accurately. Request submission is
+  never approval; approval is never a completed sale.
+- Endpoints exist: `POST /discount-approvals`, `GET /discount-approvals`,
+  `POST /discount-approvals/:id/decide`, `POST /discount-approvals/:id/cancel`.
+- EN/FR/AR parity, RTL, no hardcoded copy, no raw colours, Reduce Motion,
+  accessible labels; query keys include company, branch, unit and approval.
+
+Then CP5 (six anomaly rules through the warning engine) and the remaining CP6
+live HTTP run.
+
+## Running services
+
+**MySQL on `:3306` only** — the user's WAMP stack, not started by this session.
+
+- **No API.** The `:3010` instance used for the boot proof was time-boxed and
+  has exited.
+- **No Metro.** The Expo dev server started earlier at the user's request has
+  also exited.
+- ⚠️ **Both are stale relative to the code.** The backend has moved three
+  commits since either last ran, and the mobile bundle predates CP1–CP3. Start
+  fresh rather than trusting anything found running.
+
+⚠️ **Check freshness before trusting any server you find running.** Several
+failures on this project — a 404 on an endpoint that existed, a Metro predating
+a fix, a `PluginError` from a bundler started before `node_modules` was wiped,
+and a static file server sitting on Metro's port — were all one stale process.
 
 ## 1. The roadmap conclusion
 

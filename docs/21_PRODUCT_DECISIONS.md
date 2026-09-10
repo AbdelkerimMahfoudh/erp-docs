@@ -4120,3 +4120,97 @@ what the gating exists to control.
 
 **A downloaded file is no longer protected**, and the sheet says so before
 anything is exported. Nothing in the app can un-share a spreadsheet.
+
+### The floor is the price the shop set, not what it paid
+
+Approved by the owner as a binding correction to A2, and implemented in
+`erp-backend` `6287b61`.
+
+**The configured selling price is the normal minimum selling price.** It comes
+from the ladder `price-resolution.ts` already owns — `UnitPriceOverride` →
+`BranchVariantPrice` → `Product.defaultPrice`. Selling below it requires an
+Owner-approved exception **even when the sale is still profitable**, because the
+configured price is the shop's decision about what a thing sells for, and a
+seller quietly undercutting it is the mistake this prevents.
+
+**Below cost is a high-risk subset, not a separate gate.** Same Owner approval,
+plus an explicit reason and a loss warning. Cost and margin stay
+permission-gated, so a seller without `cost.view` is told that enhanced approval
+is required without being shown the figure.
+
+**No second editable floor was invented.** The requirement was to preserve the
+recorded decision that the configured price itself is the floor, and prove a
+second one is needed before adding it. It is not: the ladder is already the
+single authority, and its `version` is exactly what tells an approval that the
+price moved underneath it.
+
+**The two thresholds are independent.** An unpriced product has no configured
+floor to except — and selling it below cost is still a loss, so it still needs
+the Owner.
+
+### An approval is one sale, not a licence
+
+`discount.override` is now **approval authority, held by the Owner alone**. It
+no longer lets its holder sell below the floor directly, which is what it did
+before — meaning the person who wanted the discount was the person who granted
+it. It was removed from the retired `branch_manager` role; the catalogue is
+unchanged at 61 keys.
+
+An Owner may approve their own request, and should. It routes their exception
+through the same audited workflow rather than letting it happen invisibly.
+
+Each approval is scoped to **one company, one branch, one physical unit, one
+exact final price**, lives **thirty minutes**, and is **single-use**. It is
+spent by a conditional update inside the sale's own transaction, so two
+concurrent sales produce exactly one winner — reading first and writing after
+would let both through. It is voided if the unit sells, transfers or changes
+branch, or if the configured price or the confirmed cost moves: a decision made
+about a different world is not a decision about this sale.
+
+**The sale uses the approved price, never the requested one.** Otherwise an
+approval for 15 000 would authorise a sale at 1 500.
+
+**The floor is checked per line**, never on the sale's total margin. An
+aggregate check lets a healthy accessory line pay for a phone sold far below its
+price.
+
+The receipt shows the actual selling price and discount as it always did. It
+carries no approval id, no reason, no cost, no margin.
+
+### A warned mutation has not happened yet
+
+A warning is advisory: it never blocks, never alters a value, never authorises
+anything. What it changes is that the mutation **is not persisted** — the caller
+returns with an acknowledgement, or nothing happened. Persisting first and
+warning afterwards would make the warning decorative.
+
+**The acknowledgement is bound to the payload, not the person.** A boolean in
+the body is something any client can send. A per-user "confirmed once" flag is
+worse: confirm 170 000, then submit 1 700 000 with the flag still set. So the
+token covers a hash of the normalized payload, together with actor, company,
+branch, operation, the warning set and an expiry.
+
+**The warning set is part of the binding** — code, field, severity and stable
+parameters. Two warnings that say different things must not be interchangeable,
+so the same code at a different severity requires a fresh acknowledgement. The
+reference figure is deliberately excluded: a median shifting by one unit is the
+same warning about the same thing, and re-asking for it trains people to click
+through, which is how a warning stops working.
+
+**This is what makes offline replay safe.** A queued request returning to a
+world that has moved fails as `warnings_changed` — the signal to pause that
+queue item for a human, rather than proceed silently or vanish.
+
+### Money is bounded before the database, not by it
+
+Every money column is `DECIMAL(14,2)`, and one shared boundary now enforces it
+across 28 fields. **A database overflow is not a validation mechanism**: it
+reports the wrong thing, at the wrong layer, in the wrong language, inside a
+transaction that has already begun.
+
+The comparison is exact decimal arithmetic, never floating point — a scale check
+written `n * 100 === Math.round(n * 100)` is wrong for precisely the values at
+the edge. Each field keeps its own minimum, because a floor is a business
+question; the ceiling belongs to the column. A CSV row that cannot fit is
+reported as a bad row with a reason the shop can act on. No error message names
+a column, a type, or MySQL.

@@ -1,7 +1,16 @@
-# 46 — Mistake prevention: pre-implementation approval packet
+# 46 — Mistake prevention: approval packet, and what was built
 
-**Nothing in this document is implemented.** It is the four-step approval the
-rulebook requires before a change that touches the sacred rules:
+> **Status: A0–A3 approved by the owner on 2026-09-10**, with a binding
+> correction to A2 — *the configured selling price is the floor, not cost*.
+> **CP1, CP2 and CP3 are implemented** (`d3ab914`, `e2cb6b1`, `483cab9`,
+> `6287b61`). CP4 (mobile), CP5 (anomalies) and the CP6 live run are not.
+> Where §3 below describes cost as the floor, §A2 is superseded by the
+> correction recorded in [`docs/21`](21_PRODUCT_DECISIONS.md).
+
+This began as the four-step approval the rulebook requires before a change that
+touches the sacred rules. It is kept as written — including §1, whose evidence
+was true when it was gathered — so the reasoning that led to the decision
+survives alongside the decision:
 
 > **BEFORE EVERY MAJOR IMPLEMENTATION** — Do all four, in order, and stop:
 > 1. Explain the plan. 2. Explain the files that will change. 3. Explain
