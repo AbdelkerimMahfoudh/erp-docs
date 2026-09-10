@@ -260,8 +260,15 @@ Do not merge and do not deploy.
 
 ## Running services
 
-**MySQL on `:3306` only.** The API and Metro were both stopped as verification
-residue.
+- **MySQL on `:3306`** — the user's WAMP stack.
+- **An Expo dev server on `:8081`** — `expo/bin/cli start` in `mobile/`, started
+  `10:40:29` today. **Not started by this session** and not stopped, because the
+  instruction was to leave unrelated or user-owned processes alone. If it
+  predates the current mobile HEAD (`ed7d614`), restart it before the device run
+  rather than trusting it — a Metro predating a fix is one of the stale-process
+  failures this project has already hit.
+- **No API.** The three verification instances (`:3010`, `:3011`, `:3012`) were
+  each time-boxed and are all stopped; the device run will need one started.
 
 ⚠️ **Check freshness before trusting any server you find running.** Several
 failures on this project — a 404 on an endpoint that existed, a Metro predating
