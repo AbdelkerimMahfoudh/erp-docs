@@ -6,11 +6,53 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T11:10Z` → `2026-09-10T18:20Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T18:30Z**
+- Previous owner: **CLAUDE-A**, `2026-09-10T11:10Z` → `2026-09-10T18:20Z`
 - Phase: **implementing A0–A3** (owner-approved, with the binding A2 correction).
-  **CP1, CP2 and CP3 are complete and pushed. CP4 is the next checkpoint.**
+  **CP1, CP2 and CP3 are complete and pushed. CP4–CP6 are this session's scope.**
+- Next intended action: **CP4 — the mobile requester and Owner approval
+  workflow**, preceded by the A1 magnitude detectors the sale flow needs in
+  order to have a warning to acknowledge (see the discrepancy note below).
+
+### Takeover verification — 2026-09-10T18:30Z
+
+Every reported baseline figure was re-measured, not trusted.
+
+| Claim | Measured | |
+|---|---|---|
+| CP1 `d3ab914`, CP2 `e2cb6b1`, CP3 `6287b61` | present, in that order, on `reports-export` | ✅ |
+| Backend suite | **119 suites / 2232 tests**, all passing | ✅ |
+| Migration `0065` | applied; **64 migrations**, schema up to date | ✅ |
+| Permissions | **61 / 61** | ✅ |
+| Configured-price floor | resolved through `PricingService.resolveForSaleTx` — `UnitPriceOverride` → `BranchVariantPrice` → `Product.defaultPrice` | ✅ |
+| `discount.override` | Owner-only; removed from the retired `branch_manager` | ✅ |
+| Backup / restore proof | `phonestore-20260910-174638.sql`, 684 483 bytes, on disk | ✅ |
+| `erp-backend`, `erp-mobile` trees | clean and level | ✅ |
+
+**Three discrepancies, all recorded rather than papered over:**
+
+1. **`erp-docs` read dirty for the first ninety seconds, and it was not a
+   defect.** My first inspection saw HEAD `48d3adb` saying `IN_PROGRESS` /
+   `CLAUDE-A` with `CURRENT_HANDOFF.md` and `SESSION_LOG.md` modified — the
+   previous session's closing commit `1f993a1` landed **18:27:18Z**, seconds
+   into that read, and pushed. Re-checked: HEAD and `origin/master` are both
+   `1f993a1`, and its handoff says `READY_FOR_HANDOFF` / `NONE`. **The previous
+   account closed correctly; I simply arrived mid-write.** Recorded because a
+   handoff that looks abandoned and a handoff being written are indistinguishable
+   in a single snapshot — the second look is what separates them.
+2. **A fourth backend commit exists**, `483cab9`, between CP2 and CP3 — the
+   fingerprint safeguard binding field, severity and parameters. Correct and
+   already described in the log; the three-commit baseline just under-reports it.
+3. **A1's detectors do not exist.** CP2 built the acknowledgement engine and
+   `warning.types.ts` declares five `magnitude.*` codes, but **nothing computes
+   one** — no mutation returns `warnings_pending`. The declared union is
+   currently dead. CP4 cannot show "warning acknowledgement" in the sale flow
+   until the server can raise one, so the detectors are built first, inside CP4.
+
+The permission verifier also reports `discount.override` as **relabelled** —
+display text only, not drift, and expected after CP3.
 - 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md),
   **35 checks, every row red.** No approval-UI checks are added yet because the
   UI does not exist.
