@@ -6,9 +6,12 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T01:13:06Z` → `2026-09-10T02:10Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T02:40Z**
+- Active phase: **Phase 5 report export (CSV).** Branch `reports-export` on both code repositories, cut from the verified baseline; `pre-reports` tags the point before it.
+- Baseline at takeover: backend **113 suites / 1973 tests**, mobile **39 suites**. No discrepancies — all four repositories clean, level and matching this handoff.
+- Previous owner: **CLAUDE-A**, `2026-09-10T01:13:06Z` → `2026-09-10T02:10Z`, handoff complete.
 - Phase closed: **the two objective gaps before the device test.** Both done.
   Not a redesign phase; the indigo UI is untouched.
 - 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md)
