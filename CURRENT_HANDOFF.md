@@ -6,9 +6,17 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T18:30Z` → `2026-09-10T22:45Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T23:25Z**
+- Previous owner: **CLAUDE-A**, `2026-09-10T18:30Z` → `2026-09-10T22:45Z` — closed complete
+- HEADs at takeover: docs `4ebab79` · backend `0da5a72` · mobile `20619e4` — all clean and level
+- Active scope: **the CP6 repair, explicitly authorised by the owner** — remove the
+  stale `discount.override` grant from the retired `branch_manager` role through
+  a forward migration, invalidate any session that could still carry it, and
+  re-prove Owner-only approval over real HTTP with zero failures.
+- **The milestone is NOT closed.** 91/92 is not a pass.
+- Next intended action: determine whether sessions or tokens cache permissions.
 - Phase closed: **the mistake-prevention suite, CP4–CP6.** CP1–CP3 were
   inherited complete and are unchanged except where a proven defect required a
   focused correction.
