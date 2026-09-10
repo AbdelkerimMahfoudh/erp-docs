@@ -117,8 +117,8 @@ closure.
 
 | | |
 |---|---|
-| API | **`http://172.20.10.2:3010`**, LAN-reachable, serving `67352af` |
-| Metro | **`exp://172.20.10.2:8081`**, started `--clear --lan` |
+| API | **`http://192.168.100.3:3010`**, LAN-reachable, serving `67352af` |
+| Metro | **`exp://192.168.100.3:8081`**, started `--clear --lan` |
 | MySQL | up on `3306` |
 | Sign in as | **`devtest@example.com`** (or personal ID `U-QZRNQJV5`) — Owner, branches Main Store and Warehouse |
 | Password | **not written here.** Handed to the user in chat; reset with `npx ts-node prisma/create-user.ts <login> <password> owner` |
@@ -126,9 +126,11 @@ closure.
 Login was verified over the LAN address and returns an access token; `/scan` was
 verified over the same address and returns the `inventory` object.
 
-⚠️ `mobile/.env.local` was repointed from `192.168.100.3` to **`172.20.10.2`** —
-the old address was a previous network and the phone could not have reached the
-API. It is gitignored, so a future network change has to be made by hand again.
+⚠️ `mobile/.env.local` holds the API origin and is **gitignored**, so every
+network change has to be made by hand. It moved twice in one session — a stale
+`192.168.100.3`, then `172.20.10.2`, then back — and each time Metro had to be
+restarted, because `EXPO_PUBLIC_*` is baked into the bundle at start. A phone
+that loads the app and then fails every request is this, not the API.
 
 **The script is [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md) — 32 checks.**
 Rows 1–30 are the redesign; **#31–32** are the duplicate warning. Every row
@@ -171,8 +173,8 @@ Do not start another feature and do not merge to `master` before the run.
 
 Left **running deliberately** for the device test:
 
-- **API on `:3010`** — a build of `67352af`, LAN-reachable at `172.20.10.2`.
-- **Metro on `:8081`** — `expo start --clear --lan`, `exp://172.20.10.2:8081`.
+- **API on `:3010`** — a build of `67352af`, LAN-reachable at `192.168.100.3`.
+- **Metro on `:8081`** — `expo start --clear --lan`, `exp://192.168.100.3:8081`.
 - **MySQL on `:3306`**.
 
 ⚠️ **Check freshness before trusting any server you find running.** Three
