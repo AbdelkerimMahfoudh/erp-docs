@@ -6,9 +6,15 @@
 
 ## Session control
 
-- Status: **AWAITING_OWNER_APPROVAL**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-10T05:30Z` → `2026-09-10T06:40Z`
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T11:10Z**
+- Active phase: **implementing A0–A3**, approved by the owner with a binding
+  correction to A2. Checkpoints CP1–CP6.
+- Baseline verified at takeover, no discrepancies: backend `3833677` **116
+  suites / 2094 tests**, **63 migrations**, permissions **61/61**; mobile
+  `ed7d614`; all four trees clean and level.
+- Previous session: **CLAUDE-A**, `2026-09-10T05:30Z` → `2026-09-10T06:40Z`.
 - Phase closed: **pre-implementation approval checkpoint** for the Phase 5
   mistake-prevention suite, plus a correction to the production bind guard.
   **No feature implementation started.**

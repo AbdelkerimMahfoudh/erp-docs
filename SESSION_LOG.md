@@ -8026,3 +8026,69 @@ One transient discrepancy at takeover: Expo Doctor reported "2 checks failed"
 while running alongside forty node processes, and reported **21/21** on a clean
 rerun. Doctor performs registry lookups and is not hermetic. Not a project
 defect; recorded because the first number was the one I saw first.
+
+---
+
+## 2026-09-10 — CLAUDE-A — A0–A3 approved; implementation begins
+
+**The owner approved A0, A1, A2 and A3**, with a **binding correction to A2**
+recorded here verbatim in substance:
+
+> The configured selling price is the normal minimum selling price. A lower
+> price requires explicit Owner approval. Do not redefine the floor as cost
+> merely because the current implementation only checks cost.
+
+So there are **two thresholds**, not one:
+
+1. **Configured-price floor** — selling below the configured selling price needs
+   an Owner-approved exception, **even when the sale is still profitable**.
+2. **Cost boundary** — below confirmed cost is a high-risk subset: same Owner
+   approval, **plus** an explicit reason and a loss warning. Cost and margin stay
+   permission-gated.
+
+`discount.override` may represent approval authority only if the catalogue
+assigns it exclusively by the Owner rule, and **must no longer let a requester
+bypass the workflow**.
+
+### The configured selling price already exists — no second floor is invented
+
+The correction asked me to prove this rather than invent an editable minimum.
+`PriceResolution` is already the single authority, with a documented ladder:
+
+```
+UnitPriceOverride → BranchVariantPrice → Product.defaultPrice → unpriced
+```
+
+`price-resolution.ts` says in its own header that it exists so "no caller can
+invent its own order — that divergence is exactly how two screens start
+disagreeing about a price." The effective price from that ladder **is** the
+configured selling price, and its `version` is what changes when the price
+changes — which is exactly what an approval must be invalidated by. **No new
+minimum-price column is added.**
+
+### The six A3 rules, listed at the start of implementation as required
+
+| # | Rule | Source | Visibility under the A3 limits |
+|---|---|---|---|
+| 1 | Low stock with days-left | `ProductVelocity`, `InventoryValuation` | `report.view` |
+| 2 | Dead stock | `DashboardService.deadStock` | `report.view`; its `inventoryValue` is cost-derived and is already stripped by `CostGatingInterceptor` for anyone without `cost.view` |
+| 3 | Overdue debt | loan ledger | `loan.view` |
+| 4 | Seller margin collapse | `sales.margin` per seller | **Owner only** — discloses margin |
+| 5 | Repeated cash shortfall | closing discrepancies | Owner + `closing.perform` |
+| 6 | Below-cost cluster | below-cost overrides per seller | **Owner only** — discloses cost |
+
+Checked against the approved limits: all six are warnings only, deterministic,
+read existing services rather than recomputing any metric, are company- and
+branch-scoped, and the two that disclose margin or cost are Owner-only.
+**No rule is omitted.** Rule 2 is noted rather than omitted because the gating it
+needs already exists and is not new behaviour.
+
+### Baseline at takeover
+
+Backend `3833677`, **116 suites / 2094 tests**, 63 migrations up to date,
+permissions **61/61**. Mobile `ed7d614`. All four repositories clean and level.
+No discrepancies.
+
+The API on `:3010` and the Expo server on `:8081` were both started by **this
+account** in the previous turn, at the user's request to "make sure the app is
+running" — ownership is positively established, so they are mine to manage.
