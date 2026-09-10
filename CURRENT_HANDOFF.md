@@ -6,8 +6,14 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF** — all trees clean and pushed.
-- Active account / Owner: **NONE** (last worked by CLAUDE-A)
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-10T00:28:06Z**
+- Active phase: **complete the remaining redesign screens.** Binding visual rule
+  supplied by the user, so no screen stops for design judgement.
+- Checkpoint: `pre-redesign-part2` → `7d7a7ce`. No discrepancies at takeover:
+  all four repos clean, level, READY_FOR_HANDOFF, and every prior redesign
+  commit present.
 - Completed: **the token migration is finished and the shared surface system is
   in place.** Every authenticated route is free of raw colours and NativeWind
   styling, and the audit is now enforced by tests rather than by habit.
