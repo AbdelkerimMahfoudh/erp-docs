@@ -7722,3 +7722,96 @@ takes a **login**, and it created a second user rather than updating the first.
 The stray was deactivated and soft-deleted the same minute; the real account was
 then reset by its login. It never authenticated and holds no data. Recorded
 because a stray staff account is exactly the kind of thing that goes unnoticed.
+
+---
+
+## 2026-09-10 — CLAUDE-A — Phase 5: the reports leave the building
+
+An owner could see profit by product, employee and branch, what was moving,
+what was not, and who owed what — and could hand none of it to an accountant.
+Six reports now export as CSV. Contract in
+[`docs/40`](docs/40_REPORT_EXPORT.md).
+
+Physical-device testing stayed deferred throughout, as instructed. The indigo
+redesign, the scanner contract, the SDK versions and the camera patch are
+untouched.
+
+### The one design argument that mattered
+
+`CostGatingInterceptor` protects JSON by mapping over the response object after
+the controller returns. A CSV written straight to the socket never reaches it,
+and by then it is a string with no keys left to strip. So the gating could not
+live downstream, and the order in `ReportsService.export` is the whole security
+argument: authorize, bound the period, **choose the columns**, fetch, project,
+serialize. Forbidden columns are removed rather than blanked, and a report left
+with nothing but figures the caller may not see is refused rather than returned
+as a useless list of names.
+
+`financialColumnDrift()` asserts that every column marked financial has an id in
+`FINANCIAL_FIELDS` — the same set the interceptor uses. One list, two consumers.
+
+### Two things that were built and then removed
+
+**A provenance block above the table.** It read well for a human and broke every
+machine: `parseCsv` skips blank lines *and* all-empty rows, so the separator
+vanished, the metadata arrived as data, and an "empty report" stopped being a
+header-only file. The tests caught it — including a byte-order mark that had
+ended up in the middle of the file, which would have made Excel read the whole
+thing as the system codepage. Provenance moved to the **filename**, where every
+export tool puts it: `dead-stock_as-of_2026-09-10_en.csv` against
+`profit-by-product_2026-08-12_to_2026-09-10_en.csv`.
+
+**A `store_manager` fixture for the permission comparison.** The role matrix
+made it pointless: `owner` and `store_manager` both carry `report.view` *and*
+`cost.view`, and a delegated grant can only ADD permissions — so **no assignable
+store role produces the "reports without cost" shape.** It exists in the
+catalogue as `administrator` and is covered by unit tests. Recorded rather than
+faked: no HTTP proof of that path is claimed. What the wire *can* prove is the
+harder boundary, and does — a real `store_employee` account is refused all six.
+
+### What a browser found that no test could
+
+`Content-Disposition` is not on the CORS-safelisted response header list. The
+endpoint answered 200 with the right bytes and the web client read `null` for
+the filename, falling back to `report.csv` — every export would have saved under
+the same name, losing the report, period and branch that the filename had just
+become the only place to carry. Fixed with `exposedHeaders`; committed
+separately as `51c93ad`. Native fetch was never affected, because it is a
+browser rule. A source-level regression test now pins it.
+
+### Verified
+
+Backend: **115 suites / 2046 tests** (from 113 / 1973), tsc and Prisma validate
+clean, **63 migrations up to date — no schema change**, permission catalogue
+**61/61 unchanged: no role was broadened**.
+
+**Live HTTP against real MySQL: 107/107.** All six kinds downloaded and the
+actual bytes inspected — `ef bb bf` on the wire, `text/csv; charset=utf-8`,
+attachment filename, `private, no-store`, a clean rectangle per report. Figures
+compared against `/analytics/products` over a **matched 365-day window** and
+agreed on revenue, profit and quantity for all nine real products; the default
+30 days returns nothing from either side and two empty answers agreeing would
+have proved nothing. Bad input answers JSON, never a CSV.
+
+**A real browser download**, driven through the app's own UI in the web build:
+Analytics → Export → Profit by product produced a blob download named
+`profit-by-product_2026-08-12_to_2026-09-10_en.csv` with the correct header row.
+
+Mobile: tsc clean · lint **0 errors, 33 warnings** (unchanged) · **40 suites**
+(from 39) · i18n **1860 × 3, identical order** (from 1840) · web export clean,
+**68 routes — the export is a sheet, not a route** · Expo Doctor **21/21** ·
+camera patch **6 anchors**.
+
+### Fixtures
+
+Two fixture accounts (`reportmgr`, `rptemp`) were created for the permission
+paths and are deactivated and soft-deleted. **109 `report_export` audit rows are
+deliberately preserved** — they are true statements about exports that happened.
+
+### Not verified
+
+**Native sharing has not run on a handset**, and **no spreadsheet has opened one
+of these files.** The BOM, the delimiter and the formula armour are asserted
+against this project's own parser; whether Excel, LibreOffice and Google Sheets
+each render Arabic correctly is a separate check nobody has done. Both are now
+`docs/24` §14 #33–35.

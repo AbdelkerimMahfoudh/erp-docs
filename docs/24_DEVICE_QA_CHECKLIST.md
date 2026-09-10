@@ -2864,7 +2864,7 @@ here or anywhere in Git — ask whoever set it up.
 
 ## 14. The completed redesign — UNVERIFIED
 
-*32 checks: the 30 redesign rows, plus #31–32 for the scan duplicate contract.*
+*35 checks: the 30 redesign rows, #31–32 for the scan duplicate contract, and #33–35 for native CSV sharing.*
 
 Supersedes §13. Same account (`devtest@example.com`, password not written here),
 same order, extended to the screens finished in this pass.
@@ -2908,6 +2908,9 @@ same order, extended to the screens finished in this pass.
 | 30 | Scroll a long list hard | No stutter from the new grouping |
 | 31 | **Scan an IMEI already in your stock** | "This phone is already in inventory", product and branch shown, **Use this IMEI disabled**. Scan again / manual / Cancel still work |
 | 32 | Scan an IMEI of a model you stock but a handset you do NOT hold | **No warning.** Recognising the model is not holding the phone. And no cost or margin anywhere in the warning |
+| 33 | **Analytics → Export → Profit by product** | The iOS share sheet opens. Save to Files, then open it: the columns are readable and the name says the report, the period and the branch |
+| 34 | Export in Arabic, then open the file | Arabic headers read correctly, **not as mojibake**. This is what the byte-order mark is for and only a real spreadsheet can prove it |
+| 35 | Start an export, then switch branch before it finishes | Nothing is saved. The app says the report was discarded, rather than handing over the other branch figures |
 
 ### Highest risk
 

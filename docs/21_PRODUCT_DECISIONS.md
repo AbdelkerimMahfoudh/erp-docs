@@ -4062,3 +4062,61 @@ resolve to *different* units, `conflictingUnits` is true and `unit` is `null`.
 Something is wrong with the box, the label or the data, and picking one to
 display would silently attach the pair to whichever the query happened to
 return first.
+
+### A report leaves the app as a rectangle, and the name carries the rest
+
+Six reports export as CSV — profit by product, by employee, by branch, movers,
+dead stock, and who owes what. Full contract in
+[`docs/40`](40_REPORT_EXPORT.md); the decisions worth restating are these.
+
+**The export defines no metric.** Every figure comes from the service that
+already owns it. A second query for "profit by product" would be a second
+definition of profit, and the first time the two disagreed the shop would have
+no way to tell which was right.
+
+**Authorization happens before serialization, not after.** A CSV is a string,
+and a string has no keys left to strip — `CostGatingInterceptor` maps over a
+JSON response and never sees a file written straight to the socket. So the
+columns a caller may receive are chosen from their real permissions *before any
+data is read*. A forbidden column is **removed, not blanked**: an empty cell
+under a `Gross profit` header says a number exists and is being withheld, which
+invites somebody to go looking. And a report left with nothing but figures the
+caller may not see is **refused**, because a list of product names is not a
+smaller profit report — it is a different, useless one.
+
+**Complete, or refused.** The dashboard's ten dead-stock rows and the loan
+screen's two hundred are card-sized, not report-sized; the export asks for
+everything. Past a stated limit it refuses rather than truncating — a
+spreadsheet that silently stops at row 50 000 is worse than no spreadsheet,
+because nothing in the file says it is incomplete.
+
+**The file is a plain rectangle.** A provenance block above the table was built
+and then removed: `parseCsv` skips blank lines *and* all-empty rows, so the
+separator vanished and the metadata arrived as data — and an empty report
+stopped being a header-only file, the one shape every spreadsheet handles. So
+which report, which period and which branch live in the **filename**, where
+every export tool puts them and nothing can misread them as figures.
+`dead-stock_as-of_2026-09-10_en.csv` cannot be mistaken for a month of trading.
+
+**Money is a number, not a presentation.** Two decimals, a dot, no grouping, no
+symbol — the cell has to add up in Excel, and `4 000,00 MRU` is text. The
+currency is named once in the header. Missing stays empty and zero stays zero,
+because a shop cannot otherwise tell a measured nothing from a figure nobody
+computed.
+
+**Free text is armoured against formulas; money never is.** A cell opening `=`,
+`+`, `-` or `@` can execute when a spreadsheet opens the file, and quoting does
+not prevent it — quoting is about parsing, and evaluation happens afterwards.
+So typed text gets a leading apostrophe. A negative balance does **not**:
+prefixing `-4000` would turn it into text and break the arithmetic the export
+exists for.
+
+**An export is audited as a generation, not a download.** The server saw itself
+produce bytes. Whether they reached a person, a share sheet, an email or a bin
+is not something it observed, and an audit trail that claims otherwise is worse
+than one that says less. The row records what was asked for and which columns
+were allowed — never a cell of the file, which would be a second copy of exactly
+what the gating exists to control.
+
+**A downloaded file is no longer protected**, and the sheet says so before
+anything is exported. Nothing in the app can un-share a spreadsheet.

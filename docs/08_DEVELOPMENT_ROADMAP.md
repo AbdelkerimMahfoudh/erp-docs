@@ -52,7 +52,7 @@ Guiding order: **first replace the notebook, then prevent mistakes, then make it
 
 ## Phase 5 — Insight & Polish — P1/P2
 **Goal:** decisions get easier; edges get smoother.
-- **Reports** (profit by product/employee/branch, movers, dead stock, debtors/creditors) + export.
+- ✅ **Reports** (profit by product/employee/branch, movers, dead stock, debtors/creditors) — the figures were already on screen; the **CSV export** is done and documented in [`docs/40`](40_REPORT_EXPORT.md). PDF was deliberately deferred. Native sharing and spreadsheet compatibility are unverified — see `docs/24` §14 #33–35.
 - **Full mistake-prevention suite** (order-of-magnitude typo catch, discount-limit approvals, anomaly detection).
 - **Offline-first hardening** + sync conflict resolution.
 - Bulk actions, templates, onboarding/empty-state polish.
