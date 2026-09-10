@@ -6,181 +6,188 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-10T04:20Z**
-- Active phase: **release-readiness audit and staging preparation.** No product feature, no UI work, no merge, no deploy.
-- Baseline verified at takeover, no discrepancies: backend `51c93ad` (`b0f3fc5` an ancestor), mobile `ed7d614`, docs `37f381a`, `reports-export` on both code repositories, `pre-reports` tags at `67352af` and `c2422c6`, all four trees clean and level.
-- Previous session: **CLAUDE-A**, `2026-09-10T02:40Z` → `2026-09-10T04:05Z`, handoff complete.
-- Phase closed: **Phase 5 report export (CSV).** Six reports leave the app as
-  spreadsheets. Full contract in [`docs/40`](docs/40_REPORT_EXPORT.md).
-- 🔴 **Nothing has run on a handset.** [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md)
-  is the single script — now **35 checks**, every row red.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-10T04:20Z` → `2026-09-10T05:10Z`
+- Phase closed: **release-readiness audit and staging preparation.** No feature,
+  no UI work, no merge, no deploy, no vendor.
+- ⚠️ The session was asked to continue as `CLAUDE-B`. This account is
+  `CLAUDE-A`, per a standing correction from the user. Noted, not acted on.
 
-### HEAD now
+## 1. The roadmap conclusion
 
-| Repository | Branch | HEAD | Was |
-|---|---|---|---|
-| `erp-backend` | **`reports-export`** | **`51c93ad`** | `67352af` (`master`) |
-| `erp-mobile` | **`reports-export`** | **`ed7d614`** | `c2422c6` (`sdk-57-upgrade`) |
-| `erp-mobile` `master` | — | `f47a155`, preserved untouched | — |
-| `retail-erp-control-web` | `master` | `c764d63` (untouched) | — |
-| `erp-docs` | `master` | *this commit* | `fce7f31` |
+**Phase 5's reporting bullet is done. Nothing else on the roadmap is both
+unblocked and in scope for an audit session.**
 
-All clean, level with their remotes, and pushed.
+| Remaining work | State |
+|---|---|
+| Full mistake-prevention suite | **unbuilt and technically unblocked** — scoped in [`docs/41`](docs/41_RELEASE_READINESS.md) §1.1, deliberately **not started** |
+| Offline hardening / sync conflicts | blocked on device acceptance, plus one staleness decision |
+| Bulk actions, onboarding polish | subjective UI — out of scope by instruction |
+| Phase 6 | P2, optional |
 
-**Branches.** `reports-export` was cut from the verified baseline on both code
-repositories, and **`pre-reports` tags the point before it** — `67352af` on the
-backend, `c2422c6` on mobile. The redesign checkpoints (`pre-scan-contract`,
-`pre-redesign-part2`) are untouched. Merging is outside this task, and the
-device run is still owed on the mobile work underneath.
+Platform control Phases 2–4 are **built**: the website, the approved pricing,
+in-app registration with contact verification, and the subscription lifecycle
+wired into the app. What is left there is MFA, providers, domain, DNS and TLS —
+owner decisions, not code. See [`docs/45`](docs/45_EXTERNAL_DECISIONS.md).
+
+The mistake-prevention suite is the correct next build. All three parts touch
+the sacred rules, so it needs the four-step approval in `CLAUDE.md` first.
+
+## 2. Repository state
+
+| Repository | Branch | HEAD | Upstream | Dirty |
+|---|---|---|---|---|
+| `erp-docs` | `master` | *this commit* | level | 0 |
+| `erp-backend` | `master` | `67352af` | level | 0 |
+| `erp-backend` | **`reports-export`** | **`6bb0d53`** | level | 0 |
+| `erp-mobile` | `master` | `f47a155` | level | 0 |
+| `erp-mobile` | `sdk-57-upgrade` | `c2422c6` | level | 0 |
+| `erp-mobile` | **`reports-export`** | **`ed7d614`** | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` | level | 0 |
+
+Baseline verified at takeover with **no discrepancies**. Tags `pre-reports`
+(`67352af`, `c2422c6`), `pre-scan-contract`, `pre-redesign-*` — all pushed.
+
+**`reports-export` is stacked on `sdk-57-upgrade`, not on `master`.** Merge order,
+conflict assessment (zero markers, checked with `merge-tree`) and rollback points
+are in [`docs/43`](docs/43_MERGE_AND_ROLLBACK.md). **Nothing was merged.**
 
 ### Commits this session
 
 | Repository | Commit | |
 |---|---|---|
-| `erp-backend` | `b0f3fc5` | the six reports, as spreadsheets |
-| `erp-backend` | `51c93ad` | CORS: let a browser read the report filename |
-| `erp-mobile` | `ed7d614` | export what you are looking at |
+| `erp-backend` | `6bb0d53` | refuse to start production with unsafe defaults |
+| `erp-docs` | `5516413` | ownership claim |
+| `erp-docs` | *this commit* | the audit and its five documents |
 
-## What changed
+## 3. Process state
 
-### `GET /api/v1/reports/:kind.csv?days=&locale=`
+Every listener resolved to a PID, executable and command line before anything
+was stopped.
 
-Gated on `report.view`; `debtors-creditors` also needs `loan.view`. Six kinds:
-
-| Kind | Source | Scope |
+| Port | Was | Now |
 |---|---|---|
-| `profit-by-product` | `AnalyticsService.productPerformance` | period |
-| `profit-by-employee` | `DashboardService.employeePerformance` | period |
-| `profit-by-branch` | `DashboardService.branchComparison` | period (always company-wide) |
-| `movers` | the same rows, ranked by quantity | period |
-| `dead-stock` | `DashboardService.deadStock` | **as-of** |
-| `debtors-creditors` | `LoansService` + `SuppliersService` | **as-of** |
+| `8081` | a scratch static server left by the previous session, easy to mistake for Metro | **stopped**, script deleted |
+| `3010` | the API, created for verification | **stopped** — device acceptance is postponed, nothing needs it |
+| `3306` | `mysqld.exe` from the user's WAMP install | **left running** — not this project's to stop |
 
-**No metric is defined here.** Every figure comes from the service that already
-owns it. `days` is rejected outright on an as-of report rather than ignored.
+No audit history deleted. The soft-deleted verification accounts (`reportmgr`,
+`rptemp`) were **not** recreated. The 109 `report_export` audit rows stand.
 
-**Authorization happens before serialization.** A CSV is a string with no keys
-left to strip, and `CostGatingInterceptor` never sees a file written straight to
-the socket — so columns are chosen from the caller's real permissions *before
-any data is read*. Forbidden columns are removed, not blanked. A report left
-with nothing but figures the caller may not see is **refused**.
+## 4. Verified totals — rerun this session
 
-**Complete, or refused.** The dashboard's ten dead-stock rows and the loan
-screen's two hundred are card-sized; the export asks for everything and pages
-suppliers to the end. Past 100 000 rows it refuses rather than truncating.
-
-**The file is a plain rectangle** — header row, then data — and the provenance
-lives in the filename: `dead-stock_as-of_2026-09-10_en.csv` cannot be mistaken
-for `profit-by-product_2026-08-12_to_2026-09-10_en.csv`. UTF-8 with a BOM, RFC
-4180, comma, EN/FR/AR headers from a server-side dictionary. Money is a bare
-number; the currency is named once in the header. Typed text is armoured against
-formula injection; **money never is**, because prefixing `-4000` would turn it
-into text.
-
-**Audited as `report_export_generated`** — never as a download, because the
-server only saw itself produce bytes. The row carries the allowed column ids and
-the row count, never a cell of the file. A refused export writes nothing.
-
-**No schema change. No role broadened.** The catalogue is still 61/61.
-
-### The app
-
-An **Export** action on Analytics and Money, and one sheet listing the reports
-this user may ask for. No new screen and no new route. The download goes through
-the app's own API layer, so it carries the same token, branch header, timeout
-and refresh as every other call. The branch is captured before the request and
-compared after it — switch shops mid-generation and the result is discarded
-unsaved. Files live in the app-private cache, are swept before each export, and
-are all dropped on sign-out. Web gets a browser download built from bytes
-already fetched; native gets the share sheet. No token in any URL or filename.
-
-## Verification
-
-| Gate | Result |
+| Backend | |
 |---|---|
-| Backend suite | **115 suites / 2046 tests**, 0 failing (from 113 / 1973) |
-| Backend `tsc` / Prisma validate | clean |
-| Migrations | **63, up to date — no schema change** |
-| Permission catalogue | **61/61, unchanged** |
-| **Live HTTP vs real MySQL** | **107/107** — all six kinds, bytes inspected |
-| **Real browser download** | driven through the app's own UI in the web build |
-| Mobile `tsc --noEmit` | clean |
-| Expo lint | **0 errors**, 33 warnings — unchanged |
-| Pure suites | **40 suites**, 0 failing (from 39) |
-| EN/FR/AR parity | **1860 keys each, identical order** (from 1840) |
-| Web export | clean, **68 routes** — the export is a sheet, not a route |
+| `tsc --noEmit` | clean |
+| Full suite | **116 suites / 2071 tests** (from 115 / 2046) |
+| `prisma validate` | valid |
+| `prisma migrate status` | **63 applied, up to date** |
+| Permission drift | **61 catalogue / 61 database / 0 missing / 0 extra** |
+| Report-export regression | **73 tests** |
+| Production-config guard (new) | **25 tests** |
+
+| Mobile | |
+|---|---|
+| `tsc --noEmit` | clean |
+| Expo lint | **0 errors**, 33 warnings (unchanged) |
+| Pure suites | **40 suites** |
+| EN/FR/AR parity | **1860 keys each, identical order** |
+| Expo Doctor | **21/21** |
+| Web export | clean, **68 routes** |
 | Camera patch | **6 anchors**, `expo-camera@57.0.4` |
-| **Expo Doctor** | ✅ **21/21** |
 
-The live run compares the file against `/analytics/products` over a **matched
-365-day window** and agrees on revenue, profit and quantity for all nine real
-products. The default 30 days returns nothing from either side, and two empty
-answers agreeing would have proved nothing.
+**The 107/107 live HTTP run is NOT re-claimed.** It is from the previous session
+and was not rerun; the API is stopped.
 
-### One defect a browser found and no test could
+## 5. Objective fixes made
 
-`Content-Disposition` is not CORS-safelisted, so a browser hid it: the endpoint
-answered 200 with the right bytes and the web client read `null` for the
-filename, falling back to `report.csv`. Every export would have saved under the
-same name, losing the provenance the filename had just become the only place to
-carry. Fixed with `exposedHeaders` (`51c93ad`) and pinned by a regression test.
-Native fetch was never affected — it is a browser rule.
+`erp-backend` `6bb0d53`, 25 regression tests, full backend suite rerun after.
 
-### One thing that cannot be proved over HTTP, and is not claimed
+**Production could start with four fail-open defaults**, each with a documented
+correct value and no enforcement: `COOKIE_SECURE=false` (session cookies in
+clear text), `SWAGGER_ENABLED` defaulting **true** (the API surface published),
+`API_BIND` defaulting to **every interface** (administration endpoints answering
+beside the proxy meant to gate them, with no administrator MFA behind it), and a
+`CORS_ORIGINS` list still naming `localhost`. `assertProductionConfig()` now
+refuses to boot before anything is built or bound, reports every problem at
+once, and is silent outside production. Proven live in both directions.
 
-`owner` and `store_manager` both hold `report.view` **and** `cost.view`, and a
-delegated grant can only ADD permissions — so **no assignable store role
-produces the "reports without cost" shape.** It exists in the catalogue as
-`administrator` and is covered by unit tests, where the decision is actually
-made. What the wire does prove is the harder boundary: a real `store_employee`
-is refused all six kinds, and an unauthenticated caller gets 401 with no bytes.
+**`AUTH_THROTTLE_LIMIT` was a control that controlled nothing** — validated,
+exposed, and consumed by nothing while the controller hardcoded 10. Now wired,
+with the fallback pinned to the schema's own default.
 
-## Still open
+## 6. Unresolved risks
 
-- 🔴 **The iPhone acceptance run**, now **35 checks**, all red. #1–30 the
-  redesign, #31–32 the scan duplicate warning, **#33–35 native CSV sharing**.
-  Highest risk unchanged: the RTL separator inset (#26), the scanner through the
-  reveal (#9–11), first/last row treatment (#24), dark mode (#25).
-- 🔴 **No spreadsheet has opened one of these files.** The BOM, the delimiter
-  and the formula armour are asserted against this project's own parser. Whether
-  Excel, LibreOffice and Google Sheets each render Arabic correctly is a
-  separate check and nobody has done it.
-- 🔴 **Android strict-ROI placement on a handset** — open before the SDK
-  upgrade, still open.
-- 🟠 **`Televisions` is still `serial`, with five units of stock.** A person must
-  decide about those five units. Nothing is broken meanwhile.
-- 🟡 **PDF reports** were deliberately deferred. CSV first: an accountant wants
-  columns, and `expo-print` is already in the project if a PDF is wanted later.
-- 🟡 **A staged quantity cannot be edited after the fact** in the receive flow.
-- 🟡 **React Compiler lint debt** — 32 warnings, deliberately deferred.
-- 🟡 **Merging** `reports-export` and `sdk-57-upgrade` — outside this task, and
-  the device run is owed first.
-- 🟢 Two fixture accounts (`reportmgr`, `rptemp`) are deactivated and
-  soft-deleted. **109 `report_export` audit rows are preserved deliberately** —
-  they are true statements about exports that happened.
+Fifteen, with severity, evidence, owner and gate, in [`docs/41`](docs/41_RELEASE_READINESS.md) §6.
 
-## The next exact action
+- 🔴 **R1 Nothing has run on a physical iPhone.** Four milestones ride on it.
+- 🔴 **R2 Administrator MFA does not exist.** `/admin` is a password plus a proxy.
+- 🔴 **R3 No off-machine database backup.** A disk failure loses everything.
+- 🟠 **R4 17 backend / 18 mobile production dependency advisories.** Recorded,
+  not bumped: dependency work is its own isolated checkpoint in this project,
+  and "audit clean" after a silent bump would be the least honest option.
+- 🟠 **R5** one static `PLATFORM_ADMIN_KEY` grants cross-tenant provisioning ·
+  **R6** no contact-delivery provider · **R7** `SEED_DEMO` is opt-out ·
+  **R8** no restore drill since 2026-08-05 · **R9** no spreadsheet has opened an
+  exported CSV · **R10** no error reporting or alerting.
+- 🟡 **R11–R15** unvalidated env reads, lint debt, `Televisions` still `serial`,
+  a bare `setInterval` outbox, Android strict-ROI unverified.
+
+## 7. Decisions required from the owner
+
+Ten, in [`docs/45`](docs/45_EXTERNAL_DECISIONS.md). **D4 hosting, D5 database
+hosting and D6 backups are the critical path and block staging.** D1 domain
+comes first in practice because everything embeds it — including the mobile
+bundle, where those URLs are compiled in, not read at runtime.
+
+D9 payment has a real alternative: the audited administrative grant already
+exists and carries no fabricated payment. Launching on grants is legitimate —
+it just has to be a written decision rather than an oversight.
+
+## 8. Gates
+
+| # | Gate | State |
+|---|---|---|
+| 1 | Automated verification | ✅ passed, rerun this session |
+| 2 | Browser verification | ✅ passed (previous session) |
+| 3 | **Physical-device acceptance** | 🔴 **not started — 35 checks, all red** |
+| 4 | Staging deployment | 🔴 not started |
+| 5 | Production launch | 🔴 not started |
+
+**Nothing device-dependent is marked verified** — not native sharing, spreadsheet
+opening, scanner behaviour, RTL layout, dark mode, haptics, camera behaviour or
+Reduce Motion.
+
+**Staging entry:** device acceptance passed · gate 1 green on the deployed commit
+· a host that is not a laptop · off-machine backup possible. Full list in
+[`docs/44`](docs/44_STAGING_AND_LAUNCH_CHECKLISTS.md).
+
+**Production entry:** staging passed and stable · administrator MFA · a real
+delivery provider · domain, DNS, TLS · scheduled verified off-machine backups ·
+error reporting and alerting · dependency advisories triaged · a payment
+provider **or** a written decision to launch on administrative grants.
+
+## 9. The next exact action
 
 **Work `docs/24` §14 on the iPhone — 35 checks.** Sign in as
-`devtest@example.com`. Nothing on that branch has been near a handset.
+`devtest@example.com`. The API and Metro both need starting first; nothing is
+running but MySQL.
 
-Separately, and not device work: **open one exported Arabic CSV in a real
-spreadsheet** and record the result. It is the one claim in `docs/40` that a
-parser cannot make.
+If the owner would rather build than test: the **mistake-prevention suite**
+(`docs/41` §1.1) is the one unblocked milestone, and it needs the four-step
+approval before implementation.
+
+Do not merge and do not deploy.
 
 ## Running services
 
-- **API on `:3010`** — a build of `51c93ad`, LAN-reachable at `192.168.100.3`.
-- **MySQL on `:3306`**.
-- ⚠️ **No Metro.** The native bundler was stopped so the web build could be
-  served on `8081` for the browser verification, and that static server was left
-  running there. **Stop it before starting Expo**, or Metro will take another
-  port and the QR will point at a static file server.
+**MySQL on `:3306` only.** The API and Metro were both stopped as verification
+residue.
 
 ⚠️ **Check freshness before trusting any server you find running.** Several
 failures on this project — a 404 on an endpoint that existed, a Metro predating
-a fix, a `PluginError` from a bundler started before `node_modules` was wiped —
-were all one stale process. Resolve the PID and compare its start time against
-the last build before concluding anything.
+a fix, a `PluginError` from a bundler started before `node_modules` was wiped,
+and a static file server sitting on Metro's port — were all one stale process.
+Resolve the PID and compare its start time against the last build before
+concluding anything.

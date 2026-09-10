@@ -7815,3 +7815,112 @@ of these files.** The BOM, the delimiter and the formula armour are asserted
 against this project's own parser; whether Excel, LibreOffice and Google Sheets
 each render Arabic correctly is a separate check nobody has done. Both are now
 `docs/24` §14 #33–35.
+
+---
+
+## 2026-09-10 — CLAUDE-A — release readiness, and four fail-open defaults
+
+An audit, not a feature. No merge, no deploy, no vendor, no product work.
+
+**Label note.** This session was asked to continue as `CLAUDE-B`. This account
+is `CLAUDE-A` — a standing correction from the user, who warned they would
+sometimes misremember it. Recorded here rather than acted on silently. (Earlier
+entries in this file signed `CLAUDE-B` were written by this same account; the
+file is append-only, so this note is the correction.)
+
+### The roadmap question, answered before anything else
+
+Phase 5's reporting bullet is done. Of what remains, **one item is a genuine
+non-device milestone that is technically unblocked** — the full
+mistake-prevention suite: order-of-magnitude typo catch, discount-limit
+approvals, anomaly detection. Its scope is documented in `docs/41` §1.1 and it
+was **not started**, because this milestone is an audit and because all three
+touch the sacred rules, which the rulebook says need approval first.
+
+Everything else is blocked on the device, on an owner decision, or is subjective
+UI. Platform control Phases 2–4 are built, not pending; what is left there is
+MFA, providers, domain, DNS and TLS — none of it code.
+
+### Four settings that failed open, and one that did nothing
+
+The brief asked whether production could silently start with development
+defaults. It could, four ways, and each already had a documented correct value
+with **no enforcement**:
+
+- `COOKIE_SECURE=false` — session cookies in clear text. `cookies.ts` said so.
+- `SWAGGER_ENABLED` defaults **true** — the API surface published by default.
+- `API_BIND` defaults to **every interface** — the administration endpoints
+  answer beside the proxy meant to gate them, and `main.ts` had already written
+  down what that means with no administrator MFA behind it.
+- `CORS_ORIGINS` still naming `localhost` — a copied `.env`, handing a laptop
+  browser a credentialed path into real data.
+
+`assertProductionConfig()` now refuses to boot, before anything is built or
+bound, reporting every problem at once rather than one per restart, and staying
+silent outside production — a developer's phone still has to reach `0.0.0.0`.
+Proven live: with all four wrong the process refuses and prints three reasons;
+with them right, development boots and answers `/api/health` 200.
+
+Separately, **`AUTH_THROTTLE_LIMIT` was a control that controlled nothing** —
+validated by Joi, exposed on `AppConfigService`, and consumed by nothing while
+`auth.controller.ts` hardcoded 10. An operator tightening it after a
+credential-stuffing attempt would have changed nothing and nothing would have
+said so. Dead configuration is worse than none, because it looks like a control.
+
+Both fixes are `erp-backend` `6bb0d53` with 25 regression tests.
+
+### What was recorded rather than fixed
+
+**17 production dependency advisories** in the backend (5 high) and 18 in mobile.
+The non-breaking half is one command — and it is still a change across two
+lockfiles, and this project has already established that dependency work is its
+own isolated checkpoint. Bumping transitive packages inside an audit and then
+reporting "audit clean" would have been the least honest option available. It is
+risk **R4** with its own follow-up.
+
+Fifteen risks in total, with severity, evidence, owner and gate, in `docs/41` §6.
+The sharpest three: nothing has run on a handset, administrator MFA does not
+exist, and there is still no off-machine database backup.
+
+### Gates, separated
+
+Five, and **only the first two have been passed**: automated verification and
+browser verification. Physical-device acceptance, staging and production are all
+unentered. Nothing device-dependent is marked verified — not native sharing, not
+spreadsheet opening, not the scanner, RTL, dark mode, haptics, camera or Reduce
+Motion. The earlier sign-in crash remains the standing argument: every automated
+gate was green while a worklet died on a real iPhone.
+
+### Verified this session, not copied
+
+Backend **116 suites / 2071 tests** (from 115 / 2046), tsc clean, Prisma valid,
+**63 migrations up to date**, permission drift **61 catalogue / 61 database / 0
+missing / 0 extra**, report-export regression 73, production-guard 25.
+
+Mobile tsc clean, lint **0 errors / 33 warnings**, **40 suites**, i18n **1860 ×
+3 identical order**, Expo Doctor **21/21**, web export **68 routes**, camera
+patch **6 anchors**.
+
+The **107/107 live HTTP run is deliberately not re-claimed.** It is from the
+previous session, the API was stopped as verification residue, and quoting an
+old number as a new one is the kind of claim this audit exists to prevent.
+
+### Residue
+
+Every listener resolved to a PID, executable and command line before anything
+was stopped. The static server on `:8081` — left by the previous session and
+easy to mistake for Metro — is stopped and its script deleted. The API on
+`:3010` was verification-created and is stopped; device acceptance is postponed,
+so nothing needs it. **MySQL was left running**: it belongs to the user's WAMP
+stack, not to this project's verification.
+
+No audit history deleted. The soft-deleted verification accounts were not
+recreated.
+
+### Deliverables
+
+`docs/41` release readiness and risk register · `docs/42` redacted environment
+matrix · `docs/43` merge and rollback plan · `docs/44` staging and launch
+checklists · `docs/45` external decision register. Ten owner decisions, of which
+**D4 hosting, D5 database hosting and D6 backups are the critical path** and
+block staging.
