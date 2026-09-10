@@ -4302,3 +4302,29 @@ they are not symmetrical. An extra grant is authority nobody decided to give,
 which is the shape of every privilege escalation. A missing one is usually a
 shop that deliberately narrowed a role, and this command has no business
 overruling that.
+
+### Taking a permission away in code is not finished until a migration takes it away in data (2026-09-10)
+
+A2 removed `discount.override` from `branch_manager` in `ROLE_PERMISSIONS`, and
+no migration followed — so every seeded installation kept the grant, and a
+Branch Manager approved a discount over real HTTP. **A permission removed from
+the matrix must ship with a forward migration that removes it from
+`role_permissions`**, in `0018`'s shape, resolving the permission by key because
+permission ids are generated per installation. `0067` is that migration for
+this grant; the owner authorised it.
+
+**Roles are compared by key, never by display name.** The grant gate first
+matched on the label, which would have let a shop that renamed "Branch Manager"
+keep a drifted grant while the gate reported green.
+
+**No session carries authority.** The access token holds user, company, token
+type and session id only; permissions are resolved from `role_permissions` on
+every request and live in request-scoped CLS. Removing a grant therefore takes
+effect on the next request of every existing session, with nothing to revoke —
+proved live with a session issued before `0067` and an API process that was
+never restarted.
+
+**The catalogue has one owner, and that is judged by what a migration writes.**
+A later migration may *read* `permissions` to resolve a key; it may not insert,
+replace, update, delete, alter, drop, truncate or rename it — directly or
+through a join alias.

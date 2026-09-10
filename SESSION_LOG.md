@@ -8403,3 +8403,144 @@ port released.
 
 **Nothing has run on a handset.** `docs/24` §14 is now 58 checks and every row
 is red. The screens list in the handoff is where to look, not what was verified.
+
+---
+
+## 2026-09-10 — CLAUDE-A — the branch_manager grant repair, and a CP6 total with no failures
+
+The owner refused to close the milestone at 91/92, and was right to. They
+explicitly authorised removing the stale `discount.override` grant from the
+retired `branch_manager` role, through a forward migration rather than a manual
+edit, and invalidating any session that could still carry it.
+
+### Ownership
+
+Taken at `2026-09-10T23:25Z` from `READY_FOR_HANDOFF` / `NONE`, after confirming
+all three repositories clean and level: docs `4ebab79`, backend `0da5a72`, mobile
+`20619e4`. Claim `a59dbe7`.
+
+### Can a session carry a permission? Measured, not assumed
+
+**No.** The access token holds only `sub`, `companyId`, `type` and `sid`.
+`JwtStrategy` revalidates the `auth_sessions` row and the user's state on every
+request. `PermissionsGuard` resolves permissions from `user_branches → roles →
+role_permissions` and stores them in CLS, which `ClsModule` mounts as
+per-request middleware. There is no process cache. So removing a grant takes
+effect on the next request of every existing session, and **no session was
+revoked** — revoking would have logged people out to fix nothing.
+
+That was then proved rather than left as a reading of the code (below, check 6).
+
+### What the migration had to remove, across every tenant
+
+Exactly **one** row: Demo Phone Store's Branch Manager. `discount.override` was
+held by `owner` and `branch_manager` and by nothing else. **Zero** users were
+assigned the retired role and **zero** of their sessions were live.
+
+### Migration 0067, and why it names the permission by key
+
+Written in `0018_store_role_revoke`'s exact shape. It resolves the permission by
+**key** through a JOIN because permission ids are not the same on every
+installation: `0059` generates them with `UUID()` at apply time, and a seeded
+database carries the seed's own ids. It inserts nothing and touches no other
+pair. No audit row, consistent with `0018` — a migration has no actor.
+
+Backup first: `phonestore-20260910-232828.sql`, **711 927 bytes, 88 tables,
+24 triggers, 0 raw `_binary` literals**, trailer present.
+
+`role_permissions` went **159 → 158**. `discount.override` is now held by
+`owner` alone. `_prisma_migrations` records `0067` finished at 23:32:25, one
+step. **66 migrations, up to date.**
+
+### The proof, in two phases around the migration
+
+The harness ran **before** the migration and **after** it, against **one API
+process that was never restarted** — PID 25572 before the migration, after it,
+and after the proof.
+
+**Before (3/3).** Four people signed in at 23:31:26. The retired Branch
+Manager's session **approved a discount** — the defect, reproduced with the
+exact session check 6 would reuse, so that check could not pass vacuously.
+
+**After (14/14):**
+
+1. The Owner **can** approve, and the record names the Owner as approver.
+2. The Owner self-approves through the same audited route: a below-cost request
+   with a reason, approved, requester and approver the same person on the
+   record, sold at the approved price, consumed once.
+3. A Store Manager **cannot** approve.
+4. An Employee **cannot** approve.
+5. The retired Branch Manager **cannot** approve with a **fresh** session.
+6. The retired Branch Manager **cannot** approve with the session issued
+   **before** the repair — and that session was confirmed still valid
+   (`/auth/me` 200, same user id), so the refusal is the permission, not a dead
+   session.
+
+The four refusals left the request untouched: still pending, same version.
+
+The audit trail agrees: the self-approval's `requested` and `approved` events
+are both the Owner's; the Owner approved the Employee's request; and the
+pre-repair approval **by the legacy Branch Manager at 23:31:26 is preserved** —
+it happened, and the history says so.
+
+### The gates, and two of them were wrong
+
+**The grant gate matched roles by display name.** A shop that renamed "Branch
+Manager" would have kept its drifted grant while the gate reported green. It now
+matches `roles.key`, and a test pins exactly that renamed-role case.
+
+**The catalogue guard refused the migration.** `permission-catalogue.spec.ts`
+protects `0059`'s ownership of the catalogue, and judged "touches `permissions`"
+by the table's name appearing at all — so it failed `0067`, which must name the
+table to resolve a key. Every grant or revocation after `0059` would have hit the
+same wall. It now detects **writes by their target**, and still catches every
+form that can alter the table: insert, insert ignore, replace, update, delete,
+alter, drop, truncate, rename, and a delete or update that reaches catalogue rows
+through a **join alias**. Eleven cases pin the writes, three pin the reads, and
+the test asserts `0067` is judged a read rather than skipped.
+
+That failure was caught by the full suite, not the focused specs — which is why
+nothing was committed until the full suite was green.
+
+### Final totals — genuinely final
+
+**Live, on the repaired database, zero failures:** CP6 **92/92** (the check that
+failed at 91/92, *"a legacy Branch Manager may NOT decide"*, now passes) ·
+rejection **6/6** · repair **3/3** before the migration and **14/14** after.
+**115 live checks, 0 failed.**
+
+Backend **123 suites / 2327 tests, 0 failed** · `tsc` clean · Prisma valid ·
+**66 migrations up to date** · catalogue **61/61** · grant gate **exit 0,
+"catalogue and grants complete"**. Administrator is reported as *narrowed*,
+which is informational by design.
+
+### Fixtures and demo data
+
+Created under `ZZ-CP6` with 16 units and removed: 4 users, 4 branch assignments,
+1 product, 16 units, 6 sales with items and payments, 8 approvals, 1 dismissal,
+15 probe notifications — plus 30 notifications the run left on the demo Owners
+(24 `/approvals/…` links and 6 `sale.recorded`), leaving **0 dangling links**.
+
+Measured before and after: units, sales, payments, products, users, approvals,
+dismissals and **notifications identical**; all four money sums identical;
+SHA-256 over `units.id` and `sales.id` identical. `audit_logs` 752 → 783, the
+verification's own trail, preserved behind its append-only trigger.
+
+### Commits
+
+Backend **`6ff7f16`**. Docs: claim `a59dbe7`, and this closing commit.
+
+### Services
+
+The verification API on 3013 is stopped and its port released. The device-test
+API on 3010 was **replaced**: the old process (PID 23300, started 22:27:27,
+before the repair) was stopped, and a new one started from `6ff7f16` after that
+commit landed. Metro was left running — PID 8460, `expo start --clear`, mobile
+`20619e4` clean — and its bundle was re-fetched and is **byte-identical** to the
+one proven at 22:30, all eleven markers present, LAN origin `192.168.100.3:3010`.
+
+### Still not done, and not claimed
+
+**Nothing has run on a handset** — `docs/24` §14, 58 checks, every row red. A1's
+remaining four detectors are not wired. Neither is part of this repair, and the
+milestone is not described as fully ready.

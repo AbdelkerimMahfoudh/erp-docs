@@ -2,9 +2,15 @@
 
 > **Status: A0–A3 approved by the owner on 2026-09-10**, with a binding
 > correction to A2 — *the configured selling price is the floor, not cost*.
-> **CP1–CP6 are implemented.** Backend `d3ab914`, `e2cb6b1`, `483cab9`,
-> `6287b61`, `fe81f5d`, `9aa98d2`, `c42c61f`, `4d0736d`, `0da5a72`;
-> mobile `68f02dd`, `20619e4`.
+> **CP1–CP6 are implemented and live-verified with zero failures.** Backend
+> `d3ab914`, `e2cb6b1`, `483cab9`, `6287b61`, `fe81f5d`, `9aa98d2`, `c42c61f`,
+> `4d0736d`, `0da5a72`, `6ff7f16`; mobile `68f02dd`, `20619e4`.
+> CP6 first ran 91/92: the retired `branch_manager` role still held
+> `discount.override` in the database. Migration `0067` removed it with the
+> owner's authorisation, and the rerun on the repaired database is 92/92, with
+> the repair itself proved 3/3 before the migration and 14/14 after.
+> **Not closed:** physical-device acceptance has not started, and A1's
+> remaining four detectors are not wired (below).
 > Where §3 below describes cost as the floor, §A2 is superseded by the
 > correction recorded in [`docs/21`](21_PRODUCT_DECISIONS.md).
 >
