@@ -8229,3 +8229,177 @@ CP4 (mobile approval workflow), CP5 (the six anomaly rules), and the remaining
 CP6 live HTTP run. No device claim of any kind; `docs/24` §14 checks 1–35 remain
 open and no approval-UI checks have been added yet, because the UI does not
 exist.
+
+---
+
+## 2026-09-10 — CLAUDE-A — CP4, CP5 and CP6 of the mistake-prevention suite
+
+Three checkpoints, nine commits across two repositories, and a live run that
+found three things no unit test in this project could have.
+
+### Takeover
+
+Every reported figure was re-measured rather than trusted: 119 suites / 2232
+tests, 64 migrations with `0065` applied, 61/61 permission keys, the
+configured-price ladder, `discount.override` Owner-only in code, and the
+pre-migration backup on disk at 684 483 bytes. Three discrepancies:
+
+1. **`erp-docs` read dirty for the first ninety seconds — and it was not a
+   defect.** The previous session's closing commit `1f993a1` landed at
+   **18:27:18Z**, seconds into my first inspection, and pushed. A handoff that
+   looks abandoned and a handoff being written are indistinguishable in a single
+   snapshot; the second look is what separates them.
+2. A fourth backend commit, `483cab9`, sits between CP2 and CP3 — the
+   fingerprint safeguard. Correct work, under-reported by a three-commit
+   baseline.
+3. **A1's detectors did not exist.** Five `magnitude.*` codes were declared and
+   nothing computed one, so no mutation could return `warnings_pending`. CP4
+   cannot show a warning acknowledgement in the sale flow until the server can
+   raise one, so they were built first, inside CP4.
+
+### CP4 — the detectors, then the workflow (`fe81f5d`, `9aa98d2`, `c42c61f`, `68f02dd`)
+
+The threshold is ten because a missing or extra zero *is* a factor of ten. Not a
+tuned statistic — the shape of the mistake. Three would fire on ordinary
+variation, and a warning people dismiss by reflex has stopped working.
+
+The reported factor is a **bucket** (10, 100, 1000), never the computed ratio,
+and that is load-bearing beyond the wording: `acknowledgement.ts` binds
+parameters into the fingerprint and excludes the reference, which is only safe
+while the parameters do not move when a median drifts by a unit. A raw ratio
+would force a fresh confirmation on every request.
+
+Silence is the common case and the correct one — no reference, a zero reference,
+too few observations, a submitted zero, or a cost-derived reference the caller
+may not see all produce nothing. **A caution whose basis cannot be shown is one
+the reader cannot act on**, and quoting the figure anyway would make the typo
+check a hole in the cost gate.
+
+The check runs after every line is resolved and **before the first write**, and a
+warned sale leaves the transaction by throwing so it writes nothing. Warning
+after the row exists makes the warning decorative.
+
+**Two defects found in CP3 while building against it.** The notifications did
+not work at all: the service called `NotificationsService.emit` with
+`{ kind, userId, entityType, entityId, dedupeKey }` behind an `as never`, while
+`emit` takes `{ type, title, targetUserId, actionLink }`. Every field the
+delivery needed arrived undefined — no type, no recipient, no link. **The cast is
+what hid it.** And the approvals list was company-wide for anyone holding
+`sale.create`, which is everyone who may ask, so a shop assistant could read
+every colleague's request.
+
+On the phone, twelve states, kept distinct because they mean different things to
+the person who asked: "expired" sends somebody back to ask again and "rejected"
+does not. The phone never infers an approval — it opens the sheet because the
+server refused, and completes the sale by sending the sale again.
+
+### CP5 — six rules, and no seventh (`4d0736d`, `20619e4`)
+
+`anomaly.low_stock` · `anomaly.dead_stock` · `anomaly.overdue_debt` ·
+`anomaly.seller_margin_drop` · `anomaly.cash_shortfall` ·
+`anomaly.below_cost_cluster`
+
+Not one computes a metric. `employeePerformance` gained an `endingDaysAgo` so
+the current thirty days and the previous thirty come from **one** definition of a
+seller's margin rather than two that must be comparable and quietly are not.
+
+Margin is compared as a **rate**. A quieter month is not a collapse, and an
+amount-based rule would accuse somebody of something that did not happen.
+
+Rule 3 reads **sale receivables**, not a loan ledger as `docs/46` §3 wrote:
+loans carry no due date at all in this schema, and the app's existing definition
+of an overdue debt is the health score's. Writing a second definition of
+"overdue" is exactly what A3 forbids.
+
+Migration `0066` stores dismissals and nothing else. A stored anomaly is a
+second copy of a figure that is stale within the hour; what cannot be recomputed
+is that a person looked and said "I know".
+
+### CP6 — what a real request found (`0da5a72`)
+
+**91 of 92 checks passed** over real HTTP against real MySQL, plus a separate
+6/6 run proving a refusal is terminal.
+
+**The refusal arrived stripped.** `approval_required` attached the unit, the
+line, the set price and `belowCost`, and the global exception filter dropped
+every one of them because its allowlist was `['problems','units']`. This is the
+**second** time that allowlist has silently eaten a field a client depends on —
+the filter's own comment describes the first, in the same words I would have
+used. Every test passed because they all asserted that an exception was thrown
+rather than what a client receives, and both new regression tests now assert the
+latter.
+
+**Both reads of an approval answered 400.** The detail select asked for
+`product.name`. A product has a brand and a model; it has never had a name.
+Prisma refused the whole query and the filter reported "Invalid query
+parameters", so `GET /discount-approvals` and `GET /:id` were both dead and the
+list's `scope` never arrived. Source-text tests cannot catch a query that does
+not run.
+
+**And the one that is not code.** `role_permissions` still grants
+`discount.override` to the retired `branch_manager` role, so a live request from
+a Branch Manager approved a discount — twice, in front of me — even though A2
+made approval Owner-only and the code catalogue agrees. The deploy gate had been
+reporting "61/61, catalogue complete" throughout, because it only ever checked
+that the keys exist. **A catalogue can be perfect while the grants are wrong.**
+
+`verify-permission-catalogue` now compares each role's actual grants against
+`ROLE_PERMISSIONS` and refuses on an extra grant, while reporting a narrowed
+role without failing. The two are not symmetrical: an extra grant is authority
+nobody decided to give, and a missing one is usually a shop that meant it.
+
+**Nothing was deleted.** Removing a grant is the owner's decision and the
+rulebook forbids deleting demo records without authorisation; after the fixtures
+were removed, no live user holds the retired role. The gate now exits non-zero
+on this database, naming one row, and the handoff carries the one-line repair.
+
+### Three mistakes of my own, recorded
+
+- **A check that completed a sale.** The first run shared one unit between a
+  refusal and a sale, so a later check proved that a phone which had already
+  been sold cannot be sold — true, and not what was asked. Every
+  sale-completing check now has its own unit.
+- **A fixture generator with the wrong alphabet.** Probe personal IDs used `L`
+  and `U`, which the app's alphabet excludes, so login classified them as phone
+  numbers and refused. The app was right; my fixture was wrong.
+- **The login throttle caught me**, correctly — it is the protection `3833677`
+  wired up. The harness now signs in once and caches, which is what a client
+  making ten logins a minute should do.
+
+### Fixtures, and demo-data integrity
+
+Created under `ZZ-CP6` and removed: 4 users, 4 branch assignments, 1 product,
+12 units, 5 sales with items and payments, 5 approvals, 1 dismissal, 14
+notifications. Measured before and after: units, sales, payments, products,
+users, approvals and dismissals **identical**; all four money sums **identical**;
+SHA-256 over `units.id` and `sales.id` **identical**.
+
+`audit_logs` went 671 → 752 and its checksum changed — **deliberately**. The
+trail of the verification is preserved, and it is append-only behind a trigger,
+so it could not have been removed even on purpose. Notifications went 46 → 45:
+the run's litter was cleaned, including one `sale.recorded` row from my own
+aborted first attempt.
+
+Backup before `0066`: `phonestore-20260910-191750.sql`, 687 997 bytes, 87
+tables, 24 triggers, 0 raw binary literals, trailer present. No temporary
+database was created.
+
+### Verified
+
+Backend **123 suites / 2311 tests**, tsc clean, Prisma valid, **65 migrations up
+to date**, catalogue **61/61** — and the **grant gate refusing on one row**,
+which is the finding, not a failure of the run.
+
+Mobile tsc clean · lint **0 errors, 33 warnings** unchanged · **42 pure suites**
+· i18n **1985 × 3, identical order** · web export clean, **70 routes**.
+
+### Left running, on purpose
+
+The API on `3010` bound `0.0.0.0`, and Metro on `8081` started `--clear`,
+serving mobile `20619e4`. The served bundle was fetched — 17 117 577 bytes — and
+searched for eleven markers of CP4 and CP5, including the inlined LAN API
+origin. Every one is present. The verification API on `3013` is stopped and its
+port released.
+
+**Nothing has run on a handset.** `docs/24` §14 is now 58 checks and every row
+is red. The screens list in the handoff is where to look, not what was verified.

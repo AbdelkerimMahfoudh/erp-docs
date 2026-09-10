@@ -2,10 +2,24 @@
 
 > **Status: A0–A3 approved by the owner on 2026-09-10**, with a binding
 > correction to A2 — *the configured selling price is the floor, not cost*.
-> **CP1, CP2 and CP3 are implemented** (`d3ab914`, `e2cb6b1`, `483cab9`,
-> `6287b61`). CP4 (mobile), CP5 (anomalies) and the CP6 live run are not.
+> **CP1–CP6 are implemented.** Backend `d3ab914`, `e2cb6b1`, `483cab9`,
+> `6287b61`, `fe81f5d`, `9aa98d2`, `c42c61f`, `4d0736d`, `0da5a72`;
+> mobile `68f02dd`, `20619e4`.
 > Where §3 below describes cost as the floor, §A2 is superseded by the
 > correction recorded in [`docs/21`](21_PRODUCT_DECISIONS.md).
+>
+> **Two deviations from the packet, both deliberate and both recorded:**
+>
+> 1. **A1's remaining four detectors are not wired.** The engine, the rules and
+>    the ten translations exist and are tested; `magnitude.sale_price` is live
+>    on `sale.create`. Intake cost, price change, expense amount and debt
+>    payment each need their own mutation wired to the gate, and that is the
+>    precise remaining task — not a redesign.
+> 2. **Rule 3 reads sale receivables, not a loan ledger.** §3/A3 says "loan
+>    ledger", and this codebase's existing definition of an overdue debt is the
+>    health score's: a sale with a balance still owed and a due date in the
+>    past. Loans carry no due date at all. Writing a second definition of
+>    "overdue" is exactly what A3 forbids, so the existing one was used.
 
 This began as the four-step approval the rulebook requires before a change that
 touches the sacred rules. It is kept as written — including §1, whose evidence

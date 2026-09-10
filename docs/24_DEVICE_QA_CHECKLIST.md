@@ -2862,7 +2862,7 @@ here or anywhere in Git — ask whoever set it up.
 
 ---
 
-## 14. The completed redesign — UNVERIFIED
+## 14. The completed redesign, and the approval workflow — UNVERIFIED
 
 *35 checks: the 30 redesign rows, #31–32 for the scan duplicate contract, and #33–35 for native CSV sharing.*
 
@@ -2911,6 +2911,29 @@ same order, extended to the screens finished in this pass.
 | 33 | **Analytics → Export → Profit by product** | The iOS share sheet opens. Save to Files, then open it: the columns are readable and the name says the report, the period and the branch |
 | 34 | Export in Arabic, then open the file | Arabic headers read correctly, **not as mojibake**. This is what the byte-order mark is for and only a real spreadsheet can prove it |
 | 35 | Start an export, then switch branch before it finishes | Nothing is saved. The app says the report was discarded, rather than handing over the other branch figures |
+| 36 | **Sell at ten times the set price** | "Does this look right?" with what you typed AND what similar items cost. **Nothing is sold until you answer.** "Let me check" leaves the sale exactly as it was |
+| 37 | Confirm past that warning | The sale completes at the price you confirmed. Selling at just under ten times raises nothing at all |
+| 38 | **Sell below the set price, still profitable** | Refused, and the sheet opens on **the right phone** with the set price, your price, the discount and the percentage |
+| 39 | Ask the Owner, as an employee | "Asked. The Owner has been told." Then **Waiting for the Owner**, and it keeps saying nothing has been sold |
+| 40 | **Owner: the notification** | Opens **that request**, not a list. Shows the item, the branch, who asked, the reason and the minutes left |
+| 41 | Owner: approve | The confirmation says ONE sale, THIS item, THAT price, THOSE minutes. Not a bare "Approve?" |
+| 42 | Back on the seller's phone | Turns to **Approved**, and completing the sale uses the approved price |
+| 43 | Try the same approval a second time | Refused. An approval is spent |
+| 44 | Owner: refuse one instead | The requester sees **Not approved** with the note, and the sale still will not go through |
+| 45 | Below cost, as somebody who may see cost | The loss is shown as an amount |
+| 46 | Below cost, as somebody who may NOT | "This price needs a stronger approval." **No amount, no hint of the cost** |
+| 47 | **Owner approving their own request** | Same friction, and the screen says the request is yours |
+| 48 | Withdraw your own pending request | It goes; somebody else's Withdraw is not offered |
+| 49 | Turn the Wi-Fi off on the approval screen | "An approval is a decision, and it cannot wait in a queue." No cached queue is shown |
+| 50 | **Analytics → Needs your attention** | Sentences with numbers in them, worst first, and a line saying when they were worked out |
+| 51 | Dismiss one | Confirms it hides for a week for the whole shop, then it goes and the others stay |
+| 52 | The same panel as a Store Manager | **No seller-margin row and no below-cost row.** Those are the Owner's |
+| 53 | Turn the Wi-Fi off on Analytics | The panel says these are worked out on the server, rather than showing yesterday's |
+| 54 | **Arabic: the whole approval flow** | Reads naturally, not word-for-word English. Prices stay left-to-right; the sheet mirrors |
+| 55 | **Arabic: an anomaly sentence** | Numbers sit correctly inside an RTL sentence |
+| 56 | Dark mode, approvals and the attention panel | The warning tone is legible, not a dark-on-dark chip |
+| 57 | Reduce Motion, the approval sheet | Fades in place. No slide, no scale |
+| 58 | The approval screen with VoiceOver | The state is announced as a word, never by colour alone |
 
 ### Highest risk
 

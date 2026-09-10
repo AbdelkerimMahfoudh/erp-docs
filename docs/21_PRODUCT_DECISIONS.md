@@ -4214,3 +4214,91 @@ the edge. Each field keeps its own minimum, because a floor is a business
 question; the ceiling belongs to the column. A CSV row that cannot fit is
 reported as a bad row with a reason the shop can act on. No error message names
 a column, a type, or MySQL.
+
+---
+
+## Mistake prevention, CP4–CP6 (2026-09-10)
+
+### An approval is a server fact, and the phone never infers one
+
+The Sell screen opens its request sheet **only because the server refused with
+`approval_required`**. It never decides for itself that a price is below the
+floor — the floor is the pricing ladder's answer, and only the server resolves
+the ladder.
+
+Completing the sale is a second, separate act: the sale is submitted again, and
+the server consumes the approval **inside the sale's own transaction**, so the
+grant and the sale either both happen or neither does. The Owner's yes and the
+sale are two events. Pretending otherwise is how a customer walks out with a
+phone that was never sold.
+
+### Twelve visible states, and they stay distinct
+
+Set price · proposed price · discount · reason · warning acknowledged ·
+approval required · waiting for the Owner · approved with the minutes left ·
+rejected · expired · no longer valid · used.
+
+Collapsing them into "not approved" would send an employee back to ask again in
+the one case where the Owner has already said no. "Expired" means nobody
+answered; "voided" means the world moved underneath; "rejected" is an answer.
+
+### The client branches on codes, never on sentences
+
+Every refusal carries a machine-readable `code`. The app runs in three
+languages, and a regular expression over an English sentence works in exactly
+one of them — the developer's. A code the build does not recognise falls through
+to the server's own message rather than to a branch chosen by a regex.
+
+### Cost is gated by the gate that already exists
+
+An approval carries `unitCost`, which is in `FINANCIAL_FIELDS`, so
+`CostGatingInterceptor` strips it for every caller without `cost.view` — the
+same mechanism as the rest of the app, rather than this feature inventing a
+second rule to remember. Where the cost does not arrive, the loss is not
+estimated from anything: the screen says a stronger approval is needed, which
+is true and discloses nothing.
+
+### The six anomaly rules compute nothing new
+
+1. `anomaly.low_stock` · 2. `anomaly.dead_stock` · 3. `anomaly.overdue_debt` ·
+4. `anomaly.seller_margin_drop` · 5. `anomaly.cash_shortfall` ·
+6. `anomaly.below_cost_cluster`
+
+Every input is a figure the app already shows. Dead stock is the list
+`DashboardService` already produces; low stock uses the shop's own threshold;
+a seller's margin comes from `employeePerformance`, which gained an
+`endingDaysAgo` so both windows come from **one** definition; overdue debt is
+the health score's existing definition; the shortfall rule counts discrepancies
+the closing already raised; the below-cost rule counts approvals actually
+**spent on a sale**, because asking is not selling.
+
+**Margin is compared as a rate, not an amount.** A quieter month is not a
+collapse, and an amount-based rule would accuse somebody of something that did
+not happen. Collapse means halved — a threshold that can be said in a sentence.
+
+Every rule states a minimum sample and says nothing below it. Without a floor
+the rules fire loudest at the smallest shops, which is the opposite of useful.
+
+**Anomalies are never stored.** A stored anomaly is a second copy of a figure
+that is stale by the time anybody reads it. What is stored is the only thing
+that cannot be recomputed: that a person looked and said "I know" — seven days,
+company-wide, audited, and dropped after ninety.
+
+**A rule the caller may not see is never computed**, not computed and filtered.
+A figure that is never fetched cannot escape through a log line or a refactor
+that forgets which list was the safe one.
+
+### A catalogue can be perfect while the grants are wrong
+
+The deploy gate checked that all 61 permission keys exist and reported "61/61,
+catalogue complete" — while the database still granted `discount.override` to
+the retired `branch_manager` role, which A2 had taken away in code.
+`AccessService` resolves authority from `role_permissions` and nothing else, so
+that role could still approve a discount.
+
+`verify-permission-catalogue` now compares each role's actual grants against
+`ROLE_PERMISSIONS`. **An extra grant fails the gate; a missing one does not** —
+they are not symmetrical. An extra grant is authority nobody decided to give,
+which is the shape of every privilege escalation. A missing one is usually a
+shop that deliberately narrowed a role, and this command has no business
+overruling that.
