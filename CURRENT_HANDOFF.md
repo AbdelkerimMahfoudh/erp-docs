@@ -7,40 +7,44 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Last owner: **CLAUDE-A**,  →  — **Checkpoint 3: operational
-  screens** on the Stock visual system. Takeover HEADs: docs  · backend
-   · mobile  · control-web .
+- Last owner: **CLAUDE-A**, `2026-09-11T12:33Z` → `2026-09-11T20:44Z` — **Checkpoint 3: operational
+  screens** on the Stock visual system. Takeover HEADs: docs `c2f8d3c` · backend
+  `3554c5e` · mobile `abd834a` · control-web `c764d63`.
 - **Checkpoint 3 complete. Stopped for the owner's review before any lower-priority screen.**
 - Deferred, not started: Home dashboard "Improvement", catalogue/product images
-  ([](docs/47_CATALOGUE_IMAGES_SCOPE.md)), portal redesign (plan awaiting approval).
+  ([`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md)), portal redesign (plan awaiting approval).
+- Note: the first commit of this snapshot (`d8db7ae`) lost every backticked value to
+  shell substitution; this commit restores them. The stray substitutions tried to
+  run `node dist/src/main`, `npm run start` and `expo start` from the docs root —
+  all failed immediately; nothing was started and the API and Metro were unaffected.
 
 ### What changed
 
 | Sub-checkpoint | Mobile | Summary |
 |---|---|---|
-| Safeguards |  | history folds only on the complete meaning; visual guard rejects raw type/colour, allows variants and hierarchy |
-| 3a Sell |  | cart line in the Stock row language, chips for payment and return policy, amounts isolated for Arabic |
-| 3b Receive |  | serial kept through Create product and cancellation; arrow-only back; labelled unit cost |
-| 3c Transfers / consignments |  | who has it, next step and money kept separate; translated consignment status; accept/counter only for the awaited side |
-| 3d Money |  | period chips and subtitles; formatted amounts and percentages; translated loan status; friendly errors |
-| 3e More |  | grouped sections from existing destinations, one tap to a screen |
+| Safeguards | `ea5419d` | history folds only on the complete meaning; visual guard rejects raw type/colour, allows variants and hierarchy |
+| 3a Sell | `f073ce5` | cart line in the Stock row language, chips for payment and return policy, amounts isolated for Arabic |
+| 3b Receive | `679e074` | serial kept through Create product and cancellation; arrow-only back; labelled unit cost |
+| 3c Transfers / consignments | `738a3a4` | who has it, next step and money kept separate; translated consignment status; accept/counter only for the awaited side |
+| 3d Money | `a0b01fa` | period chips and subtitles; formatted amounts and percentages; translated loan status; friendly errors |
+| 3e More | `42d45b8` | grouped sections from existing destinations, one tap to a screen |
 
-Backend: **no change** this checkpoint. No migration. Docs:  checkpoints 3a–3e,
- §18–§22, session log.
+Backend: **no change** this checkpoint. No migration. Docs: `docs/21` checkpoints 3a–3e,
+`docs/24` §18–§22, session log.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
-|  |  | *this commit* | level | 0 |
-|  |  | **** | level | 0 |
-|  |  | **** | level | 0 |
-|  |  |  | untouched | — |
+| `erp-docs` | `master` | *this commit* | level | 0 |
+| `erp-backend` | `reports-export` | **`3554c5e`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`42d45b8`** | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
 
 ### Reported, not built (each needs the owner)
 
 1. Sell has no customer or receiving-account selection, although the sale API accepts both.
-2. Opening  directly (web; possibly a cold-start notification) answers
+2. Opening `/transfers/<id>` directly (web; possibly a cold-start notification) answers
    *not found*: the first request goes before the saved branch is restored (403). Handset TC7.
 3. A transfer cancelled after approval, never shipped, lists *Envoyé par quelqu’un*.
 4. Create product opened from a serial scan proposes IMEI tracking until a category is chosen.
@@ -52,16 +56,16 @@ Backend: **no change** this checkpoint. No migration. Docs:  checkpoints 3a–3e
 
 | Service | State |
 |---|---|
-| API  | PID **30880**, , backend , sign-in 200. **No watcher** (the watch process looped and was stopped); restart with  in  if needed |
-| Metro  | PID **20812**,  |
-| MySQL  | user's WAMP stack |
-| Isolated API /  | stopped / **dropped** |
+| API `:3010` | PID **30880**, `node dist/src/main`, backend `3554c5e`, sign-in 200. **No watcher** (the watch process looped and was stopped); restart with `npm run start` in `backend/` if needed |
+| Metro `:8081` | PID **20812**, `expo start --port 8081`, `packager-status:running` |
+| MySQL `:3306` | user's WAMP stack |
+| Isolated API / `prisma_verify_sell` | stopped / **dropped** |
 | Headless Chrome, static server | stopped |
 
 ### Handset
 
 🔴 **Nothing ran on a handset.** Web rendering is not device verification. Open:
- §18 SL1–SL12, §19 RC1–RC8, §20 TC1–TC10, §21 M1–M8, §22 MR1–MR6, plus §14–§17.
+`docs/24` §18 SL1–SL12, §19 RC1–RC8, §20 TC1–TC10, §21 M1–M8, §22 MR1–MR6, plus §14–§17.
 
 ### The next exact action
 
