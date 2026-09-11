@@ -6,88 +6,68 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T12:33Z`
-- Takeover HEADs: docs `c2f8d3c` · backend `3554c5e` · mobile `abd834a` · control-web `c764d63`
-- Active scope: **Checkpoint 3 — operational screens** on the Stock visual system:
-  safeguards (history folding, visual guard) → 3a Sell → 3b Receive (+ serial through
-  Create product) → 3c Transfers/consignment → 3d Money → 3e More. Each sub-checkpoint
-  committed separately; stop and report after 3e. Home "Improvement", catalogue
-  images and portal redesign stay deferred.
-- **Done so far:** safeguards mobile **`ea5419d`**; **3a Sell** mobile **`f073ce5`**
-  (renders FR/AR/dark live; refusal and success on isolated `prisma_verify_sell`;
-  `docs/24` §18 SL1–SL12 open). Gap reported, not built: no customer or
-  receiving-account selection on Sell.
-- Services restarted after a session restart: API `:3010` (`npm run start:dev`),
-  Metro `:8081`; isolated API `127.0.0.1:3011` on `prisma_verify_sell` still up —
-  stop and drop it after 3b.
-- **3b Receive** mobile **`679e074`**: serial kept through Create product and its
-  cancellation (4 new tests, rendered FR/AR/dark); arrow-only back on Receive;
-  labelled unit cost. `docs/24` §19 RC1–RC8 open.
-- **3c Transfers/consignments** mobile **`738a3a4`**: custody-state (19 tests), who has it / next step / money kept separate, translated consignment status, accept/counter only for the awaited side. Reported: direct-load transfer detail 403 before branch restore. `docs/24` §20 TC1–TC10 open.
-- **3d Money** mobile **`a0b01fa`**: period chips and subtitles, formatted percentages and amounts, translated loan status, friendly errors, localised closing date. `docs/24` §21 M1–M8 open.
-- Next intended action: **3e More** — grouped menu (Store, Team, Products and settings, Reports, Security, Language and appearance, Account) from existing destinations only.
-- **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
-  on the Text primitive, InlineNotice and tokens; registration and verification off
-  utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale
-  and used by Chip, FilterChip, StatTile, Toast, the tab bar and Store ID; new guard
-  `lib/design/visual-system.test.ts`. Verified: tsc clean, lint 33 (baseline), 46 pure
-  suites, web export 70 routes, sign-in/registration renders FR light, FR error, AR,
-  FR dark; Metro bundle contains the new variants. No behaviour change, no backend change.
-- Audit result for the rest of the app: **no raw colours, raw font sizes/weights, font
-  families or utility classes remain in any screen or component**. Further alignment
-  is layout-level (spacing, card structure, fixed actions) and must be judged screen
-  by screen on renders.
-- **Next exact action:** checkpoint 3 — render Sell, Receive, Transfers and the More
-  hubs in FR/AR, compare against the Stock reference, and correct structural drift
-  through shared primitives only. Home dashboard "Improvement", catalogue images and
-  the portal redesign stay out.
-- Last owner: **CLAUDE-A**, `2026-09-11T11:46Z` → `2026-09-11T12:20Z` — **Stock
-  visual system, checkpoint 1: Unit detail and History**. Takeover HEADs: docs
-  `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`.
-- **Checkpoint 1 committed:** backend **`3554c5e`** (history as language-free facts,
-  newest 200, reservation audited, transfer destinations named, supplier/purchase
-  reference on the unit), mobile **`b5b8a4b`** (arrow-only back app-wide, history in
-  words with day groups, folding and "Show N more", item summary, French dates).
-- Verified: backend 127 suites / 2369 tests; mobile tsc, lint 33 (baseline), 45
-  pure suites (unit-history 21), parity 2082 × 3, web export 70 routes; French and
-  Arabic renders with no raw code or `(tabs)`; API PID **21100** serving `3554c5e`;
-  Metro PID **26348** bundle contains `history.event.received`, `history.more`,
-  `headerBackButtonDisplayMode`, `unit.imei2`.
-- 🔴 No handset: `docs/24` **§17 U1–U11** open, including the back arrow itself.
-- **Next exact action:** checkpoint 2 — apply the approved Stock visual system to
-  the next screens (Sell, Receive, Transfers, More hubs), one coherent group per
-  checkpoint, through shared tokens/primitives only. Home dashboard "Improvement",
-  catalogue images and the portal redesign (plan awaiting approval) stay out.
-- Earlier today, same account: **Receiving correction** `04:16Z → 04:45Z`
-  (backend `488effd`, mobile `09d0e59`).
-- Earlier today, same account: Stock correction pass `03:30Z → 04:10Z`; Indigo
-  Stock screen `00:26Z → 03:22Z` (times from commits; earlier recorded times were wrong).
-- 🟢 **Ready to test on a handset** — see §4.
-- 🔴 **Nothing has run on a handset.** [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md)
-  §14 (58), §15 S1–S25 and new **§16 R1–R12**, every row open. **Native draft
-  save/restore (R9) is open** — no device was available; web cannot prove it.
-- **No migration.** `units.imei_secondary` and `0042`'s cross-column triggers
-  already existed. Backup taken and restore proved anyway (below).
-- Home dashboard "Improvement" **not started**; catalogue images remain the
-  separate [`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md) follow-up.
+- Status: **READY_FOR_HANDOFF**
+- Last owner: **CLAUDE-A**,  →  — **Checkpoint 3: operational
+  screens** on the Stock visual system. Takeover HEADs: docs  · backend
+   · mobile  · control-web .
+- **Checkpoint 3 complete. Stopped for the owner's review before any lower-priority screen.**
+- Deferred, not started: Home dashboard "Improvement", catalogue/product images
+  ([](docs/47_CATALOGUE_IMAGES_SCOPE.md)), portal redesign (plan awaiting approval).
 
 ### What changed
 
-| Repository | Commit | |
+| Sub-checkpoint | Mobile | Summary |
 |---|---|---|
-| `erp-backend` | **`488effd`** | purchase lines accept `units[] = { identifier, imeiSecondary? }`; IMEI 2 validated and checked in the delivery and against both columns; response names `accepted.identifiers` / `accepted.stockProductIds` (also on replay); `/scan` adds `hintCode` / `hintParams` |
-| `erp-mobile` | **`09d0e59`** | IMEI 2 from camera, cost sheet or "Add IMEI 2"; existing phone blocked before cost with "Open this phone"; Choose product; Create product returns to the same Receive with the product selected; translated scan hints; Finish via `lib/receive-outcome.ts` (all / none / partial with new key / uncertain locked under same key) |
-| `erp-docs` | *this commit* | handoff, session log, `docs/21` Receiving decisions, `docs/24` §16 |
+| Safeguards |  | history folds only on the complete meaning; visual guard rejects raw type/colour, allows variants and hierarchy |
+| 3a Sell |  | cart line in the Stock row language, chips for payment and return policy, amounts isolated for Arabic |
+| 3b Receive |  | serial kept through Create product and cancellation; arrow-only back; labelled unit cost |
+| 3c Transfers / consignments |  | who has it, next step and money kept separate; translated consignment status; accept/counter only for the awaited side |
+| 3d Money |  | period chips and subtitles; formatted amounts and percentages; translated loan status; friendly errors |
+| 3e More |  | grouped sections from existing destinations, one tap to a screen |
+
+Backend: **no change** this checkpoint. No migration. Docs:  checkpoints 3a–3e,
+ §18–§22, session log.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
-| `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`488effd`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`09d0e59`** | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
+|  |  | *this commit* | level | 0 |
+|  |  | **** | level | 0 |
+|  |  | **** | level | 0 |
+|  |  |  | untouched | — |
+
+### Reported, not built (each needs the owner)
+
+1. Sell has no customer or receiving-account selection, although the sale API accepts both.
+2. Opening  directly (web; possibly a cold-start notification) answers
+   *not found*: the first request goes before the saved branch is restored (403). Handset TC7.
+3. A transfer cancelled after approval, never shipped, lists *Envoyé par quelqu’un*.
+4. Create product opened from a serial scan proposes IMEI tracking until a category is chosen.
+5. Arabic web render: the More branch card's chevron is not visible. Handset MR4.
+6. The Sell charge button drops the narrow no-break group space on web (*1030 MRU*).
+7. Consignment stages after *requested*, and loan details, were not rendered (no data reachable).
+
+### Services
+
+| Service | State |
+|---|---|
+| API  | PID **30880**, , backend , sign-in 200. **No watcher** (the watch process looped and was stopped); restart with  in  if needed |
+| Metro  | PID **20812**,  |
+| MySQL  | user's WAMP stack |
+| Isolated API /  | stopped / **dropped** |
+| Headless Chrome, static server | stopped |
+
+### Handset
+
+🔴 **Nothing ran on a handset.** Web rendering is not device verification. Open:
+ §18 SL1–SL12, §19 RC1–RC8, §20 TC1–TC10, §21 M1–M8, §22 MR1–MR6, plus §14–§17.
+
+### The next exact action
+
+The owner reviews the Checkpoint 3 report and decides on the seven reported gaps.
+Do not start the lower-priority screens, the Home "Improvement", catalogue images or
+the portal redesign until asked.
 
 ### Verified this session, by kind
 

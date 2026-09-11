@@ -9002,3 +9002,38 @@ enum, ISO date or English status in the page text. Lint briefly rose to 38 from 
 constant placed above imports; fixed before commit.
 
 **Open.** `docs/24` §21 M1–M8. No loan detail rendered (no loans on live data).
+
+---
+
+## 2026-09-11 15:50Z–20:44Z — CLAUDE-A — Checkpoint 3e: More, and Checkpoint 3 closed
+
+Mobile `42d45b8`. No backend change.
+
+**More.** See `docs/21` checkpoint 3e: `MORE_GROUPS` names existing destinations
+by id (Store, Team, Products and settings, Reports, Security, Language and
+appearance, Account); More renders them as sections, one tap to a screen. Five
+new registry drift tests. Rendered FR, AR, FR dark on the live API (read-only).
+
+**Verified.** tsc clean · lint 33 · 47 pure suites (registry +5) · parity · web export.
+
+**Teardown.**
+- Isolated API (PID 31020, launcher 30360, command lines matched) stopped;
+  `prisma_verify_sell` dropped. `prisma_staging` and `prisma_staging_shadow`
+  already existed and were left alone.
+- Headless Chrome (profile `chrome-shot`) and the static server on :19006 stopped
+  after matching command lines.
+- Live `phonestore`, read-only: units 52 · sales 7 · purchases 9 · stock_transfers 0
+  · consignments 0 · counterparties 0 · audit_logs 813. Leak checks: 0 *Boutique
+  Nour* counterparties, 0 units with the test IMEI prefix. No same-session
+  baseline was taken, so this records the state rather than claiming it unchanged.
+
+**Live API incident.** The `nest start --watch` process started after the session
+restart fell into a restart loop ("File change detected" every few seconds, 0
+errors) although no backend file had changed in 20 minutes and the tree was clean
+at `3554c5e`; :3010 stopped answering. The watch tree started by this session
+(npm 11940, nest 27212, shell 9548) was stopped after matching command lines. The
+app it had just spawned, PID 30880 (`dist/src/main`), survived, holds :3010 and
+signs in (HTTP 200). It runs without a watcher, so it will not pick up backend
+edits; restart with `npm run start` in `backend/` if needed.
+
+**Checkpoint 3 is complete; stopping before the lower-priority screens.**

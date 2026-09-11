@@ -3094,3 +3094,16 @@ Web renders in French, Arabic and French dark on the live API, read-only.
 | M6 | Try an action the server refuses | A translated sentence, never the server's English |
 | M7 | Daily closing, after sign-off | *{date localisée} est clôturée* — not *2026-09-11* |
 | M8 | Largest text; dark mode; keyboard open on a count | Amounts wrap rather than clip; the count button stays reachable |
+
+## 22. More (checkpoint 3e) — UNVERIFIED ON ANY DEVICE
+
+Web renders in French, Arabic and French dark on the live API, read-only.
+
+| # | Do this | Expect |
+|---|---|---|
+| MR1 | Open More as the Owner | Sections *Boutique, Équipe, Produits et réglages, Rapports, Sécurité, Langue et apparence, Compte*, then *Se déconnecter* on its own |
+| MR2 | Tap *Retours* | Returns opens in one tap; back is an arrow only |
+| MR3 | Sign in as a Manager, then an Employee | Only permitted rows; *Rapports* absent for the Employee; *Équipe* shows only *Objectifs* for the Manager; no empty section |
+| MR4 | Arabic | Mirrored; row chevrons point left; the branch card's chevron is visible and points left |
+| MR5 | Open an old `/hub/stock` link | The Stock hub still opens |
+| MR6 | Largest text; dark mode | Section labels and rows wrap; sign-out stays separate |

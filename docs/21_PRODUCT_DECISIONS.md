@@ -4647,3 +4647,23 @@ No accounting semantic changed and nothing is recomputed on the phone.
 
 Pending and confirmed stay distinct as before: reported expenses amber,
 confirmed green; a reported loan payment is shown and never deducted.
+
+### ✅ IMPLEMENTED — checkpoint 3e: More as grouped sections, one tap to a screen
+
+More now lists destinations directly under **Boutique · Équipe · Produits et
+réglages · Rapports · Sécurité · Langue et apparence · Compte**, followed by the
+separate *Se déconnecter*. Previously it showed hub rows, each costing a second
+tap before anything useful.
+
+- `MORE_GROUPS` in `lib/navigation/registry.ts` names **existing destinations by
+  id only** — it cannot add a route, and no feature was invented (there is no
+  Support screen, so there is no Support row). The hubs still own membership,
+  permissions and `/hub/<id>` deep links, which keep working.
+- Money stays a bottom tab; none of its four children appears on More.
+- Five drift tests: every non-tab destination grouped exactly once; no Money
+  child duplicated; fixed order; only permitted rows, never an empty group
+  (Owner, Manager, Employee, nobody); group names in EN/FR/AR.
+- Bell, branch control, sync and subscription notices are unchanged.
+
+**Observed, not changed:** on the Arabic web render the branch card's chevron is
+not visible (it uses `mirror()`); the row chevrons are. Handset check MR4.
