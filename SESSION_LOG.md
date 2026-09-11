@@ -9037,3 +9037,37 @@ signs in (HTTP 200). It runs without a watcher, so it will not pick up backend
 edits; restart with `npm run start` in `backend/` if needed.
 
 **Checkpoint 3 is complete; stopping before the lower-priority screens.**
+
+---
+
+## 2026-09-11 20:50Z–21:35Z — CLAUDE-A — The reported gaps: three answered, one measured
+
+Backend `2b48143`, mobile `192f4ba`. Authorised follow-up to checkpoint 3.
+
+**Proved before changing anything.**
+- Gap 2: `GET /transfers/<id>` returns 200 with `X-Branch-Id` and **403 without it**;
+  the branch is restored asynchronously in `useAuth`, while the detail query ran as
+  soon as it had an id and never retried.
+- Gap 3: read the service — `sent_at` has `DEFAULT now()` and was blanked only for
+  `pending_approval` / `approved`, so a cancel after approval kept the default.
+- Gap 5: the chevron existed in the DOM (18 px, grey stroke) but painted nothing;
+  the transform sat on the SVG element itself.
+- Gap 6: measured U+202F in the page's font stack at weights 400/600/700 — present
+  in the button's own text and ~2.2 px wide at every weight.
+
+**Changed.** Detail queries wait for the branch (transfers, consignments, loans);
+`shippedAt()` in the backend; More's chevron mirrored on a wrapping View, with
+`mirror()` documented and the registry test pinning the wrapper.
+
+**Verified.** Backend: tsc clean, **127 suites / 2370 tests**, transfers 8 suites /
+131. Mobile: tsc clean, lint 33, **47 pure suites**, parity, web export. Renders:
+the Arabic More chevron points left like the row chevrons (zoomed captures before
+and after); a direct transfer link now sends the branch header and answers 404.
+
+**Not changed.** Gap 6 — widening the thousands space would change every approved
+screen, so it is the owner's decision. Gaps 1, 4 and 7 remain with the owner.
+
+**Services.** The live API is PID 30880 (`dist/src/main`, no watcher) and answers
+sign-in 200; it was started before `2b48143`, so restart it to serve that fix.
+Metro was restarted after its cache failed to deserialise (a full crawl, not an
+error) and is PID 9496, `packager-status:running`.

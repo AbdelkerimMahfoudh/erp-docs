@@ -3107,3 +3107,18 @@ Web renders in French, Arabic and French dark on the live API, read-only.
 | MR4 | Arabic | Mirrored; row chevrons point left; the branch card's chevron is visible and points left |
 | MR5 | Open an old `/hub/stock` link | The Stock hub still opens |
 | MR6 | Largest text; dark mode | Section labels and rows wrap; sign-out stays separate |
+
+## 23. The reported-gap fixes — UNVERIFIED ON ANY DEVICE
+
+Web renders and request traces only. The deep-link case is the one that most
+needs a handset, because a cold start there is a real cold start.
+
+| # | Do this | Expect |
+|---|---|---|
+| G1 | Force-quit the app, then tap a transfer notification | The transfer opens — never *Ce transfert n’existe plus* |
+| G2 | Same, for a consignment and a loan notification | Each opens; no permission error on the first paint |
+| G3 | Approve a transfer, cancel it, open its history | *Demandé*, *Approuvé*, *Annulé* — and **no** *Envoyé* line |
+| G4 | Ship a transfer, then open its history | The *Envoyé* line is there, naming whoever shipped it |
+| G5 | Arabic, More | The branch card's chevron is visible and points **left**, like the row chevrons |
+| G6 | Arabic, largest text size | The chevron stays inside the card and does not clip |
+| G7 | Sell a phone over 1 000 MRU and read the charge button | Decide whether *1015 MRU* is clear enough, or whether the group space should be widened everywhere (owner's call — see `docs/21`) |

@@ -7,71 +7,64 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Last owner: **CLAUDE-A**, `2026-09-11T12:33Z` → `2026-09-11T20:44Z` — **Checkpoint 3: operational
-  screens** on the Stock visual system. Takeover HEADs: docs `c2f8d3c` · backend
-  `3554c5e` · mobile `abd834a` · control-web `c764d63`.
-- **Checkpoint 3 complete. Stopped for the owner's review before any lower-priority screen.**
+- Last owner: **CLAUDE-A**, `2026-09-11T20:50Z` → `2026-09-11T21:35Z` — **the reported
+  gaps that were defects**, authorised after checkpoint 3.
+- **Done:** backend `2b48143` (a cancelled transfer no longer claims it shipped),
+  mobile `192f4ba` (detail screens wait for the branch; the Arabic chevron is drawn).
+- **Measured and left alone:** the charge button’s thousands space — the character is
+  present and ~2.2 px at every weight; widening it means changing the group separator
+  on every approved screen. The owner decides. See `docs/21`.
+- **Still with the owner:** (1) no customer or receiving-account selection on Sell,
+  (4) Create product proposes IMEI tracking after a serial scan, (7) consignment
+  stages after *requested* and loan details were never rendered for want of data.
 - Deferred, not started: Home dashboard "Improvement", catalogue/product images
   ([`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md)), portal redesign (plan awaiting approval).
-- Note: the first commit of this snapshot (`d8db7ae`) lost every backticked value to
-  shell substitution; this commit restores them. The stray substitutions tried to
-  run `node dist/src/main`, `npm run start` and `expo start` from the docs root —
-  all failed immediately; nothing was started and the API and Metro were unaffected.
 
 ### What changed
 
-| Sub-checkpoint | Mobile | Summary |
+| Repository | Commit | Summary |
 |---|---|---|
-| Safeguards | `ea5419d` | history folds only on the complete meaning; visual guard rejects raw type/colour, allows variants and hierarchy |
-| 3a Sell | `f073ce5` | cart line in the Stock row language, chips for payment and return policy, amounts isolated for Arabic |
-| 3b Receive | `679e074` | serial kept through Create product and cancellation; arrow-only back; labelled unit cost |
-| 3c Transfers / consignments | `738a3a4` | who has it, next step and money kept separate; translated consignment status; accept/counter only for the awaited side |
-| 3d Money | `a0b01fa` | period chips and subtitles; formatted amounts and percentages; translated loan status; friendly errors |
-| 3e More | `42d45b8` | grouped sections from existing destinations, one tap to a screen |
+| `erp-backend` | **`2b48143`** | `shippedAt()` answers from `sentById`; list and detail use it; one new spec |
+| `erp-mobile` | **`192f4ba`** | transfer/consignment/loan detail wait for the restored branch; More’s chevron mirrored on a wrapping View; `mirror()` documented; registry test pins the wrapper |
+| `erp-docs` | *this commit* | `docs/21` gap decisions, `docs/24` §23, session log, this snapshot |
 
-Backend: **no change** this checkpoint. No migration. Docs: `docs/21` checkpoints 3a–3e,
-`docs/24` §18–§22, session log.
+Checkpoint 3 itself is unchanged: safeguards `ea5419d`, Sell `f073ce5`, Receive
+`679e074`, Transfers/consignments `738a3a4`, Money `a0b01fa`, More `42d45b8`.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`3554c5e`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`42d45b8`** | level | 0 |
+| `erp-backend` | `reports-export` | **`2b48143`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`192f4ba`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
 
-### Reported, not built (each needs the owner)
+### Verified for these fixes
 
-1. Sell has no customer or receiving-account selection, although the sale API accepts both.
-2. Opening `/transfers/<id>` directly (web; possibly a cold-start notification) answers
-   *not found*: the first request goes before the saved branch is restored (403). Handset TC7.
-3. A transfer cancelled after approval, never shipped, lists *Envoyé par quelqu’un*.
-4. Create product opened from a serial scan proposes IMEI tracking until a category is chosen.
-5. Arabic web render: the More branch card's chevron is not visible. Handset MR4.
-6. The Sell charge button drops the narrow no-break group space on web (*1030 MRU*).
-7. Consignment stages after *requested*, and loan details, were not rendered (no data reachable).
+| Kind | Result |
+|---|---|
+| Backend | `tsc` clean · **127 suites / 2370 tests**, 0 failed · transfers 8 suites / 131 |
+| Mobile | `tsc` clean · lint **33 warnings** (baseline) · **47 pure suites** · EN/FR/AR parity · web export |
+| Request trace | a direct transfer link sends `X-Branch-Id` and answers **404** for an unknown id (**403** before) |
+| Render | Arabic More: the branch chevron points left, like the row chevrons — zoomed captures before and after |
+| Handset | **none** — `docs/24` §23 G1–G7 open; G1 and G2 most need a real cold start |
 
 ### Services
 
 | Service | State |
 |---|---|
-| API `:3010` | PID **30880**, `node dist/src/main`, backend `3554c5e`, sign-in 200. **No watcher** (the watch process looped and was stopped); restart with `npm run start` in `backend/` if needed |
-| Metro `:8081` | PID **20812**, `expo start --port 8081`, `packager-status:running` |
-| MySQL `:3306` | user's WAMP stack |
-| Isolated API / `prisma_verify_sell` | stopped / **dropped** |
-| Headless Chrome, static server | stopped |
-
-### Handset
-
-🔴 **Nothing ran on a handset.** Web rendering is not device verification. Open:
-`docs/24` §18 SL1–SL12, §19 RC1–RC8, §20 TC1–TC10, §21 M1–M8, §22 MR1–MR6, plus §14–§17.
+| API `:3010` | PID **30880**, `node dist/src/main`, **started before `2b48143`** so it does not serve that fix — restart with `npm run start` in `backend/` |
+| Metro `:8081` | PID **9496**, `packager-status:running` (restarted; its cache failed to deserialise and it re-crawled) |
+| MySQL `:3306` | the user’s WAMP stack |
+| Isolated API / `prisma_verify_sell` | stopped / dropped earlier |
+| Headless Chrome `:9333`, static server `:19006` | running for renders — stop when no longer needed |
 
 ### The next exact action
 
-The owner reviews the Checkpoint 3 report and decides on the seven reported gaps.
-Do not start the lower-priority screens, the Home "Improvement", catalogue images or
-the portal redesign until asked.
+The owner decides on gaps 1, 4, 6 and 7. Nothing else is in progress; the
+lower-priority screens, Home "Improvement", catalogue images and the portal
+redesign stay out until asked.
 
 ### Verified this session, by kind
 

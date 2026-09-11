@@ -4667,3 +4667,41 @@ tap before anything useful.
 
 **Observed, not changed:** on the Arabic web render the branch card's chevron is
 not visible (it uses `mirror()`); the row chevrons are. Handset check MR4.
+
+### ✅ IMPLEMENTED — reported gaps: two defects fixed, one measured and left alone
+
+Follow-up to checkpoint 3, after the owner asked for the reported gaps that are
+defects rather than features. Backend `2b48143`, mobile `192f4ba`.
+
+**A deep link now waits for the branch (gap 2).** The server resolves permissions
+from `X-Branch-Id`, and the saved branch is restored asynchronously at start-up —
+so a link opened cold asked before it existed, got a 403, and the screen showed
+*Ce transfert n’existe plus*. Transfer, consignment and loan detail now ask only
+once the branch is known. Proved on the web build by watching the request: it
+carries the branch, and an unknown id answers **404, not 403**.
+
+**A cancelled transfer no longer claims it was shipped (gap 3).**
+`stock_transfers.sent_at` carries `DEFAULT now()`, so every row has a value
+whether or not anything left the shop. Blanking it by status alone missed the
+transfer cancelled *after approval*, which then listed *Envoyé par quelqu’un* —
+nobody named — for goods that never moved. `shippedAt()` answers from `sentById`,
+which only shipping writes, keeping the status check for older rows. One new spec.
+
+**The Arabic chevron is drawn (gap 5).** More's branch chevron was mirrored by
+putting a transform on the icon. On an SVG element that does not turn the glyph
+round: it moves the drawing out of its own box, where the SVG's `overflow` clips
+it — so the chevron simply disappeared in Arabic. It is now mirrored on a
+wrapping `View`, like every list row, and points left. `mirror()` documents the
+rule, and the registry test pins the wrapper and refuses the old pattern.
+
+**The charge button's thousands space (gap 6) — measured, not changed.** The
+character is there and is not dropped: the button's text contains U+202F exactly
+as the cart total does, and measured at every weight it adds the same ~2.2 px.
+It is simply a ~2 px gap at button text size, beside a total that renders it at
+display size — so *1 015 MRU* reads clearly while the button reads *1015 MRU*.
+Making it obvious means widening the group separator everywhere (a normal
+no-break space is twice as wide), which changes every screen already approved.
+**That is a formatting decision, not a defect, and it is left to the owner.**
+
+Gaps 1 (no customer or receiving account on Sell), 4 (Create product proposes IMEI
+after a serial scan) and 7 (stages that could not be rendered) remain with the owner.
