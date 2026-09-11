@@ -6,9 +6,14 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-11T08:10Z` → `2026-09-11T13:30Z` — the
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T14:40Z`
+- Takeover HEADs: docs `862d244` · backend `63ce639` · mobile `564d224` · control-web `c764d63`
+- Active scope: **Stock screen correction pass** — reference layout, bottom-nav
+  clipping, Arabic direction on web, category/quantity clarity, image-gap audit,
+  receiving integration evidence. Home dashboard "Improvement" stays deferred.
+- Next intended action: audit web direction and the tab bar; then edit mobile.
+- Previous owner: **CLAUDE-A**, `2026-09-11T08:10Z` → `2026-09-11T13:30Z` — the
   **Indigo Stock screen**. Asked to work as `CLAUDE-B`; this account is
   `CLAUDE-A` per the user's standing correction.
 - Phase closed: **the Stock tab redesigned and wired to the existing receiving
