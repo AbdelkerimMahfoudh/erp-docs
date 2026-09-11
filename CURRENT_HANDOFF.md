@@ -54,11 +54,11 @@ Checkpoint 3 itself is unchanged: safeguards `ea5419d`, Sell `f073ce5`, Receive
 
 | Service | State |
 |---|---|
-| API `:3010` | PID **30880**, `node dist/src/main`, **started before `2b48143`** so it does not serve that fix — restart with `npm run start` in `backend/` |
+| API `:3010` | PID **30364**, `node dist/src/main`, started `22:35Z` from the tree at **`2b48143`**, so it serves the transfer fix. Sign-in 200. No watcher: restart with `npm run start` in `backend/` after any backend edit |
 | Metro `:8081` | PID **9496**, `packager-status:running` (restarted; its cache failed to deserialise and it re-crawled) |
 | MySQL `:3306` | the user’s WAMP stack |
 | Isolated API / `prisma_verify_sell` | stopped / dropped earlier |
-| Headless Chrome `:9333`, static server `:19006` | running for renders — stop when no longer needed |
+| Headless Chrome `:9333`, static server `:19006` | **stopped** — restart only when renders are needed again |
 
 ### The next exact action
 
