@@ -8655,3 +8655,89 @@ MySQL untouched.
 **Nothing ran on a handset.** `docs/24` §15 adds S1–S20 for this screen, all
 open, alongside §14. RTL mirroring, larger text, VoiceOver, native share and
 camera remain device facts. The dashboard "Improvement" work was not started.
+
+---
+
+## 2026-09-11 03:30Z–04:10Z — CLAUDE-A — Stock screen correction pass
+
+A focused visual and verification pass on the Indigo Stock screen. Backend
+`b776f37`, mobile `ee95531`. No schema change, no new receiving engine, no
+dashboard work.
+
+**The reference image was again not visible.** The brief said it was attached;
+nothing reached the conversation and nothing matching it was on disk. The
+corrections below answer the written brief and defects that were measured, not
+a comparison with the picture.
+
+### What was wrong, and why
+
+- **Clipped tab labels were the app, not the capture.** The capture was the full
+  390×844 viewport. `tabBarStyle` set `height: 60` and `paddingBottom: 8`, which
+  replace the navigator's own safe-area sizing; each label is an
+  overflow-hidden box and was squeezed to **9 of 15 px** (measured
+  `scrollHeight` 15, `clientHeight` 9). Now 64 + bottom inset, 4 px padding,
+  label `lineHeight: 14`, `flexShrink: 0`; measured 14/14 in French and Arabic.
+- **"RTL is native-only" was wrong.** react-native-web **0.21.2** ships
+  `I18nManager` as a stub (`forceRTL` a no-op, `isRTL` never true) — so the web
+  build never mirrored — but the web does support direction through the
+  document's `dir`. `lib/design/layout-direction.ts` sets `dir`/`lang` on web and
+  answers `layoutIsRTL()` everywhere (`direction.ts`, `Stepper`, i18n); native
+  keeps `forceRTL` and the restart notice. An Arabic placeholder containing
+  "IMEI" rendered its words out of order because inputs had no paragraph
+  direction; inputs now carry `writingDirection` (identifiers stay LTR).
+- **Serial-tracked devices had no category.** "Other devices" chip when present;
+  still under All. A line now says filter numbers count products, not pieces.
+- **Available vs low looked contradictory.** The summary sends `onHand` and
+  `reserved`; a reserved row says "Reserved: 1 · On hand: 3". The shared
+  low-stock rule is unchanged.
+- French "15 disponible" → plural agreement.
+- **Receive called a refused delivery received.** `POST /purchases` returns 200
+  with `rejected[]` and `purchaseId: null` when nothing is written; the done
+  screen counted staged items. Found by reading the code against the probe's
+  response. Now refused lines are listed with reasons, an all-refused Finish
+  keeps the delivery on screen, and a partial one excludes refused units.
+
+### Found and left, deliberately
+
+- **Receiving cannot store a second IMEI.** The purchase DTO has no field
+  (`imeiSecondary` → 400, proved); only quick add records one. A contract
+  change, so a decision, not a correction.
+- **Receive does not flag a registered IMEI at scan time** — it offers cost
+  entry and refuses at Finish (now honestly).
+- The unknown-IMEI hint comes from the server in English inside the French UI.
+- **Drafts are not kept on web by design** (`drafts.ts`: "Web keeps nothing"),
+  so draft resumption (S25) is a handset check.
+- **No catalogue images exist.** Audited: nothing on `products` or categories;
+  `units.image_ref` is one handset's photo and must not stand in. Smallest
+  feature scoped in `docs/47`; not implemented.
+
+### Verified
+
+Code: backend `tsc` clean, **124 suites / 2346 tests**; mobile `tsc` clean,
+lint **0 errors / 33 warnings**, **43 pure suites** (stock-screen 33), parity
+**2009 × 3**, web export **70 routes**.
+
+Live API (write-free receiving probe): **9 passed, 0 failed**, purchases, units,
+audit and stock totals unchanged.
+
+Web renders (export of `ee95531`, real API): French light/dark, Arabic mirrored
+(measured), long populated variant, reserved line, Other devices, last row clear
+of Receive stock (662 < 703 < 716), and Receive through supplier, unknown IMEI,
+recognised IMEI + cost, staged primary IMEI, discard confirmation and a refused
+Finish. Temporary `ZZ-FIX` display fixtures inserted directly and removed (0
+left). Three new audit rows during rendering are `UserDevice create` from the
+script sign-ins.
+
+Handset: **none**. `docs/24` §15 S17 now describes the language change and
+relaunch; S21–S25 added.
+
+### Services
+
+API restarted by PID (25480 stopped) from the working tree identical to
+`b776f37` — PID **6624**. Metro **26348** left running (it serves source; see the
+handoff for the bundle check). MySQL untouched. Headless Chrome and the static
+server stopped by PID after matching their command lines.
+
+**Time correction.** The claim commit `b3f39bd` said 14:40Z and the previous
+handoff said 08:10Z–13:30Z; commit times show 00:26Z–03:22Z for the Indigo
+session and 03:30Z–04:10Z for this pass. The earlier entry is left as written.

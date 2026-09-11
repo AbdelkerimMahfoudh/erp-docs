@@ -6,57 +6,51 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T14:40Z`
-- Takeover HEADs: docs `862d244` · backend `63ce639` · mobile `564d224` · control-web `c764d63`
-- Active scope: **Stock screen correction pass** — reference layout, bottom-nav
-  clipping, Arabic direction on web, category/quantity clarity, image-gap audit,
-  receiving integration evidence. Home dashboard "Improvement" stays deferred.
-- Next intended action: audit web direction and the tab bar; then edit mobile.
-- Previous owner: **CLAUDE-A**, `2026-09-11T08:10Z` → `2026-09-11T13:30Z` — the
-  **Indigo Stock screen**. Asked to work as `CLAUDE-B`; this account is
-  `CLAUDE-A` per the user's standing correction.
-- Phase closed: **the Stock tab redesigned and wired to the existing receiving
-  workflow.** No dashboard work, no new receiving engine, no schema change.
-- ⚠️ **The attached visual reference was not visible in that session.** The screen
-  follows the written description of "A · Indigo"; fidelity to the picture is
-  unverified.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-11T03:30Z` → `2026-09-11T04:10Z` — the
+  **Stock screen correction pass**. Takeover HEADs: docs `862d244` · backend
+  `63ce639` · mobile `564d224` · control-web `c764d63`.
+- ⚠️ **Time correction.** The claim commit `b3f39bd` recorded `14:40Z`, and the
+  previous handoff recorded `08:10Z → 13:30Z`; both were wrong. Commit times put
+  the Indigo session at `00:26Z → 03:22Z` and this pass at `03:30Z → 04:10Z`.
+- ⚠️ **The reference image was not visible in this session either.** No image
+  reached the conversation and none was found on disk. Layout corrections were
+  made against the written brief and measured defects, not against the picture.
 - 🟢 **Ready to test on a handset** — see §4.
 - 🔴 **Nothing has run on a handset.** [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md)
-  §14 (58 checks) and new **§15 S1–S20** for this screen, every row open.
+  §14 (58) and **§15 S1–S25**, every row open.
+- Home dashboard "Improvement" **not started**, as instructed.
 
 ### What changed
 
 | Repository | Commit | |
 |---|---|---|
-| `erp-backend` | **`63ce639`** | `GET /inventory/summary` — one row per variant, price range, low stock; shared `low-stock.ts` |
-| `erp-mobile` | **`564d224`** | the Stock screen, `StockRow`, `lib/stock-price.ts`, EN/FR/AR keys, summary invalidation |
-| `erp-docs` | *this commit* | handoff, session log, `docs/21` decision, `docs/24` §15 |
+| `erp-backend` | **`b776f37`** | summary rows also send `onHand` and `reserved` (no rule change, no cost) |
+| `erp-mobile` | **`ee95531`** | tab labels no longer clipped; Arabic mirrors on web (`layoutIsRTL`, document `dir`); input writing direction; "Other devices" chip; counts hint; reserved/on-hand on rows; French plural; Receive lists refused lines and never calls a refused delivery received |
+| `erp-docs` | *this commit* | handoff, session log, `docs/21` correction, `docs/24` §15 S17 + S21–S25, new `docs/47` catalogue-image scope |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`63ce639`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`564d224`** | level | 0 |
+| `erp-backend` | `reports-export` | **`b776f37`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`ee95531`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` | level | 0 |
 
-### Verified this session
+### Verified this session, by kind
 
-| Gate | Result |
+| Kind | Result |
 |---|---|
-| Backend `tsc` | clean |
-| Backend full suite | **124 suites / 2344 tests**, 0 failed |
-| **Live HTTP vs MySQL** | **11 passed, 0 failed** — summary cost-free at both branches, refused without a branch, counts equal the unit list, and a two-IMEI fixture found by **either** IMEI (fixture created and removed) |
-| Mobile `tsc` | clean |
-| Expo lint | **0 errors, 33 warnings** (baseline) |
-| Pure suites | **43**, 0 failed (new stock-screen suite: 25) |
-| EN/FR/AR parity | **2000 keys each, identical order** |
-| Web export | **70 routes** (baseline) |
-| Expo Doctor | **21/21** |
-| Camera patch | **6 anchors** |
-| Rendered (web) | French light, dark, Arabic, Receive entry — **Arabic copy renders; layout not mirrored on web** (`forceRTL` is native-only) |
+| **Code — backend** | `tsc` clean · **124 suites / 2346 tests**, 0 failed (summary spec 19) |
+| **Code — mobile** | `tsc` clean · lint **0 errors, 33 warnings** (baseline) · **43 pure suites**, 0 failed (stock-screen suite 33) · EN/FR/AR **2009 × 3, identical order** |
+| **Live API vs MySQL** | receiving probe **9 passed, 0 failed, nothing written**: active suppliers listed; known barcode recognised; unknown IMEI → no suggestion; registered IMEI refused `already registered`, `purchaseId: null`; same IMEI twice → `duplicate in batch`; `imeiSecondary` on a purchase line → **400**; zero cost → 400; no supplier → 400; purchases/units/audit/stock unchanged |
+| **Web render** (export of `ee95531`, real API, headless Chrome 390×844) | tab labels **14/14 px, none clipped** (FR and AR); last row bottom 662 vs list bottom 703 vs Receive button 716; Arabic `dir=rtl`, tile right / count left measured; long 512 GB · Titanium Silverblue variant with "From 42 000"; reserved line "Réservé : 1 · En stock : 3"; Other devices; dark; Receive: supplier picker, unknown IMEI, recognised IMEI + cost, staged primary IMEI, discard confirmation, refused Finish (0 purchases, 0 audit rows written; the 3 new audit rows are `UserDevice create` from the script sign-ins) |
+| **Handset** | **none** |
+
+Temporary display fixtures (`ZZ-FIX` products, 2 units, 1 override, 1 stock
+line) were created by direct insert for the renders and **removed**; 0 remain.
 
 ### The earlier milestone
 
@@ -198,39 +192,45 @@ are hand-written for that reason.
 
 | Service | Detail |
 |---|---|
-| API | `http://192.168.100.3:3010`, PID **25480**, backend **`63ce639`** |
-| Metro | `exp://192.168.100.3:8081`, PID **26348**, `expo start --clear --lan` from mobile **`564d224`** — native bundle contains `/inventory/summary`, `stock.receive`, `stock.priceFrom` and origin `192.168.100.3:3010` |
+| API | `http://192.168.100.3:3010`, PID **6624**, backend **`b776f37`** (started from the identical working tree, then committed) |
+| Metro | `exp://192.168.100.3:8081`, PID **26348**, `expo start --clear --lan`, serving source at mobile **`ee95531`** — its iOS bundle, fetched after the commit, contains `stock.countsHint`, `stock.category.other`, `receive.refused.none`, `applyWebDirection`, `onHand` and origin `192.168.100.3:3010`. Reload the app in Expo Go to pick it up |
 | MySQL | `:3306`, the user's WAMP stack, untouched |
 
-Device checks for this screen are [`docs/24` §15](docs/24_DEVICE_QA_CHECKLIST.md),
-S1–S20. The ones only a handset can settle: **Arabic mirroring (S17)**, the
-scanner from the search field (S11), draft resumption through Receive stock
-(S14), larger text (S18), VoiceOver (S20), and the last row scrolling clear of
-the footer on a real safe area (S13).
+Device checks: [`docs/24` §15](docs/24_DEVICE_QA_CHECKLIST.md) **S1–S25**, all
+open. Only a handset settles: **native Arabic after language change and relaunch
+(S17)**, tab labels above a home indicator (S21), scanner from search (S11),
+draft resumption through Receive (S14, S25), larger text (S18), VoiceOver (S20),
+last row on a real safe area (S13).
 
 ### Known limitations
 
-- **No product photos** — none exist in the app; rows use a neutral category tile.
-- **Serial-tracked devices** (e.g. TVs) appear under **All** only; Phones is
-  IMEI-tracked, Accessories is quantity-tracked.
-- **"Available" excludes reserved quantity; "low" compares physical quantity**,
-  the dashboard's existing rule — the two can differ by the reserved amount.
-- A price range shows **"From"** the minimum; the maximum is on the unit list.
-- The reference image was not visible; visual fidelity to it is unverified.
+- **No catalogue images** — audited, none exist; neutral tiles. Smallest feature
+  scoped in [`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md); image-based Visual
+  Stock is **not** complete.
+- **Receiving cannot store a second IMEI** — the purchase contract refuses the
+  field (400). Quick add can. Needs a decision.
+- **Receive does not flag a registered IMEI at scan time**; Finish refuses it and
+  now says so.
+- The unknown-IMEI hint is server English inside the French UI.
+- Drafts are not kept on web by design; draft resumption is handset-only.
+- The reference image was not visible in either session.
 
 ## 5. Running services — left up on purpose
 
-- **API** PID 25480 on `:3010` — restarted from the committed backend so the new
-  route exists; the stale PID 4636 was stopped by PID.
-- **Metro** PID 26348 on `:8081` — restarted with a cleared cache from the final
-  mobile HEAD; the stale PID 8460 was stopped by PID and command line.
-- Headless Chrome (`:9333`) and the static web server (`:19006`) were
-  verification helpers and are **stopped**.
+- **API** PID 6624 on `:3010` — the previous API (PID 25480, confirmed as the
+  backend's `ts-node src/main.ts`) was stopped by PID so the new summary fields
+  are served.
+- **Metro** PID 26348 on `:8081` — **not restarted**; it serves source and its
+  bundle was verified to contain the new code.
+- Headless Chrome (`chrome-shot` profile) and the static server
+  (`serve19006.js`) were stopped by PID after matching their command lines.
 
 ## 6. The next exact action
 
-**Run `docs/24` §15 S1–S20 on the iPhone**, then §14. Do not start the Home
-dashboard "Improvement" work until the owner asks for it.
+**Reload Expo Go and run `docs/24` §15 S1–S25 on the iPhone**, then §14. Owner
+decisions waiting from this pass: whether receiving should accept a second IMEI,
+and whether to build catalogue images (`docs/47`). Do not start the Home dashboard
+"Improvement" work until the owner asks for it.
 
 
 ## 7. Unresolved risks

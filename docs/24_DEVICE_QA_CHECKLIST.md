@@ -2968,9 +2968,18 @@ run on a handset.** Sign in as `devtest@example.com`, branch **Main Store**.
 | S14 | Tap **Receive stock** with a half-finished delivery saved earlier | Receive opens with the draft notice and the staged items restored, for this branch only |
 | S15 | Sign in as an employee without `purchase.manage` | No Receive stock button; the list is otherwise the same |
 | S16 | Airplane mode after the list loaded, pull to refresh | "You are offline…" notice above the last loaded rows; nothing reads as zero |
-| S17 | French, then Arabic | Natural wording; Arabic mirrors — tile on the right, counts on the left, chips read right to left |
-
-> **S17 cannot be settled in a web render.** Arabic copy rendered correctly in the web build, but the layout stayed left-to-right there: mirroring comes from `I18nManager.forceRTL`, which only applies in native builds. The handset is the only proof.
+| S17 | More → Language → Arabic, **fully close and reopen the app**, open Stock | Arabic mirrors — tile on the right, counts on the left, chips read right to left; IMEIs, model names and amounts keep their order. Before the relaunch the restart notice shows and the layout is still LTR |
 | S18 | Largest system text size | Names wrap rather than truncate essential words; Receive stock stays readable and reachable |
 | S19 | Dark mode | Rows, chips and the tile remain legible; low/out-of-stock chips keep their words |
 | S20 | VoiceOver on a row | One sentence: name, variant, available, price, status |
+| S21 | Look at the tab bar on a phone with a home indicator, and on one without | Every label fully visible, above the home indicator |
+| S22 | A branch holding a TV, laptop or console | An **Other devices** chip with its count; the device is also under All |
+| S23 | An accessory line with stock reserved for a transfer | "Reserved: n · On hand: m" on the row; the Low stock chip, if shown, agrees with On hand |
+| S24 | Receive stock → scan a registered IMEI → cost → Finish | Nothing received; "Not received — already registered" with the IMEI; the delivery stays on screen |
+| S25 | Receive stock → stage an item → kill the app → reopen Receive | The draft notice and the staged item return (drafts are not kept on web, so only a handset proves this) |
+
+> **Web evidence, correction pass.** Arabic now mirrors in the web build too
+> (document `dir="rtl"`; row geometry measured: tile right, count left) — the
+> earlier note that this was native-only was wrong. That does **not** settle
+> S17: native direction comes from `I18nManager.forceRTL` and a relaunch, which
+> only a handset exercises.

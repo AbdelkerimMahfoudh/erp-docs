@@ -4379,3 +4379,38 @@ and commits once.
 
 **English now says "Stock"** for the tab and title, matching French and the
 screen's purpose. Arabic keeps «المخزون».
+
+#### Correction pass (2026-09-11, later the same day)
+
+- **Serial-tracked devices have their own chip**, "Other devices", shown when
+  the branch holds any. They stay under All. The line above that said they
+  appear "under All" only is superseded.
+- **Filter numbers count products, not pieces**, and the screen says so in one
+  line above the rows.
+- **Available, reserved and low are shown together.** The summary now also
+  sends `onHand` and `reserved`. A row with reserved stock says "Reserved: 1 ·
+  On hand: 3" beside its Low stock chip, so the warning (judged on physical
+  quantity, the dashboard's shared rule — unchanged) and the available count no
+  longer appear to disagree.
+- **French agrees "disponible/disponibles" with the count.**
+- **Arabic mirrors on web too.** React Native Web 0.21 ignores
+  `I18nManager.forceRTL`; the app now sets the document's `dir` and `lang`, and
+  every "is this RTL?" question goes through `layoutIsRTL()`. Native keeps
+  `forceRTL` and its restart. Editable fields carry a writing direction so an
+  Arabic placeholder containing "IMEI" keeps its word order; identifiers stay LTR.
+- **The tab bar no longer clips its labels.** A fixed 60-point height with
+  `paddingBottom: 8` replaced the navigator's safe-area handling and squeezed an
+  overflow-hidden label to 9 of its 15 points. Height is now 64 plus the bottom
+  inset, and the label has a fixed line height that cannot shrink.
+- **Receive never calls a refused delivery received.** `POST /purchases` answers
+  200 with refused lines listed. The done screen used to count what was staged,
+  so a delivery whose every IMEI was already registered showed as received. Now:
+  nothing written → the delivery stays on screen with "Nothing was received" and
+  each refused identifier with its reason; partly refused → the count excludes
+  refused units and they are listed.
+- **Catalogue images remain a separate, unapproved feature** —
+  [`docs/47`](47_CATALOGUE_IMAGES_SCOPE.md). Rows keep the neutral tile.
+- **Receiving does not store a second IMEI.** The purchase contract has no field
+  for it (a request carrying `imeiSecondary` is refused 400). Only quick add
+  records one. Left as found; closing it means a purchase contract change and is
+  a decision, not a correction.
