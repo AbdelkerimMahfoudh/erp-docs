@@ -6,8 +6,17 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**
+- `started_at_utc:` **2026-09-11T08:10Z**
+- Active phase: **Indigo Visual Stock screen** — redesign the existing Stock tab,
+  connect Receive stock to the existing receiving workflow. No dashboard work,
+  no new receiving engine.
+- HEADs at takeover: docs `13b5a96`, backend `6ff7f16`, mobile `20619e4`,
+  control-web `c764d63`; all clean and level. API PID 4636 (`:3010`, backend
+  `6ff7f16`) and Metro PID 8460 (`:8081`, mobile `20619e4`) found running.
+- ⚠️ Asked to work as `CLAUDE-B`; this account is `CLAUDE-A` per the user's
+  standing correction.
 - Last owner: **CLAUDE-A**, `2026-09-10T23:25Z` → `2026-09-10T23:45Z` — the
   authorised `branch_manager` grant repair. Before that, CLAUDE-A
   `18:30Z` → `22:45Z` built CP4–CP6.
