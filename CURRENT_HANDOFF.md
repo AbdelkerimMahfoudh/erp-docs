@@ -6,17 +6,27 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T11:46Z`
-- Takeover HEADs: docs `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`
-- Active scope: **Stock visual system across the app — checkpoint 1: Unit detail and
-  History** (localized back label, human-readable event timeline, item summary),
-  then further screens in controlled checkpoints. Home dashboard "Improvement"
-  and catalogue images stay deferred. Portal redesign plan still awaits approval.
-- Next intended action: audit the Unit detail screen, history events and design tokens.
-- Last owner: **CLAUDE-A**, `2026-09-11T04:16Z` → `2026-09-11T04:45Z` — the
-  **Receiving correction**. Takeover HEADs: docs `29c827f` · backend `b776f37` ·
-  mobile `ee95531` · control-web `c764d63`.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-11T11:46Z` → `2026-09-11T12:20Z` — **Stock
+  visual system, checkpoint 1: Unit detail and History**. Takeover HEADs: docs
+  `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`.
+- **Checkpoint 1 committed:** backend **`3554c5e`** (history as language-free facts,
+  newest 200, reservation audited, transfer destinations named, supplier/purchase
+  reference on the unit), mobile **`b5b8a4b`** (arrow-only back app-wide, history in
+  words with day groups, folding and "Show N more", item summary, French dates).
+- Verified: backend 127 suites / 2369 tests; mobile tsc, lint 33 (baseline), 45
+  pure suites (unit-history 21), parity 2082 × 3, web export 70 routes; French and
+  Arabic renders with no raw code or `(tabs)`; API PID **21100** serving `3554c5e`;
+  Metro PID **26348** bundle contains `history.event.received`, `history.more`,
+  `headerBackButtonDisplayMode`, `unit.imei2`.
+- 🔴 No handset: `docs/24` **§17 U1–U11** open, including the back arrow itself.
+- **Next exact action:** checkpoint 2 — apply the approved Stock visual system to
+  the next screens (Sell, Receive, Transfers, More hubs), one coherent group per
+  checkpoint, through shared tokens/primitives only. Home dashboard "Improvement",
+  catalogue images and the portal redesign (plan awaiting approval) stay out.
+- Earlier today, same account: **Receiving correction** `04:16Z → 04:45Z`
+  (backend `488effd`, mobile `09d0e59`).
 - Earlier today, same account: Stock correction pass `03:30Z → 04:10Z`; Indigo
   Stock screen `00:26Z → 03:22Z` (times from commits; earlier recorded times were wrong).
 - 🟢 **Ready to test on a handset** — see §4.

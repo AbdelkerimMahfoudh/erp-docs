@@ -8793,3 +8793,70 @@ stopped by PID, the database dropped, live data confirmed unchanged.
 No handset. `docs/24` §16 R1–R12 open; **R9 native draft save/restore is the
 only proof of restoration and remains open**. The isolated API ran as the
 migrator, so the audit trigger was not exercised as the application user.
+
+---
+
+## 2026-09-11 11:46Z–12:20Z — CLAUDE-A — Stock visual system, checkpoint 1: Unit detail and History
+
+Backend `3554c5e`, mobile `b5b8a4b`. The owner approved the Stock screen as the
+visual reference for the app. Home dashboard "Improvement" and catalogue images
+not started.
+
+### What the screenshot showed, and why
+
+- **"‹ (tabs)" as the back label** — iOS titles the back button with the
+  previous screen's title, and a tab screen's parent is the `(tabs)` route
+  group. Fixed app-wide: `headerBackButtonDisplayMode: 'minimal'` on the root
+  stack.
+- **`create` / `status_change` in every language** — the screen rendered the
+  audit action verbatim. The server already stored before/after statuses; the
+  app ignored them.
+- **French dates in English** ("30 Jul 2026") — the date locale only knew
+  Arabic and English.
+
+### Audit of real events
+
+Only two Unit actions exist in the data: `create` (13) and `status_change`
+(121), with before/after statuses, English system reasons for returns and
+cancelled/refused transfers, and 54 entries with no user (automated runs).
+
+**The repeats are not duplicate writes.** The reported phone's repeated
+sent/received/cancelled/refused pairs came from verification runs whose
+transfers were later removed (0 remain); another phone's 13 return
+intake/approval pairs came from probe users whose return requests were removed.
+Separate audit entries, correctly kept. Two real defects were fixed at the
+source instead: **reservations were never audited**, and the timeline returned
+the **oldest** 200 entries.
+
+### What changed
+
+- Backend: `unit-timeline.ts` shapes each entry into language-free facts
+  (`fromStatus`, `toStatus`, `context`, actor name and role, branch names),
+  newest first; legacy fields kept. Transfers audit the reservation and name
+  destination/origin/transfer. Unit lookup adds supplier name and purchase
+  reference/date (no totals).
+- Mobile: `lib/unit-history.ts` maps facts to words, never a code, with an
+  *Inventory updated* fallback; `ActivityTimeline` groups by day, folds
+  identical consecutive entries into an expandable count, and shows eight rows
+  before *Show N more events*; the Unit screen separates product, status,
+  identifiers (IMEI 1 / IMEI 2 / serial), location, purchase (cost only when
+  sent) and history; `lib/date-locale.ts` adds French.
+
+### Verified
+
+Backend `tsc` clean, **127 suites / 2369 tests**. Mobile `tsc` clean, lint **33
+warnings** (baseline — one new warning found and fixed), **45 pure suites**
+(unit-history 21), parity **2082 × 3**, web export **70 routes**.
+
+Web renders against the real API, French and Arabic, two phones: no
+`status_change`, `create`, `(tabs)`, raw status or English system reason in the
+rendered text; Arabic `dir=rtl`; transfer sent/received/cancelled/refused,
+return intake/approval, a folded run opened, *Show 17 more events*. The captures
+were taken one behaviour-identical refactor before the commit (a lint fix that
+changed how the row limit is computed, not what it shows).
+
+### Not done, and not claimed
+
+No handset: `docs/24` §17 U1–U11 open — including the back arrow itself, which
+a web render cannot show. Remaining screens are not yet aligned to the Stock
+visual system; that is the next checkpoint.

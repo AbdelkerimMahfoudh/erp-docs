@@ -4482,3 +4482,69 @@ a replay (rebuilt from the stored purchase). The phone reads it through
 
 Proved on an isolated real-MySQL copy: a lost response and five concurrent
 identical retries produce one purchase, one set of units and one stock movement.
+
+---
+
+## The Stock screen is the visual reference; checkpoint 1 — Unit detail and History
+
+Approved 2026-09-11 by the owner: the current Stock screen is the visual
+reference for the rest of the mobile app — indigo for primary actions and
+selected states, white cards on the cool light background, strong dark titles
+and values, muted grey supporting text, green for confirmed/positive, amber for
+warnings, red only for destructive actions and failures, the system typography
+(with the Arabic system font), and consistent rounded cards, fields, sheets,
+spacing and fixed-action placement. Choices live in the existing tokens and
+shared primitives; screens do not carry raw colours. The Home dashboard
+"Improvement" and catalogue images stay deferred.
+
+### ✅ IMPLEMENTED — no internal route name as a back label
+
+iOS labelled the back button with the previous screen's title, and a tab
+screen's parent is the `(tabs)` route group, so every detail screen opened from
+a tab read "‹ (tabs)". The root stack now uses an icon-only back button
+(`headerBackButtonDisplayMode: 'minimal'`); VoiceOver still announces "Back".
+
+### ✅ IMPLEMENTED — history in business language
+
+The server sends stable facts per audit entry: `fromStatus`, `toStatus` (null
+when not recorded — nothing inferred), a `context` code for the English system
+reasons services wrote (`return_intake`, `return_approved`, `return_rejected`,
+`transfer_cancelled`, `transfer_rejected`), the actor's name and role at that
+branch, and branch/destination/origin names. **The server translates nothing.**
+Legacy fields remain.
+
+The app (`lib/unit-history.ts`) maps them to words: *Received into stock*,
+*Sold*, *Reserved for a transfer to …*, *Sent to …*, *Received at …*, *Transfer
+cancelled — back in stock*, *Returned by the customer*, *Return approved — held
+as faulty*, *Marked as faulty*, *Returned to stock*, *Status changed from … to
+…*, and **Inventory updated** for anything it cannot describe. Raw codes are
+never the label. Tone follows meaning: a sale is informational, a cancellation
+neutral, red only for faulty.
+
+### ✅ IMPLEMENTED — a timeline that can be read
+
+Newest first, grouped by day (*Today*, *Yesterday*, then the date in the
+selected language), one card per day, each row an icon, the meaning, who (name ·
+role, or *Automatic*), where, and the time. Consecutive identical entries fold
+into one row with a count that opens to each time. Beyond eight rows, *Show N
+more events*. **Every audit entry stays reachable; none is merged away, hidden
+permanently or deleted.**
+
+### Investigated — the repeated rows were not duplicate writes
+
+On the reported phone every repeated sent/received/cancelled pair came from
+verification runs whose transfers were later cleaned up (0 transfers remain for
+it), and on another phone 13 return intake/approval pairs came from probe users
+whose return requests were cleaned up. The audit log keeps them, as it must.
+
+Two real defects found and fixed at the source: **reserving a unit for a
+transfer was never audited**, so the history jumped from *In stock* to *sent*;
+and the timeline returned the **oldest** 200 entries, cutting off recent
+history. Sent/received entries now name destination, origin and transfer.
+
+### ✅ IMPLEMENTED — the item summary
+
+Product and variant, current status, identifiers (**IMEI 1, IMEI 2 and serial
+number each by their own name**), location, purchase (received date, supplier,
+reference, and cost only when the server sent it), then history. French dates
+now use French month names; they previously fell back to English.

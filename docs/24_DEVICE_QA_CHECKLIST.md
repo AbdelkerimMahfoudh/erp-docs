@@ -3006,3 +3006,22 @@ restoration; a web render cannot close it** (drafts are not kept on web).
 | R10 | Finish a delivery where one phone was registered meanwhile on another device | Partial: received items gone from the list, the refused phone listed with its reason; Finish again sends only it |
 | R11 | Airplane mode at the moment of Finish, then back online → **Check again** | Locked list with "We could not confirm this delivery"; Check again receives it once — Stock count rises once |
 | R12 | VoiceOver / TalkBack on the staged phone list and the IMEI 2 field | Labels read IMEI 1, IMEI 2 and "Add IMEI 2" |
+
+## 17. Unit detail and History — UNVERIFIED ON ANY DEVICE
+
+Web renders in French and Arabic only. Sign in as `devtest@example.com`, Main
+Store.
+
+| # | Do this | Expect |
+|---|---|---|
+| U1 | Stock → tap a phone variant → tap a unit | The back control is an arrow only — **never "(tabs)"** or any route name; VoiceOver says "Back" |
+| U2 | Same from Sell, Transfers, a scan result and More | Arrow-only back everywhere |
+| U3 | Unit `358888000000014`, French | Summary: product, *Statut actuel*, *Identifiants* (IMEI 1), *Emplacement*, *Achat*; history with *Envoyé par transfert*, *Reçu à Warehouse*, *Transfert annulé — de nouveau en stock*, *Transfert refusé — de nouveau en stock*; dates as *9 août 2026* |
+| U4 | Same unit, Arabic, after relaunch | Mirrored: icon on the right, time on the left; IMEI, times and dates read correctly; *السجل* grouped by date |
+| U5 | Unit `358888000000022` | *Rapporté par le client* and *Retour accepté — mis de côté comme défectueux*, with the actor and role; *Voir 17 événements de plus* reveals the rest |
+| U6 | A folded row showing *2 fois* | Tapping lists each time; tapping again hides them |
+| U7 | A dual-SIM unit | IMEI 1 and IMEI 2 on separate rows |
+| U8 | A serial-tracked unit (a TV) | *Numéro de série*, no IMEI rows |
+| U9 | Sign in as an employee without `cost.view` | No purchase-price row; nothing reads 0 |
+| U10 | Create a new transfer for a unit, then open that unit | *Réservé pour un transfert vers …* appears (new audit entry) |
+| U11 | Largest text size; dark mode | Titles wrap; tones keep their meaning; no raw code anywhere |
