@@ -6,8 +6,15 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T12:33Z`
+- Takeover HEADs: docs `c2f8d3c` · backend `3554c5e` · mobile `abd834a` · control-web `c764d63`
+- Active scope: **Checkpoint 3 — operational screens** on the Stock visual system:
+  safeguards (history folding, visual guard) → 3a Sell → 3b Receive (+ serial through
+  Create product) → 3c Transfers/consignment → 3d Money → 3e More. Each sub-checkpoint
+  committed separately; stop and report after 3e. Home "Improvement", catalogue
+  images and portal redesign stay deferred.
+- Next intended action: verify and tighten the two safeguards.
 - **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
   on the Text primitive, InlineNotice and tokens; registration and verification off
   utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale
