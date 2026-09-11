@@ -6,57 +6,55 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T04:16Z`
-- Takeover HEADs: docs `29c827f` · backend `b776f37` · mobile `ee95531` · control-web `c764d63`
-- Active scope: **Receiving correction** — optional IMEI 2 end to end, existing-phone
-  detection before cost, unknown-product flow, localized scan hints, outcome and
-  retry safety, successful lifecycle in an isolated MySQL. Stock design preserved;
-  Home dashboard stays deferred; catalogue images stay a follow-up.
-- Next intended action: audit schema, purchase contract, scanner and intake flow.
-- Last owner: **CLAUDE-A**, `2026-09-11T03:30Z` → `2026-09-11T04:10Z` — the
-  **Stock screen correction pass**. Takeover HEADs: docs `862d244` · backend
-  `63ce639` · mobile `564d224` · control-web `c764d63`.
-- ⚠️ **Time correction.** The claim commit `b3f39bd` recorded `14:40Z`, and the
-  previous handoff recorded `08:10Z → 13:30Z`; both were wrong. Commit times put
-  the Indigo session at `00:26Z → 03:22Z` and this pass at `03:30Z → 04:10Z`.
-- ⚠️ **The reference image was not visible in this session either.** No image
-  reached the conversation and none was found on disk. Layout corrections were
-  made against the written brief and measured defects, not against the picture.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-11T04:16Z` → `2026-09-11T04:45Z` — the
+  **Receiving correction**. Takeover HEADs: docs `29c827f` · backend `b776f37` ·
+  mobile `ee95531` · control-web `c764d63`.
+- Earlier today, same account: Stock correction pass `03:30Z → 04:10Z`; Indigo
+  Stock screen `00:26Z → 03:22Z` (times from commits; earlier recorded times were wrong).
 - 🟢 **Ready to test on a handset** — see §4.
 - 🔴 **Nothing has run on a handset.** [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md)
-  §14 (58) and **§15 S1–S25**, every row open.
-- Home dashboard "Improvement" **not started**, as instructed.
+  §14 (58), §15 S1–S25 and new **§16 R1–R12**, every row open. **Native draft
+  save/restore (R9) is open** — no device was available; web cannot prove it.
+- **No migration.** `units.imei_secondary` and `0042`'s cross-column triggers
+  already existed. Backup taken and restore proved anyway (below).
+- Home dashboard "Improvement" **not started**; catalogue images remain the
+  separate [`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md) follow-up.
 
 ### What changed
 
 | Repository | Commit | |
 |---|---|---|
-| `erp-backend` | **`b776f37`** | summary rows also send `onHand` and `reserved` (no rule change, no cost) |
-| `erp-mobile` | **`ee95531`** | tab labels no longer clipped; Arabic mirrors on web (`layoutIsRTL`, document `dir`); input writing direction; "Other devices" chip; counts hint; reserved/on-hand on rows; French plural; Receive lists refused lines and never calls a refused delivery received |
-| `erp-docs` | *this commit* | handoff, session log, `docs/21` correction, `docs/24` §15 S17 + S21–S25, new `docs/47` catalogue-image scope |
+| `erp-backend` | **`488effd`** | purchase lines accept `units[] = { identifier, imeiSecondary? }`; IMEI 2 validated and checked in the delivery and against both columns; response names `accepted.identifiers` / `accepted.stockProductIds` (also on replay); `/scan` adds `hintCode` / `hintParams` |
+| `erp-mobile` | **`09d0e59`** | IMEI 2 from camera, cost sheet or "Add IMEI 2"; existing phone blocked before cost with "Open this phone"; Choose product; Create product returns to the same Receive with the product selected; translated scan hints; Finish via `lib/receive-outcome.ts` (all / none / partial with new key / uncertain locked under same key) |
+| `erp-docs` | *this commit* | handoff, session log, `docs/21` Receiving decisions, `docs/24` §16 |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`b776f37`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`ee95531`** | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` | level | 0 |
+| `erp-backend` | `reports-export` | **`488effd`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`09d0e59`** | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
 
 ### Verified this session, by kind
 
 | Kind | Result |
 |---|---|
-| **Code — backend** | `tsc` clean · **124 suites / 2346 tests**, 0 failed (summary spec 19) |
-| **Code — mobile** | `tsc` clean · lint **0 errors, 33 warnings** (baseline) · **43 pure suites**, 0 failed (stock-screen suite 33) · EN/FR/AR **2009 × 3, identical order** |
-| **Live API vs MySQL** | receiving probe **9 passed, 0 failed, nothing written**: active suppliers listed; known barcode recognised; unknown IMEI → no suggestion; registered IMEI refused `already registered`, `purchaseId: null`; same IMEI twice → `duplicate in batch`; `imeiSecondary` on a purchase line → **400**; zero cost → 400; no supplier → 400; purchases/units/audit/stock unchanged |
-| **Web render** (export of `ee95531`, real API, headless Chrome 390×844) | tab labels **14/14 px, none clipped** (FR and AR); last row bottom 662 vs list bottom 703 vs Receive button 716; Arabic `dir=rtl`, tile right / count left measured; long 512 GB · Titanium Silverblue variant with "From 42 000"; reserved line "Réservé : 1 · En stock : 3"; Other devices; dark; Receive: supplier picker, unknown IMEI, recognised IMEI + cost, staged primary IMEI, discard confirmation, refused Finish (0 purchases, 0 audit rows written; the 3 new audit rows are `UserDevice create` from the script sign-ins) |
+| **Code — backend** | `tsc` clean · **126 suites / 2360 tests**, 0 failed (new: dual-IMEI purchase 9, scanner hint codes 5). One earlier full run showed 1 failure while MySQL and two API processes were being restarted; the rerun and a third full run were 2360/2360 |
+| **Code — mobile** | `tsc` clean · lint **0 errors, 33 warnings** (baseline) · **44 pure suites**, 0 failed (new receive-outcome 18) · EN/FR/AR **2044 × 3, identical order** |
+| **Backup + restore proof** | `~/erp-backups/phonestore-20260911-043354-pre-receiving.sql` — 729 058 B, `-- Dump completed`, 24 triggers, 0 raw binary. Sanitised copy restored into `prisma_verify_receiving`: 88 tables, 24 triggers, sales 7, units 11, audit 787, unit-id MD5 `2a1dc9bf…` — **identical to live**. Sanitised copy deleted |
+| **Isolated MySQL, successful lifecycle** (API on `127.0.0.1:3011`, database `prisma_verify_receiving`) | **14 passed, 0 failed**: product create writes no unit/stock/purchase; unknown IMEI carries `hintCode`; primary-only + dual-IMEI phones + 3 cables in one delivery → units +2, purchases +1, stock +3; IMEI 2 stored on the same unit; `/units/<IMEI 1>` and `/units/<IMEI 2>` return one id; search by IMEI 2 finds it; audit 1 Purchase + 2 Unit rows; lost-response retry replays with the same accepted lines; 5 concurrent identical retries → no second purchase, unit, stock or audit movement; partial delivery names C1 + stock line, refuses A1, moves units +1 / stock +2; corrected remainder under a new key moves only itself |
+| **Isolated MySQL, expected refusals** | **7 passed, 0 failed**: all refused (IMEI 1 registered; IMEI 2 registered as another phone's IMEI 2, pair named); IMEI 2 equal to an existing IMEI 1; a number used as IMEI 2 and IMEI 1 in one delivery → duplicate in batch; malformed IMEI 2 → 400; key reused with a different delivery → 409; `/scan` with new IMEI 1 + registered IMEI 2 → already in inventory; refusals wrote nothing beyond the one legitimate phone |
+| **Isolation teardown** | isolated API stopped by PID after matching its command line; database dropped (0 schemas remain); live `phonestore` unchanged — purchases 9, units 11, sales 7, audit 787, 0 `ZZ-` products |
+| **Live API (read-only)** | unknown IMEI → `hintCode: unknown_imei`; new IMEI 1 + registered IMEI 2 → `alreadyInInventory: true` |
 | **Handset** | **none** |
 
-Temporary display fixtures (`ZZ-FIX` products, 2 units, 1 override, 1 stock
-line) were created by direct insert for the renders and **removed**; 0 remain.
+Limitation of the isolated run: its API used the migrator account for both
+connections (the application account has no grant on `prisma_*` schemas), so
+the audit append-only trigger was present but not exercised as the app user.
 
 ### The earlier milestone
 
@@ -190,53 +188,47 @@ from an earlier session still exists and is still needed by `prisma migrate diff
 produces 1172 lines dropping foreign keys on unrelated tables. `0066` and `0067`
 are hand-written for that reason.
 
-## 4. Ready to test the new Stock screen
+## 4. Ready to test Receiving (and the Stock screen)
 
-**On the iPhone:** open Expo Go on the same Wi-Fi and scan
-**`exp://192.168.100.3:8081`**. Sign in as `devtest@example.com`, choose
-**Main Store**, then tap **Stock** in the bottom bar.
+**On the iPhone:** open Expo Go on the same Wi-Fi, scan
+**`exp://192.168.100.3:8081`** (or reload), sign in as `devtest@example.com`,
+choose **Main Store**, then **Stock → Receive stock**.
 
 | Service | Detail |
 |---|---|
-| API | `http://192.168.100.3:3010`, PID **6624**, backend **`b776f37`** (started from the identical working tree, then committed) |
-| Metro | `exp://192.168.100.3:8081`, PID **26348**, `expo start --clear --lan`, serving source at mobile **`ee95531`** — its iOS bundle, fetched after the commit, contains `stock.countsHint`, `stock.category.other`, `receive.refused.none`, `applyWebDirection`, `onHand` and origin `192.168.100.3:3010`. Reload the app in Expo Go to pick it up |
-| MySQL | `:3306`, the user's WAMP stack, untouched |
+| API | `http://192.168.100.3:3010`, PID **20912**, backend **`488effd`** (started from the identical working tree, then committed) |
+| Metro | `exp://192.168.100.3:8081`, PID **26348**, `expo start --clear --lan`, serving source at mobile **`09d0e59`** — iOS bundle fetched after the commit contains `receive.imei2.label`, `receive.existing.open`, `receive.uncertain.retry`, `scan.hint.unknownImei`, `purchaseItems` and origin `192.168.100.3:3010` |
+| MySQL | `:3306`, the user's WAMP stack; live data unchanged by this session |
 
-Device checks: [`docs/24` §15](docs/24_DEVICE_QA_CHECKLIST.md) **S1–S25**, all
-open. Only a handset settles: **native Arabic after language change and relaunch
-(S17)**, tab labels above a home indicator (S21), scanner from search (S11),
-draft resumption through Receive (S14, S25), larger text (S18), VoiceOver (S20),
-last row on a real safe area (S13).
+Device checks: [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md) **§16 R1–R12**
+(Receiving) and §15 S1–S25 (Stock), all open. Only a handset settles: camera
+capture of both IMEIs (R1), **native draft save/restore after an app kill (R9)**,
+airplane-mode Finish (R11), screen readers (R12), and §15's S11, S13, S17, S18,
+S20, S21.
 
 ### Known limitations
 
-- **No catalogue images** — audited, none exist; neutral tiles. Smallest feature
-  scoped in [`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md); image-based Visual
-  Stock is **not** complete.
-- **Receiving cannot store a second IMEI** — the purchase contract refuses the
-  field (400). Quick add can. Needs a decision.
-- **Receive does not flag a registered IMEI at scan time**; Finish refuses it and
-  now says so.
-- The unknown-IMEI hint is server English inside the French UI.
-- Drafts are not kept on web by design; draft resumption is handset-only.
-- The reference image was not visible in either session.
+- **Serial-tracked items** keep their serial across Create product only when
+  typed again; the pending intake holds IMEIs and product barcodes, not serials.
+- **No catalogue images** — separate follow-up, [`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md).
+- Drafts are not kept on web by design; R9 is handset-only.
+- The isolated verification API ran as the migrator; the audit append-only
+  trigger was not exercised as the application user there.
 
 ## 5. Running services — left up on purpose
 
-- **API** PID 6624 on `:3010` — the previous API (PID 25480, confirmed as the
-  backend's `ts-node src/main.ts`) was stopped by PID so the new summary fields
-  are served.
-- **Metro** PID 26348 on `:8081` — **not restarted**; it serves source and its
-  bundle was verified to contain the new code.
-- Headless Chrome (`chrome-shot` profile) and the static server
-  (`serve19006.js`) were stopped by PID after matching their command lines.
+- **API** PID 20912 on `:3010` — PID 6624 (confirmed as `ts-node src/main.ts`)
+  stopped by PID so the new contract is served.
+- **Metro** PID 26348 on `:8081` — **not restarted**; bundle verified.
+- The isolated API (`127.0.0.1:3011`, PID 24844, and its launcher) was stopped
+  by PID; `prisma_verify_receiving` is dropped.
+- Backup kept: `~/erp-backups/phonestore-20260911-043354-pre-receiving.sql`.
 
 ## 6. The next exact action
 
-**Reload Expo Go and run `docs/24` §15 S1–S25 on the iPhone**, then §14. Owner
-decisions waiting from this pass: whether receiving should accept a second IMEI,
-and whether to build catalogue images (`docs/47`). Do not start the Home dashboard
-"Improvement" work until the owner asks for it.
+**Reload Expo Go and run `docs/24` §16 R1–R12**, then §15 and §14, on the
+iPhone. Do not start the Home dashboard "Improvement" work or catalogue images
+until the owner asks.
 
 
 ## 7. Unresolved risks

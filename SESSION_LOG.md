@@ -8741,3 +8741,55 @@ server stopped by PID after matching their command lines.
 **Time correction.** The claim commit `b3f39bd` said 14:40Z and the previous
 handoff said 08:10Z–13:30Z; commit times show 00:26Z–03:22Z for the Indigo
 session and 03:30Z–04:10Z for this pass. The earlier entry is left as written.
+
+---
+
+## 2026-09-11 04:16Z–04:45Z — CLAUDE-A — Receiving correction
+
+Backend `488effd`, mobile `09d0e59`. No migration; Stock screen, Arabic
+mirroring, navigation and filters untouched; Home dashboard and catalogue
+images still deferred.
+
+### Audit first
+
+`units.imei_secondary` already existed (unique index), and `0042`'s triggers
+already refuse a number that is anybody's IMEI 1, IMEI 2 or serial. What was
+missing was the path: the purchase DTO had no field for IMEI 2 (proved 400 in
+the previous pass), Receive never sent the camera's IMEI 2 to `/scan`, and
+`catalog/new` did `router.replace('/receive')`, which stacked a second, empty
+Receive and meant a created product never came back selected (the restore only
+re-scanned, and an unknown TAC still had no suggestion).
+
+### What changed
+
+- **Contract:** `items[].units[] = { identifier, imeiSecondary? }` beside
+  `identifiers[]`; IMEI 2 Luhn-checked, never equal to IMEI 1, never on a
+  non-IMEI product, checked in the delivery and against both columns; refusals
+  name the pair. Response adds `accepted`, rebuilt on replay. The fingerprint
+  adds secondaries only when present, so earlier deliveries still replay.
+- **Scan:** `hintCode` / `hintParams`; the English `hint` stays for old clients.
+- **Receive:** IMEI 2 from camera, cost sheet or "Add IMEI 2"; kept in the draft
+  with the request key; both numbers looked up before cost; existing phone
+  blocked with "Open this phone"; Choose product; Create product returns to the
+  same screen with the product selected, cancellation returns to the same phone.
+  Finish reads the server through `lib/receive-outcome.ts`.
+- Two regressions caught by existing suites and fixed before commit: an
+  `autoFocus` on the IMEI 2 sheet (Receive must never autofocus) and a
+  set-state-in-effect lint warning (moved to render-time adjustment).
+
+### Verified
+
+Backend 126 suites / 2360 tests; mobile tsc, lint 33 warnings (baseline), 44
+pure suites, parity 2044 × 3. Backup `phonestore-20260911-043354-pre-receiving.sql`
+verified; restored into `prisma_verify_receiving`, identical to live by tables,
+triggers, counts and unit-id MD5. On that copy over HTTP: **14 lifecycle checks
+and 7 expected refusals, all passed** — including one purchase, one set of
+units and one stock movement after a lost response and five concurrent
+identical retries, and one unit found by either IMEI. The isolated API was
+stopped by PID, the database dropped, live data confirmed unchanged.
+
+### Not done, and not claimed
+
+No handset. `docs/24` §16 R1–R12 open; **R9 native draft save/restore is the
+only proof of restoration and remains open**. The isolated API ran as the
+migrator, so the audit trigger was not exercised as the application user.

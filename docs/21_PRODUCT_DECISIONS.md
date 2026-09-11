@@ -4414,3 +4414,71 @@ screen's purpose. Arabic keeps «المخزون».
   for it (a request carrying `imeiSecondary` is refused 400). Only quick add
   records one. Left as found; closing it means a purchase contract change and is
   a decision, not a correction.
+
+---
+
+## Receiving correction — IMEI 2, existing phones, and what Finish means
+
+Implemented 2026-09-11 (backend and mobile commits recorded in the handoff).
+Builds on the approved decisions *one IMEI is enough*, *two IMEIs are ONE
+phone* and *IMEI and Product barcode are different things*. **No migration:**
+`units.imei_secondary` already existed with a unique index, and `0042`'s
+cross-column triggers already refuse a number that is anybody's IMEI 1, IMEI 2
+or serial.
+
+### ✅ IMPLEMENTED — IMEI 2 survives the whole of Receiving
+
+The purchase contract gains one optional form, `items[].units[] = { identifier,
+imeiSecondary? }`, beside the existing `identifiers[]`. IMEI 2 is Luhn-checked,
+may not equal IMEI 1, may not appear on a product without IMEIs, and is checked
+in the delivery (as anybody's IMEI 1 or IMEI 2) and against stock (both
+columns) — a failure refuses that one phone, with the pair kept together in the
+refusal. The idempotency fingerprint covers IMEI 2 only when one is sent, so a
+retry of a delivery received before this change still matches.
+
+On the phone IMEI 2 comes from the camera when both were captured, from an
+optional field on the cost sheet, or from **Add IMEI 2** on a staged phone. It
+is kept in the draft, carried through Create product and its cancellation, and
+sent at Finish. It is never written to a Product barcode.
+
+### ✅ IMPLEMENTED — an existing phone is stopped before cost
+
+Every IMEI or serial scan is looked up — with IMEI 2 when there is one — before
+the phone may join the delivery. A phone already in stock opens a blocking card
+naming it, with **Open this phone** when it is in reach; a number already in
+this delivery is refused on the spot. Finish still checks everything again, for
+changes made by somebody else in the meantime.
+
+### ✅ IMPLEMENTED — the unknown-product flow finishes
+
+**Choose product** (search, filtered to the scan's tracking type) corrects a
+suggestion or resolves an unknown one; confirming it teaches recognition
+through the existing recognition key. **Create new product** holds both IMEIs,
+and returns to the same Receive screen with the created product selected;
+cancelling returns to the same phone. Creating a product creates no inventory —
+proved over HTTP.
+
+### ✅ IMPLEMENTED — scanner guidance is translated
+
+`POST /scan` adds a stable `hintCode` (and `hintParams` for a contested
+mapping). The English `hint` remains for older clients and is no longer shown
+anywhere. The unknown-IMEI copy says the IMEI is kept for this phone only, and
+the "we will remember" note for an IMEI says the MODEL is remembered, not the
+number.
+
+### ✅ IMPLEMENTED — Finish counts only what the server names
+
+`POST /purchases` returns `accepted: { identifiers, stockProductIds }`, also on
+a replay (rebuilt from the stored purchase). The phone reads it through
+`lib/receive-outcome.ts`:
+
+| Answer | Screen |
+|---|---|
+| everything accepted | done, with server-confirmed counts |
+| nothing written | delivery unchanged, each refusal listed with its reason |
+| partly accepted | received lines leave the phone, refused lines stay with "correct or remove, then finish again", **new request key** |
+| no answer (timeout, dropped connection, 5xx) | everything locked under the **same key**; **Check again** replays |
+| key reused with a different delivery (409) | explained, nothing resent |
+
+Proved on an isolated real-MySQL copy: a lost response and five concurrent
+identical retries produce one purchase, one set of units and one stock movement.

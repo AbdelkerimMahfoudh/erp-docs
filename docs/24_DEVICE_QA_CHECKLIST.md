@@ -2983,3 +2983,26 @@ run on a handset.** Sign in as `devtest@example.com`, branch **Main Store**.
 > earlier note that this was native-only was wrong. That does **not** settle
 > S17: native direction comes from `I18nManager.forceRTL` and a relaunch, which
 > only a handset exercises.
+
+## 16. Receiving correction — UNVERIFIED ON ANY DEVICE
+
+Backend with `units[].imeiSecondary` and scan `hintCode`; mobile Receive
+correction (commits in the handoff). Proved in code, over HTTP on an isolated
+MySQL copy, and nowhere else. **R9 is the only proof of native draft
+restoration; a web render cannot close it** (drafts are not kept on web).
+
+| # | Do this | Expect |
+|---|---|---|
+| R1 | Receive stock → camera → a dual-SIM box showing IMEI 1 and IMEI 2 | The cost sheet shows both; after Add, the staged phone lists IMEI 1 and "IMEI 2 …" |
+| R2 | Type a single-SIM IMEI in the scan field | Cost sheet; IMEI 2 field empty and optional; Add works without it |
+| R3 | On a staged phone tap **Add IMEI 2**, type an invalid number, then IMEI 1, then a valid new one | "Not a valid IMEI", "This is IMEI 1 again", then saved under the phone |
+| R4 | Scan a phone already in stock (by IMEI 1, then by IMEI 2) | Blocking card naming the phone and branch before any cost field; **Open this phone** opens it |
+| R5 | Scan the same phone twice in one delivery, or use one phone's IMEI 2 as another's IMEI 1 | "This phone is already in this delivery" |
+| R6 | Scan an unknown IMEI in French, then Arabic | Localized hint saying the IMEI is kept for this phone only; no English sentence |
+| R7 | Unknown IMEI → **Choose product** → pick one | Card shows the chosen product; cost entry follows |
+| R8 | Unknown IMEI with IMEI 2 typed → **Create new product** → save | Back on the same Receive screen, created product selected, both IMEIs kept; Stock shows no new unit yet |
+| R8b | Same, but tap Back on the product form | Back on the same phone, both IMEIs kept |
+| R9 | Stage two phones (one with IMEI 2) → kill the app → reopen Receive | Draft notice; both phones, IMEI 2 and supplier restored |
+| R10 | Finish a delivery where one phone was registered meanwhile on another device | Partial: received items gone from the list, the refused phone listed with its reason; Finish again sends only it |
+| R11 | Airplane mode at the moment of Finish, then back online → **Check again** | Locked list with "We could not confirm this delivery"; Check again receives it once — Stock count rises once |
+| R12 | VoiceOver / TalkBack on the staged phone list and the IMEI 2 field | Labels read IMEI 1, IMEI 2 and "Add IMEI 2" |
