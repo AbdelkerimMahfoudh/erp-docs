@@ -4548,3 +4548,14 @@ Product and variant, current status, identifiers (**IMEI 1, IMEI 2 and serial
 number each by their own name**), location, purchase (received date, supplier,
 reference, and cost only when the server sent it), then history. French dates
 now use French month names; they previously fell back to English.
+
+### ✅ IMPLEMENTED — checkpoint 2: one type scale, no local sizes or weights
+
+Every screen and component now takes size and weight from `tokens.ts` through
+the `Text` primitive. The scale gained `labelStrong`, `captionStrong` and
+`tabLabel` so chips, filter pills, stat tiles, the toast action, the tab bar and
+the Store ID stop overriding them locally. Sign-in, registration and
+verification no longer use utility classes. `lib/design/visual-system.test.ts`
+keeps it that way: a raw size, weight, family or colour in a screen or
+component, a screen utility class, or a direct React Native `Text` fails the
+suite.

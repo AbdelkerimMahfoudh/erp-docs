@@ -8860,3 +8860,32 @@ changed how the row limit is computed, not what it shows).
 No handset: `docs/24` §17 U1–U11 open — including the back arrow itself, which
 a web render cannot show. Remaining screens are not yet aligned to the Stock
 visual system; that is the next checkpoint.
+
+---
+
+## 2026-09-11 12:22Z–12:30Z — CLAUDE-A — Stock visual system, checkpoint 2: sign-in and type weights
+
+Mobile `abd834a`. No behaviour change, no backend change.
+
+**Audit.** Across every screen and component: no raw colours, no font families,
+no raw sizes or weights except the tab bar (11/600), the Store ID (20) and
+inline `fontWeight` overrides in Chip, FilterChip, StatTile and the toast. Only
+sign-in rendered React Native `Text` directly, with utility-class sizes and a
+hand-built warning box; registration and verification used utility classes for
+layout.
+
+**Change.** The type scale names `labelStrong`, `captionStrong` and `tabLabel`;
+every override uses them. Sign-in uses the Text primitive, `InlineNotice` and
+tokens; registration and verification use token spacing. A guard test fails on
+any raw size, weight, family, colour, screen utility class or direct RN `Text`.
+
+**A mistake caught before commit.** A bulk replace given a single pair iterated
+over characters and corrupted `ToastHost.tsx` (every `<` replaced); the type
+checker failed at once. The file was restored from HEAD and the one intended
+edit re-applied; every other diff was checked for size.
+
+**Verified.** tsc clean · lint 33 (baseline) · 46 pure suites (visual-system 6)
+· web export 70 routes · renders: sign-in FR light, FR wrong-password error, AR,
+FR dark; registration FR and AR (computed text sizes all on the scale). One
+failed sign-in attempt was sent to the local API for the error render. Metro
+bundle contains the new variants. No handset.

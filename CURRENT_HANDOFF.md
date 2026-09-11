@@ -6,14 +6,23 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T12:22Z`
-- Takeover HEADs: docs `f6139f9` · backend `3554c5e` · mobile `b5b8a4b` · control-web `c764d63`
-- Active scope: **Stock visual system, checkpoint 2** — the sign-in, registration and
-  verification screens (still styled with ad-hoc utility classes and inline type
-  sizes) and the remaining typography overrides in shared primitives, moved onto
-  the shared tokens and primitives. No behaviour change.
-- Next intended action: audit the auth screens and the type scale.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
+  on the Text primitive, InlineNotice and tokens; registration and verification off
+  utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale
+  and used by Chip, FilterChip, StatTile, Toast, the tab bar and Store ID; new guard
+  `lib/design/visual-system.test.ts`. Verified: tsc clean, lint 33 (baseline), 46 pure
+  suites, web export 70 routes, sign-in/registration renders FR light, FR error, AR,
+  FR dark; Metro bundle contains the new variants. No behaviour change, no backend change.
+- Audit result for the rest of the app: **no raw colours, raw font sizes/weights, font
+  families or utility classes remain in any screen or component**. Further alignment
+  is layout-level (spacing, card structure, fixed actions) and must be judged screen
+  by screen on renders.
+- **Next exact action:** checkpoint 3 — render Sell, Receive, Transfers and the More
+  hubs in FR/AR, compare against the Stock reference, and correct structural drift
+  through shared primitives only. Home dashboard "Improvement", catalogue images and
+  the portal redesign stay out.
 - Last owner: **CLAUDE-A**, `2026-09-11T11:46Z` → `2026-09-11T12:20Z` — **Stock
   visual system, checkpoint 1: Unit detail and History**. Takeover HEADs: docs
   `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`.
