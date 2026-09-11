@@ -4596,3 +4596,34 @@ notice and outcomes are unchanged.
 proposes *un par un, chacun avec son propre IMEI* until a category is chosen;
 choosing the TV category sets serial tracking. Pre-selecting it from the scan is
 a form behaviour change and awaits the owner.
+
+### ✅ IMPLEMENTED — checkpoint 3c: transfers and consignments say who has it, who acts next, and the money
+
+`lib/custody-state.ts` (19 pure tests) derives, **from the server's status only**,
+three separate answers: where the items are, whose move it is, and — for a
+consignment only — the money state. Stock movement and settlement are never one
+label: *the phone arrived* is not *we were paid*; only `settled` reads as paid, a
+write-off never does.
+
+- **Transfer detail:** *Les articles — Toujours à Main Store / En route vers
+  Warehouse / À Warehouse* and *Prochaine étape — Expédition depuis … /
+  Réception à … / Rien — terminé*. Transfers carry no money and say nothing
+  about it.
+- **Consignment detail and list:** the status is translated (15 keys) instead of
+  the backend's English `statusText`; the amount is labelled *Montant demandé*,
+  *Contre-proposition* or *Montant convenu* (an offer is not an agreement);
+  *Les téléphones / Prochaine étape / L’argent* rows; the declared-but-unconfirmed
+  amount is formatted and isolated; errors use the translated friendly message.
+- **Accept / counter** are offered only to the side whose answer is awaited. The
+  server derives `lastProposalBy` from status alone (request = sender's offer,
+  counter-offer = holder's); the app mirrors it, so the buttons that could only
+  be refused are gone. Dispute and cancel are unchanged.
+- Consignment filters are chips, as on Stock and Transfers.
+
+**Reported, not changed:** (1) opening `/transfers/<id>` directly on web sends the
+first request before the saved branch is restored; the API answers 403 without
+`X-Branch-Id` and the screen, which never retries, says *Ce transfert n’existe
+plus*. A cold-start notification deep link may do the same — handset check
+TC7. (2) A transfer cancelled after approval, never shipped, lists *Envoyé par
+quelqu’un* in its history. (3) Consignment stages after *requested* could not be
+rendered: with a manual counterparty nobody on the system can accept.

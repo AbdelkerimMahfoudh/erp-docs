@@ -8954,3 +8954,32 @@ with fixed footer, serial detour.
 **Open.** `docs/24` §19 RC1–RC8. Create product from a serial scan proposes IMEI
 tracking until a category is chosen (reported). Money shown with no decimals
 rounds 8.5 to *9 MRU* on the line — existing formatting, not changed.
+
+---
+
+## 2026-09-11 14:15Z–15:05Z — CLAUDE-A — Checkpoint 3c: transfers and consignments
+
+Mobile `738a3a4`. No backend change.
+
+**Change.** See `docs/21` checkpoint 3c: `lib/custody-state.ts` (19 tests);
+transfer detail standing rows; consignment status translated, amount labelled,
+standing and money rows, friendly errors, accept/counter only for the side whose
+answer is awaited; consignment filter chips; redundant list chip removed.
+
+**Fixtures (isolated `prisma_verify_sell` via `127.0.0.1:3011` only).** Four
+accessory transfers Main Store → Warehouse (auto-approved as Owner): approved,
+in transit, received, cancelled. One purchase of four test phones, a manual
+counterparty *Boutique Nour Téléphonie — Tevragh Zeina*, consignments requested
+×3 and cancelled ×1. The server refused accept/custody/sold/payment for a manual
+counterparty with English messages — the reason errors now go through the
+friendly translator.
+
+**Verified.** tsc clean · lint 33 · 47 pure suites · parity · web export. Renders
+FR, AR, FR dark: transfers list, four transfer details (opened from the list),
+consignment list, requested and cancelled details; no raw enum or English
+sentence in the page text.
+
+**Open.** Direct-load transfer detail shows *not found* (403 before the branch is
+restored) — reported, handset TC7. Cancelled-after-approval transfer shows
+*Envoyé par quelqu’un*. Later consignment stages not rendered. `docs/24` §20
+TC1–TC10.

@@ -3061,3 +3061,21 @@ Web renders in French, Arabic and French dark only; nothing was received.
 | RC6 | Keyboard open in the cost sheet | Cost, quantity and price fields stay reachable; *Ajouter à la livraison* visible after scrolling |
 | RC7 | Staged items, no supplier | *Terminer la réception* disabled **and** *Choisissez un fournisseur pour terminer* in words |
 | RC8 | Largest text size; dark mode | Count tile, name and totals wrap rather than clip |
+
+## 20. Transfers and consignments (checkpoint 3c) — UNVERIFIED ON ANY DEVICE
+
+Web renders in French, Arabic and French dark against an isolated copy of the
+database only.
+
+| # | Do this | Expect |
+|---|---|---|
+| TC1 | Open an approved transfer | *Les articles — Toujours à {origine}*; *Prochaine étape — Expédition depuis {origine}* |
+| TC2 | Ship it, then open it | *En route vers {destination}*; *Réception à {destination}*; wrong-branch card offers the switch |
+| TC3 | Receive it at the destination | *À {destination}*; *Rien — terminé* |
+| TC4 | Cancelled or refused transfer | *Toujours à {origine}*, reason shown; history has no *Envoyé* line (currently shows *Envoyé par quelqu’un* — reported) |
+| TC5 | Consignment you proposed, not yet answered | *En attente de réponse*; *Chez vous*; *En attente de {boutique}*; *Rien n’est dû avant la vente*; **no Accepter / Proposer un autre montant** |
+| TC6 | Same consignment on the receiving store's phone | *Accepter* and counter are offered; *Prochaine étape — À vous* |
+| TC7 | Tap a transfer notification with the app closed | The transfer opens — not *Ce transfert n’existe plus* |
+| TC8 | Sold consignment with a reported payment | *Vendus*; *Paiement en attente* (amber); *{montant} déclarés mais pas encore confirmés*; *Reste dû* unchanged |
+| TC9 | Settled consignment | *Payé — confirmé* (green); write-off reads *Passé en perte*, never paid |
+| TC10 | Arabic; long store name; largest text | Mirrored; long names wrap in the detail and are not squeezed in the list; amounts read *1 200 MRU* |
