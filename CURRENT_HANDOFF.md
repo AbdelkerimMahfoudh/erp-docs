@@ -6,8 +6,14 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T11:46Z`
+- Takeover HEADs: docs `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`
+- Active scope: **Stock visual system across the app — checkpoint 1: Unit detail and
+  History** (localized back label, human-readable event timeline, item summary),
+  then further screens in controlled checkpoints. Home dashboard "Improvement"
+  and catalogue images stay deferred. Portal redesign plan still awaits approval.
+- Next intended action: audit the Unit detail screen, history events and design tokens.
 - Last owner: **CLAUDE-A**, `2026-09-11T04:16Z` → `2026-09-11T04:45Z` — the
   **Receiving correction**. Takeover HEADs: docs `29c827f` · backend `b776f37` ·
   mobile `ee95531` · control-web `c764d63`.
