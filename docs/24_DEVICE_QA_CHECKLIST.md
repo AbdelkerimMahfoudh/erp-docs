@@ -3079,3 +3079,18 @@ database only.
 | TC8 | Sold consignment with a reported payment | *Vendus*; *Paiement en attente* (amber); *{montant} déclarés mais pas encore confirmés*; *Reste dû* unchanged |
 | TC9 | Settled consignment | *Payé — confirmé* (green); write-off reads *Passé en perte*, never paid |
 | TC10 | Arabic; long store name; largest text | Mirrored; long names wrap in the detail and are not squeezed in the list; amounts read *1 200 MRU* |
+
+## 21. Money (checkpoint 3d) — UNVERIFIED ON ANY DEVICE
+
+Web renders in French, Arabic and French dark on the live API, read-only.
+
+| # | Do this | Expect |
+|---|---|---|
+| M1 | Money tab → *Espèces et comptes*, tap *30 jours* | Chip selected; *Ce que vous avez gagné* and *Ce qui a réellement bougé* both subtitled *30 jours* |
+| M2 | Same, comparisons | *141 531 % de plus…* — grouped, no decimals; Arabic reads the number in order |
+| M3 | Scroll to *Créances et dettes* | *Tel qu’à cet instant, pas sur la période ci-dessus*; untracked figures named as chips, not zeros |
+| M4 | Expenses | *En attente / Confirmées / Toutes* chips; reported amber, confirmed green, both with words |
+| M5 | A loan with a reported payment | Status in words (*Paiement déclaré — non confirmé*); the amount formatted; *Reste dû* not reduced |
+| M6 | Try an action the server refuses | A translated sentence, never the server's English |
+| M7 | Daily closing, after sign-off | *{date localisée} est clôturée* — not *2026-09-11* |
+| M8 | Largest text; dark mode; keyboard open on a count | Amounts wrap rather than clip; the count button stays reachable |

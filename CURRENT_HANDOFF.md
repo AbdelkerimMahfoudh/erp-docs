@@ -25,7 +25,8 @@
   cancellation (4 new tests, rendered FR/AR/dark); arrow-only back on Receive;
   labelled unit cost. `docs/24` §19 RC1–RC8 open.
 - **3c Transfers/consignments** mobile **`738a3a4`**: custody-state (19 tests), who has it / next step / money kept separate, translated consignment status, accept/counter only for the awaited side. Reported: direct-load transfer detail 403 before branch restore. `docs/24` §20 TC1–TC10 open.
-- Next intended action: **3d Money** — reconciliation, cash/account totals, expenses, loans and balances aligned without changing accounting semantics.
+- **3d Money** mobile **`a0b01fa`**: period chips and subtitles, formatted percentages and amounts, translated loan status, friendly errors, localised closing date. `docs/24` §21 M1–M8 open.
+- Next intended action: **3e More** — grouped menu (Store, Team, Products and settings, Reports, Security, Language and appearance, Account) from existing destinations only.
 - **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
   on the Text primitive, InlineNotice and tokens; registration and verification off
   utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale

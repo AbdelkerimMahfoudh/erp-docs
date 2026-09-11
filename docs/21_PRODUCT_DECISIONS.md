@@ -4627,3 +4627,23 @@ plus*. A cold-start notification deep link may do the same — handset check
 TC7. (2) A transfer cancelled after approval, never shipped, lists *Envoyé par
 quelqu’un* in its history. (3) Consignment stages after *requested* could not be
 rendered: with a manual counterparty nobody on the system can accept.
+
+### ✅ IMPLEMENTED — checkpoint 3d: Money labelled by period, statuses in words
+
+No accounting semantic changed and nothing is recomputed on the phone.
+
+- **Cash and accounts:** period chips (*Aujourd’hui / 7 jours / 30 jours*); the
+  profit and cash blocks carry the period as a subtitle, balances already say
+  *Tel qu’à cet instant*. Expense breakdown and discrepancy total are formatted
+  money; trend percentages are grouped whole numbers (*141 531 %*, previously
+  *141530.72 %*), isolated in Arabic.
+- **Loans:** status translated (9 keys) instead of the backend's English
+  `statusText`; principal, reported-but-unconfirmed and confirm-payment amounts
+  formatted; friendly translated errors; filter chips; the group chip that
+  repeated the filter removed.
+- **Expenses:** filter chips. **Daily closing:** friendly errors, formatted
+  outstanding total, localised closed-day date, token spacing.
+- **French copy:** the 21 values still using a straight apostrophe now use ’.
+
+Pending and confirmed stay distinct as before: reported expenses amber,
+confirmed green; a reported loan payment is shown and never deducted.

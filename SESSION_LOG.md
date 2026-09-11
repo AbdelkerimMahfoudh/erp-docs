@@ -8983,3 +8983,22 @@ sentence in the page text.
 restored) — reported, handset TC7. Cancelled-after-approval transfer shows
 *Envoyé par quelqu’un*. Later consignment stages not rendered. `docs/24` §20
 TC1–TC10.
+
+---
+
+## 2026-09-11 15:05Z–15:50Z — CLAUDE-A — Checkpoint 3d: Money
+
+Mobile `a0b01fa`. No backend change, no accounting change.
+
+See `docs/21` checkpoint 3d. Found while rendering: trend percentages printed
+raw (*141530.72 %*); loan and consignment-style English `statusText` on loans;
+raw numbers inside sentences; an ISO date in the closed-day headline; straight
+apostrophes in 21 French values.
+
+**Verified.** tsc clean · lint 33 · 47 pure suites · parity · web export. Renders
+FR, AR, FR dark (live API, nothing written): Money hub, summary 7 and 30 days,
+bottom balances, expenses, loans (empty — no live loans), daily closing. No raw
+enum, ISO date or English status in the page text. Lint briefly rose to 38 from a
+constant placed above imports; fixed before commit.
+
+**Open.** `docs/24` §21 M1–M8. No loan detail rendered (no loans on live data).
