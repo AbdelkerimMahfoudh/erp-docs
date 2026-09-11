@@ -4328,3 +4328,54 @@ never restarted.
 A later migration may *read* `permissions` to resolve a key; it may not insert,
 replace, update, delete, alter, drop, truncate or rename it — directly or
 through a join alias.
+
+### The Stock tab lists variants; handsets are one tap or one search away
+
+Implemented 2026-09-11 (backend `63ce639`, mobile Stock screen commit recorded in the handoff).
+
+**One row per exact variant**, from `GET /inventory/summary`: brand and model,
+storage and colour, what it sells for, how many can be sold today, and whether
+that is low. It replaces the earlier by-model view on this screen, which folded
+colours together and never listed accessories. The by-model endpoint is left in
+place and unused by this screen.
+
+**Every phone is still a unit.** Tapping a phone variant, or searching, shows
+the existing paginated unit list, searched on the server by name, barcode,
+**either IMEI** and serial — proven over HTTP with a unit carrying both IMEIs.
+A search is a question about one handset, so it answers with handsets.
+
+**Category is not status.** All / Phones / Accessories narrows the variant list
+(complete, so filtering it on the phone hides nothing). In stock / Sold / Faulty
+are unit lifecycle statuses and keep their server meaning on the unit list. The
+two never share a row of chips. Phones are IMEI-tracked products, accessories are
+quantity-tracked; serial-tracked devices appear under All.
+
+**The price never overstates what is known.** Each unit is resolved through the
+sale's own price ladder. One price for every unit shows "Price …"; units that
+resolve differently (a unit override) show "From …"; nothing priced shows "No
+price set", never zero; unpriced units are counted rather than hidden.
+
+**No product photos, deliberately.** The app has no product image
+infrastructure; the only image field is one handset's `units.image_ref`, and
+showing it as every phone of that variant would present a different device as
+exact. Rows use a neutral category tile. Adding real product images is a separate
+decision.
+
+**"Low" has one definition.** The dashboard, the health score and this screen
+share `low-stock.ts`: the shop's `low_stock_threshold` (default 3), inclusive,
+compared on in-stock units for serialized goods and on physical quantity for bulk
+stock, as the dashboard always has. "Available" on the row excludes reserved
+quantity; the low-stock comparison does not. Recorded because the two numbers can
+differ by exactly the reserved amount.
+
+**No cost or margin on the summary**, in any shape. Unit rows still show cost
+only when the server sends it.
+
+**Receive stock opens the existing receiving workflow**, gated on
+`purchase.manage` exactly as Home is. Its draft is already scoped to company,
+branch and user, so the button resumes the right delivery. No staged/batch
+receiving model was added; the existing workflow already stages scans by product
+and commits once.
+
+**English now says "Stock"** for the tab and title, matching French and the
+screen's purpose. Arabic keeps «المخزون».

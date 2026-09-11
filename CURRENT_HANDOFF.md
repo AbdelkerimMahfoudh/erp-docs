@@ -6,49 +6,58 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Active account / Owner: **CLAUDE-A**
-- `started_at_utc:` **2026-09-11T08:10Z**
-- Active phase: **Indigo Visual Stock screen** — redesign the existing Stock tab,
-  connect Receive stock to the existing receiving workflow. No dashboard work,
-  no new receiving engine.
-- HEADs at takeover: docs `13b5a96`, backend `6ff7f16`, mobile `20619e4`,
-  control-web `c764d63`; all clean and level. API PID 4636 (`:3010`, backend
-  `6ff7f16`) and Metro PID 8460 (`:8081`, mobile `20619e4`) found running.
-- ⚠️ Asked to work as `CLAUDE-B`; this account is `CLAUDE-A` per the user's
-  standing correction.
-- Last owner: **CLAUDE-A**, `2026-09-10T23:25Z` → `2026-09-10T23:45Z` — the
-  authorised `branch_manager` grant repair. Before that, CLAUDE-A
-  `18:30Z` → `22:45Z` built CP4–CP6.
-- Phase closed: **CP1–CP6 of the mistake-prevention suite, implemented and
-  live-verified with zero failures** — including the stale grant that held CP6
-  at 91/92, now removed by migration `0067` with the owner's authorisation.
-- 🟢 **Ready for visible UI testing** — the final code is genuinely being served.
-  See §4.
-- 🔴 **The milestone is not "fully ready".** Nothing has run on a handset
-  ([`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md), **58 checks, every row
-  red**), and A1's remaining four detectors are not wired.
+- Status: **READY_FOR_HANDOFF**
+- Active account / Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-11T08:10Z` → `2026-09-11T13:30Z` — the
+  **Indigo Stock screen**. Asked to work as `CLAUDE-B`; this account is
+  `CLAUDE-A` per the user's standing correction.
+- Phase closed: **the Stock tab redesigned and wired to the existing receiving
+  workflow.** No dashboard work, no new receiving engine, no schema change.
+- ⚠️ **The attached visual reference was not visible in that session.** The screen
+  follows the written description of "A · Indigo"; fidelity to the picture is
+  unverified.
+- 🟢 **Ready to test on a handset** — see §4.
+- 🔴 **Nothing has run on a handset.** [`docs/24`](docs/24_DEVICE_QA_CHECKLIST.md)
+  §14 (58 checks) and new **§15 S1–S20** for this screen, every row open.
 
-### Checkpoint state
+### What changed
 
-| CP | Scope | State |
+| Repository | Commit | |
 |---|---|---|
-| CP1 | one shared `DECIMAL(14,2)` monetary boundary | ✅ `d3ab914` |
-| CP2 | warning + acknowledgement engine | ✅ `e2cb6b1`, `483cab9` |
-| CP3 | configured-price floor, Owner approval lifecycle, migration 0065 | ✅ `6287b61` |
-| CP4 | magnitude detectors + the complete mobile workflow | ✅ `fe81f5d`, `9aa98d2`, `c42c61f`, `68f02dd` |
-| CP5 | six deterministic anomaly rules, migration 0066 | ✅ `4d0736d`, `20619e4` |
-| CP6 | live HTTP against real MySQL; two code defects fixed | ✅ `0da5a72` |
-| **Repair** | **stale `branch_manager` grant removed, migration 0067; both gates corrected** | ✅ **`6ff7f16`** |
+| `erp-backend` | **`63ce639`** | `GET /inventory/summary` — one row per variant, price range, low stock; shared `low-stock.ts` |
+| `erp-mobile` | **`564d224`** | the Stock screen, `StockRow`, `lib/stock-price.ts`, EN/FR/AR keys, summary invalidation |
+| `erp-docs` | *this commit* | handoff, session log, `docs/21` decision, `docs/24` §15 |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | **`reports-export`** | **`6ff7f16`** | level | 0 |
-| `erp-mobile` | **`reports-export`** | **`20619e4`** | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
+| `erp-backend` | `reports-export` | **`63ce639`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`564d224`** | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` | level | 0 |
+
+### Verified this session
+
+| Gate | Result |
+|---|---|
+| Backend `tsc` | clean |
+| Backend full suite | **124 suites / 2344 tests**, 0 failed |
+| **Live HTTP vs MySQL** | **11 passed, 0 failed** — summary cost-free at both branches, refused without a branch, counts equal the unit list, and a two-IMEI fixture found by **either** IMEI (fixture created and removed) |
+| Mobile `tsc` | clean |
+| Expo lint | **0 errors, 33 warnings** (baseline) |
+| Pure suites | **43**, 0 failed (new stock-screen suite: 25) |
+| EN/FR/AR parity | **2000 keys each, identical order** |
+| Web export | **70 routes** (baseline) |
+| Expo Doctor | **21/21** |
+| Camera patch | **6 anchors** |
+| Rendered (web) | French light, dark, Arabic, Receive entry — **Arabic copy renders; layout not mirrored on web** (`forceRTL` is native-only) |
+
+### The earlier milestone
+
+CP1–CP6 of the mistake-prevention suite and the `branch_manager` grant repair
+are complete; their detail follows unchanged in §1–§3.
+
 
 ## 1. Verified — final totals
 
@@ -176,69 +185,48 @@ from an earlier session still exists and is still needed by `prisma migrate diff
 produces 1172 lines dropping foreign keys on unrelated tables. `0066` and `0067`
 are hand-written for that reason.
 
-## 4. Ready for visible UI testing
+## 4. Ready to test the new Stock screen
 
-**The API on 3010 runs the repaired backend.** The pre-repair process (PID 23300,
-started 22:27:27) was stopped. PID **4636** started **23:40:41**, after
-`6ff7f16` landed at 23:39:27, from a clean checkout; listening on `0.0.0.0:3010`
-at 23:41:04; **196 routes**, including all 5 discount-approval and both anomaly
-routes. From the LAN address the phone will use: `/api/health` **200**;
-unauthenticated `/discount-approvals`, `/anomalies` and `/sales` **401** (the
-routes exist); a made-up path **404**.
+**On the iPhone:** open Expo Go on the same Wi-Fi and scan
+**`exp://192.168.100.3:8081`**. Sign in as `devtest@example.com`, choose
+**Main Store**, then tap **Stock** in the bottom bar.
 
-**Metro still serves mobile `20619e4`.** PID **8460**, started 22:28:12 as
-`expo start --clear` from `C:\wamp64\www\PhoneStoreERP\mobile`; mobile HEAD
-`20619e4`, clean. The bundle was re-fetched and is **byte-identical** to the one
-proven at 22:30 — **17 117 577 bytes** — with `approval.needed.title` ×5,
-`approvals.confirmTitle` ×4, `warning.magnitude.salePrice.high` ×3,
-`attention.title` ×4, `warning.anomaly.belowCostCluster` ×3,
-`status.approval.consumed` ×4, `discount-approvals` ×13, `/anomalies` ×4,
-`nav.approvals` ×4, `reissuedBecause` ×1 and the inlined origin
-`192.168.100.3:3010` ×1. **192.168.100.3 is this machine's current Wi-Fi
-address**, re-checked against the adapter.
-
-**Scan `exp://192.168.100.3:8081` with Expo Go**, on the same Wi-Fi.
-
-### Where the changes are unmistakable
-
-| Screen | What is new |
+| Service | Detail |
 |---|---|
-| **Home** | The redesigned grouping — adjoining rows, hairline separators, no rule under the last row |
-| **Analytics** | **Needs your attention** at the top: sentences with their numbers, worst first, each dismissible for a week |
-| **Money / export** | Export from what you are looking at; the share sheet and a readable spreadsheet |
-| **Sell — price warning** | Type ten times the price: *"Does this look right?"* with what you typed and what similar items cost. Nothing sells until you answer |
-| **Sell — discount request** | Sell below the set price: the sheet opens on that phone with the set price, your price, the discount, the percentage and a reason field |
-| **Approvals — Owner review** | More → Price approvals, or straight from the notification. Item, branch, requester, reason, minutes left — and the cost only if you may see it |
-| **Approvals — the states** | Waiting for the Owner → Approved with the minutes left → Used. Or Not approved, Expired, No longer valid — each says something different |
-| **Notifications** | *A price needs your approval*, in your language, landing on **that** request |
-| **Arabic (RTL)** | The whole approval flow mirrors; prices stay left-to-right; the sentences read naturally |
-| **Dark mode** | Approvals and the attention panel, warning tones legible |
+| API | `http://192.168.100.3:3010`, PID **25480**, backend **`63ce639`** |
+| Metro | `exp://192.168.100.3:8081`, PID **26348**, `expo start --clear --lan` from mobile **`564d224`** — native bundle contains `/inventory/summary`, `stock.receive`, `stock.priceFrom` and origin `192.168.100.3:3010` |
+| MySQL | `:3306`, the user's WAMP stack, untouched |
 
-**No claim is made about any of this on a physical device.** The list is where
-to look, not what was verified.
+Device checks for this screen are [`docs/24` §15](docs/24_DEVICE_QA_CHECKLIST.md),
+S1–S20. The ones only a handset can settle: **Arabic mirroring (S17)**, the
+scanner from the search field (S11), draft resumption through Receive stock
+(S14), larger text (S18), VoiceOver (S20), and the last row scrolling clear of
+the footer on a real safe area (S13).
+
+### Known limitations
+
+- **No product photos** — none exist in the app; rows use a neutral category tile.
+- **Serial-tracked devices** (e.g. TVs) appear under **All** only; Phones is
+  IMEI-tracked, Accessories is quantity-tracked.
+- **"Available" excludes reserved quantity; "low" compares physical quantity**,
+  the dashboard's existing rule — the two can differ by the reserved amount.
+- A price range shows **"From"** the minimum; the maximum is on the unit list.
+- The reference image was not visible; visual fidelity to it is unverified.
 
 ## 5. Running services — left up on purpose
 
-| Port | What | PID | Started by |
-|---|---|---|---|
-| `3010` | API from backend `6ff7f16`, bound `0.0.0.0` | 4636 | this session, for the owner's test |
-| `8081` | Expo / Metro, cache cleared, serving mobile `20619e4` | 8460 | CP4–CP6 session |
-| `3306` | `mysqld.exe` from the user's WAMP install | — | not this session's to stop |
-
-The verification API on `3013` is **stopped** and its port confirmed released.
+- **API** PID 25480 on `:3010` — restarted from the committed backend so the new
+  route exists; the stale PID 4636 was stopped by PID.
+- **Metro** PID 26348 on `:8081` — restarted with a cleared cache from the final
+  mobile HEAD; the stale PID 8460 was stopped by PID and command line.
+- Headless Chrome (`:9333`) and the static web server (`:19006`) were
+  verification helpers and are **stopped**.
 
 ## 6. The next exact action
 
-**Work [`docs/24` §14](docs/24_DEVICE_QA_CHECKLIST.md) on the iPhone — 58
-checks**, of which 36–58 cover the approval workflow and the attention panel.
-Both servers are already running the final code.
+**Run `docs/24` §15 S1–S20 on the iPhone**, then §14. Do not start the Home
+dashboard "Improvement" work until the owner asks for it.
 
-Then: **wire A1's remaining four detectors** — intake cost, price change, expense
-amount, debt payment. The engine, rules and ten translations exist and are
-tested; each needs its mutation wired to `WarningGate` the way `sale.create` is,
-and its screen taught to answer `warnings_pending`.
-
-Do not merge and do not deploy.
 
 ## 7. Unresolved risks
 

@@ -2943,3 +2943,34 @@ same order, extended to the screens finished in this pass.
 2. **#9–11** — the scanner through the reveal.
 3. **#24** — first/last row treatment across eight converted lists.
 4. **#25** — dark mode over many newly grouped surfaces.
+
+## 15. The Indigo Stock screen — UNVERIFIED ON ANY DEVICE
+
+Mobile `reports-export` after `20619e4`, backend `63ce639` (`GET /inventory/summary`).
+Rendered in a web build during implementation; **none of the rows below has been
+run on a handset.** Sign in as `devtest@example.com`, branch **Main Store**.
+
+| # | Do this | Expect |
+|---|---|---|
+| S1 | Open the **Stock** tab | Compact "Stock" title with the branch name, one search field, All / Phones / Accessories chips, and a **Receive stock** button pinned above the tab bar |
+| S2 | Look at a phone row | Brand and model, the exact variant (storage · colour), "Price … MRU" or "From … MRU", the number available, and a neutral category tile — **no photo of another model or colour** |
+| S3 | Find a variant whose units have different prices (set a unit override on one) | The row says **From** the lower price, never one price for all |
+| S4 | A variant with no price | "No price set", never 0 MRU |
+| S5 | A variant at or below the shop's low-stock threshold | A **Low stock** chip with the word, not colour alone; an empty accessory line says **Out of stock** |
+| S6 | Tap **Phones**, then **Accessories**, then **All** | Rows narrow and return; counts on the chips match the rows |
+| S7 | Tap a phone row | The unit list for that exact variant, with "Showing …" and a close button; status chips (In stock / Sold / Faulty / All) appear here, not beside the categories |
+| S8 | Tap a unit, then back | Unit detail opens; back returns to the same filtered list |
+| S9 | Tap an accessory row | Product detail opens |
+| S10 | Type a phone's **first** IMEI, then its **second** IMEI | Both find the same handset |
+| S11 | Tap the camera in the search field and scan an IMEI barcode | Result shows with scanning paused; the unit opens; no OCR |
+| S12 | Switch branch from More, return to Stock | The new branch's shelf; no row, search or "Showing …" from the old branch flashes |
+| S13 | Scroll to the last row | It scrolls fully clear of Receive stock and the tab bar |
+| S14 | Tap **Receive stock** with a half-finished delivery saved earlier | Receive opens with the draft notice and the staged items restored, for this branch only |
+| S15 | Sign in as an employee without `purchase.manage` | No Receive stock button; the list is otherwise the same |
+| S16 | Airplane mode after the list loaded, pull to refresh | "You are offline…" notice above the last loaded rows; nothing reads as zero |
+| S17 | French, then Arabic | Natural wording; Arabic mirrors — tile on the right, counts on the left, chips read right to left |
+
+> **S17 cannot be settled in a web render.** Arabic copy rendered correctly in the web build, but the layout stayed left-to-right there: mirroring comes from `I18nManager.forceRTL`, which only applies in native builds. The handset is the only proof.
+| S18 | Largest system text size | Names wrap rather than truncate essential words; Receive stock stays readable and reachable |
+| S19 | Dark mode | Rows, chips and the tile remain legible; low/out-of-stock chips keep their words |
+| S20 | VoiceOver on a row | One sentence: name, variant, available, price, status |

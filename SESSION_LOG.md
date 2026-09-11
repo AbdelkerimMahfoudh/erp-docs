@@ -8544,3 +8544,114 @@ one proven at 22:30, all eleven markers present, LAN origin `192.168.100.3:3010`
 **Nothing has run on a handset** — `docs/24` §14, 58 checks, every row red. A1's
 remaining four detectors are not wired. Neither is part of this repair, and the
 milestone is not described as fully ready.
+
+---
+
+## 2026-09-11 — CLAUDE-A — the Indigo Stock screen
+
+The existing Stock tab redesigned to the owner's "A · Indigo" direction and
+wired to the existing receiving workflow. No dashboard work, no new receiving
+engine, no schema change.
+
+**Label and reference.** The brief asked for `CLAUDE-B`; this account is
+`CLAUDE-A` per the user's standing correction, recorded rather than silently
+applied. **The attached reference image was not visible in this session** — no
+image reached the conversation, and nothing matching it exists in the
+repositories or Downloads. The screen was built to the written description of
+the left-hand variant; its fidelity to the picture is unverified.
+
+### Why the backend changed at all
+
+The screen needs, per exact variant, what it sells for and whether it is low.
+No read provided that. `/inventory` is one row per handset; `/inventory/by-model`
+folds colours together and — a defect, not a design choice — counts serialized
+units only, so accessories never reached the old model view. That is a concrete
+contract gap, so one additive read was added. No migration, no permission.
+
+`GET /inventory/summary` (`63ce639`): one row per exact variant at the active
+branch — available (in-stock units; quantity minus reserved), `lowStock`, and a
+price **range** resolved unit by unit through the sale's own ladder
+(`resolveSerialized` / `resolveQuantity`). When one phone has its own override
+the row says 39 000–42 000, never one of them as every phone's price. Nothing
+priced is null, never zero. **No cost or margin in any shape.** It requires an
+active branch rather than guessing one.
+
+**One definition of low.** The dashboard, the health score and the summary now
+share `low-stock.ts` — the shop's `low_stock_threshold`, inclusive, on in-stock
+units for serialized goods and on physical quantity for bulk, as the dashboard
+always compared. Recorded because "available" excludes reserved quantity and the
+low comparison does not; the two can differ by exactly the reserved amount.
+
+### The screen (`564d224`)
+
+- Compact "Stock" header with the branch; one search field whose camera button
+  opens the unchanged `ScannerSheet`; All / Phones / Accessories with counts.
+- Rows: a neutral category tile, brand and model, variant, price wording, the
+  available count and a low/out-of-stock chip **with its word**.
+- **No product photos.** None exist in the app; the only image field is one
+  handset's `units.image_ref`, and using it as the variant's picture would
+  present a different device as exact.
+- Tapping a phone variant, or searching, shows the existing paginated unit list,
+  server-searched by name, barcode, **both IMEIs** and serial, with In stock /
+  Sold / Faulty / All keeping their server meaning. Category and status chips
+  never share a row.
+- **Receive stock** is in the `Screen` footer above the tab bar, outside the
+  scroll area, so it cannot cover the last row. Gated on `purchase.manage`, as
+  Home. Its draft is already scoped to company, branch and user.
+- A branch switch clears the old branch's search and focus **during render**, not
+  in an effect, so neither paints for a frame; every query key includes the branch.
+- The summary key sits under the `['inventory']` prefix, so catalog edits,
+  consignments and imports already refresh it; sales and receiving refresh it
+  explicitly.
+- English says "Stock" for the tab and title, matching French.
+
+The existing receiving workflow already stages scans by product and commits
+once; **no new batch model was introduced**, and none of the scanner, IMEI,
+duplicate-check or product-creation behaviour was touched.
+
+### Two things caught along the way
+
+A `set-state-in-effect` lint warning from the first branch-reset attempt took
+the count to 34; replaced with the render-time pattern, back to the 33 baseline.
+And the first four screenshots were Chrome's "refused to connect" page: I had
+removed `dist/` before committing, which killed the static server serving it.
+They were deleted, the build re-exported from the committed HEAD, and captured
+again.
+
+### Verified
+
+Backend: `tsc` clean · **124 suites / 2344 tests**, 0 failed · focused summary
+spec 17 tests · by-model spec unchanged.
+
+**Live over HTTP against MySQL: 11 passed, 0 failed** — summary 200 and cost-free
+at both branches, refused without a branch, serialized `available` equal to
+in-stock units per variant from the unit list; and, with a temporary `ZZ-STOCK`
+fixture carrying two IMEIs (created and removed, none existed in the data),
+**primary and secondary IMEI both return the same unit** and the variant appears
+once, available 1, unpriced.
+
+Mobile: `tsc` clean · lint **0 errors, 33 warnings** (baseline) · **43 pure
+suites**, 0 failed (new stock-screen suite 25) · EN/FR/AR **2000 × 3, identical
+order** · web export **70 routes** (baseline) · Expo Doctor **21/21** · camera
+patch **6 anchors**.
+
+**Rendered evidence** (web build, real API, Main Store): French light, dark,
+Arabic, Receive entry. Arabic copy renders, but **the layout is not mirrored on
+web** — mirroring comes from `I18nManager.forceRTL`, which only applies in native
+builds. Tab-bar labels are clipped at the bottom edge of the headless viewport.
+
+### Services
+
+API restarted to serve the new route — the stale process (PID 4636) stopped by
+PID; new PID **25480** from the committed backend. Metro restarted — PID 8460
+stopped by PID and command line; new PID **26348**, `expo start --clear --lan`
+from mobile `564d224`; its native bundle contains `/inventory/summary` ×3,
+`stock.receive` ×5, `stock.priceFrom` ×4 and origin `192.168.100.3:3010`.
+Headless Chrome and the static server were verification helpers and are stopped.
+MySQL untouched.
+
+### Not done, and not claimed
+
+**Nothing ran on a handset.** `docs/24` §15 adds S1–S20 for this screen, all
+open, alongside §14. RTL mirroring, larger text, VoiceOver, native share and
+camera remain device facts. The dashboard "Improvement" work was not started.
