@@ -6,8 +6,14 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T04:16Z`
+- Takeover HEADs: docs `29c827f` · backend `b776f37` · mobile `ee95531` · control-web `c764d63`
+- Active scope: **Receiving correction** — optional IMEI 2 end to end, existing-phone
+  detection before cost, unknown-product flow, localized scan hints, outcome and
+  retry safety, successful lifecycle in an isolated MySQL. Stock design preserved;
+  Home dashboard stays deferred; catalogue images stay a follow-up.
+- Next intended action: audit schema, purchase contract, scanner and intake flow.
 - Last owner: **CLAUDE-A**, `2026-09-11T03:30Z` → `2026-09-11T04:10Z` — the
   **Stock screen correction pass**. Takeover HEADs: docs `862d244` · backend
   `63ce639` · mobile `564d224` · control-web `c764d63`.
