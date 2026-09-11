@@ -6,8 +6,14 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Active account / Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Active account / Owner: **CLAUDE-A**, `started_at_utc: 2026-09-11T12:22Z`
+- Takeover HEADs: docs `f6139f9` · backend `3554c5e` · mobile `b5b8a4b` · control-web `c764d63`
+- Active scope: **Stock visual system, checkpoint 2** — the sign-in, registration and
+  verification screens (still styled with ad-hoc utility classes and inline type
+  sizes) and the remaining typography overrides in shared primitives, moved onto
+  the shared tokens and primitives. No behaviour change.
+- Next intended action: audit the auth screens and the type scale.
 - Last owner: **CLAUDE-A**, `2026-09-11T11:46Z` → `2026-09-11T12:20Z` — **Stock
   visual system, checkpoint 1: Unit detail and History**. Takeover HEADs: docs
   `7fdea94` · backend `488effd` · mobile `09d0e59` · control-web `c764d63`.
