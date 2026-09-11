@@ -4576,3 +4576,23 @@ below-cost confirmation are the existing server and client rules.
 **Gap reported, not built:** the sale API accepts `customerId` and
 `receivingAccountId`, but Sell has no customer or receiving-account selection.
 Adding it is a feature, not a visual pass, and awaits the owner.
+
+### ✅ IMPLEMENTED — checkpoint 3b: Receive aligned; serial kept through Create product
+
+The documented lost-state gap is closed. A scanned **serial number** (a TV, a
+laptop) is now held across the Create-product detour exactly as an IMEI was: the
+pending intake carries it in its own `serial` field — never in `productBarcode`,
+never alongside an IMEI — and Receive looks it up again on return. Cancelling
+Create product reopens the same serial; creating the product returns with it
+selected. Creating a product still creates no unit.
+
+Back on Receive is an arrow only (mirrored in Arabic) and still asks before a
+delivery is left behind; it was the last text "Back" in the app. A staged line
+labels its per-unit cost (*9 MRU l’unité*) so it is not read as the line total.
+IMEI 1 / optional IMEI 2, existing-phone refusal, unknown-product actions, draft
+notice and outcomes are unchanged.
+
+**Observed, not changed:** Create product opened from a serial scan still
+proposes *un par un, chacun avec son propre IMEI* until a category is chosen;
+choosing the TV category sets serial tracking. Pre-selecting it from the scan is
+a form behaviour change and awaits the owner.

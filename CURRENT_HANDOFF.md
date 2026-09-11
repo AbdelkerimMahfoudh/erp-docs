@@ -21,8 +21,11 @@
 - Services restarted after a session restart: API `:3010` (`npm run start:dev`),
   Metro `:8081`; isolated API `127.0.0.1:3011` on `prisma_verify_sell` still up —
   stop and drop it after 3b.
-- Next intended action: **3b Receive** — layout alignment and the serial number
-  carried through Create product and cancellation.
+- **3b Receive** mobile **`679e074`**: serial kept through Create product and its
+  cancellation (4 new tests, rendered FR/AR/dark); arrow-only back on Receive;
+  labelled unit cost. `docs/24` §19 RC1–RC8 open.
+- Next intended action: **3c Transfers and consignment** — human-language states,
+  stock movement kept separate from settlement, who holds the item and who acts next.
 - **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
   on the Text primitive, InlineNotice and tokens; registration and verification off
   utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale

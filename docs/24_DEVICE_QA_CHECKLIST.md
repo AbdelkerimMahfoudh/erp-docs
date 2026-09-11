@@ -3046,3 +3046,18 @@ rendered against an isolated copy of the database. Sign in as
 | SL10 | Airplane mode, then *Terminer la vente* | The app says the sale is not confirmed and does not show success |
 | SL11 | Employee without `cost.view` | No profit line, no below-cost flag; the server still refuses a price below the floor |
 | SL12 | Largest text size; dark mode | Totals and prices wrap rather than clip; red/amber lines still carry words |
+
+## 19. Receive (checkpoint 3b) — UNVERIFIED ON ANY DEVICE
+
+Web renders in French, Arabic and French dark only; nothing was received.
+
+| # | Do this | Expect |
+|---|---|---|
+| RC1 | Open Stock → Receive stock | Arrow-only back (VoiceOver: *Retour*); tapping it with items staged asks first |
+| RC2 | Arabic | Arrow on the right pointing right; supplier button and scan field mirrored |
+| RC3 | Scan a TV serial that is not in the catalogue → *Créer un nouveau produit* → back without saving | The same serial sheet reopens with the serial shown |
+| RC4 | Same, but create the product (TV category) | Returns to Receive with the new product selected and the serial ready for its cost |
+| RC5 | Stage an accessory at 8.5 MRU | Line shows *9 MRU l’unité* under the name and the total on the right |
+| RC6 | Keyboard open in the cost sheet | Cost, quantity and price fields stay reachable; *Ajouter à la livraison* visible after scrolling |
+| RC7 | Staged items, no supplier | *Terminer la réception* disabled **and** *Choisissez un fournisseur pour terminer* in words |
+| RC8 | Largest text size; dark mode | Count tile, name and totals wrap rather than clip |

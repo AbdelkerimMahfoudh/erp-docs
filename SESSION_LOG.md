@@ -8928,3 +8928,29 @@ Sell has no customer or receiving-account selection although the API accepts bot
 **Services.** The session restart stopped the live API, Metro and all helpers
 (MySQL survived). Restarted: API `npm run start:dev` on `:3010`, Metro
 `expo start --port 8081`, both verified listening and sign-in OK.
+
+---
+
+## 2026-09-11 13:40Z–14:15Z — CLAUDE-A — Checkpoint 3b: Receive
+
+Mobile `679e074`. No backend change.
+
+**Serial through Create product.** `lib/scan/pending-intake.ts` gains `serial`
+(null whenever an IMEI is present); Receive holds it on *Créer un nouveau
+produit* and looks it up on return. Four new pure tests: serial survives,
+survives cancellation, returns with the created product, never recorded beside
+an IMEI. Rendered FR, AR and FR dark: unknown serial `ZZSN-TEST-778812` →
+Create product → back → the same serial sheet (*serial kept after cancel: true*).
+
+**Alignment.** Text *Retour* in the Receive header replaced by an arrow
+`IconButton` (mirrored for RTL) that still calls the leave confirmation. Staged
+line labels its unit cost. Everything else already matched the Stock reference.
+
+**Verified.** tsc clean · lint 33 · 46 pure suites (pending-intake 16) · parity
+2084 × 3 · web export. Live renders, nothing written: empty, supplier sheet,
+existing phone, unknown IMEI, recognised accessory cost sheet, staged delivery
+with fixed footer, serial detour.
+
+**Open.** `docs/24` §19 RC1–RC8. Create product from a serial scan proposes IMEI
+tracking until a category is chosen (reported). Money shown with no decimals
+rounds 8.5 to *9 MRU* on the line — existing formatting, not changed.
