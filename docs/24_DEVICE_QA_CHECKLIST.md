@@ -3025,3 +3025,24 @@ Store.
 | U9 | Sign in as an employee without `cost.view` | No purchase-price row; nothing reads 0 |
 | U10 | Create a new transfer for a unit, then open that unit | *Réservé pour un transfert vers …* appears (new audit entry) |
 | U11 | Largest text size; dark mode | Titles wrap; tones keep their meaning; no raw code anywhere |
+
+## 18. Sell (checkpoint 3a) — UNVERIFIED ON ANY DEVICE
+
+Web renders in French, Arabic and French dark only; refusal and success were
+rendered against an isolated copy of the database. Sign in as
+`devtest@example.com`, Main Store.
+
+| # | Do this | Expect |
+|---|---|---|
+| SL1 | Open Sell with an empty cart | Title, branch name under it, scan field; no charge bar |
+| SL2 | Scan a phone with the camera, then an accessory barcode twice | Phone line with IMEI chip and number; accessory line with quantity 2 and *Prix unitaire* |
+| SL3 | Type a price below cost on the phone | Line turns red **and** says *Vendre à perte ?*; total updates |
+| SL4 | Keyboard open on the price field | The field and the charge bar stay visible; the last line is not hidden behind the bar |
+| SL5 | *Encaisser* → payment sheet | Payment methods and return policy wrap onto a second row, nothing truncated; *Terminer la vente* fixed above the home indicator |
+| SL6 | *Répartir entre plusieurs moyens* | Each entry: method chips, then amount and remove |
+| SL7 | Price between cost and set price, *Terminer la vente* | *Ce prix nécessite le propriétaire* sheet with set price, your price, discount and a reason field |
+| SL8 | Restore the set price and finish | *Vente terminée*, invoice number, amount; profit only for a role with `cost.view` |
+| SL9 | Arabic | Mirrored; charge button, profit and dialog amounts read *1 500 MRU* in order |
+| SL10 | Airplane mode, then *Terminer la vente* | The app says the sale is not confirmed and does not show success |
+| SL11 | Employee without `cost.view` | No profit line, no below-cost flag; the server still refuses a price below the floor |
+| SL12 | Largest text size; dark mode | Totals and prices wrap rather than clip; red/amber lines still carry words |

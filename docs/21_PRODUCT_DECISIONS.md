@@ -4559,3 +4559,20 @@ verification no longer use utility classes. `lib/design/visual-system.test.ts`
 keeps it that way: a raw size, weight, family or colour in a screen or
 component, a screen utility class, or a direct React Native `Text` fails the
 suite.
+
+### ✅ IMPLEMENTED — checkpoint 3a: Sell in the Stock visual system
+
+A cart line reads like a Stock row: what it is on the left (name, variant,
+tracking chip, identifier), what it comes to on the right, and underneath the two
+things a seller changes — quantity and a **labelled** unit price. Selling below
+cost is flagged in words on the line; cost itself is never shown. Payment method,
+split entries and return policy are wrapping filter chips (a segmented control
+truncated *Paiement mobile* and *Virement bancaire*). The header names the branch.
+Every amount placed inside a sentence — charge button, profit, below-cost and
+warning dialogs — is direction-isolated, so Arabic reads *الربح 500 MRU*, not
+*MRU 500*. No behaviour change: the minimum-price approval, magnitude warning and
+below-cost confirmation are the existing server and client rules.
+
+**Gap reported, not built:** the sale API accepts `customerId` and
+`receivingAccountId`, but Sell has no customer or receiving-account selection.
+Adding it is a feature, not a visual pass, and awaits the owner.

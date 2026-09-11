@@ -8889,3 +8889,42 @@ edit re-applied; every other diff was checked for size.
 FR dark; registration FR and AR (computed text sizes all on the scale). One
 failed sign-in attempt was sent to the local API for the error render. Metro
 bundle contains the new variants. No handset.
+
+---
+
+## 2026-09-11 12:33Z–13:40Z — CLAUDE-A — Checkpoint 3: safeguards and 3a Sell
+
+Mobile `ea5419d` (safeguards) and `f073ce5` (Sell). No backend change.
+
+**Safeguards.** History folds only when the whole meaning matches:
+`foldSignature` covers kind, title, parameters, entity, action, both statuses,
+context, actor name and role, branch, origin, destination and transfer id; tests
+prove a different transfer, destination, origin, role, person, branch, status,
+context or action never folds. The visual guard is tested both ways — it rejects
+raw sizes, weights (including conditional ones such as
+`fontWeight: selected ? '600' : '500'`), families and colours, and allows type
+variants, token references, spreads and `transparent`; it also asserts the scale
+keeps at least five sizes and three weights. Tightening it found five local
+`lineHeight` overrides and one conditional weight in `SegmentedControl`; all removed.
+
+**Sell.** See `docs/21` checkpoint 3a. Found while rendering: Arabic amounts inside
+sentences were reordered (*MRU 399*), now isolated; the MRU suffix pushed out of
+the narrow price field, now dropped there because the line total says MRU.
+
+**Verified.** tsc clean · lint 33 (baseline) · 46 pure suites · parity 2083 × 3 ·
+web export. Renders: live API (nothing written) FR, AR, FR dark — empty, phone,
+cart, not sellable, below cost, payment, split, offline attempt. Isolated database
+`prisma_verify_sell` on `127.0.0.1:3011` (browser requests rewritten from `:3010`)
+— FR and AR: below the set price → Owner-approval sheet; set price restored →
+magnitude confirmation → *Vente terminée* with invoice and profit. Three isolated
+sales were written there and nowhere else.
+
+**Open.** Web kept no cart across reload (by design) and did not show an offline
+notice; the charge button drops the narrow no-break group space on web
+(*1030 MRU*) while other text keeps it — font-specific, unconfirmed on a handset.
+Sell has no customer or receiving-account selection although the API accepts both.
+`docs/24` §18 SL1–SL12 open.
+
+**Services.** The session restart stopped the live API, Metro and all helpers
+(MySQL survived). Restarted: API `npm run start:dev` on `:3010`, Metro
+`expo start --port 8081`, both verified listening and sign-in OK.

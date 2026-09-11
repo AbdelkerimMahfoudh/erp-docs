@@ -14,7 +14,15 @@
   Create product) → 3c Transfers/consignment → 3d Money → 3e More. Each sub-checkpoint
   committed separately; stop and report after 3e. Home "Improvement", catalogue
   images and portal redesign stay deferred.
-- Next intended action: verify and tighten the two safeguards.
+- **Done so far:** safeguards mobile **`ea5419d`**; **3a Sell** mobile **`f073ce5`**
+  (renders FR/AR/dark live; refusal and success on isolated `prisma_verify_sell`;
+  `docs/24` §18 SL1–SL12 open). Gap reported, not built: no customer or
+  receiving-account selection on Sell.
+- Services restarted after a session restart: API `:3010` (`npm run start:dev`),
+  Metro `:8081`; isolated API `127.0.0.1:3011` on `prisma_verify_sell` still up —
+  stop and drop it after 3b.
+- Next intended action: **3b Receive** — layout alignment and the serial number
+  carried through Create product and cancellation.
 - **Checkpoint 2 committed** (`12:22Z → 12:30Z`): mobile **`abd834a`** — sign-in rebuilt
   on the Text primitive, InlineNotice and tokens; registration and verification off
   utility classes; `labelStrong` / `captionStrong` / `tabLabel` added to the type scale
