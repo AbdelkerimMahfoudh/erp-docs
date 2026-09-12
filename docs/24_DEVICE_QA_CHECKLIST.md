@@ -3181,3 +3181,27 @@ in particular cannot be judged anywhere else.
 | Q22 | Complete a sale, then return to Home | The month's figures have moved |
 | Q23 | Arabic, right-to-left, largest text size, dark | Nothing clips; the back arrow points the correct way; amounts keep their grouping and read in order |
 | Q24 | French, dark | Same, and no English leaks into either language |
+
+## 26. Quick Receive and optional-seller purchases — UNVERIFIED ON ANY DEVICE
+
+Web renders against an isolated API and real-HTTP checks only. Nothing here has
+run on a handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| R1 | Home → **Receive** | The camera opens by itself, once; closing it leaves it closed |
+| R2 | Scan a phone the shop already stocks the model of | *Recognised*, model and variant shown, cost and price prefilled to confirm |
+| R3 | Scan a model the shop has never stocked | *New to this shop* with **Choose the product** and **Create a new product** |
+| R4 | Choose an existing product | The banner turns to *Recognised* for that product; cost appears |
+| R5 | Create a new product, then come back | The same IMEI (and IMEI 2) is waiting; the cost typed before is kept; no stock was created by the detour |
+| R6 | Scan a phone that is already in stock | Refused before any cost, with *Open this phone* |
+| R7 | Capture IMEI 2 with the camera, or type it | Optional; a bad or repeated IMEI 2 is explained, never blocks a single-SIM phone |
+| R8 | Add to stock with **no seller** | Succeeds; *More details* said it is recorded as paid in full; the result names the product, branch and cost |
+| R9 | Open *More details*, pick a seller, choose *Still owed* | Succeeds; that supplier's outstanding rises by the cost |
+| R10 | Airplane mode, tap Add to stock, restore network, retry | One purchase, one unit — the retry replays under the same key |
+| R11 | Double-tap Add to stock | One purchase |
+| R12 | Kill the app with a phone half-entered | On return the cost and seller are restored and the screen says it restored them |
+| R13 | A delivery half-built on the full **Receive** screen, then use the Home shortcut | The delivery is still there afterwards |
+| R14 | Receive, then sell that phone from Home → Sell | Cost, *In stock 0 days* and the expected profit match what was entered |
+| R15 | Arabic RTL, dark, largest text | Nothing clips; amounts group and read in order |
+| R16 | Check live Home after the rollup repair is approved and run | September profit, sales and collections agree with each other and with the sales history |

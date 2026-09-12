@@ -9246,3 +9246,70 @@ setting exists); Home matches the server rather than being independently "more
 correct". `units.date_in` is set once at receipt and survives a branch transfer,
 so stock age is honest and never resets — and it is NOT NULL, so no date is ever
 invented.
+
+---
+
+## 2026-09-12 06:35Z–19:10Z — CLAUDE-A — Optional-seller receiving, Quick Receive, and why Home was wrong
+
+Backend `f426253`, `8c576b5`. Mobile `e960ef6`, `86a5de0`, `207b735`. Docs: this
+commit. Migration `0070`, applied after a verified backup and an isolated proof.
+One account usage-limit pause mid-way; background processes died with it and were
+restarted deliberately.
+
+**Optional seller.** Authorised minimal change: `purchases.supplier_id` and
+`supplier_payments.supplier_id` nullable, FKs kept, nothing dropped or
+backfilled. The dependent surface was mapped before changing it — payables,
+supplier detail, settlements and report balances all key on a concrete supplier
+id, so a no-seller purchase is simply not a payable; tsc then found the one place
+that assumed non-null (`outstandingBySupplier`). Service: no supplier only with
+an explicit `paidAmount` equal to the total; a balance with nobody named, or an
+omitted amount, is refused as `supplier_required_for_balance`; no placeholder;
+payment row, units and audit still written. 12 source-level tests; my first
+version of one of them failed on the service's own comment explaining why an
+"Unknown supplier" is wrong, and now strips comments.
+
+**Isolated proof.** Backup `phonestore-20260912-173146-pre-optional-supplier.sql`
+(820 048 B, trailer, 88 tables, 0 raw binary). The grep said 25 triggers and the
+restore 24 — trigger names compared equal on both; the grep double-counted a
+wrapped form. Restored to `prisma_verify_optional`, migrated, driven over real
+HTTP: **24/0**. Three script defects were caught and fixed rather than counted:
+a sale priced below the configured floor (the server rightly asked for approval),
+a replay assertion that passed when both attempts failed, and test IMEIs that
+repeated across runs. Then `prisma migrate deploy` on live; rows unchanged.
+
+**Quick Receive.** Built, then corrected twice by rendering it: an unknown model
+offered only *Create product*, not *Choose product*, and the banner kept saying
+"new to this shop" after a product was chosen. Rendering also exposed a
+pre-existing web defect — every draft screen in a browser claimed the draft was
+refused, because `unsupported` was treated as refusal. Final renders against the
+isolated API, request-rewritten from `:3010`: FR/AR, light/dark, through to a
+server-confirmed *Added to stock*.
+
+**Home figures.** Cause proven from the append-only audit trail: `Sale create`
+×28 on 2026-09-10 and ×4 on 2026-08-08, no surviving sales on either day —
+fixtures hard-deleted outside the app, and nothing recomputes a rollup when
+source rows disappear. Same company and branch throughout; not contamination.
+Live scope: 2 branch-days, overstated by 388 340.00. `scripts/rollup-audit.js`
+repairs through `RollupService.recomputeDaily`; proved on the copy. **Live repair
+not applied — presented for review.** The four cards' definitions (confirmed vs
+pending expenses, gross collections, approval vs confirmation dates, UTC) are
+now written down in `docs/21`.
+
+**Expo Doctor.** 17 packages one patch behind SDK 57. `expo install --fix` moved
+14 (three were already satisfied) and exited non-zero on its last step, so the
+outcome was verified rather than trusted: doctor 21/21, tsc, lint, suites and
+export all pass. Metro was stopped before replacing packages.
+
+**Verified.** Backend tsc, **131 suites / 2415 tests**, migrate status 69.
+Mobile tsc, lint 33 (baseline), **51 pure suites**, export, doctor 21/21.
+
+**Live data.** Business records unchanged (9/52/7/7, unit and sale MD5 identical);
+audit 828 with **zero rows since the backup** — every sign-in and write went to
+the isolated database. Only the schema changed. Isolated API, static server and
+Chrome stopped; `prisma_verify_optional` dropped. A cleanup command matched its
+own shell with a wildcard and died mid-way, as an earlier session's did; the
+services had already been stopped by exact PID.
+
+**Open.** Live rollup repair awaiting review. `docs/24` §26 R1–R16 and §25
+Q1–Q24, all handset. Security gate still a release blocker. Web rendering is not
+device verification.

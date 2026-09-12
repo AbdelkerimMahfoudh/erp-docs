@@ -4895,7 +4895,7 @@ payment → confirmed.
 - One idempotency key per **sale**, not per attempt, so a timeout retry cannot
   charge a customer twice. A new key is taken only when a new sale is started.
 
-### 🔴 BLOCKED — "supplier optional" on Quick Receive needs a schema decision
+### ⤴ SUPERSEDED — "supplier optional" was blocked; resolved below (optional-seller receiving)
 
 Quick Receive was specified with supplier under *More details*, optional, with
 "no blocking validation when omitted". The contract cannot express it:
@@ -4926,3 +4926,94 @@ migration per `docs/22`) or amending the requirement.
   between shops does not look newly delivered; it is NOT NULL, so there is no
   missing case tempting anybody to invent a date. Where the client has no date
   it says so rather than showing "arrived today".
+
+### ✅ IMPLEMENTED — optional-seller receiving (migration `0070`)
+
+The everyday purchase is a handset bought from whoever walked in with it and
+paid on the spot. The owner authorised the minimal schema change; these are the
+rules:
+
+- **A purchase fully paid may name no supplier.** `purchases.supplier_id` and
+  `supplier_payments.supplier_id` are nullable. Nothing dropped, nothing
+  backfilled, both foreign keys kept.
+- **Omitting the supplier never implies payment.** `paidAmount` must be sent and
+  must equal the total; a missing amount is refused, not defaulted.
+- **A balance needs a payee.** No supplier + anything outstanding is refused with
+  `supplier_required_for_balance`: *"Name who this was bought from, or record the
+  full amount as paid. An unpaid balance has to be owed to somebody."*
+- **No "Unknown supplier".** No placeholder counterparty is ever created.
+- **Records are kept without a supplier.** Purchase, purchase items, units (cost,
+  `date_in`, purchase link), the payment row and the audit entry are all written.
+- **Named suppliers are unchanged.** Payables, supplier detail, settlements and
+  the reports' supplier balances all key on a concrete supplier id, so a
+  no-seller purchase is simply not a payable. `outstandingBySupplier` skips NULL
+  rows explicitly.
+
+**Quick Receive** (Home → Receive): scanner or typed identifier → recognised or
+chosen/created product → cost (prefilled from the product, to confirm) → **Add to
+stock** → server-confirmed result. The seller sits under *More details*; with none
+named the screen states the purchase is recorded as paid in full and why. IMEI 2
+optional; a registered identifier refused before any cost is typed; identifiers
+and cost survive the Create-product detour; one request key per purchase across
+retries; its own draft key, leaving the full Receive delivery untouched.
+
+### 📋 FOUND AND PROVEN — why live Home figures were wrong
+
+**Cause: stale derived rows left by deleted verification fixtures, plus no
+invalidation path.** The append-only audit trail records `Sale create` ×28 on
+2026-09-10 and ×4 on 2026-08-08; the `sales` table has no rows on either day.
+Those fixture sales (the `ZZ-CP6` cleanup and an earlier one) were hard-deleted
+outside the application, and their `daily_rollups` rows were never recomputed.
+`RollupListener` subscribes only to `sale.recorded` and `stock.moved`; nothing
+re-enqueues a recompute when source rows disappear. Not cross-tenant
+contamination: every affected row belongs to one company and branch, and
+`sale_items.company_id` always equals its sale's.
+
+**Exact affected scope on live** (read-only audit, nothing written):
+
+| Company / branch | Day | Rollup revenue | Ledger revenue | Rollup net | Sales rollup/ledger |
+|---|---|---|---|---|---|
+| Demo Phone Store / Main Store | 2026-08-03 | 1 000.00 | 1 000.00 | 200.00 | 1/1 — correct, untouched |
+| Demo Phone Store / Main Store | **2026-08-08** | 40.00 | **0.00** | 31.80 | 1/0 |
+| Demo Phone Store / Main Store | **2026-09-10** | 388 300.00 | **0.00** | 328 300.00 | 6/0 |
+
+Rollups total 389 340.00 against a ledger of 1 000.00 — **overstated by
+388 340.00**. Home's *"This month's profit so far — 328 300 MRU"* on live comes
+entirely from the 2026-09-10 row.
+
+**Repair, proved on an isolated restore:** `RollupService.recomputeDaily` — the
+production code path, not a hand-written UPDATE — for the two drifted
+branch-days. After: every rollup row matched the ledger; the correct 2026-08-03
+row was unchanged. No sale, payment or audit row is touched: rollups are a cache.
+
+**Live repair is NOT applied — awaiting review.** Procedure:
+
+1. Take and verify a backup per `docs/22`.
+2. `DB=phonestore node rollup-audit.js` — confirm the scope is still exactly
+   these two rows.
+3. `DB=phonestore node rollup-audit.js --repair` — recomputes only drifted rows
+   and re-audits; expected result "every rollup row now matches the source
+   ledger", live September figures falling to what the ledger supports.
+
+Until it runs, **live Home still shows the stale 328 300**. The collections card
+already reads the payments ledger and shows 0 beside it, which is the visible
+signal. Going forward, any out-of-application data removal must be followed by
+the same audit.
+
+### 📋 DOCUMENTED — the four Home figures, exactly
+
+Month-to-date, the selected branch, **UTC day boundaries** — the existing
+business convention everywhere in this product (rollups key on a UTC day); no
+timezone feature added.
+
+| Card | Source | Counts | Excludes |
+|---|---|---|---|
+| This month's profit so far | `summary.profit.netOperatingProfit` | net revenue − (COGS − COGS credited by approved returns) − **confirmed** expenses | pending/rejected expenses; stock purchases (never an expense) |
+| Sales this month | `summary.profit.netRevenue` | `price × qty − discount` of non-voided lines by `sold_at`, less revenue reversed by returns **approved** in the period | refund payouts (cash, not revenue) |
+| Expenses this month | `summary.expenseDetail.total` | **confirmed** only — variable on confirmation date, fixed on due date | submitted/under-review and rejected expenses |
+| Money collected this month | `summary.collected.total` | **gross** customer payments (`payments`) for sales in the window, cash and account together | refunds — **not netted**; they stay in `cash.refundsPaid`, on the confirmation date |
+
+Profit reverses on the return's **approval** date; cash leaves on the refund's
+**confirmation** date; neither is counted twice. Verified over real HTTP on an
+isolated copy: a 10 000 sale of a phone costing 1 500 moved profit +8 500, sales
++10 000 and collections +10 000 exactly.
