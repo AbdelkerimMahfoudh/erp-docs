@@ -7,79 +7,168 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Last owner: **CLAUDE-A**, `2026-09-11T22:45Z` → `2026-09-12T04:10Z` — **the four
-  approved decisions**, plus the pre-release security gate as a recorded milestone.
-- Takeover HEADs were: docs `a89c98e` · backend `2b48143` · mobile `192f4ba` · control-web `c764d63`
+- Owner: **NONE**
+- Last owner: **CLAUDE-A**, `2026-09-12T04:24Z` → `2026-09-12T06:10Z` — the Home
+  dashboard **"Improvement"**, the **Quick Sell** shortcut and the four monthly
+  figures. **Quick Receive was not built** — see the blocker below.
+- The instruction said "continue as CLAUDE-B"; the stored account memory says
+  this account is **CLAUDE-A**. Worked and recorded as CLAUDE-A, and raised
+  rather than silently resolved.
+- Takeover HEADs, re-derived from the working trees rather than reused from the
+  prompt: docs `a12a02f` · backend `437e822` · mobile `c871c60` — all three
+  clean and level. No `retail-erp-control-web` checkout exists beside this
+  repository, so it was out of scope.
+- **Sections §1–§9 below are retained history from earlier phases**, left as the
+  previous owners wrote them. Where they disagree with the tables immediately
+  below, these tables are current.
+
+### 🔴 Reported finding — live `daily_rollups` disagrees with the sales ledger
+
+Found while verifying the new monthly cards against the live API. **Not caused
+by this work, and deliberately not "fixed":** recomputing rollups would rewrite
+live derived financial records, which is not mine to do unasked.
+
+| `daily_rollups` day | Row says | Recomputed from `sale_items` |
+|---|---|---|
+| 2026-08-03 | 1 000.00 | 1 000.00 ✅ |
+| 2026-08-08 | 40.00 | **0.00** ❌ |
+| **2026-09-10** | **388 300.00** revenue · 328 300.00 net · 6 sales | **0.00** ❌ |
+
+Every sale in the database is dated **2026-07-30** (6 sales, 9 051.00) or
+**2026-08-03** (1 sale, 1 000.00). There are **no September sales at all**, and
+`payments` totals 7 rows / 10 051.00 across all time.
+
+So Home's headline *"This month's profit so far — 328 300 MRU"* is rendering a
+cache row that the source tables do not support. The screen is faithful; the
+rollup is stale (`refreshed_at 2026-09-10 23:33:09`, likely left by earlier
+fixture or verification work).
+
+The new **money collected** card is what exposes it: it reads the `payments`
+ledger rather than the rollup, so it correctly shows **0 MRU** beside a claimed
+388 300 of revenue. That disagreement is now visible on the screen instead of
+hidden behind one number.
+
+**Recommended next action (needs a decision):** re-run the rollup recompute for
+the affected branch-days against live, after a verified backup — or establish
+why a rollup row exists for a day with no sales, since that is the more
+important question.
+
+### Reported blocker — "supplier optional" needs a schema decision
+
+Quick Receive is specified as: supplier under **More details**, optional, *"no
+mandatory creation, no placeholder person, no blocking validation when
+omitted"*. The existing contract cannot express that:
+
+| Layer | State | Evidence |
+|---|---|---|
+| DTO | **required** | `CreatePurchaseDto.supplierId` is `@IsUUID()` with no `@IsOptional()` |
+| Schema | **NOT NULL** | `Purchase.supplierId Bytes` with a required FK to `Supplier` |
+| Service | **throws** | `purchasing.service.ts:140` resolves it and raises `NotFound`; the payable balance and the `supplierPayment` row are both driven off it |
+
+Delivering the requirement means making `purchases.supplier_id` nullable and
+teaching the service that a purchase can owe nobody — a **migration on a
+financial table** plus a change to what a payable means. The rulebook classes a
+schema change as *major* ("explain the plan, the files, the risks, and wait for
+approval"), and the brief says to avoid migrations unless a proven contract gap
+requires one. This is that gap, proven — but inventing a placeholder supplier is
+explicitly forbidden, and quietly leaving the validation in place would ship the
+opposite of what was asked.
+
+**Quick Receive is therefore not built yet, pending a decision on one of:**
+
+1. make `purchases.supplier_id` nullable (migration + backup per `docs/22`;
+   payable and settlement paths guarded for the no-supplier case), or
+2. keep supplier required and amend the requirement.
+
+Quick Sell, the Home rebuild and the monthly metrics are unaffected and are done.
+
+### Reported blocker — the Improvement mockups are missing
+
+The brief says to use "the attached mockups" and "the saved Improvement design"
+as the visual reference. **No mockups were attached, and no saved design exists
+in any repository.** Every occurrence of "Improvement" in the documentation
+(`docs/21` L4497, `SESSION_LOG` L8657/L8802, this file's previous snapshot) only
+records the work as *deferred*; there is no design file, image or specification
+section. Proceeding against the **written** brief in the instruction, which is
+self-sufficient — compact branch header, profile, personalised welcome card, no
+decorative phone, no marketing slogan, Sell + Receive replacing Sell + Scanner,
+five tabs, Indigo tokens. Fidelity to the unseen layout cannot be verified.
 
 ### What changed
 
-| Decision | Commits | Summary |
+| Part | Commits | Summary |
 |---|---|---|
-| **4a** customer + receiving account | backend `437e822` · mobile `c871c60` | customers module (search/create), `customer.manage` (`0068`); non-cash must name an ACTIVE account, provider frozen beside the label (`0069`); optional customer picker on Sell |
-| **4b** identifier-aware suggestion | backend `1dba435` · mobile `53d73dc` | a serial suggests serial, an IMEI suggests IMEI, a barcode suggests nothing; `serial` selectable again; identifiers cannot cross-populate |
-| **4c** money formatting | mobile `491793e` | thousands grouped with a visible non-breaking space, one shared formatter behind every surface |
-| **4d** consignment + loan states | *(no code — verification)* | all 14 consignment and 9 loan states built through the real API on an isolated copy and rendered FR/AR, light/dark, from both sides |
-| **Security gate** | docs *this commit* | `docs/48` — release blocker, NOT implemented now, by instruction |
+| **Home "Improvement"** | mobile `8b2539f` | compact branch line, personalised welcome, no decorative phone and no slogan; Sell + Receive replace Sell + Scanner and open the camera once branch and permissions resolve; five tabs unchanged |
+| **Quick Sell** | mobile `8b2539f` · fix `4e9ce19` | scan → the exact phone → price + a private summary → payment → confirmed; holds its own line and no draft, so the Sell tab's cart is untouched |
+| **Four monthly figures** | mobile `8b2539f` | profit (server's operating result), sales, expenses, money collected — all server-computed, month-to-date, branch-scoped |
+| **Money collected** | backend `66b53f7` | new `summary.collected`; counts `payments` rows because `cash.salesReceived` was net revenue standing in for money received |
+| **Quick Receive** | *(none)* | 🔴 **not built** — blocked on the supplier schema decision below |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`437e822`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`c871c60`** | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
+| `erp-backend` | `reports-export` | **`66b53f7`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`4e9ce19`** | level | 0 |
+| `retail-erp-control-web` | — | *no checkout beside this repository* | — | — |
 
 ### Migrations applied this phase
 
-| # | What | Backup taken first |
-|---|---|---|
-| `0068_customer_manage_permission` | the `customer.manage` catalogue row and its grants (owner, store_manager, administrator) | `~/erp-backups/phonestore-20260911-231638-pre-customer-account.sql` — 814 204 B, `-- Dump completed`, 88 tables, 25 triggers, 0 raw binary |
-| `0069_payment_provider_snapshot` | `payments.account_provider_snapshot`, nullable, never backfilled | same backup |
+**None.** `prisma migrate status` reports 68 applied and up to date, and
+`prisma validate` passes. The one migration this phase would have needed —
+making `purchases.supplier_id` nullable — is raised as a blocker rather than
+applied, so no backup was required.
 
 ### Verified, by kind
 
 | Kind | Result |
 |---|---|
-| **Unit / pure tests** | backend `tsc` clean · **129 suites / 2396 tests** · mobile `tsc` clean · lint **33** (baseline) · **50 pure suites** · EN/FR/AR parity |
-| **Isolated live-API checks** | on `127.0.0.1:3011` over `prisma_verify_states`: purchase, connection request/accept, and every consignment and loan transition driven through real endpoints by two signed-in stores |
-| **Real web renders** | Sell (customer + account), Create product suggestion, money grouping, and all 23 states — French and Arabic, light and dark, phone width, from BOTH sides of a consignment |
-| **Physical device** | 🔴 **none.** `docs/24` §24 P1–P20 open, plus §18–§23 from earlier phases |
+| **Unit / pure tests** | backend `tsc` clean · **130 suites / 2403 tests** (was 129/2396) · mobile `tsc` clean · lint **0 errors / 33 warnings** (baseline) · **51 pure suites** (was 50; +`home-metrics` 17, +`receipt-privacy` 8) · EN/FR/AR parity enforced by the `Catalogue` type |
+| **Schema & permissions** | `prisma validate` valid · `migrate status` 68 applied, up to date · permission catalogue **62/62**, "catalogue and grants complete" |
+| **Build** | web export clean, `dist/quick-sell.html` emitted · **Expo Doctor: 1 check FAILS** — "17 packages out of date", pre-existing; no dependency added and `package.json` untouched |
+| **Real web renders (live API, read-only)** | Home and Quick Sell in **French and Arabic, light and dark**: welcome, both shortcuts, all four monthly cards, empty state, honest "not found", and the private summary — *Arrivé le 30 juil. 2026 · En stock depuis 43 jours · Prix d'achat 1 000 MRU · Bénéfice attendu 500 MRU*. `dir` correct in both languages, no leaked internals. The unit is a **serial-tracked** Sony Bravia, so the shortcut is proven for serials as well as IMEIs |
+| **Physical device** | 🔴 **none.** `docs/24` **§25 Q1–Q24** open, plus §18–§24 from earlier phases. **Web rendering is not device verification** — the camera behaviour in particular cannot be judged anywhere else |
 
 ### Live data
 
-Untouched by this phase. After `22:45Z`, live `phonestore` recorded **0 new units,
-0 payments and no business rows**; the only two audit entries are `UserDevice create`
-at 22:53, from sign-in probes confirming the API had restarted.
+**Read-only throughout.** No sale was completed, no purchase made, no product
+created, and no temporary database was created this phase. Counts unchanged:
+units 52 · sales 7 · payments 7, totalling 10 051.00. The only server-side
+effect was signing in, which enrols a `UserDevice` row as any sign-in does.
 
-Counts: units 52 · sales 7 · purchases 9 · payments 7 · consignments 0 · loans 0 ·
-counterparties 0 · connections 0 · customers 0 · audit 824.
-Unit-id MD5 `8a62750e3c298bd34f1a9891ff2ad17f`, sale-id MD5 `1e9d9c8cc20104d1a7f9182891bfd19b`.
-
-One live unit matches the isolated test IMEI prefix — `357777770000000`, created
-**2026-07-30**, present in the pre-work backup. It is unrelated to the isolated
-batch (`3577765620000xx`).
-
-`prisma_verify_states` was **dropped**; only the pre-existing `prisma_staging` and
-`prisma_staging_shadow` remain. Two fixture edits were confined to that dropped copy:
-both companies made discoverable, and Test Store’s owner given the Demo owner’s
-password hash so both sides of a consignment could act.
+The live API was **rebuilt and restarted** — it runs `dist/src/main`, so the new
+`collected` field could not appear until `nest build` ran. Stopped by exact PID
+after confirming its command line, and restarted with `npm run start`.
 
 ### Services
 
 | Service | State |
 |---|---|
-| API `:3010` | running, sign-in 200, serving `437e822`. **No watcher** — restart with `npm run start` in `backend/` after any backend edit |
-| Metro `:8081` | running |
-| MySQL `:3306` | the user’s WAMP stack |
-| Isolated API `:3011` | stopped; its database dropped |
+| API `:3010` | **running**, sign-in 200, serving `66b53f7` from a fresh `nest build`. **No watcher** — rebuild and restart with `npm run build && npm run start` in `backend/` after any backend edit |
+| Metro `:8081` | running, untouched this phase |
+| MySQL `:3306` | the user’s WAMP stack, untouched |
+| Headless Chrome `:9333` | running — pre-existing, used for renders, left as found |
+| Static server `:19006` | **stopped** — started by this phase for renders, and cleaned up |
 
 ### The next exact action
 
-The owner decides what follows. Nothing is in progress. Still deferred by
-instruction: the Home dashboard "Improvement", catalogue images, and the portal
-redesign. The **pre-release security gate** (`docs/48`) blocks any public
-release and has not been started.
+Nothing is in progress. **Two decisions are needed before any further code**,
+both recorded in full above:
+
+1. **`purchases.supplier_id` nullable, or amend the requirement?** Quick Receive
+   cannot be built either way until this is answered.
+2. **The stale `daily_rollups` rows.** Home's headline currently reports a cache
+   row the sales ledger does not support. The more important question is *why* a
+   rollup exists for a day with no sales, before anything is recomputed.
+
+Then: `docs/24` **§25 Q1–Q24** on a handset — nothing in this phase has run on
+one, and Q3/Q4 (the camera opening once, and staying closed) cannot be judged
+anywhere else.
+
+Still deferred by instruction: catalogue images and the portal redesign. The
+**pre-release security gate** (`docs/48`) blocks any public release and has not
+been started.
 
 ### Verified this session, by kind
 

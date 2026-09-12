@@ -3149,3 +3149,35 @@ Web renders and isolated API checks only. Nothing below has run on a handset.
 | P18 | A consignment you sent, in each state | Who holds it, what happened, who acts next, agreed/paid/outstanding, custody vs money separate |
 | P19 | The same consignment from the receiving store | Reads from that side: *Vous détenez ceci · À vous* |
 | P20 | A loan in each state | Agreed, paid and outstanding are distinct; reported is never counted as paid |
+
+## 25. Home ("Improvement") and Quick Sell — UNVERIFIED ON ANY DEVICE
+
+Web renders only. Nothing below has run on a handset, and the camera behaviour
+in particular cannot be judged anywhere else.
+
+| # | Do this | Expect |
+|---|---|---|
+| Q1 | Open Home on a cold start | Branch line, your name, then the two shortcuts. No decorative phone, no slogan |
+| Q2 | Watch the welcome line while permissions resolve | It says *preparing* first and *ready* only once both branch and permissions have landed |
+| Q3 | Tap **Sell** | The camera opens by itself — no second tap |
+| Q4 | Close the camera from inside Quick Sell | It STAYS closed. The typing field below is usable, and nothing springs back |
+| Q5 | Type an IMEI instead of scanning | Same result as a scan; manual entry is never taken away |
+| Q6 | Scan a phone's **second** IMEI | The same handset is found, not "no phone with that number" |
+| Q7 | Scan a phone that is reserved or already sold | Refused, with the reason in words; Confirm sale is not offered |
+| Q8 | Scan a phone held at another branch | Refused as unavailable |
+| Q9 | Read the private summary | Arrival date, days in stock, cost, expected profit — and the line saying it is private |
+| Q10 | As an Employee without `cost.view` | No cost row and no expected profit at all — never a dash or a zero |
+| Q11 | Price the phone below its cost | Expected **loss**, shown as a loss, and the server's below-cost question before it completes |
+| Q12 | Price it below the configured floor | The owner-approval sheet appears — the same one the Sell tab uses |
+| Q13 | Complete the sale, then share the receipt | The receipt shows what was sold, the price and the payment. **No cost, no profit** anywhere on it |
+| Q14 | Pay by Bankily | An active account must be named before the sale completes |
+| Q15 | Turn airplane mode on and retry a submitted sale | One sale, one payment — the retry replays under the same key |
+| Q16 | Build a cart on the **Sell tab**, then use the Home Sell shortcut | The cart is still there, untouched, when you go back |
+| Q17 | Read the four monthly cards as an Owner | Profit leads, captioned *Based on recorded expenses*; sales, expenses and collections beside it |
+| Q18 | Read the comparison line | It names how many days it compared, never "last month" |
+| Q19 | A branch with no trading last period | *Nothing to compare against yet* — never "up 100%" |
+| Q20 | As an Employee without `report.view` | The whole month section is absent, not zeroed |
+| Q21 | Turn the network off and pull to refresh | It says the connection is gone and when the figures were fetched; it does not show zeros |
+| Q22 | Complete a sale, then return to Home | The month's figures have moved |
+| Q23 | Arabic, right-to-left, largest text size, dark | Nothing clips; the back arrow points the correct way; amounts keep their grouping and read in order |
+| Q24 | French, dark | Same, and no English leaks into either language |

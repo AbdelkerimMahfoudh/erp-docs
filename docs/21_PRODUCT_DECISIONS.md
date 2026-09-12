@@ -4815,3 +4815,114 @@ détenez ceci · Chez vous · À vous*.
 
 Rendered in French and Arabic, light and dark, at phone width, from both sides.
 The isolated database was dropped afterwards and live data proved untouched.
+
+### ✅ IMPLEMENTED — Home ("Improvement"): a greeting, two shortcuts, four figures
+
+The landing screen stopped being a report and became a place to start work.
+
+- **The welcome says only what is known.** A compact branch line, then the
+  signed-in person's name, then whether the screen is ready. The decorative
+  phone and the marketing slogan are gone — they were space spent on nothing
+  anybody can act on. There is deliberately **no** "you sold N today, keep
+  going": an encouraging figure nobody asked for is a performance claim, and
+  this screen has no business inventing one.
+- **Sell and Receive replace Sell and Scanner.** Both open the camera as soon as
+  the branch and the permission set have resolved — and not before, so a
+  viewfinder never appears in front of somebody about to be told they may not
+  sell here. Typing stays permanently available underneath, because whether a
+  handset carries a scannable code is the manufacturer's decision.
+- **The shortcuts never touch the full workflows' drafts.** A quick sale holds
+  its own single line and keeps no draft; the Sell tab's cart is left exactly as
+  it was. A shortcut that quietly emptied half a built sale would be worse than
+  no shortcut at all.
+
+### ✅ IMPLEMENTED — the four monthly figures, and where each one comes from
+
+Audited before anything was wired. Every figure is the server's; Home chooses
+the window and says what the number means, and computes no money of its own.
+
+| Card | Server field | What it actually is |
+|---|---|---|
+| **This month's profit so far** | `summary.profit.netOperatingProfit` | net revenue − net COGS − **confirmed** expenses |
+| Sales this month | `summary.profit.netRevenue` | gross sales − revenue reversed by returns approved in the period |
+| Expenses this month | `summary.expenseDetail.total` | confirmed expenses only; a variable one on its confirmation date, a fixed one on its due date |
+| Money collected this month | `summary.collected.total` | **new** — see below |
+
+- **Profit is never sales minus stock purchases.** Buying inventory is a
+  balance-sheet movement (`accounting-rules.ts` says so as data); a good month
+  of restocking would otherwise read as a catastrophe. Cost reaches profit
+  through COGS when the goods sell.
+- **A return is counted once.** Profit reverses on the **approval** date and the
+  cash leaves on the **confirmation** date, and the refund carries no profit
+  component — subtracting it twice is the single easiest mistake in this area
+  and the rollup is written to prevent it.
+- **The comparison is like-for-like.** The server compares the preceding window
+  of EQUAL LENGTH, so twelve days into a month are measured against the twelve
+  days before them. The screen says how many days rather than "vs last month",
+  which would describe a comparison nobody made. A zero base reports
+  *no comparison* instead of a percentage divided by nothing.
+- **Money collected is new, because nothing answered it.** `cash.salesReceived`
+  was net revenue used as a stand-in — what was *billed*, not what *arrived* —
+  so a credit sale inflated it. It now counts `payments` rows, split cash vs
+  account by `method` (not by account id, or every pre-`0045` unattributed
+  payment would vanish). Refunds are **not** netted off: they are money going
+  the other way and keep their own line. It is never profit and never an
+  available balance.
+- **Absent is not zero.** A figure the server cannot produce — including an
+  older server that does not send `collected` at all — is named as unavailable.
+  A shop cannot tell a measured zero from one nobody computed.
+
+### ✅ IMPLEMENTED — Quick Sell, and what the customer never sees
+
+Home → Sell → scanner → the exact phone → price and a private summary →
+payment → confirmed.
+
+- Either IMEI finds the same handset; the server already looks up primary,
+  secondary and serial alike.
+- Availability, custody and branch are the server's facts and are only reported:
+  a reserved unit is on somebody's transfer and a sold one is gone.
+- The configured selling price is prefilled. Changing it is allowed exactly as
+  on the Sell tab — the server refuses anything below the floor without an
+  owner's approval, and that approval flow is reused rather than reimplemented.
+- **The private summary is private by construction.** `ReceiptData` has no cost
+  and no margin field, so the printed and shared receipt has nowhere to put
+  them; `receipt-privacy.test.ts` asserts it against the type, against every
+  interpolation the receipt renders, and against the screen that builds it.
+- Cost is shown only where the role may see it **and** the field is present —
+  without `cost.view` the server strips it, and a dash there reads as "free".
+- **A loss is shown as a loss.** Flooring the expected result at zero would hide
+  exactly the sale somebody needs to think again about.
+- One idempotency key per **sale**, not per attempt, so a timeout retry cannot
+  charge a customer twice. A new key is taken only when a new sale is started.
+
+### 🔴 BLOCKED — "supplier optional" on Quick Receive needs a schema decision
+
+Quick Receive was specified with supplier under *More details*, optional, with
+"no blocking validation when omitted". The contract cannot express it:
+`CreatePurchaseDto.supplierId` is `@IsUUID()` with no `@IsOptional()`,
+`Purchase.supplierId` is **NOT NULL** with a required FK, and the service
+resolves it, raises `NotFound` without it, and drives the payable balance and
+the settlement row off it.
+
+Delivering the requirement means making a **financial column nullable** and
+deciding what a purchase owing nobody means for payables. The rulebook classes a
+schema change as *major* and requires approval first; inventing a placeholder
+supplier is explicitly forbidden; and leaving the validation in place would ship
+the opposite of what was asked. **The screen is therefore not built**, pending a
+choice between making `purchases.supplier_id` nullable (with a backup and
+migration per `docs/22`) or amending the requirement.
+
+### 📋 RECORDED — two contract gaps found while auditing, neither invented around
+
+- **Period boundaries are UTC.** There is no business-timezone setting anywhere:
+  the server keys every rollup on a UTC day and the summary window slices a UTC
+  string. Home matches the server rather than being independently "more
+  correct", so the phone and the server never disagree about which day it is —
+  but a shop trading late in a UTC+2 evening has those takings land on
+  tomorrow's figures. Stated in `home-metrics.ts` and asserted by its test.
+- **Stock age is honest and does not reset.** `units.date_in` is set once, from
+  the schema default, when the purchase is received. Receiving a transfer
+  rewrites `status` and `branch_id` and **does not touch it**, so a phone moved
+  between shops does not look newly delivered; it is NOT NULL, so there is no
+  missing case tempting anybody to invent a date. Where the client has no date
+  it says so rather than showing "arrived today".

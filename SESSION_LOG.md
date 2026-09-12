@@ -9143,3 +9143,106 @@ instruction**; no publication may proceed with an open critical or high finding.
 
 **Open.** `docs/24` §24 P1–P20, all handset. Web rendering is not device
 verification.
+
+---
+
+## 2026-09-12 04:24Z–06:10Z — CLAUDE-A — Home ("Improvement"), Quick Sell, and four monthly figures
+
+Backend `66b53f7`. Mobile `8b2539f`, `4e9ce19`. Docs: this commit. **No
+migrations** — the one the brief would have needed is raised as a blocker
+instead, below.
+
+**Label.** The instruction said "continue as CLAUDE-B"; the stored account
+memory says this account is CLAUDE-A. Worked and recorded as CLAUDE-A, and
+raised rather than silently resolved.
+
+**Audited before building.** Takeover HEADs were re-derived from the working
+trees rather than reused from the prompt (docs `a12a02f` · backend `437e822` ·
+mobile `c871c60`, all clean and level). No `retail-erp-control-web` checkout
+exists beside this repository, so it was out of scope.
+
+The monthly figures were traced to their sources before a line was wired.
+`daily_rollups.net_profit` is already the operating result — revenue net of
+returns, less recognised COGS, less CONFIRMED expenses — with returns keyed on
+`approval_date` and refunds on `confirmation_date` carrying no profit component,
+which is exactly the no-double-count separation asked for. So Home computes no
+money at all: `/analytics/summary` owns the arithmetic and the screen chooses
+the window. The comparison is the server's own preceding window of equal length,
+and the screen says how many days rather than claiming "last month".
+
+**Money collected had no source, so one was added.** `cash.salesReceived` was
+net revenue standing in for money received — what was billed, not what arrived —
+so a credit sale inflated it. `collected` counts `payments` rows, split by
+`method` (not by account id, which would drop every pre-`0045` unattributed
+payment), branch-scoped explicitly, with an exclusive upper bound so the last
+day of an inclusive window keeps its takings. Refunds are not netted off: they
+are money going the other way and keep their own line. 7 source-level tests.
+
+**Home.** The decorative phone and the slogan are gone. The welcome says only
+what is known — branch, name, and whether the screen is actually ready — with no
+invented performance claim. Sell and Receive replace Sell/Scanner and open the
+camera once branch and permissions have both resolved, never before. `ScanTarget`
+gained `autoOpenCamera`, which fires **once**: closing the camera leaves it
+closed, or the screen has no way out.
+
+**Quick Sell.** Scan, price, a private summary, payment, done. It holds its own
+line and no draft, so the Sell tab's cart is untouched. `ReceiptData` has no cost
+or margin field, so the shared receipt has nowhere to put them; the new test
+asserts that against the type, against every interpolation the receipt renders
+and against the screen that builds it. A loss is shown as a loss. One
+idempotency key per sale, not per attempt.
+
+**One defect found by rendering, not by the type checker.** Typing an identifier
+into the scanner sheet's keypad answered "no phone in stock has that number" for
+every phone. The sheet submits through a separate `useScan` with no `onCode`, so
+the prefetch `onCodeCaptured` starts never existed on that path — and that keypad
+is the permanent manual-entry route and the only one on a handset with no usable
+camera. The prefetch is now an optimisation; a missing one fetches directly
+(`4e9ce19`).
+
+**Verified.** Backend: tsc clean, **130 suites / 2403 tests** (was 129/2396),
+Prisma schema valid, 68 migrations applied with no drift, permission catalogue
+62/62 with no drift. Mobile: tsc clean, lint **0 errors / 33 warnings**
+(baseline), **51 pure suites** (was 50; +`home-metrics` 17, +`receipt-privacy` 8),
+EN/FR/AR parity enforced by the `Catalogue` type, web export clean with
+`quick-sell.html` emitted. Expo Doctor: **1 check fails — 17 packages out of
+date**, pre-existing; no dependency was added and `package.json` was untouched.
+
+**Real web renders.** Home and Quick Sell in French and Arabic, light and dark,
+at phone width: welcome, both shortcuts, all four monthly cards, the empty state,
+the honest "not found", and the private summary — *Arrivé le 30 juil. 2026 · En
+stock depuis 43 jours · Prix d'achat 1 000 MRU · Bénéfice attendu 500 MRU* — with
+`dir` correct in both languages and no leaked internals. The unit rendered is a
+serial-tracked Sony Bravia, so the shortcut is proven for serials as well as
+IMEIs. **Web rendering is not device verification**; `docs/24` §25 Q1–Q24 is open.
+
+**Live data.** Read-only throughout: no sale was completed, no purchase made, no
+product created. Counts unchanged — units 52 · sales 7 · payments 7, totalling
+10 051.00. The only server-side effect was sign-in, which enrols a `UserDevice`
+row as any sign-in does. The live API was rebuilt and restarted (it runs
+`dist/src/main`, so the new field needed a build); it is up on `:3010`.
+
+**Found while verifying — live `daily_rollups` disagrees with the sales ledger.**
+Every sale in the database is dated 2026-07-30 or 2026-08-03. There are **no
+September sales at all**, yet a rollup row for **2026-09-10** claims 388 300.00
+revenue, 328 300.00 net profit and 6 sales (`refreshed_at 2026-09-10 23:33:09`);
+2026-08-08 likewise claims 40.00 against an actual 0.00. Home's headline is
+therefore rendering a cache row the source tables do not support. **Not fixed:**
+recomputing rollups would rewrite live derived financial records, which is not
+mine to do unasked. The new collections card is what exposes it — it reads the
+payments ledger and correctly shows 0 MRU beside a claimed 388 300 of revenue.
+
+**Blocked — Quick Receive was not built.** It is specified with supplier optional
+and "no blocking validation when omitted". `CreatePurchaseDto.supplierId` is
+`@IsUUID()` with no `@IsOptional()`, `Purchase.supplierId` is NOT NULL with a
+required FK, and the service resolves it, raises `NotFound` without it, and
+drives the payable balance and settlement row off it. Delivering the requirement
+means making a financial column nullable and deciding what a purchase owing
+nobody means — a *major* change the rulebook says to raise before acting, and a
+placeholder supplier is explicitly forbidden. Raised rather than half-shipped.
+
+**Also recorded.** Period boundaries are UTC everywhere (no business-timezone
+setting exists); Home matches the server rather than being independently "more
+correct". `units.date_in` is set once at receipt and survives a branch transfer,
+so stock age is honest and never resets — and it is NOT NULL, so no date is ever
+invented.
