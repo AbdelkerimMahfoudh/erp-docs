@@ -3122,3 +3122,30 @@ needs a handset, because a cold start there is a real cold start.
 | G5 | Arabic, More | The branch card's chevron is visible and points **left**, like the row chevrons |
 | G6 | Arabic, largest text size | The chevron stays inside the card and does not clip |
 | G7 | Sell a phone over 1 000 MRU and read the charge button | Decide whether *1015 MRU* is clear enough, or whether the group space should be widened everywhere (owner's call — see `docs/21`) |
+
+## 24. Customer, receiving account, tracking suggestion, money and states — UNVERIFIED ON ANY DEVICE
+
+Web renders and isolated API checks only. Nothing below has run on a handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| P1 | Sell a phone for cash, no customer | Completes. The customer row reads *Aucun client · Facultatif pour une vente en espèces* |
+| P2 | Tap the customer row, search by phone, pick somebody | The cart, discount and scanned lines are unchanged; the row names them |
+| P3 | Type a name that does not exist and create it | Created and selected without leaving the sale; it appears in the next search |
+| P4 | As an Employee (no `customer.manage`) | Searching works; creating is refused by the server |
+| P5 | Pay by Bankily with no account chosen | *Terminer la vente* stays disabled and says which account is needed |
+| P6 | Choose the account | Provider **and** label are both shown before completing |
+| P7 | Split cash + Bankily | Only the Bankily line asks for an account; cash never does |
+| P8 | Deactivate that account in Settings, then sell again | The account is no longer offered, and the server refuses it if sent |
+| P9 | Rename the account, then reprint an older receipt | The receipt still says the provider and label as they were at the time |
+| P10 | Sell with the same request twice (airplane-mode retry) | One sale, one payment — the replay returns the original |
+| P11 | Scan a TV serial → *Créer un nouveau produit* | Tracking is suggested as **Serial number**, not IMEI, and can be changed |
+| P12 | Scan a phone IMEI → Create product | Suggests IMEI; the IMEI never lands in the Product barcode box |
+| P13 | Scan a product barcode → Create product | Fills Product barcode only; suggests no tracking mode |
+| P14 | Pick a category on that form | The category decides the mode and the chooser gives way to it |
+| P15 | Cancel Create product and return | The same identifier is waiting, in its own field (IMEI to IMEI, serial to serial) |
+| P16 | Read any four-figure amount on a button and in a total | Both show a visible gap: *1 015 MRU* |
+| P17 | Largest text size, Arabic, dark | Amounts keep their grouping and read in order; nothing clips |
+| P18 | A consignment you sent, in each state | Who holds it, what happened, who acts next, agreed/paid/outstanding, custody vs money separate |
+| P19 | The same consignment from the receiving store | Reads from that side: *Vous détenez ceci · À vous* |
+| P20 | A loan in each state | Agreed, paid and outstanding are distinct; reported is never counted as paid |

@@ -9071,3 +9071,75 @@ screen, so it is the owner's decision. Gaps 1, 4 and 7 remain with the owner.
 sign-in 200; it was started before `2b48143`, so restart it to serve that fix.
 Metro was restarted after its cache failed to deserialise (a full crawl, not an
 error) and is PID 9496, `packager-status:running`.
+
+---
+
+## 2026-09-11 22:45Z–2026-09-12 04:10Z — CLAUDE-A — The four approved decisions, and the security gate
+
+Backend `1dba435`, `437e822`. Mobile `491793e`, `53d73dc`, `c871c60`. Docs: this
+commit. Migrations `0068` and `0069`, both applied; backup taken first.
+
+**Audited before building.** The sale, customer, payment-account and
+reconciliation contracts were read end to end. Findings that shaped the work:
+`sales.customer_id` and `payments.receiving_account_id` already existed with no
+API to fill them; the account lookup checked existence but not `is_active`; only
+the label was snapshotted, not the provider; and `serial` had been removed from
+the selectable tracking modes, which is why a scanned serial could only ever be
+offered IMEI.
+
+**4c money formatter.** Split the money half of `lib/format.ts` into
+`lib/money-format.ts`, which imports nothing and is re-exported, so one formatter
+stands behind every screen, receipt and export and can be tested under bare node.
+Separator U+202F → U+00A0. 14 tests, including a scan of every call site proving
+no identifier, year or storage size is passed to a number formatter.
+
+**4b tracking suggestion.** `suggestedTracking` / `fieldForScan` (11 tests) with
+the cross-population matrix; the form asks only where no category decides;
+`serial` returned to `SELECTABLE_TRACKING_TYPES` with the specs that pinned its
+removal rewritten in tracking-modes, catalog and categories.
+
+**4a customer + receiving account.** New customers module (12 behavioural tests),
+`customer.manage` in the catalogue and matrix with migration `0068`, the
+permission-catalogue guards taught the difference between "0059 drifted" and "a
+later migration published a new key", and `PUBLISHED_AFTER_CATALOGUE` added to
+the generator so the CLI check and the spec agree. Sale side: non-cash requires
+an active account, inactive refused, provider frozen beside the label via `0069`
+(13 tests). Sell gained an optional customer picker and an account picker that
+blocks completion until every non-cash line names one.
+
+**4d states.** Restored a sanitised copy of `phonestore-20260911-231638` into
+`prisma_verify_states`, ran the isolated API on `127.0.0.1:3011`, and drove both
+lifecycles over HTTP as two real stores — Demo Phone Store and Test Store, which
+the copy already contained. Two fixture edits were confined to that schema: both
+companies made discoverable (so `POST /connections` can find them) and Test
+Store's owner given the Demo owner's argon2 hash (its password was unknown).
+All 14 consignment states and all 9 loan states reached and rendered, FR and AR,
+light and dark, from both sides.
+
+**Verified.** Backend: tsc clean, **129 suites / 2396 tests**. Mobile: tsc clean,
+lint 33 (baseline), **50 pure suites**, EN/FR/AR parity, web export. Isolated API:
+every state reached through real endpoints. Web renders: both languages, both
+sides, dark included.
+
+**Live data untouched.** During this phase (after 22:45Z) live `phonestore`
+recorded **0 new units, 0 audit rows and 0 payments**. Counts unchanged at units
+52 · sales 7 · purchases 9 · payments 7 · consignments 0 · loans 0 ·
+counterparties 0 · connections 0 · customers 0. Unit-id MD5
+`8a62750e3c298bd34f1a9891ff2ad17f`, sale-id MD5
+`1e9d9c8cc20104d1a7f9182891bfd19b`. One live unit matches the test IMEI prefix
+(`357777770000000`) — it was created **2026-07-30**, is present in the backup
+taken before this work, and is unrelated to the isolated batch
+(`3577765620000xx`). `prisma_verify_states` dropped afterwards.
+
+**Pre-release security gate.** New `docs/48`, recorded as a release blocker
+covering secrets and Git history, credential rotation, least-privilege database
+accounts, tenant isolation, DTO allow-lists, password hashing and recovery,
+throttling, token and cookie handling, parameterised queries, output escaping,
+uploads, response minimisation, headers and CSP, HTTPS, dependency scanning,
+encrypted and restore-tested backups, audit integrity under the application
+account, logging redaction, privacy and retention, race/replay/idempotency,
+ASVS/API/MASVS review and a penetration test. **Not implemented now, by
+instruction**; no publication may proceed with an open critical or high finding.
+
+**Open.** `docs/24` §24 P1–P20, all handset. Web rendering is not device
+verification.

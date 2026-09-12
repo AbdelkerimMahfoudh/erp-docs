@@ -4705,3 +4705,113 @@ no-break space is twice as wide), which changes every screen already approved.
 
 Gaps 1 (no customer or receiving account on Sell), 4 (Create product proposes IMEI
 after a serial scan) and 7 (stages that could not be rendered) remain with the owner.
+
+### ✅ IMPLEMENTED — 4a: a customer to attribute a sale to, and the account the money reached
+
+**Customer.** `sales.customer_id` has existed since the beginning, a credit or
+partial sale REQUIRES one, and the sale list already searched by customer name
+and phone — but no endpoint could find or create a customer, so the field could
+only ever be filled by something outside this application. There is now a
+`customers` module: search by name, phone or id, and create.
+
+- Finding is gated on `sale.create`, not on customer administration: a cashier
+  who may take a credit sale must be able to name the person, and gating the
+  lookup would gate the sale.
+- Creating is the new **`customer.manage`** (migration `0068`), held by Owner,
+  Store Manager and Administrator. An Employee may attribute a sale to an
+  existing customer and may not invent one.
+- Selection is **optional** on Sell, deliberately: an ordinary cash sale needs
+  nobody, and stopping to identify a walk-in would slow the commonest
+  transaction in the shop. Choosing or creating never touches the cart, the
+  discount or the scanned lines.
+- Isolation is structural — every query goes through the tenant client, so one
+  company cannot search, read or create into another's customers.
+
+**Receiving account.** Cash remains its own method and carries no account: the
+drawer belongs to none, and `ck_payments_cash_no_account` refuses the
+alternative. Every other method must now name an **active** account:
+
+- a non-cash payment with no account is refused (it used to be recorded as
+  "unattributed", which nothing could reconcile);
+- a deactivated account is refused for a new sale, while past payments keep
+  pointing at it — which is why it is deactivated and never deleted;
+- another company's account is simply not found;
+- provider **and** label are shown before Complete, in a split as well as a
+  single payment, and Complete stays disabled until every non-cash line names
+  one;
+- **`payments.account_provider_snapshot`** (migration `0069`) freezes the
+  provider beside the label. The label alone was not enough: renaming "Bankily –
+  Main Counter" to "Counter 1", or switching an account's provider, would
+  otherwise rewrite what a receipt already said. Historical rows stay NULL
+  rather than being backfilled with a guess.
+- The account feeds the existing payment/reconciliation model — no second
+  accounting path was created — and split payments were preserved exactly as
+  they were.
+
+### ✅ IMPLEMENTED — 4b: Create product suggests what the scan actually classified
+
+Scanning a television's serial opened Create product proposing **IMEI**: the
+classification was already known and simply ignored, so the form asked for a
+number the device does not have.
+
+- `lib/scan/suggested-tracking.ts`: an IMEI suggests IMEI; a serial suggests
+  serial — never IMEI because a serial happens to be numeric; a genuine
+  EAN/UPC suggests **nothing at all**, because it names a model rather than a
+  unit, and prefills only the Product barcode.
+- The suggestion is never final: the form shows a chooser and the user confirms
+  or changes it.
+- A category still **decides** the mode wherever one is chosen, and the server
+  refuses a contradiction, so the form states no opinion there and
+  `trackingType` travels only for an uncategorised product.
+- Each identifier has exactly one field it may land in, so IMEI, IMEI 2, serial
+  and product barcode cannot cross-populate; the pending intake keeps them in
+  separate fields, scoped by user, company and branch, and no unit is created
+  until receiving succeeds.
+
+**Serial is selectable again** (reversing the earlier "not offered" decision, on
+the owner's instruction). It was withdrawn to stop a box of cables being
+registered one at a time; that guard cost more than it saved, because the shop
+sells televisions, laptops and power stations that carry a serial and no IMEI.
+The protection that actually matters is unchanged: a category decides the mode,
+and a mode change is still blocked once stock or history exists.
+
+### ✅ IMPLEMENTED — 4c: one money formatter, with a separator people can see
+
+The thousands separator was a NARROW no-break space (U+202F), about 2 px at body
+size. On the charge button — the most-read number in the app — *1 015 MRU*
+reached the eye as *1015 MRU*, while the same string in the big total showed its
+gap clearly. The character was never missing; it was too small to read at the
+size that matters.
+
+- Grouping now uses a normal non-breaking space: `1 030 MRU`, `38 000 MRU`,
+  `1 500 000 MRU` — about twice as wide, still unbreakable.
+- One shared formatter, `lib/money-format.ts`, which imports **nothing** and is
+  re-exported by `lib/format.ts`, so every screen, button, card, receipt and
+  export uses one implementation and no string was patched individually.
+- Negatives, decimals, signed deltas and "absent is not zero" all preserved;
+  Arabic keeps Latin digits and one unbroken run so the amount isolates
+  correctly; identifiers, years and storage sizes are never grouped, and a test
+  scans the call sites to keep it that way.
+- Reports CSV is deliberately untouched: those cells must stay machine-readable.
+
+### ✅ IMPLEMENTED — 4d: every consignment and loan state, rendered from real workflows
+
+The later stages had never been seen because demo data never reached them. They
+were built on an **isolated copy** of a verified backup, through the real API,
+by two real signed-in stores — never by writing lifecycle rows by hand.
+
+All **14 consignment states** (requested, counter-proposed, disputed, agreed
+awaiting custody, on the way, in custody, sold awaiting settlement, part paid,
+settled, return started, return in transit, returned, written off, cancelled)
+and all **9 loan states** (proposed, counter-proposed, disputed, agreed, payment
+reported, part paid, settled, written off, cancelled) were reached and rendered.
+
+Each screen states, in words: who holds the item, what happened, who acts next,
+the amount agreed / paid / outstanding, and whether physical custody and money
+are pending or confirmed — with **custody and settlement kept as separate
+answers**. The two ends genuinely read differently: the sender sees *Vous avez
+envoyé ceci · Chez Test Store · En attente de Test Store*, the holder sees *Vous
+détenez ceci · Chez vous · À vous*.
+
+Rendered in French and Arabic, light and dark, at phone width, from both sides.
+The isolated database was dropped afterwards and live data proved untouched.

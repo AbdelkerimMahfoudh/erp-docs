@@ -7,64 +7,79 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Last owner: **CLAUDE-A**, `2026-09-11T20:50Z` → `2026-09-11T21:35Z` — **the reported
-  gaps that were defects**, authorised after checkpoint 3.
-- **Done:** backend `2b48143` (a cancelled transfer no longer claims it shipped),
-  mobile `192f4ba` (detail screens wait for the branch; the Arabic chevron is drawn).
-- **Measured and left alone:** the charge button’s thousands space — the character is
-  present and ~2.2 px at every weight; widening it means changing the group separator
-  on every approved screen. The owner decides. See `docs/21`.
-- **Still with the owner:** (1) no customer or receiving-account selection on Sell,
-  (4) Create product proposes IMEI tracking after a serial scan, (7) consignment
-  stages after *requested* and loan details were never rendered for want of data.
-- Deferred, not started: Home dashboard "Improvement", catalogue/product images
-  ([`docs/47`](docs/47_CATALOGUE_IMAGES_SCOPE.md)), portal redesign (plan awaiting approval).
+- Last owner: **CLAUDE-A**, `2026-09-11T22:45Z` → `2026-09-12T04:10Z` — **the four
+  approved decisions**, plus the pre-release security gate as a recorded milestone.
+- Takeover HEADs were: docs `a89c98e` · backend `2b48143` · mobile `192f4ba` · control-web `c764d63`
 
 ### What changed
 
-| Repository | Commit | Summary |
+| Decision | Commits | Summary |
 |---|---|---|
-| `erp-backend` | **`2b48143`** | `shippedAt()` answers from `sentById`; list and detail use it; one new spec |
-| `erp-mobile` | **`192f4ba`** | transfer/consignment/loan detail wait for the restored branch; More’s chevron mirrored on a wrapping View; `mirror()` documented; registry test pins the wrapper |
-| `erp-docs` | *this commit* | `docs/21` gap decisions, `docs/24` §23, session log, this snapshot |
-
-Checkpoint 3 itself is unchanged: safeguards `ea5419d`, Sell `f073ce5`, Receive
-`679e074`, Transfers/consignments `738a3a4`, Money `a0b01fa`, More `42d45b8`.
+| **4a** customer + receiving account | backend `437e822` · mobile `c871c60` | customers module (search/create), `customer.manage` (`0068`); non-cash must name an ACTIVE account, provider frozen beside the label (`0069`); optional customer picker on Sell |
+| **4b** identifier-aware suggestion | backend `1dba435` · mobile `53d73dc` | a serial suggests serial, an IMEI suggests IMEI, a barcode suggests nothing; `serial` selectable again; identifiers cannot cross-populate |
+| **4c** money formatting | mobile `491793e` | thousands grouped with a visible non-breaking space, one shared formatter behind every surface |
+| **4d** consignment + loan states | *(no code — verification)* | all 14 consignment and 9 loan states built through the real API on an isolated copy and rendered FR/AR, light/dark, from both sides |
+| **Security gate** | docs *this commit* | `docs/48` — release blocker, NOT implemented now, by instruction |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`2b48143`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`192f4ba`** | level | 0 |
+| `erp-backend` | `reports-export` | **`437e822`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`c871c60`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` | untouched | — |
 
-### Verified for these fixes
+### Migrations applied this phase
+
+| # | What | Backup taken first |
+|---|---|---|
+| `0068_customer_manage_permission` | the `customer.manage` catalogue row and its grants (owner, store_manager, administrator) | `~/erp-backups/phonestore-20260911-231638-pre-customer-account.sql` — 814 204 B, `-- Dump completed`, 88 tables, 25 triggers, 0 raw binary |
+| `0069_payment_provider_snapshot` | `payments.account_provider_snapshot`, nullable, never backfilled | same backup |
+
+### Verified, by kind
 
 | Kind | Result |
 |---|---|
-| Backend | `tsc` clean · **127 suites / 2370 tests**, 0 failed · transfers 8 suites / 131 |
-| Mobile | `tsc` clean · lint **33 warnings** (baseline) · **47 pure suites** · EN/FR/AR parity · web export |
-| Request trace | a direct transfer link sends `X-Branch-Id` and answers **404** for an unknown id (**403** before) |
-| Render | Arabic More: the branch chevron points left, like the row chevrons — zoomed captures before and after |
-| Handset | **none** — `docs/24` §23 G1–G7 open; G1 and G2 most need a real cold start |
+| **Unit / pure tests** | backend `tsc` clean · **129 suites / 2396 tests** · mobile `tsc` clean · lint **33** (baseline) · **50 pure suites** · EN/FR/AR parity |
+| **Isolated live-API checks** | on `127.0.0.1:3011` over `prisma_verify_states`: purchase, connection request/accept, and every consignment and loan transition driven through real endpoints by two signed-in stores |
+| **Real web renders** | Sell (customer + account), Create product suggestion, money grouping, and all 23 states — French and Arabic, light and dark, phone width, from BOTH sides of a consignment |
+| **Physical device** | 🔴 **none.** `docs/24` §24 P1–P20 open, plus §18–§23 from earlier phases |
+
+### Live data
+
+Untouched by this phase. After `22:45Z`, live `phonestore` recorded **0 new units,
+0 payments and no business rows**; the only two audit entries are `UserDevice create`
+at 22:53, from sign-in probes confirming the API had restarted.
+
+Counts: units 52 · sales 7 · purchases 9 · payments 7 · consignments 0 · loans 0 ·
+counterparties 0 · connections 0 · customers 0 · audit 824.
+Unit-id MD5 `8a62750e3c298bd34f1a9891ff2ad17f`, sale-id MD5 `1e9d9c8cc20104d1a7f9182891bfd19b`.
+
+One live unit matches the isolated test IMEI prefix — `357777770000000`, created
+**2026-07-30**, present in the pre-work backup. It is unrelated to the isolated
+batch (`3577765620000xx`).
+
+`prisma_verify_states` was **dropped**; only the pre-existing `prisma_staging` and
+`prisma_staging_shadow` remain. Two fixture edits were confined to that dropped copy:
+both companies made discoverable, and Test Store’s owner given the Demo owner’s
+password hash so both sides of a consignment could act.
 
 ### Services
 
 | Service | State |
 |---|---|
-| API `:3010` | PID **30364**, `node dist/src/main`, started `22:35Z` from the tree at **`2b48143`**, so it serves the transfer fix. Sign-in 200. No watcher: restart with `npm run start` in `backend/` after any backend edit |
-| Metro `:8081` | PID **9496**, `packager-status:running` (restarted; its cache failed to deserialise and it re-crawled) |
+| API `:3010` | running, sign-in 200, serving `437e822`. **No watcher** — restart with `npm run start` in `backend/` after any backend edit |
+| Metro `:8081` | running |
 | MySQL `:3306` | the user’s WAMP stack |
-| Isolated API / `prisma_verify_sell` | stopped / dropped earlier |
-| Headless Chrome `:9333`, static server `:19006` | **stopped** — restart only when renders are needed again |
+| Isolated API `:3011` | stopped; its database dropped |
 
 ### The next exact action
 
-The owner decides on gaps 1, 4, 6 and 7. Nothing else is in progress; the
-lower-priority screens, Home "Improvement", catalogue images and the portal
-redesign stay out until asked.
+The owner decides what follows. Nothing is in progress. Still deferred by
+instruction: the Home dashboard "Improvement", catalogue images, and the portal
+redesign. The **pre-release security gate** (`docs/48`) blocks any public
+release and has not been started.
 
 ### Verified this session, by kind
 
