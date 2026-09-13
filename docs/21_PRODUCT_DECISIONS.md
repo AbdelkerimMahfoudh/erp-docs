@@ -1707,6 +1707,11 @@ inspection, never straight back onto the shelf.
 
 ### A person is a counterparty, never a company
 
+> **Partially superseded (Partners milestone):** a *store* can no longer be
+> recorded by hand to start new dealings — new inter-store business needs an
+> accepted connection. Recording a *person* by hand is unchanged. Existing
+> manual store records stay readable and settleable.
+
 Somebody who does not use the app is recorded as a **counterparty**. No
 fabricated `Company`, branch or user — an invented company would appear in
 searches, be able to own inventory, and quietly become a tenant nobody created.
@@ -2154,9 +2159,12 @@ subordinate to anything else. Every feature is now **at most two taps** from
 More: one to its hub, one to itself. No third level, and Home still exposes
 urgent work directly.
 
-### ✅ APPROVED — the four bottom tabs do not change
+### ⤴ SUPERSEDED — the four bottom tabs do not change
 
 Home · Sell · Inventory · More. No fifth tab.
+
+> Superseded twice: Money became a tab, and the Partners milestone replaced Sell
+> with Partners. The bar is now **Home · Partners · Money · Stock · More**.
 
 ### ✅ APPROVED — one typed registry owns route, permission and membership
 
@@ -2260,7 +2268,11 @@ widened lookups depend on.
 
 ## Two approved product corrections (CP1–CP3)
 
-### ✅ APPROVED — Money is a bottom tab, beside Sell
+### ⤴ SUPERSEDED (Partners milestone) — Money is a bottom tab, beside Sell
+
+> The bar is now **Home · Partners · Money · Stock · More**. Sell is no longer a
+> tab; see *"Partners replaces Sell on the bar"* at the end of this file. Money
+> stays a tab, now beside Partners.
 
 The bar is **Home · Sell · Money · Inventory · More**, with Money adjacent to
 Sell because the two are the same errand: taking money and accounting for it.
@@ -5017,3 +5029,134 @@ Profit reverses on the return's **approval** date; cash leaves on the refund's
 **confirmation** date; neither is counted twice. Verified over real HTTP on an
 isolated copy: a 10 000 sale of a phone costing 1 500 moved profit +8 500, sales
 +10 000 and collections +10 000 exactly.
+
+---
+
+## Partners milestone
+
+### ✅ IMPLEMENTED — Partners replaces Sell on the bar
+
+**Supersedes** *"the four bottom tabs do not change"* and *"Money is a bottom tab,
+beside Sell"*.
+
+The bar is **Home · Partners · Money · Stock · More** — *Partners / Partenaires /
+الشركاء*, icon Handshake.
+
+- **Selling did not move.** The scan-first Sell and Receive shortcuts stay on
+  Home. The full multi-item sale is reached from Home (*Sale with several items*)
+  and from Quick Sell.
+- **The Sell route was not removed.** It is still declared, only taken off the
+  bar (`href: null`), so `/sell` links, notifications, back navigation and the
+  saved cart under the same `sell.cart` draft all keep working.
+- **The badge** counts only incoming connection requests *this* user may answer
+  (`connection.manage`). A badge asking somebody to do what they may not is one
+  they learn to ignore.
+- **Old links resolve.** `/stores` redirects to Partners, and More's row lands
+  there.
+
+### ✅ IMPLEMENTED — new inter-store business needs an accepted connection
+
+**Binding rule, supersedes the earlier allowance** to start manually recorded
+inter-store dealings without a connection. A store may start a NEW dealing with
+another store only while that store has **accepted** a connection.
+
+- **What needs it.** Proposing, accepting or counter-offering a loan; proposing,
+  accepting or counter-offering a consignment; handing consigned phones over.
+- **Checked at commit.** The check re-reads the connection with a row lock inside
+  the transaction that writes the dealing. An old screen or a saved draft
+  authorises nothing, and a removal racing a proposal is serialised.
+- **Pending, declined, withdrawn, removed and blocked** authorise nothing new.
+- **Acceptance authorises dealing, not deals.** Every loan and consignment still
+  needs its own agreement, custody confirmation and payment confirmation from the
+  other store.
+- **A connection shares nothing private.** No partner inventory, purchase costs,
+  margins, customers or dealings with anybody else. The connected-store summary
+  reads only dealings between exactly the two companies.
+- **Legacy manual route closed.** A store can no longer be recorded by hand
+  (`connection_required`), and an existing hand-recorded store can start nothing
+  new. Its records stay readable and settleable.
+- **Out of scope, unchanged:** lending to or recording a *person* or an employee,
+  retail sales, purchases from individuals, and same-company branch transfers.
+
+### ✅ IMPLEMENTED — requesting, answering, withdrawing and removing
+
+Migration `0071` adds `cancelled` and `removed` to the connection status.
+
+- **Adding a store is by exact code.** The store behind the code — name, city,
+  the not-yet-verified note — and any existing relationship are shown before
+  sending. Search stays bounded; nothing here became a directory, and every
+  hidden store (not discoverable, inactive, blocked) is still just "no such
+  store".
+- **Own code** is refused plainly.
+- **A retry of my own request** writes nothing.
+- **A request crossing theirs** is refused, never auto-accepted, and says to
+  answer theirs instead. Two simultaneous requests resolve to one row: proved
+  live, one stands and the other is told to accept it.
+- **Only the requester may withdraw**, while the request waits; **only the
+  addressee may answer**; **either store may remove** an accepted connection.
+- **A declined, withdrawn or removed pair may ask again.** The same row is
+  reopened as a new request, which must be accepted again.
+
+### ✅ IMPLEMENTED — removing a connection never traps a phone or a debt
+
+Removal stops new business only. Still allowed, for both stores:
+
+- reporting and confirming payments;
+- confirming a hand-over that was already sent;
+- returning consigned phones and acknowledging them;
+- disputing, rejecting or cancelling proposals, and forgiveness;
+- reading the shared history.
+
+No balance, custody, audit entry or receipt is altered, and nobody has to
+reconnect to return a phone or settle a debt. Proved over real HTTP: after
+removal a 2 000 repayment was reported and confirmed, and a consigned phone
+returned and acknowledged, with no new connection.
+
+### ✅ IMPLEMENTED — a connected store's screen
+
+- **Relationship:** identity, status in words, and what the status allows.
+- **Money:** *They owe us* and *We owe them* as separate rows, never netted.
+- **Phones:** *Our phones they hold* and *Their phones we hold*, held or on the
+  way. Custody is shown as phones, not money.
+- **Waiting on someone:** each open dealing with whose move it is.
+- **History:** everything shared, including finished dealings.
+- **Actions** (only while connected): *Lend money* and *Give a phone on
+  consignment*, opening the existing flows with the store preselected.
+
+### 🟡 CONTRACT GAP — selling a phone outright to another store
+
+**No bilateral inter-store sale exists.** Retail sales know a customer, not a
+store, and a consignment's "sold" means sold to *their* customer. The action is
+shown as *not yet available — give it on consignment instead*, and is **not
+faked** with a customer sale: that would leave the buyer with no purchase, no
+receipt of ownership, and one IMEI told two ways.
+
+Smallest proposal (not built):
+
+1. An `inter_store_sale` proposed by the seller for specific units and a price,
+   over an accepted connection.
+2. The buyer accepts, counters or refuses.
+3. The seller hands the phones over; the buyer confirms receipt by scanning, as
+   consignment custody already does.
+4. At confirmation, ownership moves: the seller records the disposition (revenue
+   and COGS, as a consignment disposition does), and the buyer receives stock at
+   the agreed price as its cost.
+5. Payment is reported by the buyer and confirmed by the seller, with the
+   balance owed shown on both stores' Partners screens.
+
+**Decisions needed before building:**
+
+- **(a) The IMEI across companies.** IMEI uniqueness is global, so the buyer
+  cannot simply create a second unit with the same IMEI. Either the `Unit` row
+  moves between companies (and its history boundary is decided), or the seller's
+  unit is closed and a successor unit is linked to it.
+- **(b) When revenue is recognised:** at acceptance, at custody confirmation, or
+  at payment.
+- **(c) Returns and warranty** between two shops after the sale.
+- **(d) Whether a partly paid sale** is allowed, and who carries the risk.
+
+### 📋 NOT SUPPORTED — adding a store by QR code
+
+No QR format for store codes exists, so adding is by typed code only. Scanning
+one would need an agreed QR payload and the scanner to recognise it; neither was
+invented here.

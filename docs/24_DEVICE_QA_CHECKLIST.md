@@ -3205,3 +3205,34 @@ run on a handset.
 | R14 | Receive, then sell that phone from Home → Sell | Cost, *In stock 0 days* and the expected profit match what was entered |
 | R15 | Arabic RTL, dark, largest text | Nothing clips; amounts group and read in order |
 | R16 | Check live Home after the rollup repair is approved and run | September profit, sales and collections agree with each other and with the sales history |
+
+## 27. Partners and inter-store connections — UNVERIFIED ON ANY DEVICE
+
+Two signed-in stores over real HTTP on an isolated database, and web renders.
+Nothing here has run on a handset. Use two phones, one per store.
+
+| # | Do this | Expect |
+|---|---|---|
+| P1 | Open the app | The bar reads Home · Partners · Money · Stock · More; no Sell tab |
+| P2 | Home → *Sale with several items* | The full sale opens; a cart started earlier is still there |
+| P3 | Build a cart, kill the app, reopen, Home → *Sale with several items* | The same cart, restored |
+| P4 | Open an old `/sell` or `/stores` link or notification, from a cold start | `/sell` opens the full sale; `/stores` lands on Partners |
+| P5 | Store A: Partners → Add a store, type Store B's code | Store B's name and city are shown before anything is sent |
+| P6 | Type your own store's code | Refused, saying it is your own code |
+| P7 | Send the request | Store B's Partners tab shows a badge **1** and the request under *Waiting for your answer* |
+| P8 | Store B signed in as an Employee | The request is visible but there is no Accept, and no badge |
+| P9 | Store A sends again while waiting | Nothing new; still one request |
+| P10 | Store B, before answering, adds Store A | Refused — answer theirs instead; never connected automatically |
+| P11 | Store A withdraws the request | It leaves Store B's list |
+| P12 | Store B declines a new request | Store A sees *Declined* and may ask again |
+| P13 | Store B accepts | Both see *Connected*; Lend and Consign are offered; *Sell a phone* is shown as not yet available |
+| P14 | Before accepting, try Lend money from a loan screen | The store is shown as not connected and cannot be picked |
+| P15 | Lend 5 000; Store B accepts | Store A shows *They owe us 5 000*; Store B *We owe them 5 000*, never netted |
+| P16 | Consign a phone; B accepts; A hands over; B scans it in | A lists it under *Our phones they hold*; B under *Their phones we hold* |
+| P17 | A proposes a second loan, then disconnects before B answers | B cannot accept it; B can still reject it |
+| P18 | After disconnecting, try a new loan or consignment either way | Refused on both phones |
+| P19 | After disconnecting, B reports a repayment and A confirms it | Works; the balance drops |
+| P20 | After disconnecting, B returns the phone and A acknowledges it | Works without reconnecting; the phone leaves *held* |
+| P21 | Open the disconnected store from *No longer connected* | History, balances and phones still shown; the screen says nothing new can start |
+| P22 | Arabic RTL, dark, largest text | Nothing clips; chevrons point the right way; the two money rows stay separate |
+| P23 | French, dark | Same, and no English or raw keys anywhere |

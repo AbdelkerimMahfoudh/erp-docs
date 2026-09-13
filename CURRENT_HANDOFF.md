@@ -8,13 +8,10 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-12T06:35Z` → `2026-09-12T19:10Z` (one account
-  usage-limit pause mid-way, resumed in the same session) — **completing the
-  Home / Quick Sell / Quick Receive milestone**: optional-seller receiving,
-  Quick Receive, the proven cause of the wrong Home figures, and the missing
-  real-HTTP verification.
-- Takeover HEADs, verified against the trees: docs `3f55942` · backend `66b53f7`
-  · mobile `4e9ce19`, all clean and level.
+- Last owner: **CLAUDE-A**, `2026-09-13` — **Partners navigation and the
+  inter-store connection workflow**.
+- Takeover HEADs, verified against the trees: docs `23d1bac` · backend `8c576b5`
+  · mobile `207b735`, all clean and level.
 - **Sections §1–§9 further below are retained history from earlier phases.** The
   tables in this section are current.
 
@@ -22,33 +19,39 @@
 
 | Part | Commits | Summary |
 |---|---|---|
-| **Optional-seller receiving** | backend `f426253` | migration `0070`: `purchases.supplier_id` and `supplier_payments.supplier_id` nullable, FKs kept. No supplier only when `paidAmount` equals the total, stated explicitly; a balance with nobody named is refused (`supplier_required_for_balance`); no placeholder supplier; payment, units and audit still written; named suppliers unchanged |
-| **Quick Receive** | mobile `207b735` | Home → Receive → scan or type → recognised, chosen or created product → cost → Add to stock → server-confirmed result. Seller under *More details*; IMEI 2 optional; registered IMEI refused; detour and draft state preserved; one request key across retries |
-| **Draft warning on web** | mobile `86a5de0` | `useDraft` no longer reports a browser that keeps no drafts (`unsupported`) as a refused draft |
-| **Expo Doctor** | mobile `e960ef6` | 14 packages moved one patch within SDK 57; **doctor 21/21** |
-| **Rollup audit / repair tool** | backend `8c576b5` | `scripts/rollup-audit.js` — read-only by default; `--repair` recomputes only drifted rows through the production service |
+| **Accepted-connection rule** | backend `529f934` | new inter-store business (loan propose/accept/counter, consignment create/accept/counter/hand-over) re-checks an ACCEPTED connection inside the commit with a row lock; settlement paths deliberately unchecked; a store can no longer be recorded by hand |
+| **Connection lifecycle** | backend `529f934` | migration `0071` (`cancelled`, `removed`); withdraw, remove, reopen after decline/withdraw/remove; crossed and simultaneous requests resolve to one row, never auto-accepted; `GET stores/lookup`; `GET connections/:id/summary` |
+| **Partners tab** | mobile `b8f4d33` | bar Home · Partners · Money · Stock · More; Sell route kept (`href: null`), full sale reached from Home and Quick Sell; badge for requests this user may answer; add-by-code with recipient preview; connected-store screen (money each way, phones each way, whose move, history, Lend / Consign; Sell shown as not yet available); `/stores` redirects |
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`8c576b5`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`207b735`** | level | 0 |
+| `erp-backend` | `reports-export` | **`529f934`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`b8f4d33`** | level | 0 |
 
 ### Migration applied this phase
 
 | # | What | Evidence |
 |---|---|---|
-| `0070_optional_supplier_on_purchase` | `purchases.supplier_id`, `supplier_payments.supplier_id` → NULL; nothing dropped or backfilled; 4 FKs to `suppliers` kept | Backup first: `~/erp-backups/phonestore-20260912-173146-pre-optional-supplier.sql` — 820 048 B, `-- Dump completed`, 88 tables, 24 triggers (grep said 25: one wrapped form double-counted; names compared equal), 0 raw binary. Restored into `prisma_verify_optional` (88 tables, 24 triggers, trigger names identical to live), migrated and lifecycle-tested there, **then** `prisma migrate deploy` on live: 69 applied, up to date; live rows unchanged |
+| `0071_connection_cancel_remove` | `store_connections.status` gains `cancelled`, `removed`; nothing backfilled; pair key untouched | Isolated proof on a restore of `phonestore-20260913-154025-pre-partners.sql` (821 022 B, trailer, 88 tables, 0 raw binary; trigger names identical to live). Live changed afterwards (a user received a phone at Test Store, 15:44–15:45), so a **fresh** backup was taken before applying to live: `phonestore-20260913-160447-pre-0071.sql` — 834 076 B, trailer, 88 tables, 0 raw binary. `prisma migrate deploy` → applied; status up to date |
 
-### 🔴 Needs review — live rollup repair (NOT applied)
+### 🔴 Contract gap — direct sale to another store (not built)
+
+No bilateral inter-store sale exists; the action is shown as unavailable and is
+not faked with a customer sale. The smallest proposal and its four open
+decisions — IMEI identity across companies, revenue recognition point, returns
+and warranty, part payment — are in `docs/21` *"selling a phone outright to
+another store"*. **Adding a store by QR** is also not supported (no QR payload
+exists).
+
+### 🔴 Still pending separate approval — live rollup repair (NOT applied, NOT part of this phase)
 
 **Proven cause:** audit trail shows `Sale create` ×28 on 2026-09-10 and ×4 on
 2026-08-08 with no surviving `sales` rows — verification fixtures hard-deleted
 outside the app — and `RollupListener` has no path that recomputes a rollup when
-source rows vanish. Not tenant contamination (one company, one branch;
-`sale_items.company_id` always equals its sale's).
+source rows vanish.
 
 | Branch-day (Demo Phone Store / Main Store) | Rollup revenue | Ledger | Rollup net | Sales r/l |
 |---|---|---|---|---|
@@ -56,56 +59,48 @@ source rows vanish. Not tenant contamination (one company, one branch;
 | **2026-08-08** | 40.00 | 0.00 | 31.80 | 1/0 |
 | **2026-09-10** | 388 300.00 | 0.00 | 328 300.00 | 6/0 |
 
-Overstated by **388 340.00**. Proven on the isolated restore: recompute of the two
-rows → every row matched the ledger; 2026-08-03 unchanged. **Live Home still shows
-328 300 profit until this is approved.** Procedure (from `backend/`, needs a
-current build): backup per `docs/22` → `DB=phonestore node scripts/rollup-audit.js`
-(confirm exactly these 2 rows) → `DB=phonestore node scripts/rollup-audit.js
---repair` → expect "every rollup row now matches the source ledger".
+Overstated by **388 340.00**; proven repairable on an isolated restore. Live Home
+still shows 328 300 profit. Procedure (from `backend/`, current build): backup per
+`docs/22` → `DB=phonestore node scripts/rollup-audit.js` (confirm exactly these 2
+rows) → `DB=phonestore node scripts/rollup-audit.js --repair`.
 
 ### Verified, by kind
 
 | Kind | Result |
 |---|---|
-| **Backend** | `tsc` clean · **131 suites / 2415 tests** (was 130/2403; +`optional-supplier` 12) · `prisma validate` · migrate status 69 up to date |
-| **Mobile** | `tsc` clean · lint **0 errors / 33 warnings** (baseline — one new warning found and fixed) · **51 pure suites** · EN/FR/AR parity via `Catalogue` · web export (`quick-receive.html`) · **Expo Doctor 21/21** |
-| **Real HTTP, isolated DB** (`prisma_verify_optional` on `127.0.0.1:3011`) | **24 passed, 0 failed**: no-seller + explicit full payment; refusal with a balance and with the amount omitted; named seller left owing (outstanding +2 000 exactly); dual-IMEI as one unit found by either IMEI; registered IMEI refused; replay returns original with no second unit; same key + different delivery → 409; non-cash sale without account refused; received phone sold at configured price with margin = price − cost; sale replay not double-charged; unit leaves stock; Home before/after moved exactly (profit +8 500, sales +10 000, collected +10 000). SQL: no-seller purchases `paid` with a payment row (`supplier_id` NULL), units keep cost |
-| **Renders** (isolated API, request-rewritten) | Home + Quick Receive, **FR and AR, light and dark** — empty, already-registered, unrecognised, product picker, recognised details, More details, server-confirmed *Added to stock*. `dir` correct, no leaked internals. 32 screenshots |
-| **Receipt privacy** | unchanged and still asserted by `receipt-privacy.test.ts` (in the 51 suites) |
-| **Physical device** | 🔴 **none.** `docs/24` §26 R1–R16 and §25 Q1–Q24 open |
-
-Two genuine defects were found by rendering and fixed before commit: Quick
-Receive offered only *Create product* for an unknown model (no *Choose product*),
-and the web draft warning. Script bugs caught and corrected, not counted as
-passes: a sale priced below the configured floor, a vacuous replay assertion,
-and non-unique test IMEIs.
+| **Backend** | `tsc` clean · **132 suites / 2442 tests** (was 131/2415; +`dealing-authorization` 27) · `prisma validate` · migrate status up to date · permission catalogue and grants complete |
+| **Mobile** | `tsc` clean · lint **0 errors / 33 warnings** (baseline) · **52 pure suites** (+`partners` 16; registry updated for the new bar) · EN/FR/AR parity via `Catalogue` · web export emits `(tabs)/partners`, `partners/[id]`, `stores` · **Expo Doctor 21/21** |
+| **Real HTTP, two signed-in stores, isolated DB** (`prisma_verify_partners` on `127.0.0.1:3011`) | **53 passed, 0 failed**: lookup preview; self-request refused; manual store refused; request, retry, crossed request refused, requester cannot accept own, decline, reopen, withdraw (and the other side cannot); simultaneous requests → one stands, one told to accept it; accept, double-accept refused; loan and consignment through custody; both stores' summaries mirror money and phones; no cost/margin/customer/purchase in the other store's summary; partner's unit unreadable; removal during an in-flight loan blocks its acceptance but not its rejection; after removal no new loan or consignment either way, while repayment report/confirm and phone return/acknowledge still work; history readable; reconnect; acceptance raced against removal — no 5xx |
+| **SQL proof** | the raced acceptance committed at `15:42:47.867`, removal at `.896` — serialised. A hand-inserted legacy `manual_store` counterparty was refused for a loan and a consignment (`connection_required`); lending to a person still worked |
+| **Renders** (isolated API, both stores) | FR and AR, light and dark: incoming request with badge, add-store preview, sent request, connected list, connected-store detail from both sides, lend preselected, Home full-sale link, disconnected detail, legacy `/stores`; phones held by each side read from the rendered page. No raw keys or leaks. One wording defect fixed ("1 téléphones") |
+| **Physical device** | 🔴 **none.** `docs/24` §27 P1–P23, §26 R1–R16, §25 Q1–Q24 open |
 
 ### Live data
 
-**Business records unchanged:** purchases 9 · units 52 · sales 7 · payments 7 ·
-supplier_payments 0. Unit-id MD5 `8a62750e3c298bd34f1a9891ff2ad17f`, sale-id MD5
-`1e9d9c8cc20104d1a7f9182891bfd19b` — identical to before. **Audit 828, zero rows
-written since the backup**: every sign-in and write in this phase went to the
-isolated database. The one change to live was the schema (`0070`). Live
-`daily_rollups` untouched (audited read-only).
+**Business records preserved.** Before `0071`: units 53 · sales 7 · purchases 10 ·
+payments 7 · audit 831; after: identical. The one unit, product and purchase added
+since the earlier backup were created at Test Store by a real user of the app at
+15:44–15:45, not by this work — every verification sign-in and write went to the
+isolated database. Live has no connections, loans or consignments; the only change
+this phase made to live is the schema (`0071`).
 
 ### Services
 
 | Service | State |
 |---|---|
-| API `:3010` | running from a fresh `nest build` including `0070`; stopped and restarted by exact PID |
+| API `:3010` | running from a fresh `nest build` including `0071`; previous instance stopped by exact PID |
 | Metro `:8081` | listening; not started by this phase |
 | MySQL `:3306` | the user's WAMP stack |
 | Isolated API `:3011`, static server `:19006`, headless Chrome `:9333` | started for verification and **stopped** |
-| `prisma_verify_optional` | **dropped**; only pre-existing `prisma_staging*` remain. Sanitised dump deleted |
+| `prisma_verify_partners` | **dropped**; only pre-existing `prisma_staging*` remain; sanitised dump deleted |
 
 ### The next exact action
 
-1. **Review and approve the live rollup repair** above (two rows, one command).
-2. `docs/24` **§26 R1–R16** and **§25 Q1–Q24** on a handset — nothing has run on one.
-3. Still deferred: catalogue images, portal redesign. The **pre-release security
-   gate** (`docs/48`) remains a release blocker, not started. No new feature was
-   begun.
+1. **Approve or decline the live rollup repair** (above).
+2. **Decide the direct inter-store sale** questions in `docs/21` before it is built.
+3. Handset checks: `docs/24` §27 P1–P23 (two phones, one per store), then §26 and §25.
+4. The **pre-release security gate** (`docs/48`) remains a release blocker, not
+   started. Catalogue images, portal redesign and publishing were not begun.
 
 ### Verified this session, by kind
 

@@ -9313,3 +9313,65 @@ services had already been stopped by exact PID.
 **Open.** Live rollup repair awaiting review. `docs/24` §26 R1–R16 and §25
 Q1–Q24, all handset. Security gate still a release blocker. Web rendering is not
 device verification.
+
+---
+
+## 2026-09-13 — CLAUDE-A — Partners navigation and the accepted-connection rule
+
+Backend `529f934`. Mobile `b8f4d33`. Docs: this commit. Migration `0071`, applied
+after an isolated proof and a fresh backup. The live rollup repair was NOT run.
+
+**Audited first.** Consignments and loans already existed with a connection
+model, but the audit found four gaps against the new rule:
+
+- a loan could be proposed on a PENDING connection (only `blocked` was refused);
+- both modules accepted `manual_store` counterparties, with nobody on the other
+  side to accept anything;
+- only creation was checked — accepting an old proposal later was not;
+- connections had no cancel or remove, a declined pair could never ask again,
+  and the unique pair key made crossed requests an uncaught duplicate-key error.
+
+No bilateral inter-store sale exists at all, so that was scoped as a gap rather
+than faked.
+
+**Server.** `dealing-authorization.ts` holds the rule as a pure decision plus a
+commit-time check that re-reads the connection row `FOR UPDATE` inside each
+dealing's transaction. Checked: consignment create, accept/counter and hand-over;
+loan propose and accept/counter. Deliberately unchecked: payments, confirming a
+hand-over already sent, returns, disputes, rejection, cancellation, forgiveness
+and history. Connections gained withdraw, remove, reopen, a code lookup and a
+two-sided summary (money each way never netted, phones each way, whose move, only
+dealings between the two companies). 27 tests; full suite 132/2442.
+
+**Two-store proof.** Restored a copy, made both stores discoverable and gave
+Test Store's owner a known password there only, applied `0071`, and drove both
+stores over real HTTP: **53/0**. SQL confirmed the acceptance-vs-removal race was
+serialised (accept `.867`, removal `.896`), and a hand-inserted legacy manual
+store was refused for both a loan and a consignment.
+
+**Mobile.** The bar is Home · Partners · Money · Stock · More. Sell's route stays
+declared, hidden, so links and the saved cart survive; the full sale is linked
+from Home and Quick Sell. Partners orders requests waiting on us first, has a
+badge for requests this user may answer, and adds stores by code with the
+recipient shown before sending. A connected store's screen shows money and
+phones each way, whose move and history, with Lend and Consign opening existing
+flows preselected. `/stores` redirects. 16 new tests; 52 pure suites; lint 33;
+Expo Doctor 21/21. Renders from both stores, FR/AR, light/dark; one wording
+defect found and fixed ("1 téléphones").
+
+**Live.** Between the first backup and applying `0071`, a real user received a
+phone at Test Store (product, unit and purchase at 15:44–15:45). Nothing in this
+work could have made it — every Test Store sign-in went to the isolated copy.
+So a fresh backup was taken first (`phonestore-20260913-160447-pre-0071.sql`),
+the running API stopped by exact PID, `0071` deployed, and counts confirmed
+identical before and after (units 53, sales 7, purchases 10, payments 7, audit
+831). The API was restarted from a fresh build.
+
+Process notes: a PID check refused to stop an API whose command line was relative
+(the guard working); a wildcard cleanup sweep killed its own shell again after
+the verification processes were already stopped by exact PID. The isolated
+database was dropped.
+
+**Open.** Live rollup repair awaiting approval. Direct inter-store sale needs
+four decisions (`docs/21`). QR store lookup not supported. `docs/24` §27
+P1–P23, §26, §25 — all handset. Security gate still a release blocker.
