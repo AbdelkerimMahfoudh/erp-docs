@@ -9375,3 +9375,39 @@ database was dropped.
 **Open.** Live rollup repair awaiting approval. Direct inter-store sale needs
 four decisions (`docs/21`). QR store lookup not supported. `docs/24` §27
 P1–P23, §26, §25 — all handset. Security gate still a release blocker.
+
+---
+
+## 2026-09-15 — CLAUDE-A — first-release scope simplification
+
+**Scope.** Suppliers and low stock out of the launch app; ordinary purchases
+anonymous and paid in full; import Owner-only; Goals, Analytics and WhatsApp
+summaries unreachable; Partners detail shows only working actions. Partners
+behaviour preserved. Live rollup repair not touched.
+
+**Backend** (`47c2e06`, `3bbb64b`, `80e25ef`). Purchase DTO takes
+`paymentMethod` and an optional `receivingAccountId`; the amount is the total,
+set by the server. Found that purchase payments never reached closing expected
+cash, channel movements or the period summary — fixed. `0072` (account on the
+purchase payment), `0073` (import Owner-only). Suppliers module and `POST /units`
+removed; dormant data and `supplier.*` keys kept. 130 suites / 2384 tests.
+
+**Database.** Backup `phonestore-20260915-063543-pre-0072.sql` (838 208 B,
+verified), restored to `prisma_verify_scope` with an identical fingerprint, both
+migrations deployed there, 24/24 real-HTTP checks, then deployed live. Live
+fingerprint identical before and after, except role_permissions 287 → 282 and
+the migration count; unchanged again after verification. API restarted by exact
+PID from a fresh build. Temporary database dropped. On the isolated copy only, a
+dormant manager fixture and the second store were given the test password, and
+both stores made discoverable, for the renders.
+
+**Mobile** (`3f77f8a`, `e1f5f75`, `e30f609`). PurchasePaymentPicker in Quick and
+full Receive; Supplier, Goals and Analytics screens deleted; Home trimmed;
+registry, EN/FR/AR translations and tests updated. Renders caught deactivated
+accounts in the picker — fixed and re-rendered. tsc, lint 0 errors, 52 suites,
+web export, Expo Doctor 21/21. Commit mix-up: `3f77f8a` holds only the deletions
+despite its message; noted in `e30f609`, not rewritten.
+
+**Open.** Live rollup repair awaiting approval. `docs/24` §28 on a handset. The
+Sell screen shows deactivated accounts to an Owner (separate task). Security
+gate still a release blocker.

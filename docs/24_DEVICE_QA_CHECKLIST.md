@@ -3236,3 +3236,26 @@ Nothing here has run on a handset. Use two phones, one per store.
 | P21 | Open the disconnected store from *No longer connected* | History, balances and phones still shown; the screen says nothing new can start |
 | P22 | Arabic RTL, dark, largest text | Nothing clips; chevrons point the right way; the two money rows stay separate |
 | P23 | French, dark | Same, and no English or raw keys anywhere |
+
+## 28. First-release scope — UNVERIFIED ON ANY DEVICE
+
+Real HTTP on an isolated database (24/24) and web renders FR/AR, light/dark.
+Nothing here has run on a handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| S1 | Open Home as Owner and as Employee | Shortcuts, pending work, the month figures; no stock or "running low" rows, no second menu |
+| S2 | Home → Receive, scan a known phone, enter a cost | "Paid now" with the cost; "Paid with" Cash · Card · Mobile · Bank; no supplier, no amount paid |
+| S3 | Choose Bank without picking an account | Add to stock stays disabled |
+| S4 | Deactivate an account in Settings, return to Receive | That account is not offered |
+| S5 | Receive for cash; open the day's closing | Expected cash is lower by exactly the cost |
+| S6 | Receive on an account; open the closing | That account, not cash, moves |
+| S7 | Lose signal while tapping Add to stock, retry | One purchase, one unit, never two |
+| S8 | Full Receive with several phones | One payment choice for the delivery; no supplier anywhere |
+| S9 | More as Owner | Import stock is there; no Suppliers, Analytics or Goals |
+| S10 | More as Manager or Employee | No Import stock |
+| S11 | Stock tab with an item at zero available | "Out of stock" chip; no "low" anywhere |
+| S12 | Partners → a connected store | Lend money and Give on consignment only; no Sell row |
+| S13 | Money tab | The outflow reads "Paid for stock" |
+| S14 | Settings as Owner | No WhatsApp summaries section |
+| S15 | Arabic RTL dark, largest text | Payment chips wrap cleanly; nothing clips |

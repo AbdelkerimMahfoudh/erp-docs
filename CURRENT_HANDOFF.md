@@ -8,10 +8,11 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Owner: **NONE**
-- Last owner: **CLAUDE-A**, `2026-09-13` — **Partners navigation and the
-  inter-store connection workflow**.
-- Takeover HEADs, verified against the trees: docs `23d1bac` · backend `8c576b5`
-  · mobile `207b735`, all clean and level.
+- Last owner: **CLAUDE-A** · `started_at_utc: 2026-09-14` · finished `2026-09-15`
+- Last phase: **first-release scope simplification** — complete.
+- Takeover HEADs were: docs `21c877c` · backend `529f934` · mobile `b8f4d33`.
+  Discrepancy at takeover: live API and Metro had been restarted by someone
+  else (healthy, left running).
 - **Sections §1–§9 further below are retained history from earlier phases.** The
   tables in this section are current.
 
@@ -19,32 +20,59 @@
 
 | Part | Commits | Summary |
 |---|---|---|
-| **Accepted-connection rule** | backend `529f934` | new inter-store business (loan propose/accept/counter, consignment create/accept/counter/hand-over) re-checks an ACCEPTED connection inside the commit with a row lock; settlement paths deliberately unchecked; a store can no longer be recorded by hand |
-| **Connection lifecycle** | backend `529f934` | migration `0071` (`cancelled`, `removed`); withdraw, remove, reopen after decline/withdraw/remove; crossed and simultaneous requests resolve to one row, never auto-accepted; `GET stores/lookup`; `GET connections/:id/summary` |
-| **Partners tab** | mobile `b8f4d33` | bar Home · Partners · Money · Stock · More; Sell route kept (`href: null`), full sale reached from Home and Quick Sell; badge for requests this user may answer; add-by-code with recipient preview; connected-store screen (money each way, phones each way, whose move, history, Lend / Consign; Sell shown as not yet available); `/stores` redirects |
+| **Purchases paid in full** | backend `47c2e06` · mobile `e1f5f75` | request names only cash or an active account; server sets amount = total; `supplierId`/`paidAmount`/`dueDate` rejected; account checks before any write; atomic; payment in the idempotency fingerprint. Closing expected cash, channel movements and the period summary now count purchase payments ("paid for stock") — previously missing. `POST /units` quick-add removed |
+| **Suppliers removed** | backend `47c2e06` · mobile `3f77f8a`, `e1f5f75`, `e30f609` | module, routes, report rows, screens, picker, types, query keys, mobile permission keys, offline specs. Historical rows kept; `supplier.*` keys dormant in the backend catalogue |
+| **Low stock removed** | backend `3bbb64b` · mobile `e1f5f75` | Home row, Stock badge, anomaly rule, health component, threshold reads |
+| **Import Owner-only** | backend `80e25ef` | `0073` revokes `import.run` from non-owners |
+| **Home / More / Partners** | mobile `e1f5f75` | Home without the stock section or duplicate menu; More without Suppliers/Analytics/Goals (screens deleted, closing lands on Money); WhatsApp summaries settings and "badge coming soon" hidden; Partners detail without the Sell row |
+
+Commit note: mobile `3f77f8a` contains only the deleted Supplier/Goals/Analytics
+files although its message describes Receive; those Receive changes are in
+`e1f5f75` (recorded in `e30f609`). Already pushed, so not rewritten.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`529f934`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`b8f4d33`** | level | 0 |
+| `erp-backend` | `reports-export` | **`80e25ef`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`e30f609`** | level | 0 |
 
-### Migration applied this phase
+### Migrations applied this phase
 
 | # | What | Evidence |
 |---|---|---|
-| `0071_connection_cancel_remove` | `store_connections.status` gains `cancelled`, `removed`; nothing backfilled; pair key untouched | Isolated proof on a restore of `phonestore-20260913-154025-pre-partners.sql` (821 022 B, trailer, 88 tables, 0 raw binary; trigger names identical to live). Live changed afterwards (a user received a phone at Test Store, 15:44–15:45), so a **fresh** backup was taken before applying to live: `phonestore-20260913-160447-pre-0071.sql` — 834 076 B, trailer, 88 tables, 0 raw binary. `prisma migrate deploy` → applied; status up to date |
+| `0072_purchase_payment_account` | nullable `receiving_account_id` (FK, index) + `account_label_snapshot` on `supplier_payments` | Backup `~/erp-backups/phonestore-20260915-063543-pre-0072.sql` — 838 208 B, trailer, 88 tables, 0 raw binary. Restored (DEFINER stripped) to `prisma_verify_scope`: fingerprint identical to live (tables, trigger-name MD5, counts, sums, id MD5s). Both migrations deployed there; 24/24 real-HTTP checks; then deployed live |
+| `0073_import_owner_only` | `import.run` removed from 6 non-owner role keys | live `role_permissions` 287 → 282; permission drift script "catalogue and grants complete ✓" |
 
-### 🔴 Contract gap — direct sale to another store (not built)
+Live before/after (units 53, sales 7 / 10 051, purchases 10 / 21 185, supplier
+payments 1 / 10 000, payments 7, expenses 2 / 600, audit 836, all id MD5s):
+**identical**, apart from the two expected lines. Re-checked after all isolated
+verification: identical. Live API stopped by exact PID (29520, 27880, 2976),
+rebuilt and restarted; healthy on 3010. Metro and MySQL untouched.
+`prisma_verify_scope` dropped; isolated API, static server and headless Chrome
+stopped.
 
-No bilateral inter-store sale exists; the action is shown as unavailable and is
-not faked with a customer sale. The smallest proposal and its four open
-decisions — IMEI identity across companies, revenue recognition point, returns
-and warranty, part payment — are in `docs/21` *"selling a phone outright to
-another store"*. **Adding a store by QR** is also not supported (no QR payload
-exists).
+### Verification
+
+| Check | Result |
+|---|---|
+| Backend | `tsc` clean · **130 suites / 2384 tests** (was 132/2442: Suppliers and low-stock suites deleted, `first-release-purchase` added) · `prisma validate` · migrate status up to date · permission drift clean |
+| Isolated HTTP (24) | suppliers 404; `/units` 404; missing method / supplierId / paidAmount → 400; cash purchase paid = total, one payment, no supplier on purchase or unit; replay returns the same id, 409 on a changed payment; account_required / cash_has_no_account / account_not_found / account_inactive with nothing written; active account label frozen; refused-unit purchase writes nothing; expected cash −1234 exactly (bank purchase not in cash); summary paid-for-stock +2011; no `supplier_liability`; no lowStock in stock summary, home, anomalies; Manager import 403; Owner import commits with no payment; Partners endpoints 200 |
+| Mobile | `tsc` clean · lint 0 errors / 32 warnings · **52 pure suites** · EN/FR/AR parity (compile-time) · web export · Expo Doctor 21/21 |
+| Renders | FR/AR × light/dark: Home (Owner, Manager), Quick Receive (ready; bank with accounts), full Receive, Import (Owner), More (Owner has Import, Manager not), Partners detail (Lend, Consign only). No supplier, low-stock, raw-key or "coming soon" text. **Defect found and fixed:** deactivated accounts were offered in the picker |
+
+Web rendering is not device verification: `docs/24` §28 S1–S15 are open.
+
+### Follow-up noticed (not done)
+
+The full Sell screen shows deactivated receiving accounts to an Owner (settings
+returns them). Pre-existing and out of scope; suggested as a separate task.
+
+### Contract gaps kept
+
+Direct inter-store sale (four decisions in `docs/21`) and store QR codes — not
+built. Purchase credit postponed.
 
 ### 🔴 Still pending separate approval — live rollup repair (NOT applied, NOT part of this phase)
 

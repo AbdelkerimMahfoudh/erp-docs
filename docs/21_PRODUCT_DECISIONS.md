@@ -5160,3 +5160,77 @@ Smallest proposal (not built):
 No QR format for store codes exists, so adding is by typed code only. Scanning
 one would need an agreed QR payload and the scanner to recognise it; neither was
 invented here.
+
+## First-release scope (2026-09-15)
+
+### ✅ IMPLEMENTED — Suppliers leave the launch app
+
+No supplier directory, create/edit, picker, balance, settlement, report row, More
+link or supplier name on any screen. Customers, Partner stores, loan counterparties
+and payment accounts are unrelated and unchanged. **Nothing historical was
+deleted:** `suppliers`, `supplier_settlements` and old supplier references on
+purchases and units stay in the database, dormant. The `supplier.*` permission
+keys stay in the backend catalogue and grants (no route checks them, the app no
+longer knows them) so no grants migration was needed; remove them in a later
+cleanup if Suppliers is not coming back.
+
+### ✅ IMPLEMENTED — every ordinary purchase is paid in full (migration `0072`)
+
+- Receiving asks only **how** it was paid: cash, or an **active** receiving
+  account. There is no amount paid, no paid/partly/unpaid choice, no due date,
+  and no placeholder counterparty.
+- The server sets the payment to the purchase total. `supplierId`, `paidAmount`
+  and `dueDate` are rejected (400). Cash with an account, non-cash without one,
+  an unknown account and an inactive account are each refused before anything is
+  written. Purchase, payment and units remain one transaction; the payment
+  method and account are part of the idempotency fingerprint.
+- `0072` adds nullable `receiving_account_id` and `account_label_snapshot` to
+  `supplier_payments` (table name kept for compatibility). Nothing backfilled.
+- **Accounting fix found on the way:** purchase payments were invisible to the
+  closing's expected cash, the per-channel movements and the period summary.
+  They are now counted as money *paid for stock* (component name `supplierOut`
+  / `supplierPaymentsConfirmed` kept for client compatibility). A cash purchase
+  lowers expected drawer cash; an account purchase lowers that account.
+- The legacy `POST /units` quick-add (stock with no purchase and no payment) is
+  no longer exposed.
+- **Purchase on credit is postponed.** Buying on terms between stores belongs
+  to Partners.
+
+### ✅ IMPLEMENTED — inventory import is Owner-only (migration `0073`)
+
+`import.run` revoked from every non-owner role. Import has no supplier column
+and never creates a purchase payment: opening stock moves no cash.
+
+### ✅ IMPLEMENTED — no low stock
+
+No "Running low" on Home, no low badge on Stock, no low-stock anomaly, no stock
+coverage in the health score, no threshold reads. Out of stock (nothing
+available) is still stated, and a sale still refuses an unavailable unit.
+
+### ✅ IMPLEMENTED — Home keeps only what is actionable
+
+Greeting, Sell and Receive shortcuts, pending work, and the four server figures.
+The stock section and the duplicate "everything else" navigation list are gone.
+The known Home rollup discrepancy is **not** repaired or hidden here.
+
+### ✅ IMPLEMENTED — postponed modules are unreachable
+
+Goals and Analytics screens removed from the app (closing now lands on Money);
+the WhatsApp summaries settings section (nothing sends them yet) and the
+"verified badge coming soon" line are hidden, with stored settings preserved.
+No CRM, SAV/technician, photo attachment or OCR surface exists. Backend data and
+routes for goals remain untouched.
+
+### ✅ IMPLEMENTED — Partners detail shows only actions that work
+
+"Sell to this store" is removed rather than shown disabled. Lend money and Give
+on consignment remain; the section is absent when neither is permitted. The
+direct-sale proposal above stays as recorded.
+
+### 🔭 Future updates (not scheduled)
+
+- Suppliers and purchase credit, if a shop needs payables again — reuse the
+  dormant tables; decide whether `supplier.*` keys return or are deleted.
+- Low-stock alerts with per-product thresholds.
+- Goals, advanced analytics and exports screen, WhatsApp summaries, CRM, SAV.
+- Inter-store outright sale (four decisions above) and store QR codes.
