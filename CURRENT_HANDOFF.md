@@ -6,10 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last owner: **CLAUDE-A** · `started_at_utc: 2026-09-14` · finished `2026-09-15`
-- Last phase: **first-release scope simplification** — complete.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-15` (prompt said CLAUDE-B; this account is CLAUDE-A)
+- Active phase: **MVP removal + six-screen layout pass** — remove deferred
+  features completely (suppliers incl. schema, low stock, goals, CRM, WhatsApp
+  automation, SAV, OCR, advanced analytics); Home, Partners, Money, Results,
+  Stock, More layouts in light/dark, EN/FR/AR. Partners rules unchanged. Live
+  rollup repair NOT part of this phase.
+- Takeover HEADs verified: docs `fdfc5e4` · backend `80e25ef` · mobile `e30f609`,
+  clean and level; migrations through `0073`, up to date. Live: 3 suppliers,
+  9 purchases and 11 units carry a supplier id, 1 supplier payment, 0 settlements.
+  API 3010, Metro 8081 up.
+- Next: audit deferred artifacts and screen data contracts.
+- Previous phase: **first-release scope simplification** (CLAUDE-A) — complete.
 - Takeover HEADs were: docs `21c877c` · backend `529f934` · mobile `b8f4d33`.
   Discrepancy at takeover: live API and Metro had been restarted by someone
   else (healthy, left running).
