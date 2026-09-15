@@ -3252,10 +3252,45 @@ Nothing here has run on a handset.
 | S6 | Receive on an account; open the closing | That account, not cash, moves |
 | S7 | Lose signal while tapping Add to stock, retry | One purchase, one unit, never two |
 | S8 | Full Receive with several phones | One payment choice for the delivery; no supplier anywhere |
-| S9 | More as Owner | Import stock is there; no Suppliers, Analytics or Goals |
+| S9 | More as Owner | Import stock is there; no Suppliers. Analytics and Goals ARE there, under Reports |
 | S10 | More as Manager or Employee | No Import stock |
 | S11 | Stock tab with an item at zero available | "Out of stock" chip; no "low" anywhere |
 | S12 | Partners → a connected store | Lend money and Give on consignment only; no Sell row |
 | S13 | Money tab | The outflow reads "Paid for stock" |
-| S14 | Settings as Owner | No WhatsApp summaries section |
+| S14 | Settings as Owner | The WhatsApp summaries section is present (nothing sends them yet, and it says so) |
 | S15 | Arabic RTL dark, largest text | Payment chips wrap cleanly; nothing clips |
+
+## 29. The six screens — UNVERIFIED ON ANY DEVICE
+
+Web renders only: 136 captures in EN/FR/AR, light and dark, at 360, 390 and
+430 points, plus loading, error, empty, permission-restricted and populated
+states. Nothing here has run on a handset. Check on a real phone, with the
+largest text size.
+
+| # | Do this | Expect |
+|---|---|---|
+| L1 | Open the app | Five tabs: Home · Partners · Money · Stock · More. The selected one is purple; labels are not clipped; nothing sits under the home indicator |
+| L2 | Home | Branch, "Hello, {name}", one line, the bell. Sell and Receive side by side; "Sale with several items" underneath |
+| L3 | Tap Sell, then Receive | Each opens its scan-first screen; the camera opens only once the branch and permissions have resolved |
+| L4 | Home, month figures | Profit large, then Sales, Expenses, Collected. The period says the exact days. "How profit is calculated" opens to three lines |
+| L5 | Home as an Employee (no `report.view`) | No figures at all — no profit, no sales, nothing in the accessibility reading either |
+| L6 | Home as a Manager (has `cost.view`) | All four figures |
+| L7 | Money → choose Today, then open Results | Results shows the same day, not the month |
+| L8 | Money | Money in, Money out, Net movement, and the line saying it is recorded in the app, not a bank balance |
+| L9 | Money → Cash & accounts | Cash and each active account, each with in and out |
+| L10 | Money as an Employee who may report expenses | No figures; Expenses and Daily closing still listed |
+| L11 | Results → How it adds up | Sales, approved returns, sales after returns, cost of sold items, profit before expenses, expenses, final profit |
+| L12 | Results → When a return changes the figures | Four sentences: approval changes profit; an approved refund due is owed; reporting a payout moves nothing; confirming moves cash and settles it, without reducing profit twice |
+| L13 | Partners with no stores | One compact card: no stores, how codes work, Add a store. The header does not also show Add |
+| L14 | Partners with an incoming request | It is first, above connected stores, with Accept and Decline |
+| L15 | Partners → a connected store → What you share | They owe us / we owe them (never netted), phones each way, open items and whose move, Lend and Consign |
+| L16 | Partners → Consignments row | The consignments list opens |
+| L17 | Copy your store code | The code is copied and a confirmation appears |
+| L18 | Stock | In-stock count and stock cost (cost only if your role may see cost); search, scanner, filters, unit rows with state |
+| L19 | Stock → transfers button | Transfers opens |
+| L20 | More | Branch · role, bell, then Activity / Reports / Manage / Account. No Suppliers; no Transfers, Partner stores or Consignments duplicated |
+| L21 | More as an Employee | Only what the role holds; no empty group headings |
+| L22 | Turn the phone off airline mode mid-load, then retry | The heading and actions stay put; the failure sits next to the content it belongs to, with one Try again |
+| L23 | Arabic, dark, largest text | Dates read right (1 سبتمبر 2026), chevrons point the right way, the period control and chips do not clip, nothing scrolls sideways |
+| L24 | French, small phone | Long labels wrap rather than truncating; "EXPENSES THIS M…" never appears |
+| L25 | A production build | No floating development gear anywhere |

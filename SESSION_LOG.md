@@ -9411,3 +9411,61 @@ despite its message; noted in `e30f609`, not rewritten.
 **Open.** Live rollup repair awaiting approval. `docs/24` §28 on a handset. The
 Sell screen shows deactivated accounts to an Owner (separate task). Security
 gate still a release blocker.
+
+---
+
+## 2026-09-15 (second session) — CLAUDE-A — scope correction, then the six layouts
+
+**The correction.** The milestone brief asked for a much wider removal
+(suppliers' schema, Goals, CRM, WhatsApp, SAV, OCR, advanced analytics) and I
+had begun it: the Prisma schema was edited to drop the supplier, goal and
+anomaly models and rename `supplier_payments`. The user stopped it before any
+migration was created or any database was touched. The schema file was restored
+from the copy taken before the edit (tree clean against HEAD), and **no
+migration was written, generated or applied**.
+
+Comparing mobile against `b8f4d33` showed what the previous milestone had
+removed beyond Suppliers and low stock. Restored forward in `fe30eb7`: the
+Analytics and Goals screens and `lib/goals.ts`, the Performance hub and Reports
+group on More, closing sign-off landing on Analytics, the WhatsApp summaries
+settings section, the "verified badge coming soon" line, the disabled "Sell to
+this store" row, 72 translation keys in each of EN/FR/AR, and the tests that
+covered them. Suppliers, low stock, paid-in-full receiving and Owner-only
+import stay as they were. `docs/21` now records that only those two features
+are absent, and reverses the earlier "postponed modules" entry.
+
+**Bug fix** (`b9fd2e9`). Full Sell and Quick Sell offered an Owner's deactivated
+receiving accounts, which the server refused; both now filter to active ones,
+with a pure test. Snapshot labels still read the full list.
+
+**Backend** (`3540388`). `GET /closings/movements?from&to` returns recorded
+money in, out and net per channel for a period. It is the daily closing's own
+movement query generalised from one day to a range in place, so the two cannot
+disagree; the closing still asks for one day. No schema change. 131 suites /
+2 390 tests.
+
+**The six layouts** (`c0dafbd`, `494cd09`). A shared `TabHeader` and
+`Disclosure`; Home with Sell and Receive side by side and the month's four
+figures (profit hidden, not zeroed, without `cost.view`); Money with a period
+shared with Results, recorded in/out/net and per-account detail; Results on the
+`/money` route with a closed breakdown and the returns timing; Partners with its
+own store code, expandable connected stores and a Consignments row; Stock with
+the server's count and stock cost; More grouped Activity / Reports / Manage /
+Account, with Transfers, Partner stores and Consignments named as reached from
+their tabs. Every money-moving mutation now invalidates Home, Money and Results.
+
+**Verification.** 15 + 2 + 5 API checks and 136 renders, all against an isolated
+restore (`prisma_verify_layout`) through a second API on 3011; live was read once
+by `mysqldump` and never written. Renders found four defects — Arabic dates
+reversed by LTR isolation, a Partners empty state pushed down a page, period
+segments under 44 pt, and a "phones" label for a mixed count — all fixed and
+re-rendered.
+
+**Environment.** The machine rebooted at 17:46, stopping the live API, Metro and
+MySQL; WAMP is a manual service this account cannot start. `prisma_verify_layout`
+is therefore still present and needs dropping once WAMP is up — recorded in the
+handoff with the command.
+
+**Open.** Live rollup repair still awaiting approval. `docs/24` §28 and §29 on a
+handset. The web back button announces "(tabs), back". Expo Doctor 20/21 from two
+upstream patch versions.

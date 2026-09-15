@@ -5213,24 +5213,104 @@ Greeting, Sell and Receive shortcuts, pending work, and the four server figures.
 The stock section and the duplicate "everything else" navigation list are gone.
 The known Home rollup discrepancy is **not** repaired or hidden here.
 
-### ✅ IMPLEMENTED — postponed modules are unreachable
+### ↩ REVERSED (2026-09-15) — "postponed modules are unreachable"
 
-Goals and Analytics screens removed from the app (closing now lands on Money);
-the WhatsApp summaries settings section (nothing sends them yet) and the
-"verified badge coming soon" line are hidden, with stored settings preserved.
-No CRM, SAV/technician, photo attachment or OCR surface exists. Backend data and
-routes for goals remain untouched.
-
-### ✅ IMPLEMENTED — Partners detail shows only actions that work
-
-"Sell to this store" is removed rather than shown disabled. Lend money and Give
-on consignment remain; the section is absent when neither is permitted. The
-direct-sale proposal above stays as recorded.
+**Not authorised.** Only Suppliers and low stock were approved for removal. The
+removal of the Goals and Analytics screens, the hidden WhatsApp summaries
+settings section, the hidden "verified badge coming soon" line and the removed
+disabled "Sell to this store" row were all restored in mobile `fe30eb7`. Goals,
+Analytics, anomalies and WhatsApp summary settings are current, reachable
+features. No CRM, SAV/technician or OCR surface existed before, and none was
+added.
 
 ### 🔭 Future updates (not scheduled)
 
 - Suppliers and purchase credit, if a shop needs payables again — reuse the
   dormant tables; decide whether `supplier.*` keys return or are deleted.
 - Low-stock alerts with per-product thresholds.
-- Goals, advanced analytics and exports screen, WhatsApp summaries, CRM, SAV.
 - Inter-store outright sale (four decisions above) and store QR codes.
+
+## Scope rule and six-screen layout (2026-09-15)
+
+### ✅ DECIDED — exactly two features are absent from the first release
+
+**Suppliers** (and supplier balances, supplier credit, supplier selection) and
+**low stock / reordering**. Nothing else is removed. A design mockup that omits a
+feature does not authorise deleting it; any further removal needs the user's
+explicit approval first. Old supplier rows stay as inert legacy data; no
+supplier schema migration is planned.
+
+Standing decisions restated: acquisition is paid in full and creates no
+supplier debt; barcode/QR scanning with permanent manual entry is the scanner
+design (OCR was retired before this milestone); Customers, Results, Goals,
+Analytics, anomalies, WhatsApp summary settings, Partners, loans and
+consignments remain; outright inter-store sales and Partner QR codes remain
+undecided future work.
+
+### ✅ IMPLEMENTED — navigation
+
+Bottom tabs: **Home · Partners · Money · Stock · More**. Sell remains a route
+(`/sell`) reached from Home and Quick Sell; its saved cart is unchanged.
+`/money` is the **Results** screen, reached from the Money tab. More groups:
+**Activity** (sales history, returns, price approvals), **Reports** (Analytics,
+Goals), **Manage** (team, Owner-only import, catalogue, business settings),
+**Account** (appearance & language, subscription, devices, sync). Transfers,
+Partner stores and Consignments are not repeated on More because a tab leads to
+them (Stock header, the Partners tab itself, a Consignments row on Partners) —
+recorded in `REACHED_FROM_TABS` with the reason, and still registry
+destinations with their deep links.
+
+There is no Customers screen today; listing one on More would mean building a
+new feature, so it is not listed.
+
+### ✅ IMPLEMENTED — the six layouts (light and dark, EN/FR/AR)
+
+- **One header** (`TabHeader`) on every tab: context line, one heading, optional
+  line, actions at the end edge. Nothing in it waits for data.
+- **Home:** Sell (primary) and Receive (outlined) side by side, "Sale with
+  several items" below, pending work, and the month's four server figures —
+  Profit (large, with a closed "How profit is calculated"), Sales, Expenses,
+  Collected. Without `cost.view` the server strips the profit block, so Profit
+  and Sales are hidden, not zeroed. One sentence when the month is empty. No
+  stock value or menu section on Home (stock cost is on Stock).
+- **Money:** Today / 7 days / This month with the exact dates, **shared with
+  Results**; recorded Money in / out / Net, labelled as recorded in the app and
+  not a bank or wallet balance; Cash & accounts in a disclosure; then Results,
+  Expenses, Daily closing, Loans from the registry. Figures need `report.view`.
+- **Results:** one Profit figure, the breakdown (sales, approved returns, sales
+  after returns, cost of sold items, profit before expenses, expenses, final
+  profit) and the returns timing, both closed by default; balances owed and
+  discrepancies kept below.
+- **Partners:** branch header, own store code with copy, requests waiting on
+  this user first, connected stores opening in place to what both stores share
+  (they owe us / we owe them, phones each way, open items and whose move, Lend
+  and Consign), requests sent, ended relationships. Add is in the header, or in
+  the empty state when the loaded list is empty — never both.
+- **Stock:** shared header with the server's in-stock count and stock cost
+  (cost only with `cost.view`), a transfers button, and the existing search by
+  model or either IMEI, scanner, filters and unit rows.
+- **More:** branch · role context, the bell, the branch switch, and the groups
+  above.
+
+### ✅ IMPLEMENTED — `GET /closings/movements?from&to`
+
+Recorded money in, out and net per channel (cash and each account) for an
+inclusive period, needing `report.view` and an active branch. It is the daily
+closing's own movement query generalised from one day to a range **in place**,
+so Money and the closing cannot disagree; the closing still asks for exactly
+one day. No schema change.
+
+### ✅ FIXED — deactivated accounts offered at the till
+
+Full Sell and Quick Sell offered an Owner's deactivated receiving accounts
+(which the server then refused). Both now offer only `isActive !== false`;
+payment labels already recorded still read the full list; the server's refusal
+is unchanged.
+
+### 📋 KNOWN — not fixed here
+
+- On web, a screen pushed from a tab announces its back button as "(tabs),
+  back" (the route-group name). The native stack offers no label option; it
+  needs a navigation-level fix.
+- Home's month figures on the live database still include the overstated
+  rollups recorded in `CURRENT_HANDOFF.md`; the repair awaits approval.

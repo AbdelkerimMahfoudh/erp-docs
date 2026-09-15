@@ -6,82 +6,83 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-15` (prompt said CLAUDE-B; this account is CLAUDE-A)
-- Active phase: **MVP removal + six-screen layout pass** — remove deferred
-  features completely (suppliers incl. schema, low stock, goals, CRM, WhatsApp
-  automation, SAV, OCR, advanced analytics); Home, Partners, Money, Results,
-  Stock, More layouts in light/dark, EN/FR/AR. Partners rules unchanged. Live
-  rollup repair NOT part of this phase.
-- Takeover HEADs verified: docs `fdfc5e4` · backend `80e25ef` · mobile `e30f609`,
-  clean and level; migrations through `0073`, up to date. Live: 3 suppliers,
-  9 purchases and 11 units carry a supplier id, 1 supplier payment, 0 settlements.
-  API 3010, Metro 8081 up.
-- Next: audit deferred artifacts and screen data contracts.
-- Previous phase: **first-release scope simplification** (CLAUDE-A) — complete.
-- Takeover HEADs were: docs `21c877c` · backend `529f934` · mobile `b8f4d33`.
-  Discrepancy at takeover: live API and Metro had been restarted by someone
-  else (healthy, left running).
-- **Sections §1–§9 further below are retained history from earlier phases.** The
-  tables in this section are current.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last owner: **CLAUDE-A** · `2026-09-15` (the prompt said CLAUDE-B; this
+  account is CLAUDE-A, per the user's standing correction)
+- Last phase: **scope correction + six-screen layout** — complete.
+- Takeover HEADs were: docs `fdfc5e4` · backend `80e25ef` · mobile `e30f609`,
+  clean and level; migrations through `0073`.
+
+### ⚠️ The scope rule, after a correction
+
+Only **two** features are absent from the first release: **Suppliers** and
+**low stock / reordering**. The previous milestone removed more than was
+authorised; that was reversed here (mobile `fe30eb7`). **Goals, Analytics,
+anomalies and the WhatsApp summary settings are live features.** No further
+removal without the user's explicit approval, and a mockup that omits a feature
+does not authorise deleting it.
 
 ### What changed
 
 | Part | Commits | Summary |
 |---|---|---|
-| **Purchases paid in full** | backend `47c2e06` · mobile `e1f5f75` | request names only cash or an active account; server sets amount = total; `supplierId`/`paidAmount`/`dueDate` rejected; account checks before any write; atomic; payment in the idempotency fingerprint. Closing expected cash, channel movements and the period summary now count purchase payments ("paid for stock") — previously missing. `POST /units` quick-add removed |
-| **Suppliers removed** | backend `47c2e06` · mobile `3f77f8a`, `e1f5f75`, `e30f609` | module, routes, report rows, screens, picker, types, query keys, mobile permission keys, offline specs. Historical rows kept; `supplier.*` keys dormant in the backend catalogue |
-| **Low stock removed** | backend `3bbb64b` · mobile `e1f5f75` | Home row, Stock badge, anomaly rule, health component, threshold reads |
-| **Import Owner-only** | backend `80e25ef` | `0073` revokes `import.run` from non-owners |
-| **Home / More / Partners** | mobile `e1f5f75` | Home without the stock section or duplicate menu; More without Suppliers/Analytics/Goals (screens deleted, closing lands on Money); WhatsApp summaries settings and "badge coming soon" hidden; Partners detail without the Sell row |
+| **Restored** (not authorised for removal) | mobile `fe30eb7` | Analytics and Goals screens and `lib/goals.ts`; the Performance hub and Reports group; closing sign-off landing on Analytics; the WhatsApp summaries settings section; the "verified badge coming soon" line; the disabled "Sell to this store" row; 72 translation keys × EN/FR/AR; the tests covering them |
+| **Sell account bug** | mobile `b9fd2e9` | full Sell and Quick Sell offered an Owner's deactivated receiving accounts, which the server then refused. Both now offer `selectableAccounts()`; snapshot labels still read the full list |
+| **Period movements** | backend `3540388` | `GET /closings/movements?from&to` (`report.view`): recorded money in/out/net per channel. The closing's own query generalised to a range **in place**; the closing still asks for one day. No schema change |
+| **Six layouts** | mobile `c0dafbd` | shared `TabHeader` and `Disclosure`; Home (two actions side by side, four figures, expandable profit); Money (shared period, in/out/net, cash & accounts, four actions); Results (`/money`, same period, closed breakdown and returns timing); Partners (own code, expandable connected stores, Consignments row); Stock (server count and stock cost, transfers button); More (Activity / Reports / Manage / Account). Every money-moving mutation invalidates Home, Money and Results |
+| **Render fixes** | mobile `494cd09` | Arabic dates were reversed by LTR isolation; Partners' empty state was pushed down a page; period segments under 44pt; Stock header said "phones" for a mixed count |
 
-Commit note: mobile `3f77f8a` contains only the deleted Supplier/Goals/Analytics
-files although its message describes Receive; those Receive changes are in
-`e1f5f75` (recorded in `e30f609`). Already pushed, so not rewritten.
+**No schema migration was created or applied in this phase**, and the live
+database was not written to at any point.
 
 ### HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`80e25ef`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`e30f609`** | level | 0 |
-
-### Migrations applied this phase
-
-| # | What | Evidence |
-|---|---|---|
-| `0072_purchase_payment_account` | nullable `receiving_account_id` (FK, index) + `account_label_snapshot` on `supplier_payments` | Backup `~/erp-backups/phonestore-20260915-063543-pre-0072.sql` — 838 208 B, trailer, 88 tables, 0 raw binary. Restored (DEFINER stripped) to `prisma_verify_scope`: fingerprint identical to live (tables, trigger-name MD5, counts, sums, id MD5s). Both migrations deployed there; 24/24 real-HTTP checks; then deployed live |
-| `0073_import_owner_only` | `import.run` removed from 6 non-owner role keys | live `role_permissions` 287 → 282; permission drift script "catalogue and grants complete ✓" |
-
-Live before/after (units 53, sales 7 / 10 051, purchases 10 / 21 185, supplier
-payments 1 / 10 000, payments 7, expenses 2 / 600, audit 836, all id MD5s):
-**identical**, apart from the two expected lines. Re-checked after all isolated
-verification: identical. Live API stopped by exact PID (29520, 27880, 2976),
-rebuilt and restarted; healthy on 3010. Metro and MySQL untouched.
-`prisma_verify_scope` dropped; isolated API, static server and headless Chrome
-stopped.
+| `erp-backend` | `reports-export` | **`3540388`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`494cd09`** | level | 0 |
 
 ### Verification
 
 | Check | Result |
 |---|---|
-| Backend | `tsc` clean · **130 suites / 2384 tests** (was 132/2442: Suppliers and low-stock suites deleted, `first-release-purchase` added) · `prisma validate` · migrate status up to date · permission drift clean |
-| Isolated HTTP (24) | suppliers 404; `/units` 404; missing method / supplierId / paidAmount → 400; cash purchase paid = total, one payment, no supplier on purchase or unit; replay returns the same id, 409 on a changed payment; account_required / cash_has_no_account / account_not_found / account_inactive with nothing written; active account label frozen; refused-unit purchase writes nothing; expected cash −1234 exactly (bank purchase not in cash); summary paid-for-stock +2011; no `supplier_liability`; no lowStock in stock summary, home, anomalies; Manager import 403; Owner import commits with no payment; Partners endpoints 200 |
-| Mobile | `tsc` clean · lint 0 errors / 32 warnings · **52 pure suites** · EN/FR/AR parity (compile-time) · web export · Expo Doctor 21/21 |
-| Renders | FR/AR × light/dark: Home (Owner, Manager), Quick Receive (ready; bank with accounts), full Receive, Import (Owner), More (Owner has Import, Manager not), Partners detail (Lend, Consign only). No supplier, low-stock, raw-key or "coming soon" text. **Defect found and fixed:** deactivated accounts were offered in the picker |
+| Backend | `tsc` clean · **131 suites / 2 390 tests** (+`period-movements` 6) · `prisma validate` · migrate status up to date (through `0073`) · permission drift clean |
+| Mobile | `tsc` clean · lint **0 errors / 32 warnings** · **54 pure suites** (+`layout` 14, +`receiving-accounts` 5) · EN/FR/AR parity at compile time · web export · every route exported, none for suppliers · no raw colours or hardcoded copy in the new screens |
+| Expo Doctor | **20/21** — two Expo patch versions drifted upstream (`expo` 57.0.22 vs ~57.0.23, `expo-sharing` 57.0.19 vs ~57.0.20). No dependency was touched here; left for a deliberate upgrade |
+| Isolated API (`prisma_verify_layout`, 127.0.0.1:3011) | **15/15 + 2 + 5**: suppliers gone and non-mutating; receive without a supplier (primary-only and dual IMEI); either IMEI finds the same unit; cash sale; expense confirmed; faulty unit; per-channel movement matching the closing exactly; Employee refused figures (403); reversed range refused; connection request, acceptance, a 5 000 loan accepted, and a shared summary with no cost, customer or stock of the other store |
+| Renders | **136 captures**: Home, Partners, Money, Results, Stock, More in EN/FR/AR × light/dark at 360, 390 and 430 pt, plus empty / incoming request / connected Partners, zero-activity and populated Money and Results, mixed stock, an Employee's restricted view, and loading and error states. Four defects found and fixed (above); no clipped text, no horizontal overflow, no leaked keys, no development gear |
 
-Web rendering is not device verification: `docs/24` §28 S1–S15 are open.
+Web rendering is not device verification: `docs/24` §29 L1–L25 are open, and
+§28 S1–S15 remain open from the previous phase.
 
-### Follow-up noticed (not done)
+### 🧹 Outstanding cleanup (needs the user)
 
-The full Sell screen shows deactivated receiving accounts to an Owner (settings
-returns them). Pre-existing and out of scope; suggested as a separate task.
+The machine rebooted at 17:46 on 2026-09-15, which stopped the live API, Metro
+and MySQL (WAMP is a manual service and this account cannot start it). Left
+behind:
 
-### Contract gaps kept
+- **Temporary database `prisma_verify_layout` still exists.** Drop it once WAMP
+  is running: `mysql --defaults-extra-file=~/.my.cnf -e "DROP DATABASE prisma_verify_layout"`.
+- The live API is **not running** and, when started, will serve the new build
+  including `GET /closings/movements`; the mobile Money tab needs it.
+- Backups from this phase: `~/erp-backups/phonestore-20260915-063543-pre-0072.sql`
+  and `phonestore-20260915-082022-layout-verify.sql` (838 452 B, verified,
+  restored with an identical fingerprint).
 
-Direct inter-store sale (four decisions in `docs/21`) and store QR codes — not
-built. Purchase credit postponed.
+Live data was read (one `mysqldump`) and never written: every fixture went to
+the isolated copy through the isolated API. The last live fingerprint taken
+(08:20) matched the post-`0073` state exactly — units 53, sales 7 / 10 051,
+purchases 10 / 21 185, payments 7, expenses 2 / 600, audit 836,
+role_permissions 282, migrations 72.
+
+### 📋 Known, not fixed
+
+- On web, a screen pushed from a tab announces its back button as "(tabs),
+  back". The native stack exposes no label option; it needs a navigation fix.
+- There is no Customers screen; More does not list one, because building it
+  would be a new feature.
 
 ### 🔴 Still pending separate approval — live rollup repair (NOT applied, NOT part of this phase)
 
