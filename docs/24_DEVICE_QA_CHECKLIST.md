@@ -3348,3 +3348,33 @@ file. Re-run F1–F21, and these as well.
 | F31 | Any failure above | A Try again sits in the message and re-sends the same file |
 | F32 | Any failure above, in French and Arabic | Fully translated, no English fallback, no status codes on screen |
 | F33 | Choose a file from iCloud Drive or a chat attachment | It uploads — a uri iOS will not let the app open must not read as a network failure |
+
+### 30c. The upload path itself — THE OUTSTANDING PROOF, UNVERIFIED
+
+The second device attempt failed with "The app could not reach the server" while
+that same iPhone had just registered a phone and completed a sale. Connectivity,
+authentication and the API origin were all fine: the fault was in the upload
+alone. React Native was building the multipart part from the document picker's
+uri, which iOS no longer let the app read, and that failure looks exactly like
+being offline.
+
+The file is now copied into the app's cache, checked there, and uploaded from
+that copy by Expo's native uploader. **This is the proof that is still owed, and
+only the handset can give it.** Run with the app in development so the staged
+trace prints.
+
+| # | Do this | Expect in the staged log / on screen |
+|---|---|---|
+| F34 | Register a phone and make a sale first | Both succeed — the API, Wi-Fi and session are known good before the file test |
+| F35 | Receive stock → the Excel button → Choose a file → the 100-phone workbook | `picked` names the url, the .xlsx name, the MIME type, the declared size and the uri scheme |
+| F36 | Watch the trace | `copied` with a size, then `verified` with size, MIME type and name |
+| F37 | The copied size | **12 047 bytes**, matching the workbook |
+| F38 | Watch the trace | `started`, then `answered` with **status 201** |
+| F39 | The review opens | **100 phones**, read from "Phones" |
+| F40 | The counts | **50 with one IMEI, 50 with two** |
+| F41 | The payable total | **1 242 000 MRU** |
+| F42 | Stock, Money and purchase history, before confirming | Unchanged — parsing creates no stock, purchase or payment |
+| F43 | **Stop here. Do not confirm the delivery** | The demo phones must never enter live inventory |
+| F44 | Pick the same file from iCloud Drive, and from a WhatsApp attachment | Both upload; neither reports the server as unreachable |
+| F45 | Turn the API off, then choose a file | "The app could not reach the server" — and only then |
+| F46 | Choose a file, then delete it from Files before Try again | "That file is no longer available on this phone", or the cached copy is reused |
