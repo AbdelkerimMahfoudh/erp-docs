@@ -9469,3 +9469,70 @@ handoff with the command.
 **Open.** Live rollup repair still awaiting approval. `docs/24` §28 and §29 on a
 handset. The web back button announces "(tabs), back". Expo Doctor 20/21 from two
 upstream patch versions.
+
+---
+
+## 2026-09-16 — CLAUDE-A — receiving a delivery from an Excel or PDF file
+
+**Takeover.** Docs `d920375` · backend `3540388` · mobile `494cd09`, all clean
+and level; the previous session's handoff was complete. The prompt addressed
+CLAUDE-B; per the user's standing correction this account remains CLAUDE-A. The
+one discrepancy carried in from the reboot — `prisma_verify_layout` left behind —
+was already gone: only the pre-existing `prisma_staging*` schemas remained.
+
+**What was built.** Receive stock now accepts a file of a hundred or more phones.
+An Excel button sits at the physical right of the title in the top header, above
+the scan row, shown only to someone holding both `import.run` and
+`purchase.manage`; in Arabic the header controls are swapped so it stays
+physically top right while text and navigation stay RTL. The backend gained
+`src/receiving-files/`: a workbook reader, a PDF text reader, heading detection
+in three languages, sheet scoring that tells stock from instructions, entry
+building, duplicate detection, catalogue matching, and one parse endpoint that
+writes nothing. The review screen groups the phones, counts ready, needs
+attention and excluded, filters on those, shows each phone's sheet and row or PDF
+page, and takes individual corrections and explicit bulk edits that state how
+many phones they change. Confirmation goes through the existing paid-in-full
+`POST /purchases` — deliberately not the opening-inventory endpoint, whose cash
+semantics differ.
+
+**Two readers written rather than reused.** exceljs cannot open the demo
+workbook: it is namespace-prefixed OOXML (`x:` elements), which is what a real
+shop's file looks like, so a tolerant reader over JSZip replaced it. And pdfjs
+merges text items printed close together, which turned "351234000001016 12500"
+into one value; the reader now keeps every piece with its x and width, merges by
+gap only to find the heading row, aligns data rows to those heading positions and
+splits an item that spans into the next column by its measured width. PDF checks
+went 4/11 → 11/11 on that change alone. No price, second IMEI or variant is ever
+attached by proximity.
+
+**Verification.** Backend 132 suites / 2 423 tests. Mobile `tsc` clean, lint
+clean but for one pre-existing warning, 53 pure suites. End to end against an
+isolated restore through a second API on 3011: **27/27** receiving checks —
+exactly 100 units from the 100-row workbook, one purchase, one "paid for stock"
+of 1 242 000, either IMEI resolving the same unit, re-upload flagging all 100,
+replay and 409 on a changed payload, concurrent confirmations creating nothing
+new, a wholly refused delivery leaving no unit, purchase or payment, an Employee
+refused, cross-tenant isolation intact, and opening inventory still moving no
+cash — plus **11/11** PDF checks including an image-only refusal and a mixed PDF
+naming the page it could not read. 28 renders at 360 pt in EN/FR/AR × light/dark
+put the button at 48×48, x=312 of 360 in every language.
+
+**Four defects found by verifying, and fixed.** The web upload sent a uri part
+and therefore nothing at all; the picker fired before the branch store hydrated
+and earned a bare 403; the success screen left the amount paid as a stranded
+figure under Done; and the batch was lost if the app closed mid-review.
+
+**Honesty about the renders.** A headless browser cannot open the operating
+system's file chooser. The rendered runs were handed the workbook through a seed
+parameter in a throwaway build; that hook was removed and never committed, and
+the file chooser itself remains unverified. **Nothing has run on a handset** —
+`docs/24` §30 F1–F21 is open.
+
+**Live untouched.** Fingerprints before and after are identical. Every fixture
+went to `prisma_verify_files`, which has been dropped along with the dump and the
+export fixtures. The verification API, static server and headless Chrome were
+stopped by port-owning PID; the user's API, Metro and MySQL were left running.
+
+**Not done, deliberately.** No removals, no permission changes, no dependency
+upgrades beyond the two parsers the user approved, and the live rollup repair
+remains untouched and awaiting approval.
