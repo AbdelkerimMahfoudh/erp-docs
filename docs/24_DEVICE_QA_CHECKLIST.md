@@ -3378,3 +3378,46 @@ trace prints.
 | F44 | Pick the same file from iCloud Drive, and from a WhatsApp attachment | Both upload; neither reports the server as unreachable |
 | F45 | Turn the API off, then choose a file | "The app could not reach the server" — and only then |
 | F46 | Choose a file, then delete it from Files before Try again | "That file is no longer available on this phone", or the cached copy is reused |
+
+### 30d. The review screen, as the iPhone showed it — PHYSICAL-DEVICE FINDING
+
+The workbook uploaded and parsed correctly on the handset. The review of the
+hundred phones did not survive contact with a real 390-point screen:
+
+1. "Exclude all 100" overlapped the sentence explaining what to do.
+2. The warning card held several competing texts in too little height.
+3. The reason each phone needed attention was never shown.
+4. A warning icon sat beside `12 500 MRU`, making a correct price look wrong.
+5. IMEIs ran as an unlabelled continuous list.
+6. Tiny chevrons offered no clear action.
+7. The payment section filled the screen while nothing at all was ready to pay for.
+8. "Change several at once" never said what it could change.
+9. The screen did not scale to a hundred phones, let alone two thousand.
+10. A floating blue gear covered content. **It is not the app's** — there is no
+    `expo-dev-client` dependency and no absolutely-positioned control in the
+    app's tree; it is Expo Go's own development bubble and it does not exist in
+    a production build (already covered by §29 L25).
+
+All nine app defects were fixed by staging the screen into Review → Payment →
+Confirm. Re-run §30 and §30c, then these.
+
+| # | Do this | Expect |
+|---|---|---|
+| F47 | Import the 100-phone workbook, unmatched products | "Step 1 of 3", "100 phones need attention", a stacked Ready / Needs attention / Excluded breakdown, and one "Match products" action. No text sits on top of any other |
+| F48 | Look for the payment section | There is none — only a footer with the ready count, the excluded count, the total, and a disabled "Continue to payment" saying how many still need a correction |
+| F49 | Scroll the list | One collapsed card per exact variant: model, category · storage · colour, "10 phones · 125 000 MRU", "Status: …", and its actions. Scrolling stays smooth to the end |
+| F50 | Tap "Match product for all 10" and choose a product | Exactly those ten become ready; the counts and the total change at once; no other group moves |
+| F51 | Tap "Review 10 phones" | Each phone is its own card, separated by a divider, with IMEI 1, IMEI 2, Unit cost and From all labelled |
+| F52 | A phone with two IMEIs | Plainly one phone, one cost — never two rows |
+| F53 | A phone that needs attention | The warning is beside a written reason ("Several products match — choose one"), and **not** beside the price |
+| F54 | Exclude one phone, then include it again | The counts follow immediately; the total follows |
+| F55 | Open "Bulk edit" | It names what it can change (the purchase cost) and the phones it applies to |
+| F56 | Apply a bulk cost where some phones already say something else | The confirmation states how many are affected **and** how many already differ, before anything changes |
+| F57 | Scroll to the end of the review | "Exclude all" is there, quiet, not competing with the fix — and asks first, naming the count |
+| F58 | Resolve everything, tap Continue | The payment step opens: "Step 2 of 3", the total, Cash or an active account, and "Receive 100 phones" |
+| F59 | Tap "Back to the delivery" | Every correction, exclusion and open group is exactly as it was |
+| F60 | **Stop before confirming** | The demo phones must not enter live inventory |
+| F61 | At 320, 360, 390 and 430 points | No overlapping text, nothing clipped, no sideways scroll |
+| F62 | **iOS Dynamic Type at 120% and 135%** | Nothing clipped or overlapping. **A web render cannot test this** — React Native Web emits fixed pixel sizes, so only the handset can |
+| F63 | French and Arabic, light and dark | Long labels wrap; Arabic reads right-to-left throughout, including the footer and the group cards |
+| F64 | Open the correction sheet with the keyboard up | The Save button and the cost field stay reachable |

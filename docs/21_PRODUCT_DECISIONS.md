@@ -5440,3 +5440,49 @@ copy when the document provider will not hand the file over a second time.
 Every stage — picked, copied, verified, started, answered — is traced in
 development with metadata only: url, name, MIME type, sizes, uri scheme, status
 and error code. Never the workbook's contents, never a token.
+
+### ✅ IMPLEMENTED — the file review is a staged workflow
+
+The first review screen worked on a test harness and failed on a real iPhone: it
+asked how the shop would like to pay before telling it anything was wrong, and
+it never said *why* any phone was held up. Rebuilt as **Review → Payment →
+Confirm**.
+
+**Review** opens on a stacked summary card — the headline ("100 phones need
+attention"), a sentence of explanation, a Ready / Needs attention / Excluded
+breakdown, and one action aimed at the actual problem ("Match products"). No
+action is placed over explanatory text, and nothing inside a card is positioned
+absolutely. A compact footer carries the ready count, the excluded count and the
+selected total, with a **Continue to payment** that stays disabled — saying how
+many are still unresolved — until every phone has been corrected or deliberately
+excluded.
+
+**Payment** is not rendered at all until then, so the shop is never asked to pay
+for a delivery it has not finished checking. It is the existing picker, Cash or
+an active account, paid in full, with the existing exactly-once accounting
+untouched.
+
+**Groups before phones.** A hundred rows of the same model with the same missing
+product are one decision. The list is one collapsed card per exact variant with
+its count, its subtotal and the reason it is held up; where every held-up phone
+in a group is waiting on the same product question, one choice answers all of
+them. Only products **every** phone in the group already matched are offered;
+nothing is auto-created, and an unknown model still goes through Create product.
+After a group correction the counts and totals move immediately.
+
+**Phones are labelled.** Opening a group renders its phones — and only then, so a
+file of two thousand costs no more to scroll than one of ten. Each is a separate
+card, divided from its neighbours, with **IMEI 1**, **IMEI 2**, **Unit cost** and
+**From** named, so two identifiers can never read as two phones. The warning sits
+beside the written reason, never beside the price: a correct price on a phone
+whose product is unknown is still a correct price.
+
+**"Bulk edit"** replaces "Change several at once", says which field it can change,
+and states before applying both how many phones it affects and **how many already
+hold a different value** — nothing is overwritten silently. **"Exclude all"** left
+the alert; it sits quietly at the end of the review and still asks first, naming
+the count.
+
+The floating gear seen on the device is **Expo Go's**, not the app's: there is no
+`expo-dev-client` dependency and no absolutely-positioned control in the app's
+tree.
