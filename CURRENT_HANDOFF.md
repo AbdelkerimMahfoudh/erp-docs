@@ -8,11 +8,11 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Owner: **NONE**
-- Last owner: **CLAUDE-A** · `started_at_utc: 2026-09-16` · finished `2026-09-16`
-  (the prompt said CLAUDE-B; the user confirmed this account stays CLAUDE-A)
-- Last phase: **bulk receiving from Excel and text PDF files** — complete.
-- Takeover HEADs verified: docs `d920375` · backend `3540388` · mobile `494cd09`,
-  all clean and level.
+- Last phase: **the real-device file upload path** — complete. Takeover HEADs
+  were docs `e842f0b` · backend `80853b6` · mobile `bbd5cd7`, all clean and level.
+- Last owner: **CLAUDE-A** · finished `2026-09-16` (the prompt said CLAUDE-B; the
+  user confirmed this account stays CLAUDE-A).
+- The phase before: **bulk receiving from Excel and text PDF files** — complete.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -38,8 +38,8 @@ database was never written to.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`80853b6`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`bbd5cd7`** | level | 0 |
+| `erp-backend` | `reports-export` | **`2e34ce1`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`7bd50f7`** | level | 0 |
 
 New backend dependencies, at the user's explicit direction: `pdfjs-dist ^4.10.38`
 and `jszip ^3.10.2`. Nothing else was added, upgraded or removed.
@@ -62,19 +62,66 @@ uploads to an external AI service are out of scope.
 
 | Kind | Result |
 |---|---|
-| **Backend** | `tsc` clean · **132 suites / 2 423 tests, 0 failed** (+`file-receiving` 33) |
-| **Mobile** | `tsc` clean · lint **0 errors**, 1 pre-existing memoization warning in `app/receive.tsx` (present before this phase) · **53 pure suites, 0 failed** (+`file receiving` 21) · EN/FR/AR parity at compile time · every route exported, `/receive/pick` and `/receive/file` classified |
+| **Backend** | `tsc` clean · **132 suites / 2 427 tests, 0 failed** (+`file-receiving` 37, including four that keep the route wired into `AppModule`) |
+| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline) · **53 pure suites, 0 failed** (`file receiving` 29, +8 for the failure messages and the native upload) · EN/FR/AR parity at compile time · every route exported |
 | **Expo Doctor** | **20/21** — pre-existing patch drift, `expo` 57.0.22 vs ~57.0.23 and `expo-sharing` 57.0.19 vs ~57.0.20. **Not touched**: the brief forbade dependency upgrades. Left for a deliberate upgrade |
 | **End to end, isolated DB** (`prisma_verify_files`, API on `127.0.0.1:3011`) | **27 / 27**: the demo workbook read (100 phones, Read me marked as instructions, 50 dual-IMEI, 150 identifiers at 15 digits, every entry knowing its sheet and row); reading wrote nothing; unknown products flagged and never created; 100 ready once the ten fixture products exist through the normal `POST /products`; total 1 242 000 as the workbook states; **exactly 100 units created**, one purchase paid in full with no supplier, **"paid for stock" recorded once** for the whole total; either IMEI resolves the same unit (200/200); re-reading flags all 100 as already in stock; the same key with the same payload replays, with a changed payload is refused 409; two simultaneous confirmations create nothing new; a registered phone is refused while the new one is received; **a delivery whose every phone is refused creates no unit, no purchase and no payment**; an Employee is refused (403); another tenant sees none of this shop's stock; **opening inventory still creates no cash movement** |
 | **PDF fixtures, isolated DB** | **11 / 11**: two-page delivery; the repeated header is not a phone; page numbers and totals are not phones; each phone knows its page; a second IMEI stays on the line it was printed on; the price on a line belongs to that line; storage and colour are read only when printed; a variant-less row is flagged rather than guessed; an image-only PDF is refused with `pdf_image_only`; a mixed PDF reads 4 and names page 2 |
 | **Renders** (isolated API, 360 pt) | 28 captures — the Receive header, picker, review, needs-attention filter, bulk edit, the unsupported-file error and the received state, in EN/FR/AR × light/dark. The button measures **48×48 at x=312 of 360 in every language, Arabic included**; the scan row is untouched. No clipping, no sideways scroll, no leaked keys, no "Supplier" anywhere. One defect found and fixed (the stranded total on the success screen) |
-| **Physical device** | 🔴 **none.** `docs/24` **§30 F1–F21** is open, and the file chooser (F5, F6) is an OS screen no headless browser can open |
+| **Real-device path** | **17 / 17** against the live API on `192.168.100.3:3010` — the section above |
+| **Physical device** | 🔴 **still none.** `docs/24` **§30 F1–F21** and **§30b F22–F33** are open. The file chooser itself (F5, F6, F33) is an OS screen no automated run can open |
 
 **Verification limitation, stated plainly.** A headless browser cannot open the
 operating system's file chooser, so the rendered runs were handed the workbook
 through a seed parameter that existed only in a throwaway verification build.
 **That hook has been removed and was never committed**; the picker in the
 repository reaches the file only through `DocumentPicker`.
+
+## 🔧 The device failure, and what it was
+
+**Reported:** the iPhone showed "That file could not be read" for
+`demo-receiving-100-phones.xlsx` — the workbook this account had already proved
+valid.
+
+**Cause: the API process serving the shop predated the feature.** PID 19632 on
+`:3010` was started at 2026-09-15 23:37 from a `dist/` built before
+`src/receiving-files/` existed. The previous handoff recorded that API as "left
+untouched", which was true and was exactly the problem: the route was in Git, in
+`node_modules`, and in no running process.
+
+**The HTTP failure observed on the first attempt:**
+
+| Probe | Before the restart | After |
+|---|---|---|
+| `POST /api/v1/purchases/file/parse` | **404** | **401** (route exists, auth required) |
+| `POST /api/v1/purchases` (a route the old build had) | 401 | 401 |
+| `dist/src/receiving-files/` | absent | present |
+| `pdfjs-dist`, `jszip` in `node_modules` | present all along | present |
+
+**Repaired** by `npx nest build` and restarting **only** that process, by its
+exact verified PID, after confirming its command line. Metro (`:8081`) and MySQL
+(`:3306`) were not touched and are still up. The API is healthy on both
+`127.0.0.1:3010` and `192.168.100.3:3010`, which is the origin the phone build
+compiles in (`EXPO_PUBLIC_API_ORIGIN`).
+
+**The second fault, which hid the first.** The app turned every failure into one
+sentence that accused the workbook. Twelve messages now replace it, in EN/FR/AR,
+with a Try again and with status, code, file name and MIME type going only to a
+development log. A phone also no longer uploads a uri it could not open: the
+picked file is checked first, and a request that never left retries once with
+the real bytes before the network is blamed.
+
+### Proof on the real path — 17/17, against the live API on the phone's origin
+
+The exact workbook, sent as the phone sends it (field `file`, real bytes, .xlsx
+name and spreadsheet type, no hand-set content type): **201**, 12 047 bytes
+parsed, `Phones` chosen and `Read me` marked instructions, **100 phones**, **50
+with one IMEI and 50 with two**, total **1 242 000**. Reading it again is safe
+and identical. A corrupt workbook, an empty file, a .txt, a 9 MB file, no
+session and no branch each produce their own message (400 `file_unreadable`,
+400, 400 `file_type_unsupported`, 413, 401, 403). **Live counts before and
+after were identical — units 53, purchases 10, payments 7, audit 839 — so
+parsing created no stock and no payment.**
 
 ## Live data and cleanup
 
@@ -147,8 +194,10 @@ start time against the last commit before concluding anything.
 
 ## The next exact action
 
-1. **Run `docs/24` §30 F1–F21 on a handset** with a real 100-phone workbook and
-   a real PDF — especially the file chooser (F5, F6), which nothing automated
-   can exercise.
+1. **Reload the app on the iPhone and repeat the file import** (`docs/24` §30
+   F1–F21, then §30b F22–F33). The server fault is fixed and proved on the
+   phone's own origin, but nothing has run on the handset.
+   ⚠️ **The API must be running on the new build** — if `POST /api/v1/purchases/file/parse`
+   answers 404, it is the old process again: rebuild and restart it by PID.
 2. **Approve or decline the live rollup repair** above.
 3. Then the remaining device sections, §29 and §28 first.

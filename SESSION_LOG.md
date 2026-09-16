@@ -9536,3 +9536,67 @@ stopped by port-owning PID; the user's API, Metro and MySQL were left running.
 **Not done, deliberately.** No removals, no permission changes, no dependency
 upgrades beyond the two parsers the user approved, and the live rollup repair
 remains untouched and awaiting approval.
+
+---
+
+## 2026-09-16 — CLAUDE-A — the real-device file upload path
+
+**Takeover.** Docs `e842f0b` · backend `80853b6` · mobile `bbd5cd7`, clean, level,
+status READY_FOR_HANDOFF, owner NONE.
+
+**Reported.** The iPhone showed "That file could not be read" for
+`demo-receiving-100-phones.xlsx` — the workbook this account had already proved
+valid on an isolated database.
+
+**The cause was mine, and it was operational.** The API serving the shop, PID
+19632 on `:3010`, was started at 2026-09-15 23:37 from a `dist/` built before
+`src/receiving-files/` existed. `POST /api/v1/purchases/file/parse` answered
+**404** while `POST /api/v1/purchases` answered 401, which is the exact shape of
+a route that is in Git and in no running process. The previous handoff recorded
+that API as "left untouched" — true, and precisely the problem. Shipping an
+endpoint is not finished until the process serving the shop runs the new build.
+
+**Repaired** with `npx nest build` and a restart of only that process, by its
+exact verified PID after checking its command line. Metro and MySQL were not
+touched. The parse route then answered 401 on both `127.0.0.1:3010` and
+`192.168.100.3:3010`, which is the origin the phone build compiles in.
+
+**The second fault, which hid the first.** Every failure — 404 included — was
+shown as one sentence that accused the workbook. Twelve messages now replace it
+across EN/FR/AR: unreachable server, a server older than the phone, an ended
+session, a role without the permission, no branch, too large, empty,
+unsupported, damaged, no sheet of phones, a photographed PDF, and a server-side
+failure. Status, code, file name and MIME type go to a development log only, and
+the notice carries a Try again that re-sends the same file.
+
+**A third fault, found by auditing the native path rather than by the report.**
+React Native builds the multipart part from the file's uri, and a uri it cannot
+read — an iOS security-scoped url, a temporary file already released — fails
+inside the networking layer as a bare "Network request failed", which reads as
+bad Wi-Fi. The picked file is now checked before it is sent, so "gone" and
+"empty" are said plainly, and a request that never left retries once with the
+real bytes. The uri part stays the first attempt: it is the transport the rest
+of the app uses, and no content type is set by hand, which would lose the
+boundary.
+
+**Proof on the real path — 17/17** against the live API on the phone's own
+origin, sending exactly what the phone sends. The workbook: 201, 12 047 bytes,
+`Phones` chosen and `Read me` marked instructions, 100 phones, 50 with one IMEI
+and 50 with two, total 1 242 000, and reading it again safe and identical. A
+corrupt workbook, an empty file, a .txt, a 9 MB file, no session and no branch
+each produced their own message. **Live counts were identical before and after
+— units 53, purchases 10, payments 7, audit 839 — so parsing created no stock
+and no payment.**
+
+**Regression cover.** Backend 132 suites / 2 427 tests (+4: the module stays in
+`AppModule`, the route keeps its path and version, both parsers stay declared).
+Mobile 53 pure suites, `file receiving` 21 → 29 (+8: every status and server
+code maps to its own message, 404 blames the server, a request that never
+arrived is not a bad file, every message exists in all three languages, the
+picker shows the mapped message with a retry, technical detail stays in
+development, and the phone never uploads a uri it could not open). `tsc` clean;
+`expo lint` 0 errors / 32 warnings, the baseline.
+
+**Still not verified on a handset.** `docs/24` §30 F1–F21 and the new §30b
+F22–F33 are open; the file chooser itself is an OS screen no automated run can
+open.
