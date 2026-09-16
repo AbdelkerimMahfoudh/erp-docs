@@ -3326,3 +3326,25 @@ real phone.
 | F19 | Choose a PDF whose pages are partly photographs | It reads what it can and names the pages it could not — never implies the whole file was processed |
 | F20 | Choose something that is not a workbook or PDF | "Only .xlsx workbooks and text PDFs can be read" |
 | F21 | French and Arabic, largest text, dark | No clipping, no sideways scroll, no untranslated key anywhere in the review |
+
+### 30b. After the first device attempt failed — UNVERIFIED ON ANY DEVICE
+
+The first run of F5 failed with "That file could not be read" because the API
+serving the shop predated the feature and answered 404. The server has been
+rebuilt and restarted, and the app no longer reports every failure as a bad
+file. Re-run F1–F21, and these as well.
+
+| # | Do this | Expect |
+|---|---|---|
+| F22 | Repeat F5 with the same workbook | The review opens: 100 phones, read from "Phones" |
+| F23 | Stop the API, then choose a file | "The app could not reach the server" — never a complaint about the file |
+| F24 | Point the app at an older server, then choose a file | "This phone is newer than the shop server" |
+| F25 | Sign out on another device so the session ends, then choose a file | "Your session has ended" |
+| F26 | As a role without `import.run` | The button is not there at all; if reached, "Your role may not import files" |
+| F27 | Choose a file larger than 8 MB | "That file is too big to read" |
+| F28 | Choose a damaged workbook | "That workbook could not be opened" |
+| F29 | Choose a .txt or an image | "Only .xlsx workbooks and PDFs whose text can be selected" |
+| F30 | Choose a workbook whose only sheet is instructions | "No sheet in that file holds phones" |
+| F31 | Any failure above | A Try again sits in the message and re-sends the same file |
+| F32 | Any failure above, in French and Arabic | Fully translated, no English fallback, no status codes on screen |
+| F33 | Choose a file from iCloud Drive or a chat attachment | It uploads — a uri iOS will not let the app open must not read as a network failure |

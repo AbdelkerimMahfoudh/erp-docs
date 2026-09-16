@@ -5377,3 +5377,34 @@ Owner-only and still moves no money.
 rather than an empty list, and a mixed PDF names the pages it could not read
 instead of implying the whole file was processed. OCR and uploading files to an
 external AI service remain out of scope; camera OCR stays retired.
+
+### ✅ FIXED — the phone blamed the workbook for a server that was not restarted
+
+The first real-device attempt at file receiving failed with "That file could not
+be read". The workbook was perfect. The API process serving the shop had been
+started before the feature existed, so `POST /purchases/file/parse` answered
+**404** — the route was in Git and in no running process — and the app turned
+every failure into that one sentence.
+
+**Each failure now says what happened**: the server cannot be reached; the
+server is older than this phone and needs updating; the session has ended; the
+role may not import; no branch is chosen; the file is too large, empty,
+unsupported, damaged, or holds no sheet of phones; the PDF is photographs; or
+the server failed while reading. Technical detail (status, code, file name, MIME
+type) goes to a development log only, never to the shop's screen, and the notice
+carries a Try again.
+
+**A phone also never uploads a uri it could not open.** React Native builds the
+multipart part from the file's uri, and a uri it cannot read fails inside the
+networking layer as a bare "Network request failed" — indistinguishable from bad
+Wi-Fi. The picked file is checked first, so "gone" and "empty" are said plainly,
+and a request that never left retries once with the real bytes. The uri part
+stays the first attempt, because it is the transport the rest of the app already
+uses, and no content type is set by hand — doing so loses the generated boundary
+and the server sees no file at all.
+
+**Operational rule this establishes:** shipping a new endpoint is not done until
+the process serving the shop has been restarted on the new build. A backend
+check now fails if the module leaves `AppModule`, the route is renamed, or
+either parser leaves `package.json` — but only a restart puts it in the running
+process.
