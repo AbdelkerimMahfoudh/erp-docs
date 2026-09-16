@@ -5314,3 +5314,66 @@ is unchanged.
   needs a navigation-level fix.
 - Home's month figures on the live database still include the overstated
   rollups recorded in `CURRENT_HANDOFF.md`; the repair awaits approval.
+
+### ✅ IMPLEMENTED — receiving a delivery from an Excel or PDF file
+
+A shop that is handed a hundred phones on a spreadsheet should not type them in
+one at a time. Receive stock now accepts a file. No schema change.
+
+**Where it is.** An Excel icon sits at the physical right of the "Receive stock"
+title, in the top header, above the scan row — in Arabic too, where the header
+controls are swapped so the button stays physically top-right while text and
+navigation stay RTL. It is 48×48, labelled "Import Excel or PDF", and shown only
+to someone holding **both** `import.run` (Owner-only since `0073`) and
+`purchase.manage`. Scanning and manual entry are untouched.
+
+**What can be read.** `.xlsx` workbooks and PDFs whose text can be selected, up
+to 8 MB, 2000 phones, 50 sheets, 20 000 rows a sheet, 200 PDF pages. Headings
+are recognised in English, French and Arabic and can be re-mapped by hand; a
+workbook's sheets are scored so an instructions sheet is offered but marked as
+instructions, never read as stock. Formulas are read from the value the file
+already holds — never executed — and macros and external links are ignored.
+Identifiers stay strings, so leading zeros survive and a rounded
+scientific-notation cell is flagged rather than guessed.
+
+**What is never inferred.** Nothing missing is invented: storage, colour and
+cost are never derived from an IMEI. PDF rows are held together by geometry —
+each printed piece keeps its x position and width, data rows are aligned to the
+heading positions, and an item spanning into the next column is split by its
+measured width — so a price is never attached to a line by proximity alone. A
+printed line counts as a phone only when it carries an identifier, or both a
+model and a price, which keeps page numbers, repeated headers and totals out of
+the stock.
+
+**One row is one phone.** IMEI 2 is optional and two IMEIs are one unit.
+Duplicates are caught inside a row, across the selected rows, sheets and pages,
+and against both stored identifier columns within the tenant and branch. An IMEI
+never reaches the product barcode field. Products are matched against the
+existing catalogue; ambiguous matches are flagged for review and unknown ones
+need an explicit choice or the existing Create product flow — nothing is
+auto-created.
+
+**Reading writes nothing.** Parsing creates no stock and no payment, and says so
+before the picker opens. The review groups the phones by category, product and
+exact variant, counts ready, needs-attention and excluded, filters on those,
+shows each phone's sheet and row (or PDF page) and its problems, and offers
+individual corrections and explicit bulk edits that state how many phones they
+change. Every problematic phone must be corrected or deliberately excluded —
+the good rows are never quietly received on their own — and exclusions are shown
+at confirmation. Extracted values are kept apart from corrections. The batch is
+saved through the shared draft mechanism under its own key, so a part-scanned
+delivery is left alone.
+
+**It is a normal purchase.** Confirmation goes through the existing
+`POST /purchases`: a branch, cash or an active receiving account, paid in full,
+atomic, with the totals recalculated and revalidated on the server, one "paid
+for stock" outflow, and no supplier and no supplier debt. The idempotency key is
+bound to the payload, so a replay repeats the same receipt and a changed payload
+is refused. **It deliberately does not use the opening-inventory import
+endpoint,** which has different cash semantics: opening inventory stays
+Owner-only and still moves no money.
+
+**Limits, stated plainly.** An image-only PDF is refused with an explanation
+rather than an empty list, and a mixed PDF names the pages it could not read
+instead of implying the whole file was processed. OCR and uploading files to an
+external AI service remain out of scope; camera OCR stays retired.
