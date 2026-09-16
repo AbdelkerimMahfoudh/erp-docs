@@ -8,8 +8,8 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Owner: **NONE**
-- Last phase: **the real-device file upload path** — complete. Takeover HEADs
-  were docs `e842f0b` · backend `80853b6` · mobile `bbd5cd7`, all clean and level.
+- Last phase: **the iPhone upload path** — code complete, **device proof owed**.
+  Takeover HEADs were docs `13266d2` · backend `2e34ce1` · mobile `7bd50f7`.
 - Last owner: **CLAUDE-A** · finished `2026-09-16` (the prompt said CLAUDE-B; the
   user confirmed this account stays CLAUDE-A).
 - The phase before: **bulk receiving from Excel and text PDF files** — complete.
@@ -39,7 +39,7 @@ database was never written to.
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
 | `erp-backend` | `reports-export` | **`2e34ce1`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`7bd50f7`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`bc2efe5`** | level | 0 |
 
 New backend dependencies, at the user's explicit direction: `pdfjs-dist ^4.10.38`
 and `jszip ^3.10.2`. Nothing else was added, upgraded or removed.
@@ -63,12 +63,13 @@ uploads to an external AI service are out of scope.
 | Kind | Result |
 |---|---|
 | **Backend** | `tsc` clean · **132 suites / 2 427 tests, 0 failed** (+`file-receiving` 37, including four that keep the route wired into `AppModule`) |
-| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline) · **53 pure suites, 0 failed** (`file receiving` 29, +8 for the failure messages and the native upload) · EN/FR/AR parity at compile time · every route exported |
+| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline) · **53 pure suites, 0 failed** (`file receiving` 21 → **37**) · EN/FR/AR parity at compile time · every route exported |
 | **Expo Doctor** | **20/21** — pre-existing patch drift, `expo` 57.0.22 vs ~57.0.23 and `expo-sharing` 57.0.19 vs ~57.0.20. **Not touched**: the brief forbade dependency upgrades. Left for a deliberate upgrade |
 | **End to end, isolated DB** (`prisma_verify_files`, API on `127.0.0.1:3011`) | **27 / 27**: the demo workbook read (100 phones, Read me marked as instructions, 50 dual-IMEI, 150 identifiers at 15 digits, every entry knowing its sheet and row); reading wrote nothing; unknown products flagged and never created; 100 ready once the ten fixture products exist through the normal `POST /products`; total 1 242 000 as the workbook states; **exactly 100 units created**, one purchase paid in full with no supplier, **"paid for stock" recorded once** for the whole total; either IMEI resolves the same unit (200/200); re-reading flags all 100 as already in stock; the same key with the same payload replays, with a changed payload is refused 409; two simultaneous confirmations create nothing new; a registered phone is refused while the new one is received; **a delivery whose every phone is refused creates no unit, no purchase and no payment**; an Employee is refused (403); another tenant sees none of this shop's stock; **opening inventory still creates no cash movement** |
 | **PDF fixtures, isolated DB** | **11 / 11**: two-page delivery; the repeated header is not a phone; page numbers and totals are not phones; each phone knows its page; a second IMEI stays on the line it was printed on; the price on a line belongs to that line; storage and colour are read only when printed; a variant-less row is flagged rather than guessed; an image-only PDF is refused with `pdf_image_only`; a mixed PDF reads 4 and names page 2 |
 | **Renders** (isolated API, 360 pt) | 28 captures — the Receive header, picker, review, needs-attention filter, bulk edit, the unsupported-file error and the received state, in EN/FR/AR × light/dark. The button measures **48×48 at x=312 of 360 in every language, Arabic included**; the scan row is untouched. No clipping, no sideways scroll, no leaked keys, no "Supplier" anywhere. One defect found and fixed (the stranded total on the success screen) |
-| **Real-device path** | **17 / 17** against the live API on `192.168.100.3:3010` — the section above |
+| **Backend, from a PC script** | **17 / 17** against the live API on `192.168.100.3:3010`. Proves the backend, **not** the phone |
+| **iOS bundle** | `expo export --platform ios` clean; the new upload path is in the bundle |
 | **Physical device** | 🔴 **still none.** `docs/24` **§30 F1–F21** and **§30b F22–F33** are open. The file chooser itself (F5, F6, F33) is an OS screen no automated run can open |
 
 **Verification limitation, stated plainly.** A headless browser cannot open the
@@ -77,7 +78,55 @@ through a seed parameter that existed only in a throwaway verification build.
 **That hook has been removed and was never committed**; the picker in the
 repository reaches the file only through `DocumentPicker`.
 
-## 🔧 The device failure, and what it was
+## 🔧 The iPhone upload — two faults, one after the other
+
+### Fault 1 (fixed): the server was not running the feature
+
+Covered below. Real, and not the whole story.
+
+### Fault 2 (fixed in code, **unproved on a handset**): React Native built the multipart part from a uri iOS would not let it read
+
+The second attempt failed with "The app could not reach the server" on an iPhone
+that **had just registered a phone and completed a sale**. Connectivity,
+authentication and the API origin were all known good; the failure was in the
+upload alone, and the message was wrong.
+
+On a phone the picked file belongs to Files, iCloud Drive or another document
+provider and is readable only while iOS says so. React Native assembles its
+multipart part from that uri inside the networking layer, so an unreadable uri
+fails there — no status, no response, nothing to tell apart from bad Wi-Fi. The
+app's own fallback then reported "offline", which is what the screen showed.
+
+**Now:** the file is copied into the app's cache and checked there (exists, has
+bytes, the count matches what the picker declared, a workbook begins with
+`PK\x03\x04`, the name still ends `.xlsx`, the MIME type filled in when the
+picker gave none), then uploaded from that verified copy by **Expo's native
+uploader** — field `file`, boundary generated by the platform, the shared
+`API_V1_URL` and the same authorisation and branch headers as the working
+register-phone and sale calls. No URL is constructed in the upload helper, and
+no content type is set by hand.
+
+**Classification now separates** the file being gone, the file being empty, an
+upload that would not start, a server that did not answer, a server that
+refused, and a workbook that could not be parsed. "Offline" is claimed only
+after asking whether the server answers — the question that was never asked.
+A retry reuses the verified cached copy when the provider will not hand the file
+over again.
+
+**Traced in development**, metadata only: `picked` → `copied` → `verified` →
+`started` → `answered`, carrying url, name, MIME type, declared and copied
+sizes, uri scheme, status and error code. Never contents, never a token.
+
+### ⚠️ What is proved, and what is not
+
+| Claim | Evidence |
+|---|---|
+| The backend accepts the exact workbook | 17/17 from a PC script — **backend only**, it never exercised an iOS document-provider uri or React Native transport |
+| The new upload path compiles and ships to iOS | `expo export --platform ios` bundles clean; the bundle contains the route, the new codes and the new messages |
+| The mapping and the transport rules hold | 37 pure tests, 12 of them written for these two faults |
+| **The iPhone can upload the workbook** | 🔴 **NOT PROVED.** This account cannot drive the handset. `docs/24` **§30c F34–F46** is the outstanding proof |
+
+## 🔧 Fault 1 in detail — the server was not running the feature
 
 **Reported:** the iPhone showed "That file could not be read" for
 `demo-receiving-100-phones.xlsx` — the workbook this account had already proved
@@ -194,10 +243,15 @@ start time against the last commit before concluding anything.
 
 ## The next exact action
 
-1. **Reload the app on the iPhone and repeat the file import** (`docs/24` §30
-   F1–F21, then §30b F22–F33). The server fault is fixed and proved on the
-   phone's own origin, but nothing has run on the handset.
-   ⚠️ **The API must be running on the new build** — if `POST /api/v1/purchases/file/parse`
-   answers 404, it is the old process again: rebuild and restart it by PID.
+1. **Reload the app on the iPhone and run `docs/24` §30c F34–F46.** That is the
+   outstanding proof and the only thing that can settle it: register a phone and
+   make a sale first (so the API is known good), then import the workbook and
+   read the staged trace — `copied` 12 047 bytes, `answered` 201, 100 phones,
+   50 single and 50 dual, 1 242 000 MRU. **Stop before confirming**: the demo
+   phones must not enter live inventory.
+   ⚠️ The API on `:3010` is already the new build (PID 21568, started 04:03) —
+   do not start a second one. If the parse route ever answers 404 again, that is
+   the old process: rebuild and restart it by its PID.
+   Then §30 F1–F21 and §30b F22–F33.
 2. **Approve or decline the live rollup repair** above.
 3. Then the remaining device sections, §29 and §28 first.
