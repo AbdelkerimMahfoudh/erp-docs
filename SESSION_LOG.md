@@ -9658,3 +9658,84 @@ never enter live inventory.
 **Services.** Nothing was restarted this session. The API on `:3010` is the build
 started at 04:03 (PID 21568); Metro and MySQL untouched. The live database was
 not written to.
+
+---
+
+## 2026-09-16 — CLAUDE-A — the file review screen, rebuilt as a staged workflow
+
+**Takeover.** Docs `1a1035b` · backend `2e34ce1` · mobile `bc2efe5`, clean, level,
+READY_FOR_HANDOFF, owner NONE — exactly what the handoff recorded, no
+discrepancy. The prompt addressed CLAUDE-B; this account stays CLAUDE-A per the
+user's standing correction. No screenshot arrived with this request, so the work
+was done from the written defect list and the earlier iPhone capture.
+
+**The finding.** The workbook now uploads and parses on the handset. The review
+of the hundred phones did not survive a real screen: "Exclude all 100" overlapped
+the sentence explaining what to do; the warning card held competing texts in too
+little height; the reason each phone was held up was never shown at all; a
+warning icon sat beside a perfectly good `12 500 MRU`; IMEIs ran as an unlabelled
+column; tiny chevrons offered no action; the payment section filled the screen
+while nothing was ready to pay for; "Change several at once" never said what it
+could change; and none of it scaled to a hundred phones.
+
+**Rebuilt as Review → Payment → Confirm.** Review opens on a stacked summary card
+— headline, explanation, a Ready / Needs attention / Excluded breakdown, and one
+action aimed at the real problem — with a compact footer carrying ready,
+excluded and the total, and a Continue that stays disabled, saying why, until
+every phone is corrected or deliberately excluded. Payment is not rendered at
+all until then. The list is one collapsed card per exact variant with its count,
+subtotal and reason, and "Match product for all 10" where a single choice
+answers the whole group; only products every phone in the group already matched
+are offered, and nothing is auto-created. A group's phones are mounted only when
+it is opened, inside a `FlatList`, so two thousand scroll like ten. Each phone is
+a divided card with IMEI 1, IMEI 2, Unit cost and From labelled — two
+identifiers can no longer read as two phones — and the warning is attached to a
+written reason instead of to the money. "Bulk edit" replaces "Change several at
+once", names the field it changes and states how many phones it affects *and how
+many already hold a different value* before applying. "Exclude all" left the
+alert for the quiet end of the review. Nothing inside a card is absolutely
+positioned.
+
+**The floating gear is Expo Go's, not ours.** No `expo-dev-client` dependency and
+no absolutely-positioned control in the app's tree; it does not exist in a
+production build.
+
+**Preserved untouched:** the native upload transport, the backend parser,
+paid-in-full receiving with its payload-bound idempotency key and exactly-once
+accounting, and every unrelated screen.
+
+**Verification.** `tsc` clean; `expo lint` 0 errors / 32 warnings (baseline); 53
+pure suites; `file receiving` 37 → **55**, the new eighteen covering group
+counts, subtotals and the single shared reason, a group match touching exactly
+that group with the counts following at once, candidates intersected across a
+group, two IMEIs as one phone in both the count and the total, payment out of
+reach until nothing is unresolved, a fully excluded delivery that may be
+reviewed but not bought, a bulk preview that names differing values, and the
+screen's own shape — staged, footer-gated, labelled, no absolute positioning,
+"Exclude all" out of the alert, filters and open groups surviving each other,
+and every string present in all three languages.
+
+**Renders**, against an isolated restore through a second API on 3011: 100
+needing product matching, one group corrected with 90 left, the needs-attention
+filter, bulk edit, the match sheet, an expanded group, all ready, and the
+payment step — EN/FR/AR, light and dark, at 320, 360, 390 and 430 pt. No
+overlapping text in the normal flow, nothing clipped, no sideways scroll, no
+leaked keys. Three measurements stated plainly: the filter chips are 36 pt
+painted with `hitSlop` restoring 48 (the app's deliberate pattern, invisible to
+a DOM measurement); a bottom sheet's Close button is a 36 pt `IconButton` with no
+hit slop, which is pre-existing and app-wide and was left rather than changing
+shared chrome unilaterally; and **dynamic type could not be exercised at all** —
+React Native Web emits fixed pixel sizes, so at 135 % every control measured
+identically. That stays a handset check.
+
+**Renders are not device verification.** `docs/24` §30d F47–F64 is the
+outstanding proof, along with §30c and §30.
+
+**Isolation.** `prisma_verify_review` created, used and dropped; the seed hook
+that hands the headless page the workbook was added, used and reverted, and was
+never committed; the export fixture removed; the isolated API, static server and
+headless Chrome stopped by port-owning PID. The user's API, Metro and MySQL were
+left running. Live business tables are unchanged — units 53, purchases 10,
+payments 7. One live `Product` row appeared at 04:33 ("Apple iPhone 17 Pro Max ·
+4 GB · Black"): it was created from the user's own phone, not by this work, whose
+every fixture went to the isolated API on 3011.

@@ -8,8 +8,11 @@
 
 - Status: **READY_FOR_HANDOFF**
 - Owner: **NONE**
-- Last phase: **the iPhone upload path** — code complete, **device proof owed**.
-  Takeover HEADs were docs `13266d2` · backend `2e34ce1` · mobile `7bd50f7`.
+- Last phase: **the file review screen, rebuilt as a staged workflow** after a
+  physical-iPhone finding. Takeover HEADs were docs `1a1035b` · backend
+  `2e34ce1` · mobile `bc2efe5`, all clean and level. (The prompt said CLAUDE-B;
+  this account stays CLAUDE-A per the user's standing correction.)
+- The phase before: **the iPhone upload path** — code complete, device proof owed.
 - Last owner: **CLAUDE-A** · finished `2026-09-16` (the prompt said CLAUDE-B; the
   user confirmed this account stays CLAUDE-A).
 - The phase before: **bulk receiving from Excel and text PDF files** — complete.
@@ -39,7 +42,7 @@ database was never written to.
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
 | `erp-backend` | `reports-export` | **`2e34ce1`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`bc2efe5`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`2530b22`** | level | 0 |
 
 New backend dependencies, at the user's explicit direction: `pdfjs-dist ^4.10.38`
 and `jszip ^3.10.2`. Nothing else was added, upgraded or removed.
@@ -63,7 +66,7 @@ uploads to an external AI service are out of scope.
 | Kind | Result |
 |---|---|
 | **Backend** | `tsc` clean · **132 suites / 2 427 tests, 0 failed** (+`file-receiving` 37, including four that keep the route wired into `AppModule`) |
-| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline) · **53 pure suites, 0 failed** (`file receiving` 21 → **37**) · EN/FR/AR parity at compile time · every route exported |
+| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline) · **53 pure suites, 0 failed** (`file receiving` 21 → **55**; `registry` 52) · EN/FR/AR parity at compile time and asserted per screen · every route exported |
 | **Expo Doctor** | **20/21** — pre-existing patch drift, `expo` 57.0.22 vs ~57.0.23 and `expo-sharing` 57.0.19 vs ~57.0.20. **Not touched**: the brief forbade dependency upgrades. Left for a deliberate upgrade |
 | **End to end, isolated DB** (`prisma_verify_files`, API on `127.0.0.1:3011`) | **27 / 27**: the demo workbook read (100 phones, Read me marked as instructions, 50 dual-IMEI, 150 identifiers at 15 digits, every entry knowing its sheet and row); reading wrote nothing; unknown products flagged and never created; 100 ready once the ten fixture products exist through the normal `POST /products`; total 1 242 000 as the workbook states; **exactly 100 units created**, one purchase paid in full with no supplier, **"paid for stock" recorded once** for the whole total; either IMEI resolves the same unit (200/200); re-reading flags all 100 as already in stock; the same key with the same payload replays, with a changed payload is refused 409; two simultaneous confirmations create nothing new; a registered phone is refused while the new one is received; **a delivery whose every phone is refused creates no unit, no purchase and no payment**; an Employee is refused (403); another tenant sees none of this shop's stock; **opening inventory still creates no cash movement** |
 | **PDF fixtures, isolated DB** | **11 / 11**: two-page delivery; the repeated header is not a phone; page numbers and totals are not phones; each phone knows its page; a second IMEI stays on the line it was printed on; the price on a line belongs to that line; storage and colour are read only when printed; a variant-less row is flagged rather than guessed; an image-only PDF is refused with `pdf_image_only`; a mixed PDF reads 4 and names page 2 |
@@ -77,6 +80,62 @@ operating system's file chooser, so the rendered runs were handed the workbook
 through a seed parameter that existed only in a throwaway verification build.
 **That hook has been removed and was never committed**; the picker in the
 repository reaches the file only through `DocumentPicker`.
+
+## 🖥 The review screen, rebuilt (physical-iPhone finding)
+
+The workbook uploads and parses on the handset. The **review** of the hundred
+phones did not survive a real screen: "Exclude all 100" overlapped the sentence
+explaining what to do, the reason each phone was held up was never shown, a
+warning icon sat beside a perfectly good price, IMEIs ran as an unlabelled
+column, tiny chevrons offered no action, and the whole payment section filled
+the screen while nothing was ready to pay for.
+
+**It is now Review → Payment → Confirm.**
+
+- **Review** opens on a stacked summary card: the headline, a sentence, a
+  Ready / Needs attention / Excluded breakdown, and one action aimed at the real
+  problem ("Match products"). A compact footer carries ready, excluded and the
+  total, with **Continue to payment** disabled — and saying why — until every
+  phone is corrected or deliberately excluded.
+- **Payment is not rendered at all** until the review is finished. Paid-in-full
+  receiving, the idempotency key and the exactly-once accounting are untouched.
+- **One collapsed card per exact variant**: count, subtotal, the reason it is
+  held up, and "Match product for all 10" where one choice answers the group.
+  Only products every phone in the group matched are offered; nothing is
+  auto-created.
+- **Phones render only while their group is open**, in a `FlatList` — a file of
+  2000 scrolls like one of 10.
+- **Every value is labelled** (IMEI 1, IMEI 2, Unit cost, From) on its own
+  divided card, so two identifiers never read as two phones, and the warning is
+  attached to a written reason instead of to the money.
+- **"Bulk edit"** replaces "Change several at once", names the field it changes,
+  and states how many phones it affects **and how many already differ** first.
+  **"Exclude all"** left the alert for the quiet end of the review.
+- Nothing inside a card is absolutely positioned.
+
+**The floating blue gear is Expo Go's, not the app's** — no `expo-dev-client`
+dependency, and no absolutely-positioned control in the app's tree. It does not
+exist in a production build.
+
+### Renders — 5 languages/themes × 4 widths, isolated API
+
+100 needing product matching · one group corrected and 90 left · the
+needs-attention filter · bulk edit · the match sheet · an expanded group with
+single- and dual-IMEI phones · all ready · the payment step. EN/FR/AR, light and
+dark, at 320, 360, 390 and 430 pt.
+
+**No overlapping text in the normal flow, nothing clipped, no sideways scroll,
+no leaked keys, no missing control.** Two measurements need saying plainly:
+
+- The filter chips measure 36 pt painted, with `hitSlop` restoring 48 — the
+  app's existing, deliberate pattern, which a DOM measurement cannot see.
+- **A bottom sheet's Close button is a 36 pt `IconButton` with no hit slop.**
+  Pre-existing and app-wide, not introduced here, so it was left alone rather
+  than changing shared chrome unilaterally. The sheet is still dismissible by
+  backdrop and swipe. Worth a deliberate fix.
+- **Dynamic type could not be exercised.** React Native Web emits fixed pixel
+  sizes: at a 135 % root font size every control measured identically. It stays
+  a handset check (`docs/24` §30d F62).
 
 ## 🔧 The iPhone upload — two faults, one after the other
 
@@ -243,12 +302,10 @@ start time against the last commit before concluding anything.
 
 ## The next exact action
 
-1. **Reload the app on the iPhone and run `docs/24` §30c F34–F46.** That is the
-   outstanding proof and the only thing that can settle it: register a phone and
-   make a sale first (so the API is known good), then import the workbook and
-   read the staged trace — `copied` 12 047 bytes, `answered` 201, 100 phones,
-   50 single and 50 dual, 1 242 000 MRU. **Stop before confirming**: the demo
-   phones must not enter live inventory.
+1. **Reload the app on the iPhone and run `docs/24` §30d F47–F64**, then §30c
+   F34–F46. Import the workbook, check the staged review on the real screen, and
+   **stop before confirming** — the demo phones must not enter live inventory.
+   Dynamic type (F62) and the file chooser can only be settled there.
    ⚠️ The API on `:3010` is already the new build (PID 21568, started 04:03) —
    do not start a second one. If the parse route ever answers 404 again, that is
    the old process: rebuild and restart it by its PID.
