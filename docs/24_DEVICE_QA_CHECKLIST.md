@@ -3294,3 +3294,35 @@ largest text size.
 | L23 | Arabic, dark, largest text | Dates read right (1 سبتمبر 2026), chevrons point the right way, the period control and chips do not clip, nothing scrolls sideways |
 | L24 | French, small phone | Long labels wrap rather than truncating; "EXPENSES THIS M…" never appears |
 | L25 | A production build | No floating development gear anywhere |
+
+## 30. Receiving a delivery from a file — UNVERIFIED ON ANY DEVICE
+
+Verified headless at 360 pt in English, French and Arabic, light and dark, and
+end to end against an isolated database (27 receiving checks, 11 PDF checks).
+**Nothing here has run on a handset**, and the file chooser in particular is an
+operating-system screen a headless browser cannot open — every row below needs a
+real phone.
+
+| # | Do this | Expect |
+|---|---|---|
+| F1 | Open Receive stock | An Excel icon at the top right of the header, above the scan row — not beside the scan icon, not in the empty state. At least 44×44 to the thumb |
+| F2 | Switch to Arabic, open Receive stock | The icon is still physically top right; the title, back arrow and all text are RTL |
+| F3 | Sign in as anyone but the Owner | No Excel icon at all |
+| F4 | Tap the icon before the branch has loaded | Choose a file is disabled, with a line saying to pick a branch — not a bare failure |
+| F5 | Tap the icon, choose a workbook of 100 phones | The OS file chooser opens; the file is read; the review opens saying 100 phones and which sheet |
+| F6 | The same, from a phone's Downloads or a chat attachment | The file is still picked up (some Android providers report a workbook as generic binary) |
+| F7 | A workbook with an instructions sheet | Both sheets are listed; the instructions sheet is marked as instructions and is not read as stock |
+| F8 | Scroll the review of 100 phones | Grouped by category, product and exact variant; scrolling stays smooth; counts and filters do not clip at the largest text size |
+| F9 | Open one phone | Its sheet and row (or PDF page) and its problems are shown; correcting the product or cost changes only that one |
+| F10 | Change several at once | It says how many phones it will change and asks first; nothing changes silently |
+| F11 | Leave one phone broken and try to confirm | Confirmation stays disabled until it is corrected or deliberately excluded |
+| F12 | Exclude some, then confirm | The excluded ones are stated at confirmation and no unit is created for them |
+| F13 | Confirm with cash, then check Stock, Money and the daily closing | 100 phones in stock; one "paid for stock" for the total; every screen already up to date |
+| F14 | Read the same file again | Every phone is flagged as already in stock; nothing is received twice |
+| F15 | Close the app mid-review and reopen | The batch is still there with its corrections; a part-scanned delivery is untouched |
+| F16 | Cancel the review | The batch is dropped and the scanned delivery is still as it was |
+| F17 | Confirm on a bad connection, then retry | One receipt, not two |
+| F18 | Choose a photographed (image-only) PDF | It is refused with an explanation, not an empty list |
+| F19 | Choose a PDF whose pages are partly photographs | It reads what it can and names the pages it could not — never implies the whole file was processed |
+| F20 | Choose something that is not a workbook or PDF | "Only .xlsx workbooks and text PDFs can be read" |
+| F21 | French and Arabic, largest text, dark | No clipping, no sideways scroll, no untranslated key anywhere in the review |
