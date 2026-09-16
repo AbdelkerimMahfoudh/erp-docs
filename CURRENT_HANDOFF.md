@@ -6,10 +6,18 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-16` (the prompt said CLAUDE-B; the user confirmed this account stays CLAUDE-A)
 - Last owner: **CLAUDE-A** · `2026-09-15` (the prompt said CLAUDE-B; this
   account is CLAUDE-A, per the user's standing correction)
+- Active phase: **bulk receiving from Excel and text PDF files** — a file button
+  in the Receive stock header, parsing, a review batch, and confirmation through
+  the existing paid-in-full purchase flow. No removals, no permission changes,
+  no rollup repair.
+- Takeover HEADs verified: docs `d920375` · backend `3540388` · mobile `494cd09`,
+  all clean and level. Discrepancy: the machine rebooted on 2026-09-15, so the
+  live API, Metro and MySQL are down and `prisma_verify_layout` is still present
+  (WAMP is a manual service this account cannot start).
 - Last phase: **scope correction + six-screen layout** — complete.
 - Takeover HEADs were: docs `fdfc5e4` · backend `80e25ef` · mobile `e30f609`,
   clean and level; migrations through `0073`.
