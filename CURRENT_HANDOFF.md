@@ -6,8 +6,8 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-18` — cross-branch disclosure fix in Sell selection (`branch.manage`). HEADs docs `c9391f8` · backend `f26f677` · mobile `3c10c37`.
 - Last owner: **CLAUDE-A** · 2026-09-18
 - Last phase: **Sell a phone — Scan IMEI / Enter IMEI manually / Choose from stock**,
   one shared selection into the existing payment flow. Complete in code; **handset checks owed**.
