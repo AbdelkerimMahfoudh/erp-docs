@@ -12,6 +12,12 @@
   later collections, daily expenses. Takeover HEADs: docs `20fb84f` · backend
   `2e34ce1` · mobile `2530b22`, all clean and level. Next: audit the existing
   sale, payment, customer, partner, account and closing contracts.
+- ⚠️ **Migration `0074_sale_receivables` APPLIED TO LIVE** at 2026-09-18 14:02 UTC. Backups:
+  `~/erp-backups/phonestore-20260918-132538-pre-0074-receivables.sql` (845 704 B, restored
+  into `prisma_verify_money` with a fingerprint identical to live) and
+  `phonestore-20260918-140210-pre-0074-apply.sql` (845 704 B, taken immediately before; live
+  proven unchanged between the two). 7 of 7 payments backfilled with their seller as recorder.
+  Backend `c7e1900` pushed. Temporary DB `prisma_verify_money` still exists (drop at the end).
 - Last phase: **the file review screen, rebuilt as a staged workflow** after a
   physical-iPhone finding. Takeover HEADs were docs `1a1035b` · backend
   `2e34ce1` · mobile `bc2efe5`, all clean and level. (The prompt said CLAUDE-B;
