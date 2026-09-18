@@ -9739,3 +9739,70 @@ left running. Live business tables are unchanged — units 53, purchases 10,
 payments 7. One live `Product` row appeared at 04:33 ("Apple iPhone 17 Pro Max ·
 4 GB · Black"): it was created from the user's own phone, not by this work, whose
 every fixture went to the isolated API on 3011.
+
+---
+
+## 2026-09-18 — CLAUDE-A — the Money redesign, partial payments and outstanding balances
+
+**Takeover.** Docs `20fb84f` · backend `2e34ce1` · mobile `2530b22`, clean, level,
+READY_FOR_HANDOFF, owner NONE — no discrepancy. The machine had rebooted: the live
+API and Metro were down and the LAN address had moved to 192.168.22.10.
+
+**Audit first.** The model already held most of it: a sale's paid amount, balance
+and status, overpayment refusal, a customer link and cached balance, and
+append-only payments with frozen account labels. What it could not do: record
+who took a later payment, its kind, reference, note or idempotency key; name a
+partner store as debtor; allow a sale with nothing paid; hold a receipt. And one
+real defect for this feature — closing's expected cash, its channel movements and
+"collected" dated sale money by the SALE's day, which a later collection would
+have landed on a day possibly already closed. An analytics comment had asked for
+exactly that change "if part-payment against an older sale is ever added".
+
+**Migration 0074**, proven first on a verified restore of live with zero new
+schema drift, then applied to live at 14:02 UTC after a fresh backup; every
+existing payment backfilled with its seller as recorder (7/7, all taken in the
+same second as their sale, so re-dating by `paid_at` moved no past day).
+
+**Built.** Partial and unpaid sales with exactly one debtor — a customer, chosen
+or typed (created inside the sale so an employee needs only `sale.create`), or a
+partner store with an accepted connection. Later collections as money movements,
+never a second sale: locked row, payload-bound key, refusals for zero, negative,
+overpayment, inactive account, future or pre-sale date, closed day. Sale history
+with frozen labels and recorders. `/closings/overview`, `/sales/outstanding`,
+`/sales/by-day`, receipt photos. On the phone: the redesigned Money tab, sales by
+day, Outstanding payments (a registry child of Money), Record payment with a
+review, the payment sheet taking less than the total and asking who owes, the
+expense date and photo, and one status vocabulary — Paid in full, Partially paid,
+Unpaid.
+
+**Decisions stated plainly.** No account balance and no "total available": the
+model cannot know either honestly. A store debtor is our sale and our receivable
+only — nothing written into the other company, and not added to the Partners
+shared summary, whose privacy spec forbids it; I added it, the spec failed, and I
+reverted rather than weaken the guard. The bilateral inter-store sale stays
+undecided.
+
+**Found by verifying.** The receipt download returned a JSON description of a
+stream labelled as JPEG — a returned `StreamableFile` passing through the global
+interceptors; fixed by writing the bytes directly. Harness faults were fixed in
+the harness, never in the product: a mangled en-dash in account labels, prices
+below cost (correctly refused without owner approval), and a drawer driven
+negative by buying fixture stock for cash.
+
+**Verification.** Backend 134 suites / 2 466 tests. Real HTTP + real MySQL on an
+isolated restore: 61/61, ending with a day closed at difference 0 and a payment
+into it refused. Mobile 56 suites (+37), lint baseline, parity, web and iOS
+bundles, Expo Doctor 20/21 (pre-existing drift). 80 renders across EN/FR/AR,
+light/dark, 320/360 pt with no layout defect. Live afterwards: every business
+fingerprint identical, migrations 72 → 73. **Nothing has run on a handset**:
+`docs/24` §31 M1–M21 is owed.
+
+**Found, not fixed.** `npm install`'s postinstall fails because the Android
+camera patch targets expo-camera 57.0.4 while 57.0.5 is installed — pre-existing
+since `e960ef6`; a native build must re-cut and re-verify it.
+
+**Services.** The live API was down after the reboot; I started it on the new
+build, and the user later rebuilt and restarted it themselves (PID 4816, same
+code). Metro was not started. Isolated API, static server and headless Chrome
+stopped; `prisma_verify_money` dropped; test receipts removed and `/uploads/`
+ignored.
