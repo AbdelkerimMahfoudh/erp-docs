@@ -6,8 +6,12 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-18` — Money redesign: balances, period
+  sales/collected/outstanding, partial payments with customer/store debtors,
+  later collections, daily expenses. Takeover HEADs: docs `20fb84f` · backend
+  `2e34ce1` · mobile `2530b22`, all clean and level. Next: audit the existing
+  sale, payment, customer, partner, account and closing contracts.
 - Last phase: **the file review screen, rebuilt as a staged workflow** after a
   physical-iPhone finding. Takeover HEADs were docs `1a1035b` · backend
   `2e34ce1` · mobile `bc2efe5`, all clean and level. (The prompt said CLAUDE-B;
