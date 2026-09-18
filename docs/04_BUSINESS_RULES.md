@@ -28,8 +28,10 @@ The non-negotiable logic of the phone business. These rules are what keep the da
 
 ## D. Sales & Payment Rules
 17. A sale records: unit(s)/product(s), price, cost (for margin), discount, employee, branch, timestamp, payment method(s), customer (optional).
-18. **Partial payment / credit** is allowed: the unpaid balance becomes a **customer receivable** with an optional due date.
-19. Mixed payments (e.g. part cash, part card) must sum exactly to the total due.
+18. **Partial payment / credit** is allowed (0074), including nothing paid at all: the unpaid balance is a **receivable owed by exactly one debtor** — a customer (selected, or typed with a name and optional phone) **or** a partner store with an accepted connection. A sale leaving money owing without a debtor is refused. The receivable is the sale's own `balance_due`; there is no second ledger.
+19. Mixed payments (e.g. part cash, part card) may total **less** than the sale, never more. Status comes only from money received: **Unpaid** (nothing), **Partially paid**, **Paid in full** (nothing left) — never from a request having succeeded.
+19a. **A later payment is not a second sale** (0074). The phone is sold once, on the original sale, with its revenue and profit on that sale's day. Money received later is a payment dated **the day it arrived**: it raises cash (cash only) or the chosen account (that account only), lowers the balance by the same amount, and never raises sales count, sales value or profit. Zero, negative and overpayments are refused, as are inactive accounts, future or pre-sale dates and signed-off days. Each collection carries one idempotency key bound to its payload.
+19b. A payment keeps the account label and provider **as they were** when the money arrived; renaming or deactivating the account later rewrites no history.
 20. A **return** reverses the sale: unit goes back to stock (or Faulty), receivable/refund adjusted, and the event is logged. Returns are never a silent delete.
 21. Nothing financial is **hard-deleted**. Corrections are reversals/adjustments, preserving the audit trail.
 
@@ -41,6 +43,7 @@ The non-negotiable logic of the phone business. These rules are what keep the da
 ## F. Daily Closing Rules
 25. A day can be **closed once**; closing locks that day's transactions against casual edits.
 26. Closing reconciles **expected cash vs. counted cash**; any difference is recorded and flagged (possible shortage/theft/error).
+26a. Sale money is counted on the day it **arrived** (`payments.paid_at`), in the closing, in per-channel movements and in "collected" — never on the sale's day (0074). Every movement appears in exactly one day. The Money screen's "cash in the drawer" is the same expected figure the closing uses; each day is reconciled on its own, with no opening float carried over. Account figures are recorded movement, never a balance: the app does not see the account itself.
 27. The app **warns if a prior day was never closed** before starting a new one.
 28. Post-close corrections require a higher role and are logged as adjustments.
 

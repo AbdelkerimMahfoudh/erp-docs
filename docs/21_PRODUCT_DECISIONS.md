@@ -5486,3 +5486,29 @@ the count.
 The floating gear seen on the device is **Expo Go's**, not the app's: there is no
 `expo-dev-client` dependency and no absolutely-positioned control in the app's
 tree.
+
+### ✅ IMPLEMENTED — the Money redesign, partial payments and who owes (migration `0074`)
+
+**The Money overview** answers four questions and keeps their words apart:
+
+| Figure | Meaning | Source |
+|---|---|---|
+| **Cash in the drawer** | What the drawer should hold now, after today's cash in and out | The daily closing's own expected-cash computation — Money and the closing cannot disagree |
+| **Accounts today** | What was recorded into and out of each active account today | Recorded movement, **never called a balance** |
+| **Phones sold · Sales value** | IMEI-tracked units sold; the full selling price of everything sold | The sales, on the sale's own day |
+| **Collected** | Money actually received in the period | Payments, dated by when the money **arrived** |
+| **Still owed** | What the period's sales still owe | Each sale's `balance_due` |
+
+No "total available" is shown, and accounts carry no balance: the model reconciles each drawer day on its own (no opening float) and never learns an account's opening balance or what the owner moves out privately, so neither figure can be stated honestly. The brief allowed exactly this condition. Below the figures: three sales with **View all sales** (today as a list; 7 days and a month a day at a time, each day's sales fetched only when opened), today's expenses with where each was paid from, and the registry actions — Results, Expenses, Daily closing, Loans and, new, **Outstanding payments** (`report.view`).
+
+**Partial payment at the counter.** The amount received now defaults to the whole total, so an ordinary sale is still one tap. Lowering it shows the remaining balance and the resulting status (Paid in full / Partially paid / Unpaid — now the only three names in the app) and asks who owes the rest: a **customer** — chosen from the list, or typed with a required name and optional phone, created inside the sale so nobody is duplicated and an employee needs only `sale.create` — or a **partner store**. Nothing received at all is a real sale. More than the total is never taken.
+
+**A store as debtor — deliberately narrow.** `docs/21` previously refused to fake an outright inter-store sale with a customer sale. This records **our** sale with a balance a store owes: the unit leaves our stock and the receivable sits on our sale. **Nothing is written into the other store's company**, and the balance is not added to the shared Partners summary, whose privacy guard forbids reading sales there. Only a store with an **accepted** connection can be given new credit (the approved Partners rule); a person, or a store whose connection was removed, is refused. The bilateral inter-store sale remains undecided.
+
+**A later payment is not a second sale.** `POST /sales/:id/payments` (`sale.create`) records money received later: dated when it arrived, into cash (drawer only) or one active account (that account only), with an optional reference and note, the recorder, and the account label frozen. Revenue, cost, profit, sales count and phones sold never move. The sale row is locked while deciding, so racing payments cannot overpay; a payload-bound key makes a retry answer the same and a reused key a 409. Zero, negative, overpayment, an inactive account, a future or pre-sale date and a signed-off day are refused. The sale detail shows every payment with its time, label-as-it-was, reference and recorder; **Record payment** reviews before saving and shows the balance before and after.
+
+**Dating by arrival.** Closing's expected cash, its per-channel movements and "collected" now read `payments.paid_at`, not the sale's `sold_at`. No past day moved: all seven earlier payments arrived in the same second as their sales.
+
+**Expenses.** Description, amount, paid from (cash or an active account), date (today by default) and an optional receipt photo; no category chips, no employee. The approval workflow is unchanged — a report moves nothing; money leaves exactly one source when the Owner confirms, and "Paid out today" lists confirmed expenses. Fixed costs and salaries stay separate, as before.
+
+**Permissions.** Owner and Manager see branch figures and Outstanding (`report.view`). Anyone who may sell (`sale.create`) records a sale with a balance and a later collection. Store lists follow the existing `consignment.view`. Every query and write is company- and branch-scoped.

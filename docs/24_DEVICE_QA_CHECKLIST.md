@@ -3421,3 +3421,40 @@ Confirm. Re-run §30 and §30c, then these.
 | F62 | **iOS Dynamic Type at 120% and 135%** | Nothing clipped or overlapping. **A web render cannot test this** — React Native Web emits fixed pixel sizes, so only the handset can |
 | F63 | French and Arabic, light and dark | Long labels wrap; Arabic reads right-to-left throughout, including the footer and the group cards |
 | F64 | Open the correction sheet with the keyboard up | The Save button and the cost field stay reachable |
+
+## 31. Money, partial payments and outstanding balances — UNVERIFIED ON ANY DEVICE
+
+Verified against real MySQL through the real API (61/61 on an isolated copy)
+and rendered at 320 and 360 pt in EN/FR/AR, light and dark (80 captures, no
+overlap, clipping, sideways scroll, leaked key or small target). **Nothing here
+has run on a handset.** The live database has migration `0074`; the live API on
+`:3010` serves it. Use a **test customer** — these steps move real money records.
+
+| # | Do this | Expect |
+|---|---|---|
+| M1 | Open Money | Today / 7 days / This month with the exact dates; Cash in the drawer; Cash & accounts collapsed; Phones sold, Sales value, Collected, Still owed as four separate lines |
+| M2 | Expand Cash & accounts | Each active account's recorded in / out today, and the line saying it is not a bank balance |
+| M3 | Sell a 25 000 phone, lower the amount received to 15 000, Cash | "Remaining to pay 10 000" and "Partially paid" appear; Complete stays disabled until a debtor is chosen |
+| M4 | Choose Customer → Someone new, type a name, leave the phone empty | Complete enables; the sale succeeds |
+| M5 | Money → Today | Phones sold +1, Sales value +25 000, Collected +15 000, Still owed +10 000, Cash in the drawer +15 000 |
+| M6 | Open the sale | Partially paid; Customer; Received so far 15 000; Still owed 10 000; one payment "At the sale", recorded by you |
+| M7 | Record payment → 4 000 → a Bankily account → Review | The review states 4 000 via Bankily, 6 000 still owed; after saving, the history shows it with its reference and your name |
+| M8 | Money | Cash unchanged; the Bankily line +4 000; Phones sold and Sales value unchanged; Collected +4 000 |
+| M9 | Record the final 6 000 in cash | Paid in full; Record payment disappears; Outstanding no longer lists it |
+| M10 | Record payment, turn on airplane mode, tap Review → confirm, then retry online | One payment only |
+| M11 | Try 7 000 on a 6 000 balance, and 0 | The screen refuses both before sending |
+| M12 | Sell with nothing received, owed by an existing customer | "Unpaid"; the customer is not duplicated |
+| M13 | Sell with a balance owed by a connected store | The store is offered; "The balance is linked to …" |
+| M14 | Outstanding payments | Customers and stores together, largest first, each with its sales |
+| M15 | Sales → 7 days, then This month | One line per day with count, value and owed; a day's sales appear only when opened |
+| M16 | Rename, then deactivate, the Bankily account | Old payments keep the old name; the account is no longer offered for new money |
+| M17 | As an Employee | No figures and no Outstanding row; can still sell with a balance and record a collection |
+| M18 | Add an expense: Description, amount, Cash, today, a photo | Saved; after the Owner confirms, "Paid out today" lists it from Cash and the drawer falls by exactly that |
+| M19 | The same from an account | The account falls; the drawer does not |
+| M20 | Arabic, dark, largest text; French small phone | Right-to-left throughout, nothing clipped, long labels wrap |
+| M21 | Close the day, then try to record a payment dated today | Refused: the day is closed |
+
+⚠️ **Build blocker, pre-existing:** `npm install` fails its postinstall check
+because `expo-camera` 57.0.5 is installed while the Android scan-region patch was
+cut against 57.0.4 (dependency alignment `e960ef6`). Expo Go is unaffected; a
+native build must re-cut the patch and re-verify scanning on an Android device.
