@@ -6,8 +6,11 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-18` — Sell a phone: Scan IMEI / Enter IMEI manually /
+  Choose from stock, one shared selection into the existing payment flow. Takeover HEADs:
+  docs `91bd5f6` · backend `c7e1900` · mobile `8db73e0`, clean and level. Metro runs on the PC
+  hotspot (192.168.137.1); the git-ignored mobile `.env.local` points the API there.
 - Last owner: **CLAUDE-A** · 2026-09-18
 - Last phase: **the Money redesign, partial payments and outstanding balances** —
   complete in code and on the live schema; **handset checks owed**.
