@@ -5512,3 +5512,13 @@ No "total available" is shown, and accounts carry no balance: the model reconcil
 **Expenses.** Description, amount, paid from (cash or an active account), date (today by default) and an optional receipt photo; no category chips, no employee. The approval workflow is unchanged — a report moves nothing; money leaves exactly one source when the Owner confirms, and "Paid out today" lists confirmed expenses. Fixed costs and salaries stay separate, as before.
 
 **Permissions.** Owner and Manager see branch figures and Outstanding (`report.view`). Anyone who may sell (`sale.create`) records a sale with a balance and a later collection. Store lists follow the existing `consignment.view`. Every query and write is company- and branch-scoped.
+
+### ✅ IMPLEMENTED — Sell a phone: three ways in, one selection
+
+"Sell a phone" (Quick Sell) starts with **Scan IMEI**, **Enter IMEI manually** or **Choose from stock**. All three end in one read-only server lookup, `GET /sales/selection/:identifier` (`sale.create`), which finds the existing unit by either IMEI or its serial, in this company, and answers its availability **for the active branch** (available, sold, faulty, reserved, other branch, unavailable), the product with storage and colour, a **masked** identifier, and the price from the sale's own ladder (only when sellable). The same selected-phone card shows how the phone was found, then **Continue to payment** opens the existing payment sheet — full or partial, the same debt, receipt and accounting. There is one selling system.
+
+- **Scan** is the existing scanner, unchanged (raw, labelled, dual-IMEI QR; scan lock; paused result).
+- **Manual**: presentation characters removed, exactly 15 digits, checksum; the server checks again. Invalid, not found, sold, faulty, reserved, other branch and network failure each have their own words.
+- **Stock**: this branch's in-stock phones, searchable, paged; tapping one runs the same lookup.
+- **Never**: a Product or Unit created, stock added, or an IMEI written into a barcode.
+- **Not exposed**: internal ids, the full IMEI, the staff timeline, other-branch names, other companies' data; `cost` only through the existing cost-gating interceptor. *(The brief was truncated at "Do not expose"; this interpretation was used — confirm.)*

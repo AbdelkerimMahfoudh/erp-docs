@@ -3458,3 +3458,22 @@ has run on a handset.** The live database has migration `0074`; the live API on
 because `expo-camera` 57.0.5 is installed while the Android scan-region patch was
 cut against 57.0.4 (dependency alignment `e960ef6`). Expo Go is unaffected; a
 native build must re-cut the patch and re-verify scanning on an Android device.
+
+## 32. Sell a phone — scan, manual IMEI or stock — UNVERIFIED ON ANY DEVICE
+
+| # | Check | Expected |
+|---|---|---|
+| P1 | Home → Sell a phone | Three choices: Scan IMEI, Enter IMEI manually, Choose from stock |
+| P2 | Scan an in-stock phone (raw, labelled, dual-IMEI QR) | Selected card: name, variant, storage, colour, `•••• 1234`, Available, price, "Found by scan" |
+| P3 | Scan the **second** IMEI of a dual-SIM phone | The same phone |
+| P4 | Manual: valid in-stock IMEI → Find → Use this phone | Same card, "Found by manual IMEI" |
+| P5 | Manual: 14 digits / a letter / wrong last digit | Length / digits-only / checksum message; Find disabled |
+| P6 | Manual: valid IMEI not in the shop | "No phone in this shop has that IMEI." Nothing created |
+| P7 | Manual: sold / faulty / reserved / other-branch phone | Its own words; no Use or Continue |
+| P8 | Manual with Wi-Fi off | Network message, not "not found" |
+| P9 | Choose from stock → search a model → tap a phone | Same card, "Found by stock selection" |
+| P10 | Continue to payment → full payment | Sale completes; receipt; back to the three choices |
+| P11 | Continue to payment → partial with a customer debtor | Balance owed, as in §31 |
+| P12 | Choose another phone | Back to the three choices, nothing carried over |
+| P13 | Employee without cost.view | No cost or profit row anywhere |
+| P14 | Stock afterwards | No new product or unit; the sold phone left stock once |

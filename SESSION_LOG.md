@@ -9806,3 +9806,22 @@ build, and the user later rebuilt and restarted it themselves (PID 4816, same
 code). Metro was not started. Isolated API, static server and headless Chrome
 stopped; `prisma_verify_money` dropped; test receipts removed and `/uploads/`
 ignored.
+
+
+## 2026-09-18 — CLAUDE-A — Sell a phone: scan, manual IMEI or stock
+
+Took over at docs `198b0b5` · backend `c7e1900` · mobile `8db73e0`, clean and level.
+"Sell a phone" now starts with Scan IMEI, Enter IMEI manually or Choose from stock.
+All three end in one new read-only lookup, `GET /sales/selection/:identifier`
+(backend `f26f677`), and one selected-phone card, then the existing payment sheet —
+no second selling system, no stock created, no IMEI in a barcode. The scanner is
+unchanged. The price is the sale's own ladder, replacing the old defaultPrice prefill.
+
+The brief was truncated at "Do not expose" and no mockups arrived; I withheld ids,
+full IMEI, staff history and other-branch/company data, and left cost to the
+existing gate. Awaiting confirmation.
+
+Verification: backend 135 suites / 2 486 tests; mobile tsc, lint baseline, all pure
+suites (+9 tests; one privacy assertion renamed to the new variable, same gate), web
+export. Live API rebuilt (PID 24696). Nothing run on a handset: §32 P1–P14 owed.
+Metro runs on the PC hotspot; mobile `.env.local` targets 192.168.137.1.
