@@ -6,10 +6,11 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-18` — cross-branch disclosure fix in Sell selection (`branch.manage`). HEADs docs `c9391f8` · backend `f26f677` · mobile `3c10c37`.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
 - Last owner: **CLAUDE-A** · 2026-09-18
 - Last phase: **Sell a phone — Scan IMEI / Enter IMEI manually / Choose from stock**,
+  Follow-up: cross-branch disclosure gated on `branch.manage` (server-decided); IMEI visibility rules confirmed and documented.
   one shared selection into the existing payment flow. Complete in code; **handset checks owed**.
 - Takeover HEADs were docs `91bd5f6` · backend `c7e1900` · mobile `8db73e0`, clean and level.
 
@@ -24,8 +25,8 @@ Nothing was removed this phase.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`f26f677`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`3c10c37`** | level | 0 |
+| `erp-backend` | `reports-export` | **`c4d4534`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`ca7b2d5`** | level | 0 |
 
 ## What changed this phase
 
@@ -36,7 +37,11 @@ Contract in `docs/21` ("Sell a phone: three ways in, one selection"). No schema 
 | **Selection endpoint** | backend `f26f677` | `GET /sales/selection/:identifier` (`sale.create`), read-only: either IMEI or serial, branch availability, storage/colour, masked identifier, ladder price when sellable; 20 tests |
 | **Mobile** | `57c5a00` … `3c10c37` (5 commits) | selection lookup + pure rules; 42 `pick.*` keys × EN/FR/AR; PhoneChooser, ManualImeiPanel, StockPicker, SelectedPhoneCard; Quick Sell starts with the three choices and feeds one `choose()` into the existing PaymentSheet; 9 new tests |
 
-**Open question for the user:** the brief was truncated at "Do not expose" and no
+| **Cross-branch fix** | backend `c4d4534`, mobile `ca7b2d5` | without `branch.manage` a phone elsewhere (any status) or nowhere gets one answer, `not_available_here`; with it, `other_branch` + branch name; 12 new backend tests (both permission states, company isolation, malformed/unknown IMEIs) |
+
+**Privacy rules (confirmed by the user):** docs/21 "Who may see which phone" and docs/04 §D 19c–19d. Full IMEI on Sale detail and the customer receipt is intentional.
+
+**Resolved, formerly open:** the brief was truncated at "Do not expose" and no
 mockups arrived. Interpretation used: no internal ids, full IMEI, staff history,
 other-branch or other-company data; cost only via the existing cost.view gate.
 
@@ -44,14 +49,14 @@ other-branch or other-company data; cost only via the existing cost.view gate.
 
 | Kind | Result |
 |---|---|
-| **Backend** | tsc clean · **135 suites / 2 486 tests, 0 failed** |
+| **Backend** | tsc clean · **136 suites / 2 498 tests, 0 failed** |
 | **Mobile** | tsc clean · lint **0 errors / 32 warnings** (baseline) · all pure suites **0 failed** (+`phone-selection`) · EN/FR/AR parity · web export |
 | **Live** | route answers 401 unauthenticated on 192.168.137.1 and 192.168.22.10 |
-| **Physical device** | 🔴 **none**. `docs/24` **§32 P1–P14**, plus §31 M1–M21 and §30 |
+| **Physical device** | 🔴 **none**. `docs/24` **§32 P1–P14 (incl. P7b–d, P10b)**, plus §31 M1–M21 and §30 |
 
 ## Services
 
-- **Live API `:3010`** — PID 24696, built from backend `f26f677`.
+- **Live API `:3010`** — PID 6532, built from backend `c4d4534`; `/api/v1/sales/selection/:id` answers 401 unauthenticated.
 - **Metro `:8081`** — running (PID 27384) with `REACT_NATIVE_PACKAGER_HOSTNAME=192.168.137.1`
   on the PC hotspot (the Ainina router isolates clients). The git-ignored mobile
   `.env.local` points the API at `http://192.168.137.1:3010`; switch it back if the phone returns to the LAN.
@@ -83,4 +88,4 @@ other-branch or other-company data; cost only via the existing cost.view gate.
 
 1. On the iPhone (hotspot, Expo Go), run **`docs/24` §32 P1–P14** — the three ways to find a phone.
 2. Then §31 M1–M21 and §30 / §30b–d.
-3. Confirm the "Do not expose" interpretation; decide the live rollup repair.
+3. Decide the live rollup repair.

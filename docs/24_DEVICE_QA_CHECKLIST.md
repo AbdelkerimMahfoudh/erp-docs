@@ -3469,10 +3469,14 @@ native build must re-cut the patch and re-verify scanning on an Android device.
 | P4 | Manual: valid in-stock IMEI → Find → Use this phone | Same card, "Found by manual IMEI" |
 | P5 | Manual: 14 digits / a letter / wrong last digit | Length / digits-only / checksum message; Find disabled |
 | P6 | Manual: valid IMEI not in the shop | "No phone in this shop has that IMEI." Nothing created |
-| P7 | Manual: sold / faulty / reserved / other-branch phone | Its own words; no Use or Continue |
+| P7 | Manual: sold / faulty / reserved phone in **this** branch | Its own words; no Use or Continue |
+| P7b | As an Employee (no `branch.manage`): an IMEI in stock — or sold — at **another** branch, then an IMEI that exists nowhere | Both show exactly "This phone is not available in this branch." — no product, no branch, no status |
+| P7c | As the Owner (`branch.manage`): the same other-branch IMEI | "In stock at {branch name}, not this branch"; no price, no Continue. An unknown IMEI says "No phone in this shop has that IMEI." |
+| P7d | While typing, and on the scanner result | The full IMEI is visible to the operator; the selected-phone card and stock list show only `•••• 1234` |
 | P8 | Manual with Wi-Fi off | Network message, not "not found" |
 | P9 | Choose from stock → search a model → tap a phone | Same card, "Found by stock selection" |
-| P10 | Continue to payment → full payment | Sale completes; receipt; back to the three choices |
+| P10 | Continue to payment → full payment | Sale completes; the customer receipt shows the **full** IMEI (warranty proof) and no cost, margin, internal id or staff/customer detail beyond the buyer; back to the three choices |
+| P10b | Open the completed sale in Sales | The full IMEI or serial is visible to authorised staff; no internal id shown |
 | P11 | Continue to payment → partial with a customer debtor | Balance owed, as in §31 |
 | P12 | Choose another phone | Back to the three choices, nothing carried over |
 | P13 | Employee without cost.view | No cost or profit row anywhere |

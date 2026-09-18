@@ -9825,3 +9825,17 @@ Verification: backend 135 suites / 2 486 tests; mobile tsc, lint baseline, all p
 suites (+9 tests; one privacy assertion renamed to the new variable, same gate), web
 export. Live API rebuilt (PID 24696). Nothing run on a handset: §32 P1–P14 owed.
 Metro runs on the PC hotspot; mobile `.env.local` targets 192.168.137.1.
+
+
+## 2026-09-18 — CLAUDE-A — cross-branch disclosure in phone selection
+
+Took ownership at docs `c9391f8` · backend `f26f677` · mobile `3c10c37`. The user confirmed the privacy
+rules and corrected the masking scope: full IMEI stays on the completed Sale detail and the
+customer receipt (intentional); masking applies to stock lists, the pre-payment preview, Money
+previews and compact summaries. Only the cross-branch disclosure needed code: without
+`branch.manage` the selection lookup now answers a phone elsewhere (any status) exactly like an
+unknown number — "This phone is not available in this branch."; with it, `other_branch` and the
+branch name. Server-decided (backend `c4d4534`); the app maps the code and shows a name only
+when sent (mobile `ca7b2d5`). Backend 136 suites / 2 498 tests; mobile tsc, lint baseline, all
+pure suites. Live API rebuilt (PID 6532). Docs: 21, 04 §D 19c–d, 24 §32 P7–P7d and P10–P10b.
+No handset run yet.

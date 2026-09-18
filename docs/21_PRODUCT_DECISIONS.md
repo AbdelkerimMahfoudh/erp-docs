@@ -5522,3 +5522,15 @@ No "total available" is shown, and accounts carry no balance: the model reconcil
 - **Stock**: this branch's in-stock phones, searchable, paged; tapping one runs the same lookup.
 - **Never**: a Product or Unit created, stock added, or an IMEI written into a barcode.
 - **Not exposed**: internal ids, the full IMEI, the staff timeline, other-branch names, other companies' data; `cost` only through the existing cost-gating interceptor. *(The brief was truncated at "Do not expose"; this interpretation was used — confirm.)*
+
+
+### ✅ IMPLEMENTED — Who may see which phone, and how much of its IMEI (confirmed by the user, 2026-09-18)
+
+These are intentional rules, not gaps.
+
+- **Another branch.** Without `branch.manage`, the server answers a phone elsewhere — in stock, sold or otherwise — exactly as a number that exists nowhere: *"This phone is not available in this branch."* (`not_available_here`), so the lookup cannot probe other branches. With `branch.manage`, it answers `other_branch` and the branch **name** (no id, no price). The server decides; the app never infers it. Another company's phone is never found (tenant client).
+- **Full IMEI or serial, intentionally:** the manual-entry field and the scanner result (the operator verifying the phone); the **completed Sale detail** for authorised staff (warranty, returns, matching the physical phone), under the existing company, branch and route permissions; and the **customer's receipt**, which is warranty and ownership proof. The receipt still carries no cost, margin, internal id or unrelated staff/customer information.
+- **Masked (last four):** stock browsing lists, the selected-phone preview before payment, Money overview previews, notifications and other compact summaries.
+- **Always:** no internal database or binary ids; cost only with `cost.view`; no unrelated staff history. The server looks up and enforces uniqueness on the complete IMEI.
+
+*This replaces the note "confirm" in the three-way selection entry above.*
