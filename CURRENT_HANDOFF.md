@@ -7,43 +7,35 @@
 ## Session control
 
 - Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-21T21:25Z`
-- Active phase: **inventory correction, Excel-review performance, generic selling and
-  the global card hierarchy** — seven checkpoints (CP1 audit → CP7 Money terminology),
-  committed and pushed per checkpoint. Money, partial payments, expenses, the scanner
-  and navigation are preserved as built.
-- Takeover HEADs: docs `22bb246` **+ 3 uncommitted files** · backend `c4d4534` ·
-  mobile `71970bf` · control-web `c764d63`. Backend, mobile and control-web clean and
-  level. The handoff at `22bb246` said IN_PROGRESS / CLAUDE-A since 10:45Z.
-- Previous owner: **CLAUDE-A** · 2026-09-21 10:45Z → interrupted ~15:31Z (visual-fidelity
-  pass). Same account, so this is a resumption, not a cross-account takeover.
-- Next intended action: **CP1 — audit the real contracts** (permissions, unit fields,
-  versioning, IMEI uniqueness, identifier lookup, import draft states, review rendering,
-  thumbnails, nested cards) before any implementation.
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-21T23:52Z` — the visual-fidelity conversation, resumed after the 23:48Z reboot to close its evidence and handoff
+- Last owner: **CLAUDE-A** · 2026-09-21
+- Last phase: **visual fidelity of the approved screens** — complete in code, pushed,
+  rendered on the final build; **handset checks owed**.
+- **Claimed, not started:** at 21:25Z a second CLAUDE-A conversation claimed the next
+  brief — *inventory correction, Excel-review performance, generic selling and the global
+  card hierarchy* (seven checkpoints, CP1 audit → CP7 Money terminology). It changed no
+  code, schema or data; its last activity was 21:36:52Z and it is not running. That brief
+  is the next work — see "The next exact action".
 
-### Takeover discrepancies — 2026-09-21T21:25Z
+### What happened on 2026-09-21 — two conversations, one label
 
-Recorded before any file was modified.
+The clock on this PC is UTC+0 (Greenwich Standard Time); times below are real UTC.
 
-1. **No handset screenshots arrived** with the instruction that names them. The work
-   proceeds from the described problems and the code; nothing is claimed about what a
-   screenshot showed.
-2. **The previous session was interrupted, not closed.** Its closing handoff, a
-   `docs/21` decision and `docs/24` §33 were written to disk at 15:25–15:31Z and never
-   committed; no `SESSION_LOG.md` entry was appended; its verification table still
-   reads `Renders | MATRIX_PENDING`. The three files are committed **as found** in this
-   claim, and a reconstructed log entry is appended, marked as such.
-3. **Its cleanup claims are false.** "All stopped and the schema dropped" — in fact the
-   isolated API on 3011 (PID 4824, child of `iso-api-ui.js`), the static export on 19006
-   (PID 15876, `serve-webui.js`), headless Chrome on 9333 (PID 16552) and the
-   `prisma_verify_ui` schema all still exist. Stopped and dropped by this session after
-   the claim, by verified PID.
-4. **MySQL on 3306 is a user-level `mysqld --sql-mode=`** (PID 22704, started 15:14Z),
-   not the WAMP service (Stopped). The handoff says it was shut down; it is running and
-   is now the user's live database — the live API on 3010 (PID 28264, user-started) and
-   Metro on 8081 (PID 24444, restarted for the user at 16:04Z) depend on it. **Untouched.**
-5. Mobile moved `ca7b2d5` → `71970bf` (9 commits, pushed) during the previous session;
-   the committed handoff did not list them. Backend `c4d4534` unchanged.
+- 18:09Z the visual-fidelity conversation took ownership; 19:25–19:31Z it drafted its
+  closing docs **ahead of** its final render and teardown, and left them uncommitted.
+- ~20:04Z and again from 21:25Z the user worked in a **second conversation with the same
+  label**. Reading the uncommitted draft as an interrupted session, it committed those
+  files as found (`d7155bb`), appended a reconstructed log entry, claimed the next
+  brief, and stopped the isolated API, static server, headless Chrome and the
+  `prisma_verify_ui` schema — which the first conversation was still using. Both ran
+  against one working tree from 21:25Z to ~21:37Z. No file was edited by both; the only
+  loss was the render run then in flight.
+- 21:32Z the first conversation pushed mobile `45f4905` (the last narrow-width fixes),
+  which the 21:25Z baseline (`71970bf`) does not include.
+- 23:48Z the PC was restarted; every process ended. 23:52Z this conversation resumed.
+
+**Lesson recorded:** one label for two conversations defeats the ownership rule. A draft
+closing handoff must never sit uncommitted on disk while work continues; write it last.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -57,15 +49,15 @@ return policy and split payment moved under one-tap disclosures, never away.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`c4d4534`** — takeover baseline | level | 0 |
-| `erp-mobile` | `reports-export` | **`71970bf`** — takeover baseline | level | 0 |
+| `erp-backend` | `reports-export` | **`c4d4534`** (unchanged this phase) | level | 0 |
+| `erp-mobile` | `reports-export` | **`45f4905`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
 ## What changed this phase
 
 The approved screenshots are the binding references; the decision record is
 `docs/21` "the approved screens, as drawn". No server contract changed, no
-migration, no dependency, no config. Mobile commits `2be363c` … `71970bf` (9).
+migration, no dependency, no config. Mobile commits `2be363c` … `45f4905` (10).
 
 | Reference | Route / component | What changed |
 |---|---|---|
@@ -96,23 +88,18 @@ answers 400 "Database request error" under MySQL 8's default `sql_mode`
 |---|---|
 | **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline; the one new warning was removed) · **68 pure suites, 0 failed** (+`day-range`, +`expense-rules`; every existing assertion kept) · EN/FR/AR parity (58 new keys, 19 reworded) · web export with every route · raw-colour, literal-copy and dependency audits clean · Expo Doctor: 4 packages out of date (pre-existing drift, unchanged) |
 | **Backend** | unchanged (`c4d4534`); the isolated copy served every screen through the real API |
-| **Renders** | MATRIX_PENDING |
+| **Renders** | On the `71970bf` build: **288 captures** (24 states × EN/FR/AR × light/dark × 320/390 pt) — no leaked key, no overlap, no sideways scroll; three clipping classes at 320 pt (product names in sale rows, the "All expenses" row titles, a long French customer hint) → fixed in `45f4905`. **Re-render of the final build in progress.** |
 | **Evidence** | before: `%TEMP%\claude\shots-money\` (2026-09-18, the previous screens); after: `%TEMP%\claude\shots-ui\` (EN/light/390 first pass) and `%TEMP%\claude\shots-ui-matrix\` (the matrix) — 24 states per language × theme × width: Money today/week/month, sales month/week/today, sale paid, sale part-paid with history, record payment, expense form, expense review, daily expenses, outstanding, sell chooser, IMEI found/invalid/not found, review sale, payment full/partial customer/partial store/store pick, stock picker plain/selected |
 | **Physical device** | 🔴 **none**. `docs/24` **§33 V1–V14**, plus §32, §31, §30 |
 
 ## Services
 
-- **MySQL `:3306`** — the machine restarted; WAMP's service was stopped and cannot be
-  started from an unelevated shell. It was run for this session as a **user process**
-  (`mysqld --defaults-file=…\my.ini --sql-mode=`), then shut down cleanly at the end.
-  **Start WAMP (MySQL) before anything else.**
-- **Live API `:3010`** and **Metro `:8081`** — down since the restart; not started this
-  session (all verification used the isolated API). Start them for the handset checks.
-- **Isolated verification** — `prisma_verify_ui` (restored from
-  `~/erp-backups/phonestore-20260921-182158-pre-ui-fidelity.sql`, a fresh verified dump
-  of live), API on 127.0.0.1:3011, static export on :19006, headless Chrome on :9333 —
-  all stopped and the schema dropped at the end of the session. Scripts and captures live
-  only in `%TEMP%\claude\`.
+- **MySQL `:3306`** — a user-level `mysqld --sql-mode=` (PID 2292, started 23:51Z by this
+  conversation for the final render; WAMP's service is Stopped and needs elevation).
+  It will be shut down when the render is done.
+- **Live API `:3010`** and **Metro `:8081`** — down since the 23:48Z reboot; not started.
+- **Isolated verification** — `prisma_verify_ui`, API 3011, static 19006–19008, Chrome
+  9333: being rebuilt for the final render; torn down and verified afterwards.
 
 ## 🔴 Blockers and pending approvals
 
@@ -139,6 +126,11 @@ answers 400 "Database request error" under MySQL 8's default `sql_mode`
 ## The next exact action
 
 1. Start WAMP (MySQL), then the live API from backend `c4d4534` and Metro; reload Expo Go.
-2. Run **`docs/24` §33 V1–V14** — the approved screens on the handset — then §32, §31, §30.
-3. Fix the `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` before any staging deploy.
-4. Decide the live rollup repair.
+2. Resume the brief claimed at 21:25Z — *inventory correction, Excel-review performance,
+   generic selling, global card hierarchy* — at **CP1: audit the real contracts**
+   (permissions, unit fields, versioning, IMEI uniqueness, identifier lookup, import draft
+   states, review rendering, thumbnails, nested cards) before any implementation. Nothing
+   of it exists yet. Its instruction named handset screenshots that never arrived.
+3. Handset: **`docs/24` §33 V1–V14** (the approved screens), then §32, §31, §30.
+4. Fix the `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` (~L911) before any staging deploy.
+5. Decide the live rollup repair.
