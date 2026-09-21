@@ -6,8 +6,8 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-21T10:45Z` — visual fidelity of Money, sales, expenses, partial/later payments and phone selection against the approved screenshots. Takeover HEADs docs `4598a00` · backend `c4d4534` · mobile `ca7b2d5`, clean and level, READY_FOR_HANDOFF / NONE — no discrepancy.
 - Last owner: **CLAUDE-A** · 2026-09-18
 - Last phase: **Sell a phone — Scan IMEI / Enter IMEI manually / Choose from stock**,
   Follow-up: cross-branch disclosure gated on `branch.manage` (server-decided); IMEI visibility rules confirmed and documented.
