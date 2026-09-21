@@ -5534,3 +5534,25 @@ These are intentional rules, not gaps.
 - **Always:** no internal database or binary ids; cost only with `cost.view`; no unrelated staff history. The server looks up and enforces uniqueness on the complete IMEI.
 
 *This replaces the note "confirm" in the three-way selection entry above.*
+
+### ✅ IMPLEMENTED — the approved screens, as drawn (visual-fidelity pass, 2026-09-21)
+
+The approved screenshots for Money, period sales, daily expenses, partial and later payments, and the three-way phone selection are the binding references. This pass made the running app follow them; the server contracts did not change.
+
+**Money.** Branch and title; the tinted *Cash in store now* card (the closing's own expected drawer, "Expected balance" underneath, accounts one tap away); the filled period switch with the exact days ("14–18 Sep 2026"); one card with the four period facts — Phones sold, Sales value, Collected, Still owed; then *Phone sales* (today: a few sales, then *View all sales*) or *Sales by day* (a week: every day; a month: the latest three days and one folded line naming the earlier span and how many days it holds — **never a sum made on the phone**); then *Daily expenses* with *Add expense*, today's paid expenses and *View all expenses*; then the registry rows.
+
+**Phone sales.** Period switch, the tinted *Sales total* card with phones, Collected and Still owed, and a virtualised list: today's sales as rows, a week or month as day cards that open in place. "Payments recorded" by method for a period is **not** in the overview contract and is not drawn: the phone does not add payments up.
+
+**Sale details.** The phone first — name, variant, status chip, and its **full IMEI or serial** (the confirmed policy) — then the tinted *Selling price*, then how it was paid, when and by whom, who bought it or owes it, the payment history, the return policy, the totals, and *View receipt*, which prints the customer's receipt from the sale itself (full identifier, no cost, no margin).
+
+**Add expense.** Description (free text, no suggestions), Amount (MRU), Paid from (Cash or one account), Payment date (today, typed as `YYYY-MM-DD` — there is no native date picker without a new dependency), Add receipt (optional); fixed costs, salary, reference and note wait under *More options*. *Review expense* then shows the details and, for an **Owner**, *Expected cash after recording* (before, expense, after — a preview the closing recomputes) and **Record paid expense**, which reports and confirms in one explicit act. Anybody else sends the report for an Owner to confirm, and the review says so. The accounting rule is unchanged: a report moves nothing; money leaves exactly one source when an Owner confirms.
+
+**Daily expenses.** "Expense recorded", the cash card, today's paid expenses with where each came from, then every expense with its status filter; *Add expense* and *Back to Money* pinned. Per-source subtotals are not server figures and are not drawn.
+
+**Sale payment.** What is being sold, *Sale total*, *Amount received now*, *Received via* (Cash | Choose account — the account implies the method), then, only when less than the total is taken, the amber *Remaining to pay* with its status, *Who owes the balance?* (Customer: a name and an optional phone, or *Select existing customer*; Store: a partner-store picker and *Add a store*), "Only X is recorded as received", and **Review sale**, which states the balance in words before sending. Discount, return policy and split payment wait under one disclosure. Nothing about pricing, approval or receipts moved.
+
+**Record payment.** Who owes and for which sale, the amber *Remaining before payment*, amount, *Received via*, date, reference, note, then *This payment* beside *Remaining afterward*, and **Record payment** (still reviewed in words first). Back on the sale, "Payment recorded" is said once, in a banner.
+
+**Sell a phone.** Three cards — Scan IMEI, Enter IMEI manually, Choose from stock — each its own screen. *Enter IMEI* validates as typed, looks the number up the moment it is a real IMEI, shows the found phone with its **complete** IMEI, *Use this phone*, *Choose from stock instead* and the note that nothing is created. *Choose from stock* searches, filters by brand, counts, lists each available phone with its variant, masked IMEI and the ladder price, and continues with the selected one. *Review sale* shows the phone with its masked IMEI, Available, the selling price, how it was found, *Continue to payment*, *Choose another phone*, and that the phone leaves stock only when the sale is confirmed.
+
+**Deliberate deviations from the mock-ups:** no product photos exist (`docs/47`), so every picture slot is an honest tinted icon; the completed Sale detail shows the full IMEI (the mock masks it, the confirmed policy does not); Quick Sell stays a stack screen, so the tab bar is not under the chooser; segment pills are 42 pt inside a 48 pt track, chips 36 pt with hit slop, and the sheet's Close button 36 pt — all pre-existing geometry.

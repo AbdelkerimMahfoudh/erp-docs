@@ -9839,3 +9839,38 @@ branch name. Server-decided (backend `c4d4534`); the app maps the code and shows
 when sent (mobile `ca7b2d5`). Backend 136 suites / 2 498 tests; mobile tsc, lint baseline, all
 pure suites. Live API rebuilt (PID 6532). Docs: 21, 04 §D 19c–d, 24 §32 P7–P7d and P10–P10b.
 No handset run yet.
+
+
+---
+
+## 2026-09-21 10:45Z → ~15:31Z — CLAUDE-A — the visual-fidelity pass *(reconstructed at takeover)*
+
+**Written by the next CLAUDE-A session at 21:25Z from the evidence, because this session
+was interrupted before it appended its own entry.** Sources: its closing handoff, found
+uncommitted on disk (committed as found in `erp-docs` at the takeover claim), and the
+mobile commit list.
+
+Took ownership at docs `4598a00` · backend `c4d4534` · mobile `ca7b2d5`, clean and level.
+The machine had restarted; it ran MySQL as a user process (`--sql-mode=`), the isolated
+API on 3011 against `prisma_verify_ui` (restored from
+`~/erp-backups/phonestore-20260921-182158-pre-ui-fidelity.sql`), a static web export on
+19006 and headless Chrome on 9333.
+
+**Built (mobile `2be363c` … `71970bf`, nine commits, all pushed; no server change):** the
+approved screens as drawn — Money (tinted cash card, filled period switch with exact days,
+the four period facts, sales by day, daily expenses), Phone sales by period, sale detail led
+by the phone with the full identifier, Add expense with a review step, the payment sheet and
+debtor picker, Record payment with a return banner, and the three-way selection (Sell a
+phone chooser, Enter IMEI with live lookup, Choose from stock with selection, Review sale);
+design-system additions (`SegmentedControl` looks, `Card` washes, `MoneyValue` large,
+`Thumbnail`, `DayRow`, `LinkRow`, `ExpenseLine`, `PeriodSelector`); 58 new + 19 reworded
+keys, EN/FR/AR. Its own verification claims: tsc clean, lint 0/32, 68 pure suites, parity,
+web export, audits clean, Expo Doctor 4 packages out of date (pre-existing); 288 matrix
+captures in `%TEMP%\claude\shots-ui-matrix`; the handoff's render row was never filled in.
+
+**Found, not fixed:** `GET /closings/overview` answers 400 under MySQL 8's default
+`sql_mode` (`ONLY_FULL_GROUP_BY`) — `closing.service.ts` ~L911.
+
+**Not done:** the handoff was never committed or set READY_FOR_HANDOFF; the harness it
+reports as stopped was still running at takeover (3011, 19006, 9333, and the
+`prisma_verify_ui` schema); no handset run.

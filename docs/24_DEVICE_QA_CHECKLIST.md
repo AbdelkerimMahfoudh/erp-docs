@@ -3481,3 +3481,24 @@ native build must re-cut the patch and re-verify scanning on an Android device.
 | P12 | Choose another phone | Back to the three choices, nothing carried over |
 | P13 | Employee without cost.view | No cost or profit row anywhere |
 | P14 | Stock afterwards | No new product or unit; the sold phone left stock once |
+
+## 33. The approved screens on a handset — UNVERIFIED ON ANY DEVICE
+
+Rendered from the web export in EN/FR/AR, light and dark, at 320 and 390 pt against an isolated copy of live (see the handoff for the count and findings). A headless browser cannot prove any of the following; they need the handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| V1 | Money, Today → 7 days → This month | The cash card stays; the four figures, then today's sales or the days; the folded "earlier days" line on a month; nothing under the tab bar |
+| V2 | Money at the largest Dynamic Type | "202 000 MRU" figures wrap to one per row, never clip |
+| V3 | Sales by day → a day line | Phone sales opens on that day, expanded |
+| V4 | Phone sales, This month, scroll fast | Day cards scroll smoothly (virtualised); a day's sales load only when opened |
+| V5 | A sale → View receipt | The share sheet opens with the PDF; the receipt shows the full IMEI, no cost or margin |
+| V6 | Add expense with the keyboard open | The pinned *Review expense* never covers the last field; typing the date works |
+| V7 | Add expense → Review → Record paid expense (Owner) | Daily expenses opens with "Expense recorded"; the cash card fell by the amount |
+| V8 | Same as an Employee | *Send for approval*; "Sent" banner; nothing moved until the Owner confirms |
+| V9 | Sell a phone → Enter IMEI, type 15 digits | The tick appears at the fifteenth digit and the phone card follows without a tap |
+| V10 | Enter IMEI with the number pad | The pad stays numeric; the sticky buttons stay above it |
+| V11 | Choose from stock, tap a row, Continue | The row shows the check; the footer button is reachable with the keyboard closed |
+| V12 | Review sale → Continue to payment → lower the amount → Store → pick a store → Review sale | The confirmation names the store and the balance; the sale saves with the store as debtor |
+| V13 | Record payment → save | Back on the sale, the green "Payment recorded" banner, once |
+| V14 | Arabic, dark, 320-pt-class phone | Chevrons point the reading way; the segment pill fills the selected side; nothing clips |
