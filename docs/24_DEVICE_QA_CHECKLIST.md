@@ -3547,3 +3547,26 @@ The 2026-09-22 correction phase. Proved over HTTP on an isolated copy and reprod
 | S13 | Import the **100-row workbook** and open a group; exclude and edit one row; scroll to the end | Smooth throughout on the handset (**physical smoothness — handset only**); counts and the footer total update at once |
 | S14 | Accept (an advisory row), Edit, Exclude | Native confirmations for Accept and Exclude; the item sheet shows the whole identifiers; closing it lands in the same open group at the same place |
 | S15 | **iOS Dynamic Type 120% / 135%**, French and Arabic, dark | Nothing clipped or overlapping on S1–S14 — a web render cannot test Dynamic Type |
+
+
+## 36. Invoice, Daily Closing, alerts preview, platform administration — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-22 parallel scope (`docs/21`, "Invoice, Daily Closing, alerts preview, platform administration, website deferral"). Proved over HTTP on an isolated copy, rendered to PDF and to a web build in headless Chrome; what only a handset can show is listed here. Use Expo Go against the live API. Nothing below has been run on a phone.
+
+| # | Do this | Expect |
+|---|---|---|
+| P1 | Sales → a sale → **View receipt** → share to WhatsApp / Files | A full-width page (not a strip): store name, invoice number, total and status at the top; the item with its full IMEI; payments; the return sentence. Letter and A4 both fill the page |
+| P2 | The same for a sale with a **partial payment** and a named customer | "Partially paid", Paid and Remaining rows, "Balance owed by" with the customer; a later collection shows its date |
+| P3 | The same in **Arabic** | Right-to-left layout; "329 000 MRU", dates, IMEI and phone numbers read left-to-right inside it |
+| P4 | A sale of **fifteen or more lines** | The table header repeats on page 2; no row is cut across pages; totals stay together |
+| P5 | Money → **Daily closing** on a shop with 20+ accounts: drag **starting on a label, an amount or a status chip** | The list scrolls from the first millimetre — no dead zone (**the handset is authoritative here; a web render cannot show native responder behaviour**) |
+| P6 | Type a count in one row, then tap **Save** with the keyboard open | Save takes on the first tap; the field never sits under the keyboard; the other rows do not flicker or re-render |
+| P7 | Save several rows; scroll to the end and back | Smooth throughout on the handset; the pinned **Review and close** stays put; no purple text clipped at the left edge |
+| P8 | With one account **not counted** → Review and close | Disabled, with "Save every count before closing the day." under it; once every count is saved, the confirmation shows expected / counted / difference |
+| P9 | The same in Arabic and French, dark, at iOS Dynamic Type 120 % / 135 % | Nothing clipped or overlapping at 320-pt width; the summary and rows mirror correctly |
+| P10 | Analyses with **more than three** alerts | Exactly three rows in one compact surface, "View all N alerts to review"; **I understand** removes the row at once and the next moves up; the toast's **Undo** brings it back |
+| P11 | **View all** | The full list, twenty at a time, the same order as the overview; empty and end states; I understand works per row |
+| P12 | An Owner of a shop that is **pending / not approved / suspended** opens the app (fresh install and returning) | The state screen, before any branch chooser or error: waiting for activation / registration not approved / access suspended, "contact your administrator", Check again, Sign out — no website, no payment link, no price |
+| P13 | Set the phone's date forward a year on an **active** shop | Nothing changes: the state comes from the server |
+| P14 | Sign-in screen → **Platform administration** with a platform account | Overview with counts, search, filters; a business; Approve asks months, a reason (where required) and the password, then a confirmation naming the business; the invitation is shown once and copies |
+| P15 | Try the platform sign-in with a **shop's** e-mail and password | Refused with one generic message; the shop's own session is untouched |

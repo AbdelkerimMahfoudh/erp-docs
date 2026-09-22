@@ -38,9 +38,9 @@ of them.
 
 **Owner must provide.** The domain name, and who holds the registrar account.
 
-**Then.** Set `CORS_ORIGINS`, `EXPO_PUBLIC_PORTAL_URL`, `EXPO_PUBLIC_SIGNUP_URL`,
-`EXPO_PUBLIC_API_ORIGIN`; rebuild the mobile bundle, because those are compiled
-in, not read at runtime.
+**Then.** Set `CORS_ORIGINS` and `EXPO_PUBLIC_API_ORIGIN`; rebuild the mobile
+bundle, because those are compiled in, not read at runtime. (`EXPO_PUBLIC_PORTAL_URL`
+and `EXPO_PUBLIC_SIGNUP_URL` are no longer read by the app — 2026-09-22.)
 
 **Blocks:** production. Staging can run on an IP or a temporary hostname, but
 anything built against it must be rebuilt afterwards.

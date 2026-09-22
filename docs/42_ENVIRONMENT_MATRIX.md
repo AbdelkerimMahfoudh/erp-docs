@@ -88,8 +88,8 @@ these is one, and none may become one.
 | `EXPO_PUBLIC_API_ORIGIN` | R | R | R | **Changes with the network.** `.env.local` is gitignored, so every network change is a hand edit *and a Metro restart* — the value is compiled in |
 | `EXPO_PUBLIC_API_HOST` | O | R | R | Used by the staging example |
 | `EXPO_PUBLIC_APP_ENV` | O | R | R | |
-| `EXPO_PUBLIC_PORTAL_URL` | R | R | R | Where the account portal lives |
-| `EXPO_PUBLIC_SIGNUP_URL` | R | R | R | |
+| ~~`EXPO_PUBLIC_PORTAL_URL`~~ | — | — | — | Removed 2026-09-22: the app no longer opens the website |
+| ~~`EXPO_PUBLIC_SIGNUP_URL`~~ | — | — | — | Removed 2026-09-22: registration happens in the app |
 | `EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY` | O | O | ❌ | Debug overlay. Read at build time, so a production build has the branch **removed**, not merely skipped |
 | `EXPO_PUBLIC_USE_RN_FETCH` | O | O | ❌ | Diagnostic transport switch |
 

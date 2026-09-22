@@ -117,6 +117,43 @@ Handler             → uses the tenant-scoped Prisma client (auto company_id fi
 
 ---
 
+
+## 15. The platform boundary (2026-09-22)
+
+- **Two identity realms, structurally apart.** Platform administrators live in
+  `platform_admins` (no `company_id`) with their own sessions
+  (`platform_admin_sessions`, HttpOnly cookie; a bearer header only outside
+  production). `PlatformAdminGuard` reads no tenant token, no `X-Company-Id`, no
+  `X-Branch-Id`: an Owner's, Manager's or Employee's JWT is looked up as a
+  platform session and matches nothing. No store role — `administrator`
+  included — grants anything on a platform route, and no platform route reads the
+  tenant context.
+- **What the platform may see.** Business identity, subscription state and dates,
+  Owner contact and verification, branch and user counts, subscription events,
+  recorded payments, the audit trail. Never sales, units, IMEIs, costs, margins
+  or expenses — the queries cannot select them. There is no impersonation.
+- **Every platform mutation**: the administrator's password re-asked, a
+  `version` for concurrency (409 `subscription_changed` for the loser), a reason
+  where access is taken away (reject, suspend, cancel, shorten a period), and an
+  append-only audit row with actor, action, target, reason, before/after and IP,
+  redacted of anything credential-shaped.
+- **Owner invitations** (`owner_invitations`): SHA-256 hash only, 72 hours,
+  single-use, claimed atomically, revoked as a set when reissued; accepting sets a
+  password and cuts earlier sessions, and issues no session of its own. Delivery
+  is manual; nothing pretends to send.
+- **The tenant lock is the server's.** `stateOf` reads the subscription row and
+  the injected server clock — never a request, a header or the device — so an old
+  build, a changed phone date or a different branch header cannot open a closed
+  shop. Pending, suspended, cancelled and rejected shops keep only `entitlement`,
+  `auth/me`, `auth/logout`, `auth/refresh`, `health`, `platform/my-subscription`
+  and `platform/payment-instructions`.
+- **No default administrator credential** anywhere; bootstrap is
+  `prisma/create-platform-admin.ts` with `PLATFORM_ADMIN_PASSWORD` from the
+  environment. MFA is still outstanding production work, and nothing fakes it.
+- Pinned by `platform-boundary.spec.ts`, `subscription-lifecycle.spec.ts`,
+  `owner-invitation.spec.ts`, `lifecycle-states.spec.ts`, and proved live in the
+  42-step run recorded in `docs/37` Phase 5.
+
 ## Quick reference
 | Concern | Mechanism |
 |---|---|

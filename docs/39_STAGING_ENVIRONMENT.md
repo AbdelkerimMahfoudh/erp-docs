@@ -270,8 +270,8 @@ mystifying runtime failure.
 | Variable | Meaning |
 | --- | --- |
 | `EXPO_PUBLIC_API_ORIGIN` | The staging origin, scheme and port included. |
-| `EXPO_PUBLIC_SIGNUP_URL` | Where `Create account` opens. |
-| `EXPO_PUBLIC_PORTAL_URL` | Where an inactive Owner manages the subscription. |
+| ~~`EXPO_PUBLIC_SIGNUP_URL`~~ | No longer read (2026-09-22): registration happens in the app. |
+| ~~`EXPO_PUBLIC_PORTAL_URL`~~ | No longer read (2026-09-22): the app no longer opens the website; an inactive Owner is told to contact the administrator. |
 | `EXPO_PUBLIC_APP_ENV=staging` | Turns on the staging label. |
 
 **Production defaults are unchanged.** Every one of these is an override; unset,

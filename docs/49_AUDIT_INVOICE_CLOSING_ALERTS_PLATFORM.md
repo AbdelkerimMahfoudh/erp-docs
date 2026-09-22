@@ -166,3 +166,12 @@ not to build a second system.
    automatic open after registration, the configuration key) and say instead that the
    administrator activates the account. The server's handoff route and every record
    stay.
+
+
+## What the checkpoints found after this audit (2026-09-22)
+
+- **CP2–CP6 landed as decided** (decisions 1–5 above held). Two things the audit did not foresee: (a) the alerts undo needed a server route (`POST /anomalies/:key/undismiss`, which ends the standing dismissal and audits it), because a client-side delay would have lost a dismissal on a killed app; (b) the app's state gate could not live at the tabs — the live run showed a closed shop is refused **the branch list itself**, so the gate sits in `useProtectedRoute`, before any branch is chosen.
+- **Defects found by verification, not by review:** the undo route had been inserted between the dismiss route's decorators and its method, so `POST :key/dismiss` ran the undo and `:key/undismiss` was 404 — every service test passed; the render matrix caught it (fixed in backend `decb699` with a route-metadata spec). The pre-existing shape: a pending Owner reopening the app was routed to branch selection (403) and never saw the state screen (fixed in mobile `3397e90`).
+- **The profile's first two readings were wrong and are recorded as such:** a naive fiber walk counted stale `PerformedWork` flags on subtrees React never revisited, which read as hundreds of "mounts" per keystroke; the corrected counter (a component is rendered in a commit only if its fiber object was swapped in that commit and carries the flag) gave the numbers in `docs/21`. The DOM tags planted on the row inputs survived every keystroke and save, which is what settled it.
+- **Pre-existing drift, not this scope's:** the Prisma diff reports `units.identifier`, a stored generated column from migration 0008 that Prisma cannot model. Recorded; not touched.
+- **Owed:** the counter receipts' customer line (the selling screens, other conversation); the website's knowledge of `rejected` and of the new actions (`docs/38`); every handset check in `docs/24` §36.

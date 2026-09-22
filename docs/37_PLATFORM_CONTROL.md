@@ -474,3 +474,115 @@ for a licensed feed, unused), `curated`, `company_confirmed` and
 
 **A licensed GSMA feed is the outstanding dependency** for broad production TAC
 coverage. Nothing here should be read as a substitute for it.
+
+---
+
+## Phase 5 — approval, refusal, corrected periods, Owner invitations, and an administration surface in the app (2026-09-22)
+
+Built on the contract above, not beside it. `docs/49` is the audit that preceded
+it; `docs/21` (the 2026-09-22 platform section) records the decisions.
+
+### The lifecycle, completed
+
+| Status | Meaning |
+|---|---|
+| `pending_activation` | Registered, never approved. No free trial. |
+| `activated` | Normal — the dates decide (`active` / `grace` / `expired`) |
+| `suspended` | Deliberately stopped, with a recorded reason |
+| `cancelled` | Ended. History kept |
+| **`rejected`** (0075) | **Refused before it ever ran.** A decision, like suspension — not an ended subscription: nothing was granted. Its own entitlement state and code (`ENTITLEMENT_REJECTED`), so a refused shop is never told its subscription "ended". |
+
+Grace is still **derived** — seventy-two hours after `current_period_end`, never
+stored — so a corrected period carries its grace with it. An administrator ends
+a grace period by suspending and lengthens one by extending; nothing invents a
+stored grace to remove.
+
+### New administrator routes (all `@Public()` + `PlatformAdminGuard`, password re-asked, version-checked, audited)
+
+| Route | Does |
+|---|---|
+| `POST platform/businesses` | Creates a business for a shop: the same provisioning as self-service registration (company, first branch, roles **with** their permissions, Owner, `pending_activation`, `registered` event naming the administrator), with a **random password nobody knows**. Returns the Owner's one-time invitation. Idempotent by the administrator's key: a retry returns the business it made and **no new invitation**. |
+| `POST platform/businesses/:id/owner-invitation` | Mints a fresh invitation and revokes every unspent one. |
+| `POST platform/owner-invitation/accept` (public, throttled) | The Owner spends the invitation to set their own password (tenant minimum, 8). One generic refusal for unknown, expired, spent, revoked, or a deactivated Owner. Issues **no session** — the Owner then signs in like anybody. Cuts any earlier sessions of that account. |
+| `POST platform/businesses/:id/approve` | `pending_activation` or `rejected` → `activated`, with a paid period of `months` (1–60) **or** an exact `periodEnd`; `approved` event; opens the first billing period at today's prices. Already running → no-op. Suspended/cancelled → refused (reinstate instead). |
+| `POST platform/businesses/:id/reject` | `pending_activation` → `rejected`, reason required. Twice → no-op. A business that ever ran → refused. |
+| `POST platform/businesses/:id/period` | Sets `current_period_end` directly (`period_corrected` event, before/after in the audit). **Shortening needs a reason.** Only a running business. |
+
+`GET platform/businesses?state=` now filters **before** paging, so `total` is the
+filtered count; `GET platform/dashboard` counts `rejected`.
+
+### Owner invitations (`owner_invitations`, 0075)
+
+Only the SHA-256 hash is stored; the token exists in one administrator response.
+72 hours, single-use, claimed atomically by its own unspent state, revoked as a
+set when a new one is issued. **Delivery is manual and every response says so**
+(`delivery: "manual"`): no message provider is configured, and pretending an
+invitation was sent when nothing sent it is the failure the contact-verification
+work already refused. Accepting grants nothing beyond the password — the
+subscription decides the rest.
+
+### Bootstrap, unchanged and re-checked
+
+Platform administrators are still created only by `prisma/create-platform-admin.ts`
+with the password from `PLATFORM_ADMIN_PASSWORD` (12 characters or more). **No
+default credential exists in source, fixtures, migrations or documentation.** MFA
+infrastructure still does not exist and none was invented; the step-up password on
+every mutation is what exists. The verification runs below used a throwaway
+administrator created on an isolated copy and dropped with it.
+
+### The boundary, tested from both sides
+
+`src/platform/platform-boundary.spec.ts`: no tenant credential — Owner, Manager or
+Employee JWT — and no forged `X-Company-Id` / `X-Branch-Id` header reaches a
+platform route (the guard reads neither); a bearer session is accepted outside
+production only; a disabled, expired or revoked session is refused identically;
+every administrator route is `@Public()` **and** behind `PlatformAdminGuard`, reads
+no tenant context, and every administrator mutation re-asks the password; the
+administrator reads cannot select sales, units, payments, expenses, costs or
+margins; there is no impersonation. `entitlement.service.ts` reads no clock and
+no request — the tenant lock is the server's clock and the subscription row, so an
+old build, a changed phone date or a different branch header changes nothing.
+
+The same was then proved **live** on a restore-proved isolated copy of the
+database through the built API (42 steps, `platform-lifecycle.mjs`): sign-in with
+cookie and token; create → retry without a second invitation → step-up refused
+without a password → hash-only storage → unknown / spent / expired invitation
+refused → Owner sets a password and signs in → pending: entitlement `pending`,
+reads (branch list included) refused with `ENTITLEMENT_PENDING` → Owner JWT,
+forged headers, anonymous and an Owner "approving" their own business all 401 on
+platform routes → detail carries no sales, costs or margins → reject without a
+reason refused → rejected (`ENTITLEMENT_REJECTED`, twice a no-op) → stale version
+409 `subscription_changed` → approved for a month, the Owner's app opens →
+shortening without a reason refused, then corrected → suspended
+(`ENTITLEMENT_SUSPENDED`, the account surface still readable) → reinstated →
+extended → one hour past the end: `grace`, hours counted, writes still pass → four
+days past: `expired`, reads open, writes `ENTITLEMENT_WRITE_BLOCKED` → a new
+invitation revokes the old, an expired one is refused → the audit trail names every
+act with its reason and carries no password or invitation → sign-out revokes that
+session → a disabled administrator's live session stops at once → a wrong password
+and an unknown address answer identically.
+
+### The app's own administration surface
+
+`mobile/app/platform/*` — sign-in, overview (counts by state, search, state
+filter, compact rows), one business (identity, state and dates, people and their
+verification, history, recorded payments, controlled actions), create a business
+(the invitation shown once, copied by hand), the audit trail. It runs on
+`mobile/lib/platform-admin.ts`: its own client with the platform session only —
+no tenant token, no branch header, no company header — kept in memory and ended on
+a 401. The tenant redirects leave the `platform` route group alone; nothing in the
+shop's tabs or menus leads to it; the only way in is a small link at the end of
+the sign-in screen. Every action is a form (months or a date, a reason where
+access is taken away, the administrator's own password), then a confirmation
+naming the business, then the server's answer; a concurrent change is reported
+as "refreshed", never applied twice. The control website is untouched and does
+not know `rejected` yet — see `docs/38`.
+
+### What the shop sees
+
+`/entitlement` is decided by the server; the app shows the state and never a
+date's arithmetic. Pending, rejected, suspended and cancelled shops are sent to the
+state screen **at the root, before any branch is chosen** (the branch list itself
+is refused while closed), with neutral "contact your administrator" guidance — no
+website, no payment link, no price. Grace shows its hours left and expired shows
+reads-only, on the in-app subscription page.

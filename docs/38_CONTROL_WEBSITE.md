@@ -244,3 +244,26 @@ no flags anywhere in the catalogues.
 
 The website has never carried the mobile app's staging banner, and a scan of the
 production build confirms the phrase appears nowhere in it.
+
+---
+
+## The app no longer links here (2026-09-22)
+
+The mobile app used to mint a handoff ticket and open this site's account page —
+after registration and from the blocked screen — and to offer this site's
+registration page as "Create account". **All of that is withdrawn from the app**
+(`docs/21`, 2026-09-22): activation and extension are the platform
+administrators' decisions, taken in the app's own administration surface or here,
+and the app shows the server's state and says whom to contact.
+
+Nothing on the server changed for this site: `POST platform/portal-handoff`,
+`GET platform/portal-session`, the portal session cookie and every record stay,
+and the site's own sign-in works as before. `EXPO_PUBLIC_PORTAL_URL` and
+`EXPO_PUBLIC_SIGNUP_URL` are no longer read by the app.
+
+**Deferred, and recorded rather than done:** this site does not know the new
+`rejected` status (0075). Its dashboard and business list receive `rejected`
+rows from the API (the dashboard's `byState.rejected` and the list's `state`) but
+have no label or filter for them, and it has no approve / reject /
+period-correction / create-business / invitation actions of its own. This
+repository was not modified or redeployed by that scope, by instruction.
