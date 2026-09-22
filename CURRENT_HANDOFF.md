@@ -6,20 +6,17 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-22T03:24Z`
-- Active phase: **correction of the previous session's work** — the failed generic-selling
-  implementation (non-phone Continue dead; Pixel sale loads indefinitely), the worsened
-  Excel-review performance, and the three screens that did not receive the approved
-  restyle (Excel review, Sell an item, Choose from stock). Six checkpoints, each committed
-  and pushed. No new feature.
-- Takeover HEADs (verified against origin, all clean and level): docs `d0eeb74` ·
-  backend `e9f8e7e` · mobile `c26f42b` · control-web `c764d63` (untouched). The
-  handoff read READY_FOR_HANDOFF / NONE — taken by the same account (CLAUDE-A).
-- Next intended action: **CP1 — reproduce the sale failures** on an isolated copy of live
-  over real HTTP (iPhone by IMEI 1 and IMEI 2, Pixel, serial camera, serial console,
-  barcode accessory), and answer from the live database (read-only) whether the
-  timed-out Pixel attempt created a sale.
+- Status: **READY_FOR_HANDOFF** (for the correction phase below; see the parallel scope for its own state)
+- Owner: **NONE** — the correction phase (CLAUDE-A, `started_at_utc: 2026-09-22T03:24Z`) closed at
+  `2026-09-22T13:22Z`.
+- Completed phase: **correction of the previous session's work** — the failed generic-selling
+  implementation, the worsened Excel-review performance and the three screens that had not
+  received the approved restyle. Six focused commits, each pushed; the decision record is
+  `docs/21` "Correction of the generic selling, Excel-review performance and the three
+  restyles (2026-09-22, second phase)"; the device checks are `docs/24` **§35**.
+- Next intended action: **the handset run of `docs/24` §35** (S1–S15) against the live API — the
+  only checks this phase could not perform. No feature is next; the product-image upgrade is
+  explicitly not started.
 
 ### Parallel scope — invoice, Daily Closing, alerts, platform administration
 
@@ -47,148 +44,99 @@
   `SESSION_LOG.md` under this conversation's own heading.
 - **CP4 + CP5 backend landed (2026-09-22 ~06:05Z).** Backend `60bd6c1` (anomalies: newest-first total order, `limit`/`page` + `total`, idempotent dismiss; 44 tests), `c9e7a23` (0075: `rejected` status/state + ENTITLEMENT_REJECTED, approve/reject/setPeriodEnd, audit actor override), `f2d97f7` (POST platform/businesses with a one-time hashed Owner invitation, POST businesses/:id/owner-invitation, public owner-invitation/accept, approve/reject/period routes, state filter fixed to filter before paging; `platform-boundary.spec.ts`). 210 platform/entitlement tests green; tsc clean. **Migration 0075 applied live** after backup `~/erp-backups/phonestore-before-0075-20260922-055832.sql` (862 536 B, trailer present, hex-blob, 0 raw binary) was restore-proved into the scratch schema `prisma_verify_platform` (88 tables / 24 triggers as live; sales/units/audit_logs counts and the `units` id checksum equal; all 24 trigger bodies identical) and migrated forward there first. Live after: 2 subscriptions still `activated`, 0 coerced event kinds, 9/53/862 rows unchanged. Sanitised restore copy deleted; `prisma_verify_platform` is kept for the CP7 lifecycle run and dropped at the end. The other conversation's backend `22d8227` and mobile `de20990` (both trees clean) are preserved.
 
-### Takeover discrepancies — 2026-09-22T03:24Z
-
-Recorded before any file was modified.
-
-1. **HEADs, cleanliness, status:** exactly as expected (`d0eeb74` / `e9f8e7e` /
-   `c26f42b`, all 0 dirty, 0/0 behind/ahead, READY_FOR_HANDOFF, owner NONE). No
-   discrepancy.
-2. **The attachments:** three images arrived. Two are the binding mockups (*Revue
-   compacte / Détail d'un article* for the Excel review; *Vendre un article* for Sell an
-   item). The first is the **defective handset** Choose-from-stock screen, not a mockup —
-   so CP7 follows the written target (one-row search + 48pt Filter, trailing selection
-   control, fixed "Selected: … / Continue with this item" action).
-3. **The previous handoff called the mobile gate green** while `day-range.test.ts` and
-   `expense-rules.test.ts` failed, recorded as "pre-existing extensionless-import
-   issues". The user is right that a gate with failing suites is not green; both are fixed
-   in this phase so every pure suite runs and passes.
-4. **The previous handoff recorded the 100-item reproduction, the render matrix and the
-   device checks as owed.** Confirmed: none was run. They are run in this phase.
-5. **Live processes at takeover:** only MySQL 3306 (pid 22368) is listening; the live API
-   (3010) and Metro (8081) are **not running**. The handset defects were observed earlier
-   against a now-stopped API, so the server-side evidence is taken from the live database
-   (read-only) and the terminal scrollback, and every reproduction runs against an isolated
-   copy on port 3011. MySQL 22368 is the user's and is left running and untouched.
-
-### What happened on 2026-09-21 — two conversations, one label
-
-The clock on this PC is UTC+0 (Greenwich Standard Time); times below are real UTC.
-
-- 18:09Z the visual-fidelity conversation took ownership; 19:25–19:31Z it drafted its
-  closing docs **ahead of** its final render and teardown, and left them uncommitted.
-- ~20:04Z and again from 21:25Z the user worked in a **second conversation with the same
-  label**. Reading the uncommitted draft as an interrupted session, it committed those
-  files as found (`d7155bb`), appended a reconstructed log entry, claimed the next
-  brief, and stopped the isolated API, static server, headless Chrome and the
-  `prisma_verify_ui` schema — which the first conversation was still using. Both ran
-  against one working tree from 21:25Z to ~21:37Z. No file was edited by both; the only
-  loss was the render run then in flight.
-- 21:32Z the first conversation pushed mobile `45f4905` (the last narrow-width fixes),
-  which the 21:25Z baseline (`71970bf`) does not include.
-- 23:48Z the PC was restarted; every process ended. 23:52Z this conversation resumed.
-
-**Lesson recorded:** one label for two conversations defeats the ownership rule. A draft
-closing handoff must never sit uncommitted on disk while work continues; write it last.
-
 ### ⚠️ The scope rule, unchanged
 
 Only **two** features are absent from the first release: **Suppliers** and
 **low stock / reordering**. No removal without the user's explicit approval.
-Nothing was removed this phase; fixed costs, salary, reference, note, discount,
-return policy and split payment moved under one-tap disclosures, never away.
+Nothing was removed this phase.
 
 ## HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
-| `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`e9f8e7e`** — generic sale selection | level | 0 |
-| `erp-mobile` | `reports-export` | **`c26f42b`** — Money terminology | level | 0 |
+| `erp-docs` | `master` | *this commit* | level | 0 (this phase) |
+| `erp-backend` | `reports-export` | **`22d8227`** is this phase's last commit (refusal names the unit by its own identifier); HEAD at closing is the parallel scope's `e7eddab`, pushed | level | the parallel scope's uncommitted work (3 files) — nothing of this phase |
+| `erp-mobile` | `reports-export` | **`3cfd598`** is this phase's last commit (review ref written after render); HEAD at closing is the parallel scope's `f5c1441`, not yet pushed by it | 1 ahead (theirs) | the parallel scope's uncommitted work (13 files) — nothing of this phase |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-_Takeover baseline: backend `c4d4534` · mobile `45f4905` · docs `035a60e`._
+_Takeover baseline: docs `d0eeb74` · backend `e9f8e7e` · mobile `c26f42b`._
 
-Backend commits this phase: `22bd19f` (CP2 correction), `e9f8e7e` (CP5 selection).
-Mobile commits this phase: `69cc1a0` (CP2), `fa3f89b` (CP3), `fc5be5c` (CP4),
-`365daf4` (CP5/CP6), `c26f42b` (CP7).
+Backend commits this phase: `59381f3` (serial lookup whole; 409 `idempotency_conflict`;
+`GET /v1/sales/client/:clientUuid`), `22d8227` (refusal message). The backend log also carries
+`60bd6c1` (anomalies), which belongs to the parallel scope.
+Mobile commits this phase, in order: `68a8a57` (sale selection/checkout fixes), `f62a27c` (flat
+virtualized review list), `ef2c795` (review restyle), `d8e352e` (Sell an item), `de20990`
+(Choose from stock), `3cfd598` (the review's group ref written in an effect, not during render).
+
+**The backend and mobile working trees are not clean, and not because of this phase.** Backend:
+`prisma/schema.prisma`, `src/entitlement/*`, `src/platform/*` and `prisma/migrations/0075_…`
+(applied live by that scope after its own backup). Mobile: `app/closing.tsx`, the alerts /
+anomalies files, `lib/navigation/registry.ts`, `lib/query-keys.ts` and i18n hunks. All of it is the
+parallel conversation's in-progress work (its block above). This phase staged every one of its
+commits by path, never touched those files, and leaves them exactly as found. Every commit of this
+phase is on `origin` (`git branch -r --contains` checked for `3cfd598` and `22d8227`).
 
 ## What changed this phase
 
-The full decision record is `docs/21` "Inventory correction, Excel-review
-performance, generic selling and the global card hierarchy (2026-09-22)"; the
-device checklist is `docs/24` §34. One backend contract changed (the sale
-selection lookup, additively), **no migration**, no dependency, no config.
-
-| Checkpoint | Where | In one line |
+| Commit | Where | In one line |
 |---|---|---|
-| CP2 correction | backend `inventory.*`, mobile `app/unit/edit.tsx`, `app/unit/[identifier].tsx`, `lib/unit-correction.ts` | `PATCH /v1/units/:id` (`unit.add`; cost needs `cost.view`); in-stock only; product re-association; `updatedAt` compare-and-swap, no migration; pencil on the unit detail |
-| CP3 card hierarchy | `components/ui/Toggle.tsx` (+`flat`), `app/appearance.tsx`, `components/navigation/LanguageRow.tsx`, `app/hub/[id].tsx`, `app/settings.tsx`, `components/catalog/*` | one bordered surface per section; AST guard `lib/design/no-nested-surfaces.test` |
-| CP4 review perf | `app/receive/file.tsx`, `lib/file-receiving-rules.ts`, `lib/file-batch-store.ts` | single open group, memoised rows, per-phone Accept/Edit/Remove; `formula_value` advisory + `acknowledged` |
-| CP5/CP6 generic selling | backend `sale-selection*`, mobile `components/sell/PhonePicker.tsx`, `app/quick-sell.tsx`, `lib/phone-selection-rules.ts`, `types/api.ts` | selection resolves IMEI/serial/barcode (barcode→quantity product), `kind` discriminator; Choose-from-stock redesigned (no thumbnails, Filter sheet, type-labelled rows); generic "item" copy |
-| CP7 Money | `app/(tabs)/money-hub.tsx` | "Items sold", "Item sales", today-only daily expenses |
+| backend `59381f3` | `src/sales/sale-selection-rules.ts`, `sales.service.ts`, `sales.controller.ts` (+3 specs, new `sales-idempotency.spec.ts`) | presentation characters stripped only from a 15-digit IMEI, so a dashed serial is found; a changed replay of a client key → 409 `idempotency_conflict`; `GET /v1/sales/client/:clientUuid` |
+| backend `22d8227` | `src/sales/sales-policy.service.ts` (+spec) | "Unit null …" refusals name the unit by IMEI or serial, else "That unit" |
+| mobile `68a8a57` | `lib/phone-selection-rules.ts`, new `lib/sale-submission.ts`, `lib/sale-recovery.ts`, `lib/sheet-stack.ts`, `components/overlay/DialogHost.tsx`, `BottomSheet.tsx`, `app/quick-sell.tsx`, `app/(tabs)/sell.tsx`, i18n | client normalisation mirrors the server; lookup failure shown with the button; quantity stepper for counted products (price × quantity, receipt quantity); timeout → `GET /sales/client/:uuid` (found → finish, 404 → same key again, silent → hold + refresh); key rotated only for a new sale or a 409; duplicate-tap guard; loading released on every path; dialogs drawn inside the top-most sheet; approval sheet after the payment sheet closes; `day-range`/`expense-rules` suites repaired |
+| mobile `f62a27c` | new `lib/file-review-rows.ts` (+test), `app/receive/file.tsx`, `lib/file-receiving-rules.ts` (`maskIdentifier`) | one flat virtualized list (header per group, rows of the open group only), memoised rows on primitives, derived data once per change |
+| mobile `ef2c795` | `app/receive/file.tsx`, i18n | summary tiles, one filter row, flat group headers, rows with masked identifier / cost / status in words, Accept·Edit·Exclude with names, item sheet, short statuses ×14; 18 dead keys removed |
+| mobile `d8e352e` | `components/sell/PhonePicker.tsx` (`PhoneChooser`), `app/quick-sell.tsx`, i18n | one section of three rows + one outlined "Sell several items" |
+| mobile `de20990` | `components/sell/PhonePicker.tsx` (`StockPicker`), `app/quick-sell.tsx`, i18n | search + 48pt Filter on one row, one paginated FlatList as the screen's scroller, trailing selection column, fixed "Selected: … / Continue with this item" |
 
-**Preserved untouched:** the Money redesign, partial payments, expenses, the
-scanner and navigation. i18n grew from 2577 → 2626 keys, EN/FR/AR parity kept.
-
-**Found, not fixed (backend, recorded for the next session):** `GET /closings/overview`
-answers 400 "Database request error" under MySQL 8's default `sql_mode`
-(`ONLY_FULL_GROUP_BY`): `closing.service.ts` ~L911 selects a non-aggregated
-`receiving_account_id` in a GROUP BY. Live works only because WAMP's service group sets
-`sql_mode=""`. Any default-configured deployment (staging, `docs/45`) will hit it.
+**Preserved untouched:** Money, expenses, partial payments, returns, the scanner and navigation.
+No migration, no new dependency, no config change. i18n 2626 → **2646** keys, EN/FR/AR parity kept.
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Backend** | `tsc` clean · `nest build` clean · `prisma validate` clean · migration status **up to date, no drift** (no migration added) · permission catalogue **62/62** · full suite **138 suites / 2529 tests, 0 failed** (was 2524; +5 correction/authorization/barcode tests) |
-| **Mobile** | `tsc` clean · `expo lint` **0 errors / 31 warnings** (baseline, no new) · **59 pure suites pass** (repaired `phone-selection` to run; the 2 remaining failures — `day-range`, `expense-rules` — are pre-existing extensionless-import issues untouched by this work) · EN/FR/AR **parity 2626, identical order, 0 dups** · AST `no-nested-surfaces` **0 offences / 143 files** · `expo export --platform web` clean, all routes build (incl. the new `/unit/edit`) · audits clean (no raw hex, no product images, no hardcoded copy in the changed files) · Expo Doctor: **4 packages out of date (pre-existing patch drift)** |
-| **Isolated web-render matrix** | 🔴 **owed** — EN/FR/AR × light/dark × 320/390 of the changed screens (Appearance, file review, sell picker, Money, unit edit). The card-flattening is proven more strongly by the AST guard than a screenshot; copy and structure by parity + source-scan tests. |
-| **Real 100-item workbook** | 🔴 **owed** — the single-open/unmount behaviour is proven by source-scan assertions; the physical reproduction on isolated data is not yet run. |
-| **Physical device** | 🔴 **none** — Dynamic Type and touch smoothness cannot be stood in for; `docs/24` **§34** lists the checks. |
+| **Root causes, reproduced** | serial Continue: server `normalizeIdentifier` stripped the dashes stored serials carry → 404 → notice rendered under a 30-row list beneath the fixed footer (web reproduction of the previous build; both identifier forms 404 over HTTP). Pixel: **no sale was created** (live, read-only: both Pixels in stock, no sale item, no audit row); server 201/403/201 in 85/48/38 ms; the only never-ending client path is a dialog raised over the payment sheet as a second native modal. Lost answer: the previous client said "try again" while the server had recorded the sale (22 s held response; server invoice present). Changed replay under one key silently returned the original sale. |
+| **HTTP proof (isolated copy)** | `cp3-proof.cjs` **28/28**: sales of iPhone by IMEI 1 / IMEI 2 (same unit), Pixel, camera + console by serial, accessory ×2 by barcode; quantity 0 / −1 / excessive refused; sold / faulty / reserved (real transfer) refused; other branch "elsewhere" + refused; other company plain not-found, no leak; invalid serial / checksum / barcode; duplicate key = same invoice, counted once; changed payload → 409; thrown-away answer → key lookup finds it, retry replays, counted once; partial payment for every kind; Money overview and outstanding moved by exactly the sales made. Fixtures cleaned to baseline; **+23 audit rows kept** on the copy. |
+| **Client reproductions (web build)** | before/after JSON in `%TEMP%\claude\cp1-client-{before,after}.json`: serial Continue 404 → **200 and the review**; below-cost and magnitude dialogs shown; plain sale; held answer — after: "No answer yet — checking…" → "The sale was recorded — the answer arrived late" → success screen. |
+| **Real 100-row workbook** | `review-measure-{before,after}.json`: one open → 10 rows + **2** headers mounted (before 10 + 10 cards), DOM 498 vs 599; exclude / edit one row → **1 row + 1 header** re-render (before 1 + 10); scroll pass +15 header renders (before +20); no long tasks. Web render — the handset run is owed. |
+| **Backend gate** | tsc clean · `nest build` clean · full suite **2560 tests, 0 failed** (139 suites + sales-idempotency 11, sales-policy 17) |
+| **Mobile gate** | tsc clean · `expo lint` 0 errors · **31 warnings, the pre-existing set** (the single warning this phase had added — a ref written during render — was removed in mobile `3cfd598`) · **all 64 pure suites pass** · parity **2646**, identical order, 0 dups · `expo export --platform web` clean, routes `quick-sell`, `receive/file`, `(tabs)/sell` present (78 html routes) · audits on every changed screen: 0 raw colours, 0 images, 0 hardcoded copy · Expo Doctor: the same 4 pre-existing patch-version mismatches |
+| **Visual matrix** | **197 captures** — EN/FR/AR × light/dark × 320/390 (12 combos) plus EN and AR at 320 with 130 % text, **14 states each** (Sell an item; stock picker unselected / selected / filter sheet; iPhone, Pixel, serial and quantity checkouts; identifier not found; review collapsed / one group open / item sheet / Accept confirmation / Exclude confirmation) and the lost-answer recovery at 390: **0 leaked keys, 0 clipped text, 0 sideways overflow, 0 overlapping text.** Every "target under 44 pt" reading is the design system's 36 pt filter chip or sheet Close (hit slop restores 48 pt) or a toast. PNGs in `%TEMP%\claude\shots-matrix\` (driver `ui-matrix.cjs`, all states verified by eye in EN, FR and AR). |
+| **Physical device** | 🔴 **not run** — `docs/24` §35 S1–S15; the handset is authoritative for smoothness and the native-modal behaviour. |
 
-## Services
+## Data and process safety
 
-- **Nothing was started or stopped by this phase.** No dev server, no isolated
-  environment, no database process was launched — the work is code, and every check
-  above is a build, a type-check, a unit suite or a static export. If the user's
-  live MySQL `:3010`/Metro `:8081` are running they were not touched; if they are
-  down they can be started normally (WAMP MySQL → live API → Metro).
-- The isolated verification environment (per the memory note) was **not** rebuilt;
-  the owed render matrix would use it. No `prisma_verify_*` schema exists from this
-  phase.
+- Isolated copy `prisma_verify_sell` restored from the byte-safe dump
+  `C:\Users\HP\AppData\Local\Temp\claude\phonestore-20260922-pre-sell-fix.sql` (855 596 B; restore-proof: counts and
+  checksums equal to live at capture). **Dropped at the end of this phase**; the dump is kept.
+- Processes started by this phase and stopped by verified PID at the end: isolated API (launcher + `dist/src/main`
+  on 3011), three static servers (19006/19007/19008), headless Chrome 9333. The user's MySQL (pid 22368) was never
+  touched; no `mysqladmin shutdown`.
+- **Live `phonestore` was not written by this phase.** Every write here went to the copy. Live did change during the
+  session — 11 audit rows, one sale (invoice 00002, 5 200.00 at 04:40:18Z) and one unit, all by the `owner` account;
+  none by `test@test.com` or `devtest@example.com`, the only accounts these scripts use. The 100 workbook rows were
+  never imported into live stock; no permanent user was created.
 
 ## 🔴 Blockers and pending approvals
 
-- **Native build blocker (pre-existing):** `npm install`'s postinstall fails —
-  `expo-camera` 57.0.5 is installed but the Android scan-region patch was cut
-  against 57.0.4 (alignment `e960ef6`). Expo Go is unaffected. A native build must
-  re-cut the patch and re-verify scanning on Android.
-- **Live rollup repair — still awaiting approval (NOT applied).** Audit shows
-  `Sale create` ×28 on 2026-09-10 and ×4 on 2026-08-08 with no surviving sales
-  (fixtures hard-deleted outside the app); rollups for those days overstate
-  revenue by **388 340.00** (Home shows 328 300 profit). Procedure: backup per
-  `docs/22` → `DB=phonestore node scripts/rollup-audit.js` (confirm exactly 2
-  rows) → `… --repair`.
+- **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 is installed but the
+  Android scan-region patch was cut against 57.0.4. Expo Go is unaffected.
+- **Live rollup repair — still awaiting approval (NOT applied).** Audit shows `Sale create` ×28 on 2026-09-10 and ×4 on
+  2026-08-08 with no surviving sales; rollups for those days overstate revenue by **388 340.00**. Procedure: backup per
+  `docs/22` → `DB=phonestore node scripts/rollup-audit.js` (confirm exactly 2 rows) → `… --repair`.
+- `GET /closings/overview` fails under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`; `closing.service.ts` ~L911).
 
 ## 📋 Known, not fixed
 
-- On web, a screen pushed from a tab announces its back button as "(tabs), back".
-- A bottom sheet's Close button is 36 pt with no hit slop (app-wide, pre-existing).
-- Dynamic type cannot be exercised in a web render; handset only.
-- No catalogue images (`docs/47`). The pre-release security gate (`docs/48`) is
-  not started. Owner decisions D4–D6 (hosting, database hosting, backups) block
-  staging (`docs/45`); release risks in `docs/41` §6.
+- Filter chips are 36 pt tall by design-system decision, with hit slop restoring a 48 pt target; a DOM measurement
+  reports them under 44 pt.
+- Two scripts logging in the same user concurrently deadlock on `users.last_login` (`setLastLogin`) and one gets
+  BAD_REQUEST — harmless for one phone, noted for load.
+- On web, a screen pushed from a tab announces its back button as "(tabs), back". Dynamic type is handset-only.
 
 ## The next exact action
 
-The seven-checkpoint brief is **complete and pushed**; nothing about it is left to
-implement. What remains is verification and pre-existing debt, none of it blocking:
-
-1. **Owed verification of this phase:** run the isolated web-render matrix (EN/FR/AR ×
-   light/dark × 320/390) and the real 100-item workbook reproduction against isolated
-   data, then the handset checks in **`docs/24` §34**. Use the isolated environment from
-   the memory note; do **not** import the 100 items into live stock.
-2. Handset backlog from the earlier phase still stands: **`docs/24` §33 V1–V14**, then §32, §31, §30.
-3. Fix the `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` (~L911) before any staging deploy.
-4. Decide the live rollup repair (still awaiting approval — see Blockers).
+1. **Handset:** `docs/24` §35 S1–S15 on the physical phone against the live API (Expo Go). S8/S9 (airplane mode /
+   slow network) prove the lost-answer path natively; S3–S5 prove the dialogs inside the sheet.
+2. Then the older handset backlog: `docs/24` §34 G1–G16, §33, §32, §31, §30.
+3. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy; decide the live rollup repair.

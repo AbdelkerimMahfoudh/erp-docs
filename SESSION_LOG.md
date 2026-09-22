@@ -10002,3 +10002,62 @@ patch-version mismatches are pre-existing.
 `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` ~L911; the live rollup repair (still
 awaiting approval); the `expo-camera` native-patch mismatch. Nothing was started or
 stopped process-wise; no isolated environment was built; no live business row was touched.
+
+## 2026-09-22 03:24Z → 2026-09-22T13:22Z — CLAUDE-A — correction of the generic selling, the Excel-review performance and the three restyles
+
+**Takeover.** READY_FOR_HANDOFF / owner NONE; HEADs exactly as expected (docs `d0eeb74` · backend
+`e9f8e7e` · mobile `c26f42b`), all clean and level. Discrepancies recorded before any change: the
+previous gate was not green (`day-range`, `expense-rules` failing); the 100-row reproduction, the
+render matrix and the device checks had not been run; the live API and Metro were not running (the
+handset defects had been seen against a now-stopped API), so every reproduction ran against an
+isolated copy on port 3011. A second CLAUDE-A conversation ran in parallel by the user's instruction
+on disjoint files (its own block in the handoff); it left uncommitted platform/entitlement work in
+`backend/`, never staged here.
+
+**CP1 — reproduced, not inferred.** Over HTTP on the copy: `GET /sales/selection/<serial>` returned
+404 for both the client-stripped and the stored dashed form — the server's `normalizeIdentifier`
+stripped the dashes stored serials carry — while `POST /sales` with the stored serial succeeded.
+On the previous build in headless Chrome: the Canon's Continue produced that 404 and the "not found"
+notice at the foot of a thirty-row list under the fixed footer. The Pixel: live (read-only) showed
+**no sale** for the timed-out attempt — both Pixels in stock, no sale item, no audit row — and the
+server answered 201 / 403 `approval_required` / 201 `warnings_pending` in 85 / 48 / 38 ms; on web
+every dialog appeared, so the only never-ending client path is a dialog raised over the payment sheet
+as a second native modal (handset-only). With the `/sales` answer held past 20 s, the previous client
+said "try again" while the server had recorded the sale. A changed replay under one key silently
+returned the original sale. Serial-unit refusals read "Unit null".
+
+**Commits.** Backend `59381f3` (serial kept whole in lookup; 409 `idempotency_conflict`; `GET
+/v1/sales/client/:clientUuid`; 11 new idempotency specs) and `22d8227` (refusal names the unit by its
+own identifier). Mobile `68a8a57` (client normalisation mirrors the server; lookup failure beside the
+button; quantity stepper for counted products; timeout → key lookup → finish / retry-same-key / hold
++ refresh; key rotated only for a new sale or a 409; duplicate-tap guard; loading released on every
+path; dialogs inside the top-most sheet, approval sheet after the payment sheet; the two broken suites
+repaired), `f62a27c` (one flat virtualized review list — `lib/file-review-rows`), `ef2c795` (the review
+as drawn: tiles, filter row, flat headers, masked-identifier rows, Accept/Edit/Exclude with names, item
+sheet, 14 short statuses ×3 languages, 18 dead keys removed), `d8e352e` (Sell an item as one section of
+three rows), `de20990` (Choose from stock as one paginated shelf with a trailing selection column and a
+fixed "Selected / Continue" footer), `3cfd598` (the review's group ref written in an effect — the one
+lint warning this phase had added). Docs: this entry, `docs/21` (second 2026-09-22 section), `docs/24`
+§35.
+
+**Verification.** HTTP proof `cp3-proof.cjs` **28/28** on the copy (every kind sold once; IMEI 1 and
+IMEI 2 the same unit; quantity rules; sold/faulty/reserved refused; other branch and other company
+refused without leaking; invalid identifiers; duplicate key counted once; changed payload 409; lost
+answer found by key and replayed once; partial payment per kind; Money overview and outstanding moved
+exactly once; fixtures cleaned, +23 audit rows kept). Client reproductions before/after on the web
+build (serial Continue 404 → 200 + review; held answer → "checking… → recorded → success"). Real
+100-row workbook, instrumented web build: one open group 10 rows + 2 headers mounted (was + 10 cards);
+one row changed → 1 row + 1 header re-render (was 1 + 10). Backend full suite 2560/0. Mobile: tsc,
+lint 0 errors, **all pure suites pass** (64), parity 2646, web export with every route, audits clean,
+Expo Doctor's four pre-existing mismatches. Visual matrix: 197 captures (12 combos + two 130 % text runs × 14 states, plus the lost-answer recovery): 0 leaked keys, 0 clipped text, 0 sideways overflow, 0 overlapping text; only the design system's 36 pt chips/Close (hit slop) and toasts read under 44 pt. **Physical device: not run** —
+`docs/24` §35 S1–S15.
+
+**Data and process safety.** Dump `phonestore-20260922-pre-sell-fix.sql` (855 596 B, restore-proved);
+copy `prisma_verify_sell` dropped at the end; the isolated API, three static servers and the 9333
+Chrome stopped by verified PID; the user's MySQL untouched. Live was written only by the `owner`
+account during the session (11 audit rows, one sale 00002 at 04:40:18Z, one unit) — not by this
+work's accounts; no workbook row reached live; no permanent user.
+
+**Left for the next session.** The handset run (§35, then §34/§33/§32/§31/§30); the pre-existing
+`ONLY_FULL_GROUP_BY` defect; the live rollup repair (awaiting approval); the `expo-camera` native
+patch mismatch. The product-image upgrade was not started.

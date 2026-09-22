@@ -3525,3 +3525,25 @@ The 2026-09-22 checkpoints (CP1–CP7). Rendered and reasoned about, but **not r
 | G14 | **Choose from stock** | No thumbnails; one Filter action (brand and type, with Reset) and a one-line active-filter summary; compact rows with the identifier labelled IMEI or Serial, no "Available" badge |
 | G15 | Money overview | "Items sold", "Item sales", and the daily-expense card says it is today's and unmoved by the period switch |
 | G16 | French and Arabic, light and dark, at 320 and 390 pt | Long labels wrap; Arabic reads right-to-left throughout, including the filter sheet and the per-phone action row; nothing clips or scrolls sideways |
+
+## 35. Selling any item, the lost answer, and the corrected review — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-22 correction phase. Proved over HTTP on an isolated copy and reproduced in a headless web build (`docs/21`, second 2026-09-22 section); what only a handset can show is listed here. Use Expo Go against the live API.
+
+| # | Do this | Expect |
+|---|---|---|
+| S1 | Sell → Choose from stock → a **camera or console** (serial) → Continue with this item | The review opens with its serial labelled "Serial number", price prefilled — nothing silent |
+| S2 | The same for a **Google Pixel** at the prefilled price → Complete sale | Success screen with the invoice; the unit leaves the shelf once |
+| S3 | A Pixel at a price **below cost** → Complete sale | "Sell below cost?" with the reason field appears **inside the payment sheet**; Cancel returns to the sheet with the button idle |
+| S4 | A price with an **extra zero** | "Does this look right?" inside the sheet; "Let me check" returns to the sheet idle |
+| S5 | A price below the set price as a non-owner | The payment sheet closes, then the approval sheet opens (never both at once) |
+| S6 | Enter an identifier → an accessory's **barcode** → Use this item | A quantity stepper (default 1, max "N in stock here"); the total is price × quantity; the receipt shows the quantity |
+| S7 | Tap **Complete sale twice** quickly | One sale, one invoice |
+| S8 | Airplane mode ON right after tapping Complete sale, wait ~20 s | "No answer yet — checking…" then "The server did not answer. Check Sales before selling this item again"; the button is idle; Sales and stock refresh when back online |
+| S9 | With the server reachable but slow (throttle Wi-Fi), the same | "The sale was recorded — the answer arrived late" and the success screen; **one** sale on the server |
+| S10 | Sell the same unit again from another phone; a faulty or reserved unit | A refusal in words naming the item's own identifier; nothing loads for ever |
+| S11 | **Sell an item** | One section of three rows (icon, name, one line, chevron), one outlined "Sell several items" under it; Arabic mirrors the rows and chevrons |
+| S12 | **Choose from stock** | Search and Filter on one row; the list scrolls to the end and loads more by itself; selection control at the far edge beside the price; "Selected: <item>" and Continue enabled only with a selection |
+| S13 | Import the **100-row workbook** and open a group; exclude and edit one row; scroll to the end | Smooth throughout on the handset (**physical smoothness — handset only**); counts and the footer total update at once |
+| S14 | Accept (an advisory row), Edit, Exclude | Native confirmations for Accept and Exclude; the item sheet shows the whole identifiers; closing it lands in the same open group at the same place |
+| S15 | **iOS Dynamic Type 120% / 135%**, French and Arabic, dark | Nothing clipped or overlapping on S1–S14 — a web render cannot test Dynamic Type |
