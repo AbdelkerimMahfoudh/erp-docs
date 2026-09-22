@@ -6,32 +6,44 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last owner: **CLAUDE-A** · 2026-09-22 (01:37Z → complete)
-- Last phase: **inventory correction, Excel-review performance, generic selling and the
-  global card hierarchy** — seven checkpoints, **all done, committed and pushed**. Money,
-  partial payments, expenses, the scanner and navigation are preserved as built.
-- Took ownership from a clean **READY_FOR_HANDOFF** at docs `035a60e` · backend `c4d4534`
-  · mobile `45f4905` · control-web `c764d63`. Same account (CLAUDE-A); a resumption.
-- **What shipped (see [`docs/21`](docs/21_PRODUCT_DECISIONS.md) for the full decisions):**
-  - **CP1 audit** — established there was no unit-correction endpoint, no `version` column
-    (`updatedAt` is the optimistic lock), that model/variant/barcode live on `Product`, and
-    the exact card-nesting offenders (by an AST audit).
-  - **CP2 stock-item correction** — backend `PATCH /units/:id` (`22bd19f`) and the mobile
-    pencil + correction screen (`69cc1a0`). `unit.add` + `cost.view` for cost; `updatedAt`
-    compare-and-swap; **no migration**.
-  - **CP3 card hierarchy** — `Toggle.flat`; Appearance & language rebuilt as one RowGroup;
-    hub/settings/catalogue pickers flattened; AST `no-nested-surfaces` guard (`fa3f89b`).
-  - **CP4 review performance** — single open group, memoised rows, per-phone
-    Accept/Edit/Remove, the `formula_value` advisory/Accept model (`fc5be5c`).
-  - **CP5/CP6 generic selling** — the selection lookup resolves IMEI / serial / barcode
-    (barcode → quantity product), a `kind` discriminator, the redesigned Choose-from-stock
-    picker, generic "item" copy (backend `e9f8e7e`, mobile `365daf4`).
-  - **CP7 Money terminology** — "Items sold", "Item sales", today-only daily-expense
-    (`c26f42b`).
-- Next intended action: **none — the brief is complete.** The only work owed is device /
-  isolated-render verification (see Verification and docs/24 §34); nothing is blocking.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-22T03:24Z`
+- Active phase: **correction of the previous session's work** — the failed generic-selling
+  implementation (non-phone Continue dead; Pixel sale loads indefinitely), the worsened
+  Excel-review performance, and the three screens that did not receive the approved
+  restyle (Excel review, Sell an item, Choose from stock). Six checkpoints, each committed
+  and pushed. No new feature.
+- Takeover HEADs (verified against origin, all clean and level): docs `d0eeb74` ·
+  backend `e9f8e7e` · mobile `c26f42b` · control-web `c764d63` (untouched). The
+  handoff read READY_FOR_HANDOFF / NONE — taken by the same account (CLAUDE-A).
+- Next intended action: **CP1 — reproduce the sale failures** on an isolated copy of live
+  over real HTTP (iPhone by IMEI 1 and IMEI 2, Pixel, serial camera, serial console,
+  barcode accessory), and answer from the live database (read-only) whether the
+  timed-out Pixel attempt created a sale.
+
+### Takeover discrepancies — 2026-09-22T03:24Z
+
+Recorded before any file was modified.
+
+1. **HEADs, cleanliness, status:** exactly as expected (`d0eeb74` / `e9f8e7e` /
+   `c26f42b`, all 0 dirty, 0/0 behind/ahead, READY_FOR_HANDOFF, owner NONE). No
+   discrepancy.
+2. **The attachments:** three images arrived. Two are the binding mockups (*Revue
+   compacte / Détail d'un article* for the Excel review; *Vendre un article* for Sell an
+   item). The first is the **defective handset** Choose-from-stock screen, not a mockup —
+   so CP7 follows the written target (one-row search + 48pt Filter, trailing selection
+   control, fixed "Selected: … / Continue with this item" action).
+3. **The previous handoff called the mobile gate green** while `day-range.test.ts` and
+   `expense-rules.test.ts` failed, recorded as "pre-existing extensionless-import
+   issues". The user is right that a gate with failing suites is not green; both are fixed
+   in this phase so every pure suite runs and passes.
+4. **The previous handoff recorded the 100-item reproduction, the render matrix and the
+   device checks as owed.** Confirmed: none was run. They are run in this phase.
+5. **Live processes at takeover:** only MySQL 3306 (pid 22368) is listening; the live API
+   (3010) and Metro (8081) are **not running**. The handset defects were observed earlier
+   against a now-stopped API, so the server-side evidence is taken from the live database
+   (read-only) and the terminal scrollback, and every reproduction runs against an isolated
+   copy on port 3011. MySQL 22368 is the user's and is left running and untouched.
 
 ### What happened on 2026-09-21 — two conversations, one label
 
