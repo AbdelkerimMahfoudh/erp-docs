@@ -6,16 +6,27 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last owner: **CLAUDE-A** · 2026-09-21 → 2026-09-22
-- Last phase: **visual fidelity of the approved screens** — complete in code, pushed,
-  rendered on the final build; **handset checks owed**.
-- **Claimed, not started:** at 21:25Z a second CLAUDE-A conversation claimed the next
-  brief — *inventory correction, Excel-review performance, generic selling and the global
-  card hierarchy* (seven checkpoints, CP1 audit → CP7 Money terminology). It changed no
-  code, schema or data; its last activity was 21:36:52Z and it is not running. That brief
-  is the next work — see "The next exact action".
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-22T01:37Z`
+- Active phase: **inventory correction, Excel-review performance, generic selling and the
+  global card hierarchy** — seven checkpoints (CP1 audit → CP7 Money terminology),
+  committed and pushed per checkpoint. Money, partial payments, expenses, the scanner and
+  navigation are preserved as built.
+- Took ownership from a clean **READY_FOR_HANDOFF** at docs `035a60e` · backend `c4d4534`
+  · mobile `45f4905` · control-web `c764d63`. Same account (CLAUDE-A) that claimed the
+  brief; a resumption, not a cross-account takeover.
+- **Progress:**
+  - **CP1 audit — done.** No unit-correction endpoint existed; no `version` column
+    (`updatedAt` is the optimistic lock); IMEI uniqueness enforced by the 0042 triggers +
+    generated-`identifier` index; cost gated via CLS; model/variant/barcode live on
+    `Product`, so an item is corrected by re-associating it, never by rewriting the shared
+    catalogue row. Card-nesting offenders identified by an AST audit (Toggle/ListRow in
+    Card: appearance, LanguageRow, settings, hub/[id], catalog selects).
+  - **CP2 stock-item editing — done, pushed.** Backend `PATCH /units/:id` (backend
+    `22bd19f`) and the mobile correction screen + pencil (mobile `69cc1a0`). No migration.
+    Full backend suite 138/2524 green; mobile tsc clean, new pure suite 15/15, parity 2603.
+- Next intended action: **CP3 — flatten nested cards** (Appearance & Language first, then
+  every route), shared section-card/row primitives, an anti-regression audit/test.
 
 ### What happened on 2026-09-21 — two conversations, one label
 
@@ -49,9 +60,11 @@ return policy and split payment moved under one-tap disclosures, never away.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`c4d4534`** (unchanged this phase) | level | 0 |
-| `erp-mobile` | `reports-export` | **`45f4905`** | level | 0 |
+| `erp-backend` | `reports-export` | **`22bd19f`** — CP2 unit correction | level | 0 |
+| `erp-mobile` | `reports-export` | **`69cc1a0`** — CP2 correction screen | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
+
+_Takeover baseline: backend `c4d4534` · mobile `45f4905` · docs `035a60e`._
 
 ## What changed this phase
 
