@@ -9874,3 +9874,64 @@ captures in `%TEMP%\claude\shots-ui-matrix`; the handoff's render row was never 
 **Not done:** the handoff was never committed or set READY_FOR_HANDOFF; the harness it
 reports as stopped was still running at takeover (3011, 19006, 9333, and the
 `prisma_verify_ui` schema); no handset run.
+
+
+## 2026-09-21 18:09Z → 2026-09-22 00:20Z — CLAUDE-A — the approved screens, as drawn (the session's own entry)
+
+**This is the entry the interrupted session did not get to write; the reconstructed one
+above (21:25Z) stands as written.** Took over at docs `4598a00` · backend `c4d4534` ·
+mobile `ca7b2d5`, clean and level. The repositories agreed with the handoff; the machine
+did not — it had restarted, and MySQL, the live API and Metro were all down. WAMP's MySQL
+service cannot be started from an unelevated shell, so its own `mysqld` ran for the
+session as a user process (`--sql-mode=`, the service's own setting) and was shut down
+at the end.
+
+**What was done.** Every screen in the approved screenshots was rebuilt to follow them —
+the Money tab, Phone sales by period, the sale detail, Add expense with a review, Daily
+expenses, the sale payment sheet and debtor picker, Record payment, and the three-way
+phone selection (chooser, Enter IMEI, Choose from stock, Review sale) — plus the
+design-system pieces they needed (filled and button segment looks, accent and warning
+card washes, a large money size, an honest thumbnail, day/link/expense rows, the
+cash-or-account control). No server contract, migration, dependency or config changed.
+Ten mobile commits `2be363c` … `45f4905`, the last two fixing what the first render
+matrix found at 320 pt. The decision record is `docs/21` "the approved screens, as
+drawn"; the deliberate deviations and the figures that are *not* drawn (nothing summed on
+the phone) are listed there and in the handoff.
+
+**One behaviour decision.** For an Owner, *Record paid expense* reports and confirms in
+one explicit act on a review screen that shows the drawer before and after; anybody else
+still sends a report. The accounting rule is unchanged: a report moves nothing, money
+leaves one source when an Owner confirms.
+
+**Found by verifying.** With MySQL 8's default `sql_mode` (`ONLY_FULL_GROUP_BY`)
+`GET /closings/overview` answers 400 — `closing.service.ts` (~L911) groups payments by
+account with a non-aggregated column. Live only works because WAMP's service group sets
+`sql_mode=""`. Recorded as a backend defect for the next session (it will bite staging);
+not changed in this pass. The demo owner's password had changed since the 18th; the
+isolated copy was given a throwaway argon2id hash instead.
+
+**Verification.** Mobile `tsc` clean; `expo lint` 0 errors / 32 warnings (baseline);
+68 pure suites, 0 failed (+2); EN/FR/AR parity (58 new keys, 19 reworded); web export
+with every route; raw-colour, literal-copy and dependency audits clean; Expo Doctor
+unchanged (4 packages of pre-existing drift). Renders against an isolated restore of a
+fresh verified dump (`phonestore-20260921-182158-pre-ui-fidelity.sql`, 849 286 B,
+88 tables) through the real API on 3011, seeded to the references' data state through the
+API (only the dates moved by SQL): **288 captures on the final build `45f4905`** —
+24 states × EN/FR/AR × light/dark × 320/390 pt — with no clipped text, leaked key, overlap
+or sideways scroll; an earlier 288-capture matrix on `71970bf` found three 320-pt clipping
+classes (sale-row product names, "All expenses" row titles, a long French hint), fixed and
+re-rendered. Nothing has run on a handset: `docs/24` §33 V1–V14 is owed, plus §32, §31
+and §30.
+
+**Two conversations, one label.** From 21:25Z a second CLAUDE-A conversation ran against
+the same working tree: it committed this session's uncommitted draft docs as found
+(`d7155bb`), reconstructed a log entry, claimed the next brief (inventory correction,
+Excel-review performance, generic selling, card hierarchy — nothing implemented) and tore
+down the render environment this session was still using. The PC restarted at 23:48Z; this
+conversation resumed at 23:52Z, rebuilt the isolated environment, rendered the final matrix
+and closed. Lesson: a closing handoff is written last, never left on disk.
+
+**Environment left.** Isolated API, static servers and headless Chrome stopped by PID;
+`prisma_verify_ui` dropped (0 verify schemas left; live untouched, 7 sales); the session's
+`mysqld` shut down (3306 closed; WAMP's service still Stopped). Live API and Metro are not
+running. Scripts and captures live only in `%TEMP%\claude\`.

@@ -6,9 +6,9 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-21T23:52Z` — the visual-fidelity conversation, resumed after the 23:48Z reboot to close its evidence and handoff
-- Last owner: **CLAUDE-A** · 2026-09-21
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last owner: **CLAUDE-A** · 2026-09-21 → 2026-09-22
 - Last phase: **visual fidelity of the approved screens** — complete in code, pushed,
   rendered on the final build; **handset checks owed**.
 - **Claimed, not started:** at 21:25Z a second CLAUDE-A conversation claimed the next
@@ -88,18 +88,25 @@ answers 400 "Database request error" under MySQL 8's default `sql_mode`
 |---|---|
 | **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline; the one new warning was removed) · **68 pure suites, 0 failed** (+`day-range`, +`expense-rules`; every existing assertion kept) · EN/FR/AR parity (58 new keys, 19 reworded) · web export with every route · raw-colour, literal-copy and dependency audits clean · Expo Doctor: 4 packages out of date (pre-existing drift, unchanged) |
 | **Backend** | unchanged (`c4d4534`); the isolated copy served every screen through the real API |
-| **Renders** | On the `71970bf` build: **288 captures** (24 states × EN/FR/AR × light/dark × 320/390 pt) — no leaked key, no overlap, no sideways scroll; three clipping classes at 320 pt (product names in sale rows, the "All expenses" row titles, a long French customer hint) → fixed in `45f4905`. **Re-render of the final build in progress.** |
+| **Renders** | Final build `45f4905`: **288 captures** — 24 states × EN/FR/AR × light/dark × 320/390 pt, in `%TEMP%\claude\shots-ui-matrix\` — **no clipped text, no leaked key, no overlapping text, no sideways scroll** in any capture (the harness checks each one). Four record-payment captures were re-taken serially after loading late under three parallel runs; all four are complete. Small targets are pre-existing geometry only: 42-pt segment pills in a 48-pt track, 36-pt filter chips with hit slop, the sheet's 36-pt Close. Earlier sets: `shots-ui\` (EN/light/390, the first pass) and the `71970bf` matrix that found the three 320-pt clips fixed in `45f4905`; before: `shots-money\` (2026-09-18, the previous screens) |
 | **Evidence** | before: `%TEMP%\claude\shots-money\` (2026-09-18, the previous screens); after: `%TEMP%\claude\shots-ui\` (EN/light/390 first pass) and `%TEMP%\claude\shots-ui-matrix\` (the matrix) — 24 states per language × theme × width: Money today/week/month, sales month/week/today, sale paid, sale part-paid with history, record payment, expense form, expense review, daily expenses, outstanding, sell chooser, IMEI found/invalid/not found, review sale, payment full/partial customer/partial store/store pick, stock picker plain/selected |
 | **Physical device** | 🔴 **none**. `docs/24` **§33 V1–V14**, plus §32, §31, §30 |
 
 ## Services
 
-- **MySQL `:3306`** — a user-level `mysqld --sql-mode=` (PID 2292, started 23:51Z by this
-  conversation for the final render; WAMP's service is Stopped and needs elevation).
-  It will be shut down when the render is done.
-- **Live API `:3010`** and **Metro `:8081`** — down since the 23:48Z reboot; not started.
-- **Isolated verification** — `prisma_verify_ui`, API 3011, static 19006–19008, Chrome
-  9333: being rebuilt for the final render; torn down and verified afterwards.
+- **Everything is down.** The PC was restarted at 23:48Z on 2026-09-21. WAMP's MySQL
+  service is **Stopped** and cannot be started from an unelevated shell; the live API
+  `:3010` and Metro `:8081` are not running. **Start WAMP (MySQL) first**, then the
+  live API from backend `c4d4534`, then Metro.
+- For the final render MySQL ran as a user-level process
+  (`mysqld --defaults-file=…\my.ini --sql-mode=`, matching the service's empty
+  `sql_mode`) and was **shut down cleanly afterwards — verified: nothing listens on 3306**.
+- **Isolated verification — all stopped, verified by port:** API 3011, static export
+  19006–19008, headless Chrome 9333; `prisma_verify_ui` **dropped** (verified with
+  `SHOW DATABASES`). Restored from
+  `~/erp-backups/phonestore-20260921-182158-pre-ui-fidelity.sql` (a fresh verified dump
+  of live: 849 286 B, trailer present, 88 tables). Scripts and captures live only in
+  `%TEMP%\claude\`.
 
 ## 🔴 Blockers and pending approvals
 
