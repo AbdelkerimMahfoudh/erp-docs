@@ -21,6 +21,31 @@
   barcode accessory), and answer from the live database (read-only) whether the
   timed-out Pixel attempt created a sale.
 
+### Parallel scope — invoice, Daily Closing, alerts, platform administration
+
+- **Second CLAUDE-A conversation, by the user's explicit instruction** ("strictly separate
+  scope … handled elsewhere"), claimed `started_at_utc: 2026-09-22T05:30Z`. Same working
+  trees as the correction phase above; disjoint files.
+- Scope: customer invoice PDF (`mobile/lib/receipt.ts`, share points), Daily Closing
+  (`mobile/app/closing.tsx`, `mobile/lib/closing.ts`), Analyses "À examiner"
+  (`mobile/components/analytics/AttentionList.tsx`, `mobile/app/analytics.tsx`,
+  `mobile/lib/anomalies.ts`, `backend/src/anomalies/*`), platform Super Admin
+  (`backend/src/platform/*`, `backend/src/entitlement/*`, new `mobile/app/platform/*`,
+  new `mobile/lib/platform-admin*.ts`), website inclusion in mobile
+  (`mobile/app/subscription-blocked.tsx`, `mobile/hooks/useAccountPortal.ts`,
+  `mobile/lib/portal.ts`, `mobile/app/(auth)/verify.tsx`), and the docs they need.
+- **Never touched by this conversation:** every file in the correction phase's dirty set
+  (Sell an item, Choose from stock, Excel review, scanner, `BottomSheet`, `DialogHost`,
+  `PhonePicker`, `quick-sell`, `sell.tsx`, `receive/file.tsx`, the receiving/selection
+  rules and their tests). i18n catalogues (dirty there): this conversation stages only its
+  own hunks, never the file.
+- Takeover HEADs for this scope: docs `df5f37d` · backend `59381f3` (brief said
+  `e9f8e7e`; `59381f3` is a clean pushed fix on top and is the baseline) · mobile
+  `c26f42b` (+ the other conversation's 22 uncommitted files). Isolated work uses its own
+  ports (API 3012, static 19010+, Chrome 9334) and schema (`prisma_verify_platform`).
+- Progress is recorded per checkpoint in this block; the closing entry goes to
+  `SESSION_LOG.md` under this conversation's own heading.
+
 ### Takeover discrepancies — 2026-09-22T03:24Z
 
 Recorded before any file was modified.
