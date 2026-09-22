@@ -45,6 +45,7 @@
   ports (API 3012, static 19010+, Chrome 9334) and schema (`prisma_verify_platform`).
 - Progress is recorded per checkpoint in this block; the closing entry goes to
   `SESSION_LOG.md` under this conversation's own heading.
+- **CP4 + CP5 backend landed (2026-09-22 ~06:05Z).** Backend `60bd6c1` (anomalies: newest-first total order, `limit`/`page` + `total`, idempotent dismiss; 44 tests), `c9e7a23` (0075: `rejected` status/state + ENTITLEMENT_REJECTED, approve/reject/setPeriodEnd, audit actor override), `f2d97f7` (POST platform/businesses with a one-time hashed Owner invitation, POST businesses/:id/owner-invitation, public owner-invitation/accept, approve/reject/period routes, state filter fixed to filter before paging; `platform-boundary.spec.ts`). 210 platform/entitlement tests green; tsc clean. **Migration 0075 applied live** after backup `~/erp-backups/phonestore-before-0075-20260922-055832.sql` (862 536 B, trailer present, hex-blob, 0 raw binary) was restore-proved into the scratch schema `prisma_verify_platform` (88 tables / 24 triggers as live; sales/units/audit_logs counts and the `units` id checksum equal; all 24 trigger bodies identical) and migrated forward there first. Live after: 2 subscriptions still `activated`, 0 coerced event kinds, 9/53/862 rows unchanged. Sanitised restore copy deleted; `prisma_verify_platform` is kept for the CP7 lifecycle run and dropped at the end. The other conversation's backend `22d8227` and mobile `de20990` (both trees clean) are preserved.
 
 ### Takeover discrepancies — 2026-09-22T03:24Z
 
