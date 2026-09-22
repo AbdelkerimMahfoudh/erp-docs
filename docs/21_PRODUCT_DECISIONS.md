@@ -5556,3 +5556,51 @@ The approved screenshots for Money, period sales, daily expenses, partial and la
 **Sell a phone.** Three cards — Scan IMEI, Enter IMEI manually, Choose from stock — each its own screen. *Enter IMEI* validates as typed, looks the number up the moment it is a real IMEI, shows the found phone with its **complete** IMEI, *Use this phone*, *Choose from stock instead* and the note that nothing is created. *Choose from stock* searches, filters by brand, counts, lists each available phone with its variant, masked IMEI and the ladder price, and continues with the selected one. *Review sale* shows the phone with its masked IMEI, Available, the selling price, how it was found, *Continue to payment*, *Choose another phone*, and that the phone leaves stock only when the sale is confirmed.
 
 **Deliberate deviations from the mock-ups:** no product photos exist (`docs/47`), so every picture slot is an honest tinted icon; the completed Sale detail shows the full IMEI (the mock masks it, the confirmed policy does not); Quick Sell stays a stack screen, so the tab bar is not under the chooser; segment pills are 42 pt inside a 48 pt track, chips 36 pt with hit slop, and the sheet's Close button 36 pt — all pre-existing geometry.
+
+## Inventory correction, Excel-review performance, generic selling and the global card hierarchy (2026-09-22)
+
+Seven checkpoints (CP1 audit → CP7 Money terminology), each committed and pushed on its own. The binding decisions:
+
+### ✅ IMPLEMENTED — CP2: correcting an in-stock item (`PATCH /units/:id`, no migration)
+
+An intake mistake — a mistyped IMEI, the wrong product, a cost off by a digit — could not be fixed: the inventory controller could receive and mark faulty, but never correct. It now can, deliberately narrowly.
+
+- **The endpoint** is `PATCH /v1/units/:id`, guarded by **`unit.add`** — the same branch-scoped authority that receives stock and marks it faulty; correcting an intake mistake is the same person's job as making it. No new permission key, no migration.
+- **In-stock only.** A sold, reserved, in-transit, returned or faulty unit is refused; those states have their own workflows, and a silent edit would contradict a sale, a transfer or a receipt already on the books.
+- **The unit's own columns only.** The product is *re-associated* (`productId`), which is how its model, variant, storage, colour and barcode are fixed — by pointing at the right catalogue entry, never by rewriting the shared one, which would rewrite every other unit and every past sale. An IMEI has no route to the barcode field, because barcode is not a unit column. The branch never changes here (that is a transfer) and neither does the status.
+- **The tracking type shapes it.** An imei-tracked unit takes IMEIs and refuses a serial; a serial-tracked unit the reverse. The client never picks the mode.
+- **Sensitive changes are explained.** Any IMEI, serial or cost change needs a reason, recorded on the audit entry (`before`/`after`). **Cost** may be touched only by a caller with **`cost.view`** — you cannot fix a number you may not see — and it is stripped on the way out by the existing gating interceptor.
+- **Optimistic concurrency without a version column.** The write matches on `updatedAt` (compare-and-swap via `updateMany`); a stale correction writes nothing and asks the caller to look again. The migration-0042 cross-column triggers and the unique indexes remain the race backstop, mapped to a 409. **No schema change was needed or made.**
+- **Mobile.** A pencil appears on a unit's detail only when the server would allow the edit (`unit.add` and in-stock). The decision logic lives in a pure `lib/unit-correction` module with its own test.
+
+### ✅ IMPLEMENTED — CP3: one bordered surface per section (the card-in-card is gone)
+
+A dozen screens drew a box inside a box — a Card wrapping a bordered Toggle, a Card wrapping bordered ListRows. The rule, now enforced: **one visible bordered surface per logical section; the container owns the edge and its rows are flat.**
+
+- `Toggle` gains a `flat` prop (matching `ListRow`'s), the shared primitive this needed.
+- **Appearance & language** is one `RowGroup`: a dark-mode row and the language rows separated by a hairline, with the restart notice moved outside the panel. Hub tiles, the settings auto-lock choices, and the brand/model/storage/colour/tracking pickers all flatten their rows.
+- Guarded by `lib/design/no-nested-surfaces.test` — an **AST** check (not a regex) that fails if any Card, RowGroup, StatTile or non-flat ListRow/Toggle is nested in another. InlineNotice, plain/sunken Cards, dialogs and sheets are deliberately *not* surfaces for this rule.
+
+### ✅ IMPLEMENTED — CP4: the file-delivery review, made fast and triageable
+
+The review dragged on a handset because every opened group stayed open (a hundred rows could all be mounted) and nothing was memoised.
+
+- **One group open at a time** (`openKey`): opening a group closes whichever was open, so mounted rows never grow with the delivery. `GroupCard` and `EntryCard` are `React.memo`; `EntryCard` gets only primitive props (problems arrive pre-joined), so correcting one phone re-renders that phone, not the group.
+- **Three actions per phone**, always in the same place: **Accept** (a check), **Edit** (a pencil), **Remove** (a bin) — 48pt icon buttons with spoken labels. Accept and Remove carry native confirmations; Accept names the product, identifier and cost and says "Mark this item as ready for this delivery." None creates stock.
+- **Accept earns its place.** A cost that came from a spreadsheet formula (`formula_value`) is **advisory**, not a blocker — but until now any flag held a row out of the delivery, so a phone with a perfectly good price could only be **excluded**, never received. Accepting is how a person says "I looked, it is right." Hard problems (missing / invalid / duplicate / unknown / ambiguous) are never waivable. The batch carries an `acknowledged` set beside corrections and exclusions, defaulted on restore so older drafts still open.
+
+### ✅ IMPLEMENTED — CP5/CP6: sell an item, not just a phone
+
+- **The one lookup resolves three kinds of code.** `GET /sales/selection/:identifier` stops assuming every code is an IMEI. It refuses only nothing at all and a **fifteen-digit number with a wrong checksum** — a mistyped IMEI is an *invalid IMEI*, said so, never quietly reinterpreted as a barcode (the "guess the type from altered digits" mistake). A serial, a barcode, or any other number is left for the lookup to resolve.
+- **A barcode sells only a counted product.** When no unit matches, the identifier is tried as a product barcode; only a **quantity** product answers, as a `kind:"product"` selection carrying the branch's own sellable stock (owned − reserved) and its ladder price — **no unit, and no cost** (a counted product has no single per-unit cost). A serialized product's box barcode names a model, not the item in hand, so it cannot pick one to sell; that still needs the unit's own IMEI or serial. This reuses the existing `POST /sales` quantity line — it is **not** a `sale.create` contract change.
+- **The selection says its `kind`** — `unit` or `product` — so the sale sends an identifier for one, a product id and a quantity of one for the other. One shared selection state, one checkout (pricing, partial payment, debtor, channels, receipt, audit, branch).
+- **Choose from stock, redesigned.** Thumbnail boxes gone; the wrapping brand chips replaced by one **Filter** action opening a sheet (brand and type, with Reset) plus a one-line active-filter summary. Compact rows: name, variant, the masked identifier **labelled by what it is** (IMEI / Serial — never a made-up IMEI for what has none), the price and a selection circle; the redundant "Available" badge is gone. The picker lists the **serialized** items you pick one of; **counted accessories are added by scanning their barcode**, because "which cable" has no answer — so "no fake IMEI for untracked" is honoured by keeping untracked items out of the pick list entirely.
+- **Generic "item" language** across EN/FR/AR, IMEI-specific wording kept only where it genuinely is (the IMEI validity hint, the full-IMEI display on manual entry and the completed sale).
+
+### ✅ IMPLEMENTED — CP7: Money terminology
+
+"Items sold" and "{count} items" replace the phone wording; the sales card is headed "Item sales" with a neutral package icon. The **daily-expense card** now says plainly that it is **today's** total and is **not** moved by the period switch above it (the switch controls sales). Figures, sources, reconciliation and the `period.phonesSold` data field are unchanged — only the words.
+
+### 📋 VERIFICATION — deterministic gate green; the isolated render matrix and handset run are owed
+
+Backend: tsc, `nest build`, `prisma validate`, migration status (up to date, no drift), permission catalogue (62/62) and the full suite (**138 suites / 2529 tests**) all green. Mobile: tsc, `expo lint` (0 errors; 31 pre-existing warnings), **59 pure suites** (2 pre-existing extensionless-import failures unrelated to this work), i18n parity (2626 keys, identical order), the AST card-nesting guard, and a clean `expo export --platform web` (all routes build, including the new `/unit/edit`). The card-flattening is proven by the AST test more strongly than a screenshot could; the generic copy and single-open/memo structure by parity and source-scan tests. **Owed and recorded as pending:** the EN/FR/AR × light/dark × 320/390 isolated web-render matrix, the real 100-item workbook reproduction, and physical-device performance and Dynamic Type — none of which a deterministic suite or a web render can stand in for. Expo Doctor's four patch-version package mismatches are pre-existing.

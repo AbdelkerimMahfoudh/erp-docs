@@ -9935,3 +9935,70 @@ and closed. Lesson: a closing handoff is written last, never left on disk.
 `prisma_verify_ui` dropped (0 verify schemas left; live untouched, 7 sales); the session's
 `mysqld` shut down (3306 closed; WAMP's service still Stopped). Live API and Metro are not
 running. Scripts and captures live only in `%TEMP%\claude\`.
+
+---
+
+## 2026-09-22 01:37Z → complete — CLAUDE-A — inventory correction, review performance, generic selling, card hierarchy
+
+Took ownership from a clean READY_FOR_HANDOFF (docs `035a60e` · backend `c4d4534` ·
+mobile `45f4905`). Delivered the seven-checkpoint brief, each checkpoint committed and
+pushed on its own. No migration; one additive backend contract change (the sale
+selection lookup).
+
+**CP1 — audit.** Established the real contracts before touching anything: there was no
+unit-correction endpoint; `Unit` has no `version` column (so `updatedAt` is the optimistic
+lock); IMEI uniqueness is enforced by the migration-0042 cross-column triggers plus the
+generated-`identifier` unique index; model/variant/barcode live on `Product`, so an item is
+corrected by re-associating it, not by rewriting the shared row; the card-nesting offenders
+were found by a TypeScript-AST audit (Toggle/ListRow inside Card in appearance, LanguageRow,
+settings, hub/[id], and the catalogue pickers).
+
+**CP2 — stock-item correction (backend `22bd19f`, mobile `69cc1a0`).** `PATCH /v1/units/:id`,
+guarded by `unit.add`; cost needs `cost.view`. In-stock only; product re-association;
+tracking-type-shaped identifiers; a reason for IMEI/serial/cost changes with audit
+before/after; `updatedAt` compare-and-swap (no migration); the 0042 triggers as the race
+backstop mapped to 409. Mobile: a pencil on the unit detail (gated on `unit.add` + in-stock)
+and a correction screen whose decision logic is a pure `lib/unit-correction` module. Tests:
+`unit-correction.spec` (20) + `unit-correction-authorization.spec` (3); full suite 138/2524.
+
+**CP3 — card hierarchy (mobile `fa3f89b`).** `Toggle` gained a `flat` prop; Appearance &
+language rebuilt as one `RowGroup` with the restart notice moved outside; hub tiles, the
+settings auto-lock choices and the catalogue pickers flattened. Anti-regression: an
+AST `lib/design/no-nested-surfaces.test` (0 offences over 143 files).
+
+**CP4 — review performance (mobile `fc5be5c`).** One open group at a time (`openKey`),
+`React.memo` on GroupCard/EntryCard with primitive props, per-phone Accept/Edit/Remove
+(48pt, native confirmations). `formula_value` is now advisory — Accept acknowledges it and
+marks a phone ready (before, such a phone could only be excluded); hard problems stay
+un-waivable. New `acknowledged` batch set, defaulted on restore.
+
+**CP5/CP6 — generic selling (backend `e9f8e7e`, mobile `365daf4`).** The sale selection
+lookup resolves an IMEI, a serial or a product barcode (barcode → a `kind:"product"`
+quantity selection with the branch's own sellable stock; a bad-checksum 15-digit is an
+invalid IMEI, never a barcode; a serialized product's box barcode is refused). The
+selection carries a `kind`; the checkout sends an identifier for a unit or a product id
+plus quantity for a product — reusing the existing `POST /sales` quantity line, not a
+`sale.create` contract change. Choose-from-stock redesigned: no thumbnails, one Filter
+sheet (brand + type, Reset), compact rows with type-labelled identifiers, "items
+available", "Continue with this item". Generic "item" copy across EN/FR/AR. Repaired the
+`phone-selection` pure suite (its `./imei` import and `__dirname`) so it runs and now
+covers the identifier gate and the unit-vs-product checkout.
+
+**CP7 — Money terminology (mobile `c26f42b`).** "Items sold", "Item sales", a neutral
+package icon, and a daily-expense card that says it is today's and unmoved by the period
+switch. Data fields unchanged.
+
+**Verification.** Backend: tsc, `nest build`, `prisma validate`, migration status (up to
+date, no drift), permission catalogue 62/62, full suite 138/2529. Mobile: tsc, `expo lint`
+(0 errors / 31 pre-existing warnings), 59 pure suites (the 2 remaining fails —
+`day-range`, `expense-rules` — are pre-existing extensionless-import issues untouched
+here), parity 2626, AST card-nesting guard, clean `expo export --platform web`, and clean
+raw-colour / product-image / hardcoded-copy audits. **Owed:** the isolated web-render
+matrix, the real 100-item workbook reproduction, and physical-device / Dynamic-Type
+checks (`docs/24` §34) — recorded as pending, not claimed. Expo Doctor's four
+patch-version mismatches are pre-existing.
+
+**Not done / left for the next session (all pre-existing, none introduced here):** the
+`ONLY_FULL_GROUP_BY` defect in `closing.service.ts` ~L911; the live rollup repair (still
+awaiting approval); the `expo-camera` native-patch mismatch. Nothing was started or
+stopped process-wise; no isolated environment was built; no live business row was touched.

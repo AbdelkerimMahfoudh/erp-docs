@@ -6,27 +6,32 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A** · `started_at_utc: 2026-09-22T01:37Z`
-- Active phase: **inventory correction, Excel-review performance, generic selling and the
-  global card hierarchy** — seven checkpoints (CP1 audit → CP7 Money terminology),
-  committed and pushed per checkpoint. Money, partial payments, expenses, the scanner and
-  navigation are preserved as built.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last owner: **CLAUDE-A** · 2026-09-22 (01:37Z → complete)
+- Last phase: **inventory correction, Excel-review performance, generic selling and the
+  global card hierarchy** — seven checkpoints, **all done, committed and pushed**. Money,
+  partial payments, expenses, the scanner and navigation are preserved as built.
 - Took ownership from a clean **READY_FOR_HANDOFF** at docs `035a60e` · backend `c4d4534`
-  · mobile `45f4905` · control-web `c764d63`. Same account (CLAUDE-A) that claimed the
-  brief; a resumption, not a cross-account takeover.
-- **Progress:**
-  - **CP1 audit — done.** No unit-correction endpoint existed; no `version` column
-    (`updatedAt` is the optimistic lock); IMEI uniqueness enforced by the 0042 triggers +
-    generated-`identifier` index; cost gated via CLS; model/variant/barcode live on
-    `Product`, so an item is corrected by re-associating it, never by rewriting the shared
-    catalogue row. Card-nesting offenders identified by an AST audit (Toggle/ListRow in
-    Card: appearance, LanguageRow, settings, hub/[id], catalog selects).
-  - **CP2 stock-item editing — done, pushed.** Backend `PATCH /units/:id` (backend
-    `22bd19f`) and the mobile correction screen + pencil (mobile `69cc1a0`). No migration.
-    Full backend suite 138/2524 green; mobile tsc clean, new pure suite 15/15, parity 2603.
-- Next intended action: **CP3 — flatten nested cards** (Appearance & Language first, then
-  every route), shared section-card/row primitives, an anti-regression audit/test.
+  · mobile `45f4905` · control-web `c764d63`. Same account (CLAUDE-A); a resumption.
+- **What shipped (see [`docs/21`](docs/21_PRODUCT_DECISIONS.md) for the full decisions):**
+  - **CP1 audit** — established there was no unit-correction endpoint, no `version` column
+    (`updatedAt` is the optimistic lock), that model/variant/barcode live on `Product`, and
+    the exact card-nesting offenders (by an AST audit).
+  - **CP2 stock-item correction** — backend `PATCH /units/:id` (`22bd19f`) and the mobile
+    pencil + correction screen (`69cc1a0`). `unit.add` + `cost.view` for cost; `updatedAt`
+    compare-and-swap; **no migration**.
+  - **CP3 card hierarchy** — `Toggle.flat`; Appearance & language rebuilt as one RowGroup;
+    hub/settings/catalogue pickers flattened; AST `no-nested-surfaces` guard (`fa3f89b`).
+  - **CP4 review performance** — single open group, memoised rows, per-phone
+    Accept/Edit/Remove, the `formula_value` advisory/Accept model (`fc5be5c`).
+  - **CP5/CP6 generic selling** — the selection lookup resolves IMEI / serial / barcode
+    (barcode → quantity product), a `kind` discriminator, the redesigned Choose-from-stock
+    picker, generic "item" copy (backend `e9f8e7e`, mobile `365daf4`).
+  - **CP7 Money terminology** — "Items sold", "Item sales", today-only daily-expense
+    (`c26f42b`).
+- Next intended action: **none — the brief is complete.** The only work owed is device /
+  isolated-render verification (see Verification and docs/24 §34); nothing is blocking.
 
 ### What happened on 2026-09-21 — two conversations, one label
 
@@ -60,34 +65,33 @@ return policy and split payment moved under one-tap disclosures, never away.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`22bd19f`** — CP2 unit correction | level | 0 |
-| `erp-mobile` | `reports-export` | **`69cc1a0`** — CP2 correction screen | level | 0 |
+| `erp-backend` | `reports-export` | **`e9f8e7e`** — generic sale selection | level | 0 |
+| `erp-mobile` | `reports-export` | **`c26f42b`** — Money terminology | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
 _Takeover baseline: backend `c4d4534` · mobile `45f4905` · docs `035a60e`._
 
+Backend commits this phase: `22bd19f` (CP2 correction), `e9f8e7e` (CP5 selection).
+Mobile commits this phase: `69cc1a0` (CP2), `fa3f89b` (CP3), `fc5be5c` (CP4),
+`365daf4` (CP5/CP6), `c26f42b` (CP7).
+
 ## What changed this phase
 
-The approved screenshots are the binding references; the decision record is
-`docs/21` "the approved screens, as drawn". No server contract changed, no
-migration, no dependency, no config. Mobile commits `2be363c` … `45f4905` (10).
+The full decision record is `docs/21` "Inventory correction, Excel-review
+performance, generic selling and the global card hierarchy (2026-09-22)"; the
+device checklist is `docs/24` §34. One backend contract changed (the sale
+selection lookup, additively), **no migration**, no dependency, no config.
 
-| Reference | Route / component | What changed |
+| Checkpoint | Where | In one line |
 |---|---|---|
-| Money — Today · 7 days · This month | `app/(tabs)/money-hub.tsx` | tinted *Cash in store now* card (accounts one tap away); filled period switch with exact days ("14–18 Sep 2026", `formatDayRange`); one card with Phones sold · Sales value · Collected · Still owed; *Phone sales* (today, 3 rows) or *Sales by day* (a week; a month's latest three days + one folded line naming the earlier span — never a sum on the phone); *Daily expenses* with *Add expense*, today's rows and *View all expenses*; registry rows |
-| Phone sales | `app/sales/period.tsx` | title "Phone sales"; tinted *Sales total* with phones, Collected, Still owed; **FlatList** of sale rows (today) or day cards opening in place (week/month); `?day=` opens a day |
-| Sale details | `app/sales/[id].tsx` | phone card first (name, variant, status chip, **full IMEI/serial**), tinted *Selling price*, facts (method, received, owed, sold on, sold by), buyer/debtor row, payment history, return policy, totals, **View receipt** (built from the sale) |
-| Add expense / Review / Daily expenses | `app/expenses/new.tsx`, `app/expenses/index.tsx` | Description, Amount (MRU), *Paid from* (Cash or Choose account), Payment date (typed, today by default), Add receipt; *More options* holds fixed/salary/reference/note; **Review expense** with, for an Owner, *Expected cash after recording* and **Record paid expense** (report + confirm in one explicit act); others *Send for approval*. Daily expenses: banner, cash card, today's rows, all expenses with filters, pinned *Add expense* / *Back to Money* |
-| Sale payment | `components/sell/PaymentSheet.tsx`, `DebtorPicker.tsx`, `components/money/ReceivedVia.tsx` | what is sold, *Sale total*, *Amount received now*, *Received via* (Cash or Choose account → account chips; the account implies the method), amber *Remaining to pay* + status, *Who owes the balance?* (Customer: name + optional phone or *Select existing customer*; Store: picker + *Add a store*), "Only X recorded as received", **Review sale** (worded confirmation of the balance); discount/return policy/split under one disclosure; the sheet remounts fresh on open |
-| Record payment | `app/sales/pay/[id].tsx` | debtor · sale card, amber *Remaining before payment*, amount, *Received via*, date/time, reference, note, tinted *This payment* beside *Remaining afterward*, pinned **Record payment**; "Payment recorded" banner on return (`lib/recent-success.ts`) |
-| Sell a phone · Enter IMEI · Choose from stock · Review sale | `app/quick-sell.tsx`, `components/sell/PhonePicker.tsx` | three choice cards; per-mode titles and header back to the chooser; live lookup at the fifteenth digit with the complete IMEI on the found card; search, brand chips, "N phones available", rows with variant, masked IMEI, ladder price (from `/inventory/summary`), Available chip, selection and a pinned *Continue*; review card with masked IMEI, Available, price field, *Found by*, note; *Continue to payment* / *Choose another phone* |
-| Primitives | `SegmentedControl` (`filled`, `buttons` looks, icons), `Card` (`accent`, `warning`), `MoneyValue` `large`, `Thumbnail`, `DayRow`, `LinkRow`, `ExpenseLine`, `PeriodSelector` | design-system additions only; nothing existing restyled except where these screens use them |
+| CP2 correction | backend `inventory.*`, mobile `app/unit/edit.tsx`, `app/unit/[identifier].tsx`, `lib/unit-correction.ts` | `PATCH /v1/units/:id` (`unit.add`; cost needs `cost.view`); in-stock only; product re-association; `updatedAt` compare-and-swap, no migration; pencil on the unit detail |
+| CP3 card hierarchy | `components/ui/Toggle.tsx` (+`flat`), `app/appearance.tsx`, `components/navigation/LanguageRow.tsx`, `app/hub/[id].tsx`, `app/settings.tsx`, `components/catalog/*` | one bordered surface per section; AST guard `lib/design/no-nested-surfaces.test` |
+| CP4 review perf | `app/receive/file.tsx`, `lib/file-receiving-rules.ts`, `lib/file-batch-store.ts` | single open group, memoised rows, per-phone Accept/Edit/Remove; `formula_value` advisory + `acknowledged` |
+| CP5/CP6 generic selling | backend `sale-selection*`, mobile `components/sell/PhonePicker.tsx`, `app/quick-sell.tsx`, `lib/phone-selection-rules.ts`, `types/api.ts` | selection resolves IMEI/serial/barcode (barcode→quantity product), `kind` discriminator; Choose-from-stock redesigned (no thumbnails, Filter sheet, type-labelled rows); generic "item" copy |
+| CP7 Money | `app/(tabs)/money-hub.tsx` | "Items sold", "Item sales", today-only daily expenses |
 
-**Not drawn, on purpose (not server figures):** "Payments recorded" by method for a
-period; per-source subtotals under today's expenses; a month's folded-days subtotal.
-**Deviations:** honest icon thumbnails (no catalogue photos, `docs/47`); typed
-`YYYY-MM-DD` date fields (no picker without a dependency); full IMEI on the completed
-sale (confirmed policy); Quick Sell stays a stack screen (no tab bar beneath it).
+**Preserved untouched:** the Money redesign, partial payments, expenses, the
+scanner and navigation. i18n grew from 2577 → 2626 keys, EN/FR/AR parity kept.
 
 **Found, not fixed (backend, recorded for the next session):** `GET /closings/overview`
 answers 400 "Database request error" under MySQL 8's default `sql_mode`
@@ -99,27 +103,22 @@ answers 400 "Database request error" under MySQL 8's default `sql_mode`
 
 | Kind | Result |
 |---|---|
-| **Mobile** | `tsc` clean · `expo lint` **0 errors / 32 warnings** (baseline; the one new warning was removed) · **68 pure suites, 0 failed** (+`day-range`, +`expense-rules`; every existing assertion kept) · EN/FR/AR parity (58 new keys, 19 reworded) · web export with every route · raw-colour, literal-copy and dependency audits clean · Expo Doctor: 4 packages out of date (pre-existing drift, unchanged) |
-| **Backend** | unchanged (`c4d4534`); the isolated copy served every screen through the real API |
-| **Renders** | Final build `45f4905`: **288 captures** — 24 states × EN/FR/AR × light/dark × 320/390 pt, in `%TEMP%\claude\shots-ui-matrix\` — **no clipped text, no leaked key, no overlapping text, no sideways scroll** in any capture (the harness checks each one). Four record-payment captures were re-taken serially after loading late under three parallel runs; all four are complete. Small targets are pre-existing geometry only: 42-pt segment pills in a 48-pt track, 36-pt filter chips with hit slop, the sheet's 36-pt Close. Earlier sets: `shots-ui\` (EN/light/390, the first pass) and the `71970bf` matrix that found the three 320-pt clips fixed in `45f4905`; before: `shots-money\` (2026-09-18, the previous screens) |
-| **Evidence** | before: `%TEMP%\claude\shots-money\` (2026-09-18, the previous screens); after: `%TEMP%\claude\shots-ui\` (EN/light/390 first pass) and `%TEMP%\claude\shots-ui-matrix\` (the matrix) — 24 states per language × theme × width: Money today/week/month, sales month/week/today, sale paid, sale part-paid with history, record payment, expense form, expense review, daily expenses, outstanding, sell chooser, IMEI found/invalid/not found, review sale, payment full/partial customer/partial store/store pick, stock picker plain/selected |
-| **Physical device** | 🔴 **none**. `docs/24` **§33 V1–V14**, plus §32, §31, §30 |
+| **Backend** | `tsc` clean · `nest build` clean · `prisma validate` clean · migration status **up to date, no drift** (no migration added) · permission catalogue **62/62** · full suite **138 suites / 2529 tests, 0 failed** (was 2524; +5 correction/authorization/barcode tests) |
+| **Mobile** | `tsc` clean · `expo lint` **0 errors / 31 warnings** (baseline, no new) · **59 pure suites pass** (repaired `phone-selection` to run; the 2 remaining failures — `day-range`, `expense-rules` — are pre-existing extensionless-import issues untouched by this work) · EN/FR/AR **parity 2626, identical order, 0 dups** · AST `no-nested-surfaces` **0 offences / 143 files** · `expo export --platform web` clean, all routes build (incl. the new `/unit/edit`) · audits clean (no raw hex, no product images, no hardcoded copy in the changed files) · Expo Doctor: **4 packages out of date (pre-existing patch drift)** |
+| **Isolated web-render matrix** | 🔴 **owed** — EN/FR/AR × light/dark × 320/390 of the changed screens (Appearance, file review, sell picker, Money, unit edit). The card-flattening is proven more strongly by the AST guard than a screenshot; copy and structure by parity + source-scan tests. |
+| **Real 100-item workbook** | 🔴 **owed** — the single-open/unmount behaviour is proven by source-scan assertions; the physical reproduction on isolated data is not yet run. |
+| **Physical device** | 🔴 **none** — Dynamic Type and touch smoothness cannot be stood in for; `docs/24` **§34** lists the checks. |
 
 ## Services
 
-- **Everything is down.** The PC was restarted at 23:48Z on 2026-09-21. WAMP's MySQL
-  service is **Stopped** and cannot be started from an unelevated shell; the live API
-  `:3010` and Metro `:8081` are not running. **Start WAMP (MySQL) first**, then the
-  live API from backend `c4d4534`, then Metro.
-- For the final render MySQL ran as a user-level process
-  (`mysqld --defaults-file=…\my.ini --sql-mode=`, matching the service's empty
-  `sql_mode`) and was **shut down cleanly afterwards — verified: nothing listens on 3306**.
-- **Isolated verification — all stopped, verified by port:** API 3011, static export
-  19006–19008, headless Chrome 9333; `prisma_verify_ui` **dropped** (verified with
-  `SHOW DATABASES`). Restored from
-  `~/erp-backups/phonestore-20260921-182158-pre-ui-fidelity.sql` (a fresh verified dump
-  of live: 849 286 B, trailer present, 88 tables). Scripts and captures live only in
-  `%TEMP%\claude\`.
+- **Nothing was started or stopped by this phase.** No dev server, no isolated
+  environment, no database process was launched — the work is code, and every check
+  above is a build, a type-check, a unit suite or a static export. If the user's
+  live MySQL `:3010`/Metro `:8081` are running they were not touched; if they are
+  down they can be started normally (WAMP MySQL → live API → Metro).
+- The isolated verification environment (per the memory note) was **not** rebuilt;
+  the owed render matrix would use it. No `prisma_verify_*` schema exists from this
+  phase.
 
 ## 🔴 Blockers and pending approvals
 
@@ -145,12 +144,13 @@ answers 400 "Database request error" under MySQL 8's default `sql_mode`
 
 ## The next exact action
 
-1. Start WAMP (MySQL), then the live API from backend `c4d4534` and Metro; reload Expo Go.
-2. Resume the brief claimed at 21:25Z — *inventory correction, Excel-review performance,
-   generic selling, global card hierarchy* — at **CP1: audit the real contracts**
-   (permissions, unit fields, versioning, IMEI uniqueness, identifier lookup, import draft
-   states, review rendering, thumbnails, nested cards) before any implementation. Nothing
-   of it exists yet. Its instruction named handset screenshots that never arrived.
-3. Handset: **`docs/24` §33 V1–V14** (the approved screens), then §32, §31, §30.
-4. Fix the `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` (~L911) before any staging deploy.
-5. Decide the live rollup repair.
+The seven-checkpoint brief is **complete and pushed**; nothing about it is left to
+implement. What remains is verification and pre-existing debt, none of it blocking:
+
+1. **Owed verification of this phase:** run the isolated web-render matrix (EN/FR/AR ×
+   light/dark × 320/390) and the real 100-item workbook reproduction against isolated
+   data, then the handset checks in **`docs/24` §34**. Use the isolated environment from
+   the memory note; do **not** import the 100 items into live stock.
+2. Handset backlog from the earlier phase still stands: **`docs/24` §33 V1–V14**, then §32, §31, §30.
+3. Fix the `ONLY_FULL_GROUP_BY` defect in `closing.service.ts` (~L911) before any staging deploy.
+4. Decide the live rollup repair (still awaiting approval — see Blockers).

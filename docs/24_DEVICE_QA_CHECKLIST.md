@@ -3502,3 +3502,26 @@ Rendered from the web export in EN/FR/AR, light and dark, at 320 and 390 pt agai
 | V12 | Review sale → Continue to payment → lower the amount → Store → pick a store → Review sale | The confirmation names the store and the balance; the sale saves with the store as debtor |
 | V13 | Record payment → save | Back on the sale, the green "Payment recorded" banner, once |
 | V14 | Arabic, dark, 320-pt-class phone | Chevrons point the reading way; the segment pill fills the selected side; nothing clips |
+
+## 34. Inventory correction, review performance, generic selling, card hierarchy — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-22 checkpoints (CP1–CP7). Rendered and reasoned about, but **not run on a handset**, and the isolated EN/FR/AR × light/dark × 320/390 web-render matrix is owed. A headless render cannot prove Dynamic Type or touch smoothness; those are marked as such below.
+
+| # | Do this | Expect |
+|---|---|---|
+| G1 | Open an **in-stock** unit's detail | A pencil in the header. Open a sold/reserved/faulty unit | No pencil — it is not correctable |
+| G2 | Correct the IMEI, leave the reason empty | Save stays disabled; "Add a reason for this correction" |
+| G3 | Correct with a reason, then have someone change the unit first | The stale save is refused and the latest details reload ("This item changed since you opened it") |
+| G4 | Correct the cost as a role without cost.view | The cost field is absent; the server refuses a cost change |
+| G5 | Change the product via the picker | Only same-tracking products are offered; the unit's model/variant follow |
+| G6 | **Appearance & language** | One panel, a dark-mode row and a language row on a single hairline-divided surface — no box inside a box. The restart notice sits **outside** the panel |
+| G7 | Hub tiles, settings auto-lock, the catalogue pickers | Flat rows in one surface; no double border anywhere |
+| G8 | **iOS Dynamic Type at 120% / 135%** on the above | Nothing clipped or overlapping. **A web render cannot test this** — handset only |
+| G9 | Import the 100-item workbook, open a group | Only that group's phones mount; opening another closes the first. Scrolling stays smooth to the end (**physical-device smoothness — handset only**) |
+| G10 | A phone whose only flag is a formula-derived cost | Accept (the check) is enabled; tapping it names the product, identifier and cost and marks it ready. A missing/invalid/duplicate phone | Accept is disabled — Edit or Remove only |
+| G11 | Remove a phone | Destructive confirmation; it recovers from the Excluded filter. Nothing is deleted |
+| G12 | **Sell → Enter an identifier**, type a serial or a 13-digit barcode | It is accepted and looked up on "Find"; a valid 15-digit IMEI looks itself up at the fifteenth digit; a bad-checksum 15-digit says "not a valid IMEI" |
+| G13 | Enter a counted accessory's barcode, Continue | It sells as one of that product (quantity 1), through the same checkout; no IMEI shown, "N in stock" instead |
+| G14 | **Choose from stock** | No thumbnails; one Filter action (brand and type, with Reset) and a one-line active-filter summary; compact rows with the identifier labelled IMEI or Serial, no "Available" badge |
+| G15 | Money overview | "Items sold", "Item sales", and the daily-expense card says it is today's and unmoved by the period switch |
+| G16 | French and Arabic, light and dark, at 320 and 390 pt | Long labels wrap; Arabic reads right-to-left throughout, including the filter sheet and the per-phone action row; nothing clips or scrolls sideways |
