@@ -3603,3 +3603,24 @@ The 2026-09-23 Home scope (`docs/21`, "The Home dashboard and the business-day c
 | C14 | A day closed, then **Reopen this day** at 16:00 | The card reads "Reopened today · date · 16:00"; the timeline shows Day closed → Store reopened; a second close then a second reopen on the same date keep every earlier count and close visible |
 | C15 | The selector: **Yesterday**, then **Choose a date** → a day 15 days ago | Yesterday: its standing ("Needs review" if it was never closed), its opening or "No opening time recorded", its timeline in store time with the people; 15 days ago: "Nothing was recorded for this day." or, for a day closed before 0076, its closing row and counts read back; no action buttons on a past day |
 | C16 | 06:00 passes with nobody having opened; the phone’s clock set 3 hours off | The new business date shows "No opening time recorded" — the cutoff created no opening; the reopen sheet’s title shows the **store’s** time, and after 06:00 store time the early-start choice is absent whatever the phone says |
+
+## 38. The Daily closing report, closing without a physical check, and "Correct a transaction" — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-24 Daily closing scope (`docs/21`, "The Daily closing report"; audit and contract `docs/51`). Proved on the isolated copy through the built API (the 45-step `report-lifecycle`) and checked on the web export in EN/FR/AR, light and dark, 320 and 393 pt and 130 % text, from the page itself (no pictures were made, at the user’s request). Web rendering proves neither native scrolling, the keyboard, the bottom sheet’s gestures nor Dynamic Type — these rows are for a handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| R1 | Home → **Review closing** as the Owner, after a few sales, one part-paid, a Bankily payment and an expense | The Daily closing opens on today: sales value, count; Sales, Money received and paid out, Expenses, Result, Expected balances — every figure the one the checkout recorded, nothing to type |
+| R2 | Drag the report up and down starting with the finger **on a card, a figure or a section title** | The page scrolls every time; no dead zone; pull-to-refresh updates "Last updated" |
+| R3 | Open **Details by channel**, **How this is calculated**, **Collected for these sales** | Each opens in place; the lines add up to the total above them; nothing is cut off at 320 pt or at iOS Dynamic Type 135 % |
+| R4 | Arabic, then French | Right-to-left in Arabic with MRU figures left-to-right inside it; natural French; no untranslated line |
+| R5 | Aeroplane mode on the report | "Offline — figures as last read at …"; **Review and close** is disabled; nothing claims to be final |
+| R6 | **Review and close** without counting anything | The sheet lists the unchecked balances as *Not checked*; **Close the business day** stays disabled until the acknowledgement is switched on **and** a reason is written; after closing, the report reads "As closed at … by …" with the reason |
+| R7 | Double-tap **Close the business day**, or close with a poor connection and tap again | One close only; the second tap is answered with the same close, never a duplicate or an error |
+| R8 | **Check physical cash or account balance** → count the drawer 500 short → back to the report → close | The drawer shows *Counted* with −500; the accounts *Not checked*; the close still needs the acknowledgement for the accounts; the −500 appears in Differences |
+| R9 | A sale after closing | The day reads *Reopened · review due*; the report is live again with the sale; the earlier close is still in the history, unchanged |
+| R10 | **Correct a transaction** → a cash payment that was really Bankily → move it | Choose Bankily, the amount, a reason; the preview shows −X cash / +X Bankily and "The sale does not change"; as the Owner it is corrected at once, as a manager it goes to the Owner; the report’s channels change once, the totals do not |
+| R11 | A store employee (no report.view) opens the Daily closing | Money and expected balances only — no sales value, no expenses, no result, no close button; the line saying who can close |
+| R12 | A manager whose role has no cost.view | Sales and expenses, no Result section; no cost or profit anywhere |
+| R13 | **Choose a date** → a quiet day with nothing recorded | *No activity recorded*, "There is nothing to close" — never *Needs review* |
+| R14 | Keyboard in the review sheet and in the move sheet | The reason field stays visible above the keyboard; the confirm button is reachable without closing the keyboard |

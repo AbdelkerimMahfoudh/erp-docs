@@ -5773,3 +5773,79 @@ Audit, contract and plan: [`docs/50` §6](50_AUDIT_HOME_BUSINESS_DAY_CLOSING.md)
 - **Mobile:** tsc clean · `expo lint` 0 errors (0 warnings in this scope's files) · **69 pure suites** pass (`home-day.test` 11) · parity **2 916** keys, identical order, 0 duplicates · web export.
 - **Render matrix** (`open-matrix.mjs`, the export against the copy, headless Chrome at 3×): **26 captures** — the unopened day (a seller, the Owner in Arabic), the Owner's tap on *Open the boutique* at 07:25 and the opened card EN/FR/AR, dark 320, 130 % text; *Yesterday* EN/FR/AR; the date sheet EN/AR; a day 15 days ago (nothing recorded) and the busy 24th (opened, first activity, closed, reopened, closed again) at 393 and 320; Home 320 EN/FR/AR with the owed line whole; the masked Stock list EN/AR and FR dark 320; the closed day and the reopen sheet at 03:00 by the store's clock EN/AR/FR-320 — 0 leaked keys, 0 sideways overflow, 0 empty screens, 0 full identifiers on the masked list (the coarse check first flagged the three Stock captures because it had joined a demo product name's ten digits, the masked last four and a price across lines; re-captured with a per-line check: 0 findings; the read-back of a pre-0076 count was proved on the Test Store's own branch, the one place the copy holds such a row). Web renders, not device verification.
 - **Physical device: not run** — `docs/24` §37 H9–H10 and C12–C16.
+
+## The Daily closing report, closing without a physical check, and "Correct a transaction" (2026-09-24)
+
+Audit, contract and decisions: [`docs/51`](51_AUDIT_DAILY_CLOSING_REPORT.md) (§1–§11 the verified audit, §12 the completeness pass, §13 decisions D1–D11). Backend `42bfd76`, `ff531dd`, `e352cf3`, `f4c3381`, mobile `8346398`, `7ed67bc`, `1e316e9`, migration **0078**. The user's brief of 2026-09-24 and the clarification the same day ("physical cash and account checks are optional; if someone closes without checking them, record them as unverified with an explicit acknowledgement and reason; never show them as matched or counted; keep the option to perform a real count") are the authorisation.
+
+### ✅ IMPLEMENTED — the report is built from records, never re-entered (D1, D6, D7)
+
+`GET /v1/closings/report?date=` (`closing.count`), one business date at the branch, stored business dates only, every total asserted against its lines on every read (`reportInvariants`; a close on a report that does not reconcile is refused, `409 report_integrity`):
+
+```
+Sales       value     = Σ sales.total                               (sales.business_date = D, not reversed)
+            returns   = Σ return_reversals.net_refund_due            (approval_date = D) — their own line
+            collected = Σ payments on D's sales with payments.business_date ≤ D   (at the till · later the same day)
+            owed      = value − collected                            (as it stood at the end of D)
+Money       per channel (cash, each account, unattributed), one channel builder (channels.ts):
+            in  = payments dated D (split: D's sales | older debts, on the sale's business date) + corrections in
+            out = confirmed refunds + stock paid (purchases, settlements) + confirmed expenses + corrections out
+            net = in − out;  pending refund / expense REPORTS are warnings, never movement
+Expenses    confirmed; variable on its confirmation date, fixed on its due date (Milestone D) — never a refund, never stock
+Result      net sales            = value − returns.net_refund_due
+            cost of items sold   = Σ sales.total_cost − Σ return line_cost      (the recorded cost snapshot)
+            gross profit         = net sales − cost of items sold
+            result after expenses = gross profit − expenses recorded to D (fixed costs in full on their due date)
+            any sold / returned line with cost ≤ 0.005 → "Cannot calculate yet" (count), every profit field null
+Expected    drawer   = opening + cash in − cash out;  opening = counted cash at the last locked close whose
+                       drawer was COUNTED + the cash movement of every day since (D4)
+            account  = recorded movement (in − out) — "not the balance, not confirmed with the provider"
+```
+
+Sections are built per caller, never stripped afterwards: money and expected balances `closing.count`; sales and expenses `report.view` or `closing.perform`; the result additionally `cost.view` (the result keys are also in the interceptor list). A locked day is shown as the report stored with its latest close (`source: snapshot`), with a warning if its live figures have moved since. The close broadcast and the closing timeline carry no figures beyond what `closing.count` shows (§12.1–2: the timeline had been returning the stored `netProfit`).
+
+### ✅ APPROVED — a physical check is optional; an unchecked balance is recorded as not verified (D2, D3, D4, D5)
+
+- **Supersedes** Milestone E's "every countable channel is counted or skipped with a reason" and 0076's "a reclose needs a fresh count of every channel".
+- `POST /v1/closings` `{date, clientUuid, reportVersion, acknowledgeUnverified, reason}` (`closing.perform`). A channel counted after any reopen is closed as **counted** (its difference and discrepancy as before). Every other countable channel is closed **not verified**: `is_skipped = 1`, `skip_reason = 'NOT_VERIFIED_AT_CLOSE'`, `counted = NULL` — never a zero, never the expected figure, never "matched". Closing with any unverified channel requires `acknowledgeUnverified: true` **and** a reason, both stored in the close's event and the audit row; without them `400 acknowledgement_required` naming the channels. A count from before a reopen is stale and never reused.
+- Migration **0078**: `daily_closings.counted_cash` and `difference` NULL-able together (`ck_closings_counted_pair`); `NULL` = the drawer was not verified at that close. The opening drawer anchors only on a **counted** close (D4).
+- Discrepancies: a channel not checked at a close answers nothing — an earlier question stays as it was; a counted one is reconciled against the sum of decided rows, so repeated recloses never count one shortage twice.
+- **Idempotent**: the same `clientUuid` replays the close (also when two taps race); a different key on a closed day is `409 already_closed`. **Bound to what was seen**: a close whose `reportVersion` no longer matches is `409 report_changed`, and the close re-reads a movement fingerprint inside its transaction after locking the day's closing row — the row every sale's auto-reopen and every correction approval now also lock — so money landing mid-close is either in the snapshot or refuses the close; never lost in a locked day.
+- Every close stores its whole report in its event; a reopen, a recount or a correction never changes an earlier record.
+
+### ✅ IMPLEMENTED — "Correct a transaction" (D9)
+
+`GET /v1/closings/sources?date=` lists the date's payments, confirmed refunds, expenses, stock payments and corrections with time, amount, channel, status and either the existing flow (the return's correction, the expense, the sale) or a named refusal. One new narrow contract, inside the existing Milestone B workflow: **move all or part of a payment to the channel it really reached** — `financial_corrections.target_kind = 'sale_payment'` with its destination (0078), `POST /v1/corrections/preview` (nothing written), request with a mandatory reason, Owner approval (the request and the approval are recorded apart even when one person does both), at most one approved correction per payment, posted to the current open day, the payment row and every earlier close untouched, an audit row with the source payment and before/after. The money leaves one channel (`corrections_out`, 0078) and enters the other; totals do not change. Approval is now one transaction that locks the day's closing row. **Refused and owed:** reversing a payment that was never received, correcting a confirmed expense or a purchase payment, editing a sale.
+
+### ✅ APPROVED — an inactive past day is not an overdue closing (D8)
+
+**Supersedes** the 2026-09-24 decision "a past date with no closing row reads Needs review". A past day with no closing row reads **No activity recorded** when nothing at all was recorded on it (EXISTS over closing rows and events, sales, payments dated there, return approvals, confirmed refunds, stock payments, supplier settlements, confirmed expenses under their date key, approved corrections); with real activity it still reads **Needs review**. One rule for Closing & history, the report, the previous-day notice and Home.
+
+### ✅ APPROVED — closing authority is literally the Owner and at most two delegates (§12.5)
+
+`closing.perform` revoked from `administrator` and `branch_manager` (0078; no live user held either role). Granting a delegate now locks the branch row, so three simultaneous grants leave exactly two. The report's close action, the Home entry (which only opens the report) and `POST /closings` all rest on the same key; reading the report confers nothing.
+
+### ✅ IMPLEMENTED — late money on a closed day (D10) and two consistency fixes found by the lifecycle
+
+- A purchase paid on a closed current day reopens it, as a sale does. Confirming a fixed expense due on a closed day is refused, as a variable one already was.
+- **Found by the real-database lifecycle:** two recomputes of the same branch-day at once (a close and a correction approval, or two taps) interleaved the rollup's delete-then-insert and failed with a unique-key error *after* the correction had committed — the phone was told it failed. The recompute now runs one at a time per branch-day, and the headline rollup row retries once on a concurrent insert.
+
+### 📱 Mobile (`8346398`, `7ed67bc`, `1e316e9`)
+
+Closing & history becomes the **Daily closing**: date selector, status and the recorded opening, "Last updated" / offline / stale said plainly, the headline figure, a compact warning list, the five sections with expandable detail, **Review and close** (the final figures, the unverified balances, the acknowledgement and the reason; confirm disabled only for stale/offline figures or a missing acknowledgement — never for a missing count), **Check physical cash or account balance** (the old counting screen, now optional: no phone totals, no "0 of 2 counted", recount a saved or stale count, the account asked for its movement not its balance), **Correct a transaction**, and the history. The report scrolls in its own `ScrollView` with nothing above the rows. 149 catalogue keys EN/FR/AR (parity 3 065).
+
+### 🟡 OWED
+
+- Reversing a payment that was never received; correcting a confirmed expense or a purchase payment; editing a sale (the refusals say so).
+- Loans, consignment and employee-debt cash are outside the report, as they are outside the closing (their ledgers use UTC dates).
+- Rollup revenue, the digest and Results still leave out the whole-sale discount; the report reads `sales.total` and is internally consistent (`docs/51` §3.1).
+- Expense and refund confirmations still check the day's lock without taking the closing row's lock.
+
+### 📋 VERIFICATION
+
+- **Backend:** tsc · `nest build` · `prisma validate` · full suite **151 suites / 2 696 tests, 0 failed** (new: `closing-report.spec` 22 — a worked day recomputed independently, gating, missing cost, verification, version; the lifecycle, reconciliation, channel, route, correction and role-drift specs extended).
+- **Database:** backup `phonestore-before-0078-20260924-082406.sql` (869 033 B, hex-blob, trailer present, 0 raw binary; taken minutes before the live migration — an identical 07:42 backup was restore-proved too and kept) → restore-proved (90 tables / 24 triggers, counts and the `units` checksum equal) → 0078 on the copy → lifecycle → live at `2026-09-24T08:24:43Z` (9 sales · 53 units · 865 audit rows · 9 payments · 1 closing · 6 rollups · 0 corrections · 63 permissions; 90 tables / 24 triggers; latest 0078, `migrate status` up to date).
+- **Real-MySQL lifecycle on the copy** (`report-lifecycle.mjs`, the built API, fake clock): **45/45** — the worked day (split tender, part-paid sale and its later payment, an older debt, a variable and a fixed expense, stock paid in cash, a Bankily sale) with every section recomputed independently and against SQL; "Correct a transaction" listing the day's six payments, two expenses and the stock payment, and refused to the seller; the seller and a manager without cost.view; refusals for non-delegates; the stale-version refusal; a counted drawer with a −500 difference; the close with two accounts not verified; double tap and a second key; the stored report and reason; a sale after the close; the reclose without recount; the payment reclassification refused on a closed day then approved; one per payment; the audit; a correction racing a close; two taps racing; 05:59:30 vs 06:00:30; the carried opening; inactive vs needs review; missing cost; a purchase reopening a closed day; a fixed expense refused on a closed day; company isolation; three delegations at once.
+- **Mobile:** tsc · lint 0 errors / 0 warnings in this scope · **70 pure suites** (new `closing-report-view.test`) · parity 3 065 · web export.
+- **Render checks, no pictures** (`report-checks.mjs`): 28 views — the report, Review and close, the physical check and "Correct a transaction" with its move sheet, in EN/FR/AR, light and dark, 320 and 393 pt, 130 % text, a seller, a manager without cost.view and the Owner — 0 problems after fixing the three the checks found: the sources list read a column that does not exist (`supplier_payments.created_at`, now `paid_at`); "Check physical cash or account balance" was cut at 320 pt as a one-line button (the two secondary paths are now wrapping rows); a refusal was cut in an Arabic correction row (it now has its own line). Web renders, not device verification.
+- **Physical device: not run** — `docs/24` §38 R1–R14.
