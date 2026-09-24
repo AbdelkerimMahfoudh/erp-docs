@@ -6,9 +6,20 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-24T04:21Z`, closed `2026-09-24T08:31Z`. Takeover HEADs were
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-24T09:39Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `8f2c9e6` ·
+  backend `f4c3381` · mobile `1e316e9`; live `migrate status` up to date (0078). The handoff below matched. The
+  user's API (3010) and Metro (8081) are running and are not touched.
+- **Active phase and scope (the user's follow-up of 2026-09-24, still the Daily closing scope, no workflow):**
+  (1) verify that the Owner can delegate closing to at most two employees, that they can close and reclose and that
+  other employees cannot — restore delegation if anything removed it; (2) complete the correction path for erroneous
+  sales, payments, expenses and purchases as authorised reversals or adjustments with a required reason and a
+  permanent audit history, never overwriting a confirmed record or an earlier closing snapshot; name exactly any
+  action left unavailable and why. Physical phone checks may stay pending.
+- Next intended action: read the delegation path end to end and the existing correction, return, expense and
+  purchase flows; then write the plan into `docs/51` before any code.
+- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T04:21Z`, closed `2026-09-24T08:31Z`. Takeover HEADs were
   docs `f5c4d5b` · backend `3fa4801` · mobile `904e3ac` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (`migrate status` up to date, 0077).
 - **Completed phase: the Daily closing report, closing without a physical check, and "Correct a transaction"
