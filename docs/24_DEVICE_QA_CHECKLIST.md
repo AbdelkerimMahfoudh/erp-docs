@@ -3570,3 +3570,29 @@ The 2026-09-22 parallel scope (`docs/21`, "Invoice, Daily Closing, alerts previe
 | P13 | Set the phone's date forward a year on an **active** shop | Nothing changes: the state comes from the server |
 | P14 | Sign-in screen → **Platform administration** with a platform account | Overview with counts, search, filters; a business; Approve asks months, a reason (where required) and the password, then a confirmation naming the business; the invitation is shown once and copies |
 | P15 | Try the platform sign-in with a **shop's** e-mail and password | Refused with one generic message; the shop's own session is untouched |
+
+## 37. Home dashboard, the business day and the reopenable closing — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-23 Home scope (`docs/21`, "The Home dashboard and the business-day closing"; audit and contract `docs/50`). Proved on the isolated copy through the built API (57-step lifecycle on a fake clock) and as web renders of the export; **nothing below has been seen on a handset**. Test on the physical phone in Expo Go against the live API, with a second person's phone signed in as a delegate where a step says so.
+
+| # | Do this | Expect |
+|---|---|---|
+| H1 | Home as the Owner: **Today / 7 days / This month** | Sales value changes with the period; the exact dates under it; Collected (green), Expenses, Still owed (red) with "Outstanding from these sales"; the bars add up to the sales value (spot-check one day against Money → Sales) |
+| H2 | Home at **00:30–05:59** local | The figures still belong to yesterday's business day; "Today" on the closing card names yesterday's date until 06:00 |
+| H3 | Home at **06:00** | The new business date starts by itself; yesterday, if never closed, shows **Needs review** on the closing card and on Closing & history |
+| H4 | **Latest phones received** → the three newest arrivals, masked "IMEI •••• 1234" | Never a full IMEI on Home; **See more** opens Stock with **Phones** and **All statuses** preselected and "Newest received first"; the same three phones are first, even one already sold |
+| H5 | **Top boutique · all time** → **See more** | The ranking: rank disc, name, "N completed trades", value right-aligned with the currency; "End of ranking" after the last row; a shop with no completed trade sees the honest empty state, never a sample |
+| H6 | Home as an **employee without report figures** | Sell/Receive, arrivals and the closing card only — no money, no zeros |
+| H7 | Home **offline** after a first load | The last figures stay with "Offline · showing figures from …"; nothing crashes |
+| H8 | Home in **Arabic**, dark | Right-to-left layout; figures, IMEI digits and the currency read left-to-right inside it; the bars mirror; nothing clipped at 320 pt or at iOS Dynamic Type 135 % |
+| C1 | Money → **Daily closing** (Closing & history) with counts saved | "Business day" card with the standing chip in words, Expected cash, "Since last count", "Last counted at …"; **Review and close** opens the counting screen |
+| C2 | Close the day, then sell a phone as a **seller** | The sale succeeds; Closing & history reads **Reopened · review due**; the history shows the close, "Reopened by a sale" and "Phone sold · +… cash"; the Owner receives the in-app notices (reopened, sale) |
+| C3 | Try to close again without recounting | Refused with "Count again before closing"; after a fresh count of every channel, **Review and close** closes it again and the history shows "Closed again" |
+| C4 | Reopen at **03:00** as the Owner | The sheet: "Reopen at 03:00", **Continue <yesterday>** selected, **Start <today> early**; "Selling remains available during the choice." |
+| C5 | Choose **Start … early** | The business date moves to today; yesterday stays closed; Home's figures switch; a second attempt changes nothing; at 06:00 nothing starts twice |
+| C6 | The same at 03:00 as a **delegate** | Only Continue is offered; the early start is refused by the server if forced |
+| C7 | At **06:01**, try to reopen yesterday | Refused: the day is behind the boundary; Closing & history shows it closed and final |
+| C8 | Team → a manager or an employee → **Closing delegates** | The switch per branch; a third person is refused with "Two people already close the day in this branch"; a revoked person can still count but not close or reopen |
+| C9 | A delegate signed in at another branch of the same shop | No closing authority there (Closing & history offers no Reopen; the server refuses) |
+| C10 | The Owner's WhatsApp, when a provider and a number exist | Reopened / sale / reclosed notices with branch, time and business date; amounts only when the setting allows; never a full IMEI; a retry never repeats a notice |
+| C11 | Expenses confirmed and a debt payment collected after a close | Expected cash moves on the business day the money moved; the closing's "Since last count" reflects it |

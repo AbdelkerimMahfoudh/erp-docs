@@ -7,90 +7,73 @@
 ## Session control
 
 - Status: **READY_FOR_HANDOFF**
-- Owner: **NONE** — both 2026-09-22 conversations are closed: the correction phase (CLAUDE-A,
-  `started_at_utc: 2026-09-22T03:24Z`, closed `13:22Z`) and the parallel scope (CLAUDE-A,
-  `started_at_utc: 2026-09-22T05:30Z`, closed ~`14:40Z`).
-- Completed phases:
-  1. **Correction of the previous session's work** — the failed generic-selling implementation, the
-     worsened Excel-review performance and the three screens that had not received the approved
-     restyle. Decision record: `docs/21` "Correction of the generic selling, Excel-review performance
-     and the three restyles (2026-09-22, second phase)"; device checks `docs/24` §35.
-  2. **Invoice, Daily Closing, alerts preview, platform administration, website deferral** — the
-     parallel scope. Decision record: `docs/21` "Invoice, Daily Closing, alerts preview, platform
-     administration, website deferral (2026-09-22, parallel scope)"; audit `docs/49`; platform
-     `docs/37` Phase 5; device checks `docs/24` §36.
-- Next intended action: **the handset runs** — `docs/24` §36 (P1–P15) and §35 (S1–S15) against the
-  live API in Expo Go. No feature is next.
+- Owner: **NONE**
+- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-23T05:58Z`, closed `2026-09-24T02:05Z`. The user's usage limit
+  paused it between ~`2026-09-23T07:35Z` and `2026-09-24`; on resume the machine's MySQL was found stopped
+  (service `wampmysqld64` STOPPED, no `mysqld`) and a session `mysqld` on the WAMP data directory was run for
+  the remaining verification and shut down again at close-out — the service is left exactly as found.
+- Takeover HEADs were docs `f1284e4` · backend `decb699` · mobile `e43b551` (all clean, level with `origin`);
+  the previous handoff was complete and matched the repositories.
+- **Completed phase: the Home dashboard and the business-day closing (migration 0076).** Decision record:
+  `docs/21` "The Home dashboard and the business-day closing (2026-09-23)"; audit and contract: `docs/50`;
+  business rules: `docs/04` §F (24a–28b, 36); device checks: `docs/24` §37 (H1–H8, C1–C11).
+- Next intended action: **the handset runs** — `docs/24` §37, then §36 (P1–P15), §35 (S1–S15) and the older
+  backlog, against the live API in Expo Go. No feature is next.
 
 ### ⚠️ The scope rule, unchanged
 
 Only **two** features are absent from the first release: **Suppliers** and
 **low stock / reordering**. No removal without the user's explicit approval.
-Nothing was removed by either phase.
+Nothing was removed by this phase.
 
 ## HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`decb699`** (parallel scope) — the correction phase's last is `22d8227` | level | 0 |
-| `erp-mobile` | `reports-export` | **`e43b551`** (parallel scope) — the correction phase's last is `3cfd598` | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` — untouched by both phases | level | 0 |
+| `erp-backend` | `reports-export` | **`a8fc4fe`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`57deb64`** | level | 0 |
+| `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-_Takeover baselines: correction phase docs `d0eeb74` · backend `e9f8e7e` · mobile `c26f42b`; parallel scope docs `df5f37d` · backend `59381f3` · mobile `c26f42b`._
+Backend commits of this phase, in order: `29b9cc7`, `003efb2`, `a8fc4fe`. Mobile: `40c73d0`, `8230802`,
+`944459e`, `57deb64`. Every one is on `origin`.
 
-Backend commits, in order: `59381f3`, `60bd6c1`*, `22d8227`, `c9e7a23`*, `f2d97f7`*, `e7eddab`*, `d16dc1e`*, `decb699`*
-(* = parallel scope). Mobile: `68a8a57`, `f62a27c`, `ef2c795`, `d8e352e`, `de20990`, `3cfd598` (correction phase);
-`f5c1441`, `afda01a`, `baa6528`, `2a00f25`, `a6182fe`, `3397e90`, `e43b551` (parallel scope). Every one is on `origin`.
-
-## What changed — the parallel scope
+## What changed
 
 | Commit | Where | In one line |
 |---|---|---|
-| backend `60bd6c1` | `src/anomalies/*` | each rule dates its anomaly from its own records; newest → serious → key total order; `GET /anomalies?limit=&page=` + `total`; idempotent dismiss |
-| backend `c9e7a23` | `prisma/migrations/0075_…`, `schema.prisma`, `src/entitlement/*`, `src/platform/subscription-lifecycle.service.ts` | `rejected` status/state + `ENTITLEMENT_REJECTED`; approve (months or exact end; reverses a refusal), reject (reason), setPeriodEnd (shortening needs a reason); `approved`/`rejected`/`period_corrected` events; `owner_invitations` |
-| backend `f2d97f7` | `src/platform/owner-invitation.service.ts`, `platform.controller.ts`, `platform-boundary.spec.ts` | `POST platform/businesses` (random unknown password + one-time hashed 72 h invitation, manual delivery), `…/owner-invitation`, public `owner-invitation/accept`, approve/reject/period routes, dashboard counts `rejected`, state filter before paging, the boundary spec |
-| backend `e7eddab` | `auth.controller.ts`, `users.service.ts` | `/auth/me` carries `companyName` |
-| backend `d16dc1e`, `decb699` | `src/anomalies/*` | `POST /anomalies/:key/undismiss` (ends the standing dismissal, audited); the route's decorators corrected + `anomalies.controller.spec.ts` |
-| mobile `f5c1441` | `lib/receipt-html.ts` (new), `lib/receipt.ts`, `app/sales/[id].tsx`, `types/api.ts`, i18n | one full-page invoice generator (≈83 % of A4/Letter, repeating table header, print-safe ink, escaped values, LTR figures in RTL), all server-confirmed content (Rule 19e) |
-| mobile `afda01a` | `app/closing.tsx`, `lib/closing-screen.test.ts`, i18n | own SafeAreaView/KeyboardAvoidingView/FlatList, memoised rows in one surface, summary surface, explicit Save per row, pinned "Review and close" with its reason |
-| mobile `baa6528` | `components/analytics/AlertRow.tsx` (new), `AttentionList.tsx`, `app/alerts.tsx` (new), `lib/anomalies.ts`, `lib/attention-rules.ts`, `lib/query-keys.ts`, registry, i18n | three newest alerts in one compact surface, "I understand" + Undo toast, "View all N", the paginated full list |
-| mobile `2a00f25` | `app/subscription-blocked.tsx`, `app/(auth)/verify.tsx`, `constants/config.ts`, deletions (`lib/portal.ts`, `hooks/useAccountPortal.ts`, `lib/signup.ts`, `lib/account-portal.test.ts`), `lib/website-deferred.test.ts`, i18n | the website withdrawn from the app; blocked screen with `rejected`, contact guidance, Check again, Sign out |
-| mobile `a6182fe`, `3397e90`, `e43b551` | `app/platform/*` (new), `lib/platform-admin.ts`, `lib/platform-state.ts`, `hooks/useAuth.tsx`, `lib/entitlement.ts`, `app/(auth)/login.tsx`, registry, i18n | the Super Admin area on its own session and routes (sign-in, overview, business, create, audit); the closed-shop gate at the root; audit actions in words |
+| backend `29b9cc7` | `prisma/migrations/0076_business_day_and_reopen`, `schema.prisma`, `src/common/business-day.ts` + `business-day/`, `src/closing/*`, `src/messaging/templates.ts`, `whatsapp-channel.ts`, `src/analytics/rollup.service.ts`, `summary.service.ts`, `src/sales/*`, the expenses / corrections / returns / purchasing services | the 06:00 local business date as one pure rule and one assigning service; `business_date` stored on `sales`, `payments`, `supplier_payments` (backfilled with the old UTC keying); rollups, the closing, the movements and "collected" keyed on it; a close is a counted snapshot plus a `closing_events` row; reopen, auto-reopen on a sale or a payment, reclose with fresh counts and the discrepancy reconciliation; cash carried forward as the opening balance; the Owner's early start; the Owner notices (in-app first under a dedupe key, then the WhatsApp boundary) |
+| backend `003efb2` | `src/rbac/*`, `src/users/user-management.service.ts`, `users.controller.ts`, `scripts/generate-catalogue-migration.ts` | `closing.perform` delegable to a manager or an employee, at most two per branch (`PUT/DELETE /users/:userId/branches/:branchId/delegations/closing`); the Store Manager role no longer holds it; the Owner-only `closing.start_early` (catalogue 63) |
+| backend `a8fc4fe` | `src/analytics/dashboard.*`, `home-series.ts`, `src/consignment/partner-ranking.service.ts`, `connections.controller.ts`, `src/inventory/*` | `GET /home?period=today\|week\|month` (exact business-date ranges, bars asserted to sum to the value, the top partner, three masked arrivals, the closing card); `GET /partners/ranking?page&limit` (settled consignments and fully paid partner-store sales, nothing counted twice); `GET /inventory?trackingType=` |
+| mobile `40c73d0` | `app/(tabs)/index.tsx`, `lib/home.ts`, `lib/home-day.ts` (+ test), `components/home/SalesBars.tsx`, `lib/period.ts`, `lib/query-keys.ts`, the Money and Results screens, `PeriodSelector`, i18n EN/FR/AR, `lib/layout.test.ts`; `lib/home-figures.ts` removed | Home rebuilt on the one read: the period control, four figures with the owed scope, bars as plain views, the top boutique, the latest phones masked, the closing card, an honest "refreshed" footer; Money and Results ask the server which business day it is |
+| mobile `8230802` | `app/closing/index.tsx` (new), `app/closing/count.tsx` (moved), `components/closing/ReopenSheet.tsx`, `app/partners/ranking.tsx`, `lib/closing.ts`, the registry, `lib/closing-screen.test.ts` | Closing & history with the standing in words and colour, expected cash with its opening balance, the movement since the last count, one action, the history; the before-06:00 choice (Owner: continue or start early; anybody else the safe default alone); the boutique ranking |
+| mobile `944459e` | `app/(tabs)/inventory.tsx`, `app/team.tsx`, `types/api.ts` | Stock's newest-received deep-link (Phones + All statuses + newest received, `trackingType=imei`); Team's closing delegates with the limit stated |
+| mobile `57deb64` | `app/partners/ranking.tsx` | the ranking’s "refreshed" footer counts from the phone’s own receipt of the data, as Home does (the fake clock exposed the server-stamped version); the duplicate `lib/format` import merged |
+| docs (this commit) | `docs/50` (new), `docs/04` §F, `docs/21`, `docs/24` §37, `SESSION_LOG.md`, this file | the audit and contract, rules 24a–28b and 36, the decision record, the device checklist, the session entry |
 
-The correction phase's own table is in `docs/21` and the previous handoff commit (`1286b43`).
-
-## Verification — the parallel scope
+## Verification
 
 | Kind | Result |
 |---|---|
-| **Backend gate** | tsc clean · `nest build` clean · `prisma validate` · `migrate status` up to date (0075) · drift: only the pre-existing generated `units.identifier` (0008) · full suite **2 605 tests / 145 suites, 0 failed** |
-| **Live lifecycle (isolated copy, built API)** | `platform-lifecycle.mjs` **42/42**: create/retry/step-up/hash-only; invitation once/expired/revoked; Owner sign-in; pending lock incl. the branch list; Owner JWT, forged company/branch headers, anonymous and self-approval all 401 on platform routes; no operational data in the platform view; reject → `ENTITLEMENT_REJECTED`; stale version 409; approve → reads open; period correction; suspend → `ENTITLEMENT_SUSPENDED` with the account surface open; reinstate; extend; grace with hours and writes; expired reads-only; audit trail complete and secret-free; sign-out; disabled administrator; identical refusals |
-| **Mobile gate** | tsc clean · `expo lint` 0 errors, 0 warnings in this scope's files · Expo Doctor's four pre-existing mismatches · **66 pure suites pass** · parity **2 793** keys, identical order, 0 duplicates · web export with all 83 routes · 0 raw colours / 0 hardcoded copy / 0 unlabeled controls in this scope's screens |
-| **Closing profile** | un-minified exports, 25 channels, React commit counting before → after: per save row updates **50 → 2**, component updates 1 664 → 309, script 160 → 64 ms, task 195 → 114 ms; per keystroke 1 row in both; DOM 1 022 → 744 at load; inputs mounted 19 → 7 |
-| **Invoice** | real PDFs through headless Chrome: A4 + Letter, EN/FR/AR, 1/12/40 lines, paid/partial/unpaid, customer and partner-store debtor — inspected as images |
-| **Render matrix** | **44 captures** on the final export: closing EN/FR/AR × light/dark × 320/390, keyboard open (EN, AR), 130 % text, one account; analyses 7/3/1/0 alerts + full list (EN, AR); blocked pending/rejected/suspended (EN, AR), grace, expired; platform sign-in (EN, AR), overview (EN, FR dark), a pending business, the approve form, create (AR), audit — 0 leaked keys, 0 sideways overflow |
-| **Physical device** | 🔴 **not run** — `docs/24` §36 P1–P15 (and §35 from the correction phase) |
+| **Backend gate** | tsc clean · `nest build` clean · `prisma validate` · `migrate status` up to date (0076) · full suite **150 suites / 2 653 tests, 0 failed** |
+| **Live lifecycle (isolated copy, built API, fake clock per phase, development-log WhatsApp channel)** | `home-lifecycle.mjs` **57/57** — the step list is in `docs/21` (same-day close → reopen → sale → reclose; a seller's sale after the close reopening the day; two concurrent recloses; deduplicated Owner notices; two delegates, a third refused, revocation, cross-branch and cross-company refusals; the 03:00 early start once; 05:59 vs 06:00 per branch; the month and year edges; a later debt payment; the opening balance carried forward) |
+| **Migration 0076** | backup `~/erp-backups/phonestore-before-0076-20260923-063747.sql` (864 179 B, hex-blob, trailer present, 0 raw binary) → restore-proved into `prisma_verify_home` (89 tables / 24 triggers, counts and the `units` checksum equal) → 0076 forward there (0 rows where the stored date differs from the old keying; rollups and the one closing byte-identical) → **applied to live at `2026-09-23T07:14:50Z`** (`migrate status` up to date; live rows unchanged around it: 9 sales / 53 units / 862 audit rows / 9 payments / 1 closing / 6 rollups; `permissions` 62 → 63; the manager's `closing.perform` mapping gone; the status enum extended) |
+| **Mobile gate** | tsc clean · `expo lint` 0 errors, 0 warnings in this scope's files · Expo Doctor's four pre-existing mismatches · **69 pure suites pass** · parity **2 897** keys, identical order, 0 duplicates · web export with every route |
+| **Render matrix** | **48 captures** (`home-matrix.mjs` + `ranking-matrix.mjs`: the export against the copy, headless Chrome at 3×): Home EN/FR/AR × light/dark at 393, 320/360/430, 130 % text, Today / 7 days / This month, a seller's Home, scrolled; the Stock deep-link; the ranking with two real partner stores EN/FR/AR + dark 320; Team's closing delegates EN/AR; Closing & history open → closed → reopened with a sale in the history (EN/FR/AR, dark 320, 130 %), a delegate's view, the counting screen; at 03:00 the closed day and the reopen sheet (EN/FR/AR, dark, 320) — 0 leaked keys, 0 sideways overflow, 0 empty screens. The first run's three ranking captures were empty: the fixture's connection request met a non-discoverable Test Store (the 404 the product gives by design) and a third trade priced below the set price was refused; the rerun connects through the product's own request-and-accept path and prices at or above the set price. The one defect the matrix exposed — the ranking footer formatting the server's timestamp, which read "in 21 hours" under the fake clock — is fixed in `57deb64`. Web renders, not device verification |
+| **Physical device** | 🔴 **not run** — `docs/24` §37 H1–H8, C1–C11 (and §36, §35 from the previous phases) |
 
 ## Data and process safety
 
-- Backup before 0075: `~/erp-backups/phonestore-before-0075-20260922-055832.sql` (862 536 B, hex-blob,
-  trailer present), restore-proved into `prisma_verify_platform` (88 tables / 24 triggers, counts and
-  the `units` checksum equal, trigger bodies identical), then 0075 forward there, then live. Live rows
-  unchanged around it (9 sales / 53 units / 862 audit rows). The correction phase's dump
-  (`phonestore-20260922-pre-sell-fix.sql`, in `%TEMP%\claude`) is kept as well.
-- **Live `phonestore` received exactly one change from the parallel scope: migration 0075.** Every
-  other write went to the copy.
-- Processes: the correction phase stopped its own (API 3011, static 19006–19008, Chrome 9333); the
-  parallel scope stopped its own (API 3012, static 19010–19012, Chrome 9334). The user's MySQL, API
-  and Metro were never touched by either.
-- The scratch schema `prisma_verify_platform` (its throwaway administrator and three "Verification
-  Boutique" businesses) was **dropped at close-out**; the correction phase's `prisma_verify_sell` was
-  dropped by that phase. MySQL was found **stopped** (service `wampmysqld64` STOPPED, no `mysqld`) at
-  close-out; a session `mysqld` on the same data directory (`--sql-mode=`, as `docs/49`'s memory note
-  records) ran for under a minute for the drop and the integrity readings and was shut down again — the
-  service is left exactly as found. Live after: 9 sales / 53 units / 862 audit rows / 2 companies /
-  0 platform administrators / 0 owner invitations; both subscriptions `activated`; 89 tables / 24 triggers.
+- **Live `phonestore` received exactly one change from this phase: migration 0076** (after the backup and the
+  restore-proof). Every other write went to the copy `prisma_verify_home`, **dropped at close-out**. Live read
+  back after the drop: 9 sales / 53 units / 862 audit rows / 9 payments / 1 closing / 6 rollups / 63 permissions / 0 store connections / 0 closing events / 0 discoverable companies / 0 users with a phone number; 90 tables / 24 triggers; latest migration `0076_business_day_and_reopen`.
+- The known **388 340.00 rollup overstatement is untouched** and still awaits the approved repair.
+- Processes started here and stopped: the isolated API (3012, restarted per fake-clock phase), the static
+  server (19012), headless Chrome (9334, own profile), and the session `mysqld` described above. The user's API
+  and Metro were never touched.
+- Throwaway credentials (a password hash on five demo logins and on the Test Store's Owner, e-mails on two
+  soft-deleted logins, one phone number) existed on the copy only. No file holding a token or a credential was
+  written inside any repository.
 
 ## 🔴 Blockers and pending approvals
 
@@ -99,23 +82,31 @@ The correction phase's own table is in `docs/21` and the previous handoff commit
 - **Live rollup repair — still awaiting approval (NOT applied).** Audit shows `Sale create` ×28 on 2026-09-10 and ×4 on
   2026-08-08 with no surviving sales; rollups for those days overstate revenue by **388 340.00**. Procedure: backup per
   `docs/22` → `DB=phonestore node scripts/rollup-audit.js` (confirm exactly 2 rows) → `… --repair`.
-- `GET /closings/overview` fails under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`; `closing.service.ts` ~L911).
-- **Deferred by instruction:** the control website does not know `rejected` and has none of the new platform
-  actions (`docs/38`); administrator MFA and a delivery provider for invitations do not exist and are not faked.
+- `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): not re-checked in this phase; live
+  runs with `sql_mode=""`.
+- **WhatsApp:** no provider adapter exists and none is faked; the three closing templates are registered with
+  `providerTemplateName: null` and await approved copy. On live no user has a phone number, so nothing can be sent.
+- **Deferred by instruction:** the control website (`docs/38`) is unchanged.
 
 ## 📋 Known, not fixed
 
+- Selling a phone outright to another store is still the documented contract gap: the ranking counts settled
+  consignments and fully paid partner-store sales only, and says so.
+- The Stock list shows full identifiers (existing behaviour); masking to four digits is Home-only, as briefed.
+- Home keeps its pending-work rows (transfers, returns, refunds) when there are any — not in the reference, kept on purpose.
+- The reopen sheet's title time comes from the phone's clock; the server's local time is the one recorded.
+- Team's closing delegates live inside the person's sheet, beside the price-edit delegation.
+- The counting screen shows no "since last count" figure; Closing & history does.
 - Filter chips are 36 pt tall by design-system decision, with hit slop restoring a 48 pt target.
 - Two scripts logging in the same user concurrently deadlock on `users.last_login`; harmless for one phone.
 - On web, a screen pushed from a tab announces its back button as "(tabs), back". Dynamic type is handset-only.
-- The counter receipts (Quick Sell, the Sell tab) print the new invoice layout but do not yet name the
-  customer — those screens belong to the selling scope.
 - Prisma drift report: `units.identifier` is a stored generated column from 0008 that Prisma cannot model.
 
 ## The next exact action
 
-1. **Handset:** `docs/24` §36 P1–P15 (invoice on paper/WhatsApp, the closing drag from a label, keyboard and Save,
-   the alerts and Undo, the closed-shop states, the platform sign-in) and §35 S1–S15, on the physical phone against
-   the live API (Expo Go).
-2. Then the older handset backlog: `docs/24` §34, §33, §32, §31, §30.
-3. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy; decide the live rollup repair.
+1. **Handset:** `docs/24` §37 H1–H8 (Home at each period, the bars, the top boutique, the arrivals, the closing
+   card, the offline and stale labels, 130 % text, RTL) and C1–C11 (count → close → reopen → sale → reclose, the
+   03:00 choice as Owner and as a delegate, the 06:00 cutoff, the Owner's in-app notices), on the physical phone
+   against the live API (Expo Go).
+2. Then `docs/24` §36 P1–P15, §35 S1–S15 and the older backlog (§34 … §30).
+3. Decide the live rollup repair; fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.
