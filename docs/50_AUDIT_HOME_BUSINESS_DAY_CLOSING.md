@@ -204,3 +204,44 @@ Docs: `docs/04` §F, `docs/21`, `docs/24` §37, `docs/50` (this), handoff, log.
   live; the in-app notification still reaches the Owner.
 - **Live rollup repair** stays unapplied; Home's month figures on live still
   carry the 388 340 overstatement until the approved repair runs.
+
+---
+
+## 6. Addendum (2026-09-24) — the date selector, the physical opening, and three corrections
+
+The user's brief of 2026-09-24, in the same scope. Audited against the code as committed at
+backend `a8fc4fe` / mobile `57deb64` before any change.
+
+### 6.1 What the repository did, against the brief
+
+| Ask | Found | Gap |
+|---|---|---|
+| Choose a business date on Closing & history, incl. 15 days ago | `GET /closings/open/view?date=` already accepts any date and computes that day's standing, channels and history; the screen never passed one | No selector; the history of a day closed before 0076 was empty (its closing row and counts were never read back as events); no store-local time on the rows (the phone formatted the instant in its own zone) |
+| "No opening time recorded"; a first sale as "First activity" | Nothing recorded a physical opening; the day's "Open" standing was the reporting boundary; sales appeared in the history only after the first close | No opening concept at all; the first sale was invisible before a close |
+| "Opened today · 07:25" after an explicit open; "Reopened today" when the day was already closed | The reopen existed (0076); an explicit open did not | An event kind, an action, the card line, the timeline row |
+| The early-start choice only before 06:00 | The server already offers `start_new` only between local midnight and 06:00; the sheet's title used the **phone's** clock, so under the render matrix's fake clock it read "Reopen at 07:25" above a choice the server had offered at 03:00 | The sheet must show the server's clock; the choice list already was the server's |
+| "Still owed" cut at 320 pt | The scope caption was limited to two lines | One attribute |
+| Masked identifiers in the Stock list reached from "Latest phones" | Full identifiers, as before | The arrivals mode masks |
+
+### 6.2 The contract
+
+- **`opened` event kind (migration 0077).** `closing_events.kind` gains `opened`. Only a person creates one, through `POST /closings/open` (`closing.count`): the physical opening, with its instant and its actor. **The 06:00 cutoff starts a reporting date and never creates an opening event.** `closing_id` is NULL when no closing row exists yet, exactly like `day_started_early`.
+- **Only the current business date can be opened**, never twice while open, and never a closed day: a closed day is *reopened* (`POST /closings/reopen`, `closing.perform`) and the timeline says "Reopened". Refusals are 409 `open_already_open`, `open_day_closed`, `open_past_day`, `open_future_day`. Two taps at once meet the dedupe key `closing:open:<branch>:<date>:<n>` and the second changes nothing.
+- **The door** (`doorState`, pure): `opened` / `reopened` / `auto_reopened` open it; `closed` / `reclosed` close it; a day with no such event is `never_opened`, however many sales it has. The view carries `door`, `opening` (the latest opening: kind, instant, store-local date and time, actor — or null), `canOpen` and `openRefusal`.
+- **The timeline** (`history`, unchanged route): every event; the **first sale of the date as `first_activity`** (its actor is the seller); after the first close, each later sale as `sale`; and, for a day closed **before 0076**, its closing row read back as a `closed` entry and its channel counts as `count_saved` entries (`payload.fromRow: true`) — nothing recorded is ever dropped. Every row carries `localDate` and `localTime` in the company's zone; the view carries `localNow`, `localNowDate` and `lastCountedLocalTime`. The phone shows those strings and never formats an instant in its own zone on this screen.
+- **A past date with no closing row reads "Needs review"** (`standingOf`), not "Open": a day behind the boundary that was never closed is exactly what needs review.
+- **The sheet's clock is the server's.** The reopen sheet's title shows `localNow`; its choices were already the server's (`reopenChoices`), so at 07:25 by the store's clock the early start is never offered, whatever the phone's clock says.
+- **The Stock list reached from "Latest phones received"** shows `•••• 5930` for every unit, as Home does; the full identifier still opens the unit but is not what the glance shows. The normal Stock list is unchanged.
+- **"Still owed"'s scope line wraps** instead of being cut.
+
+### 6.3 Files
+
+Backend: `prisma/schema.prisma` (enum), `prisma/migrations/0077_physical_opening/migration.sql`, `src/common/business-day.ts` (`localTimeOf`) + spec, `src/closing/closing-lifecycle.ts` (`doorState`, `openingOf`, `canOpen`, `standingOf` for a rowless past day) + spec, `src/closing/dto/open-day.dto.ts`, `closing.controller.ts` (`POST closings/open`), `closing.service.ts` (`open`, `timeline` replacing `history`, the view's new fields), `closing-routes.spec.ts`.
+Mobile: `lib/closing.ts` (types, `useOpenDay`), `lib/home-day.ts` (`openingKey`, `shiftDay`, `dayChoices`, `dayWordKey`, keys) + test, `app/closing/index.tsx` (the selector, the opening line, the open action, store-local rows), `components/closing/ReopenSheet.tsx` (`now`), `app/(tabs)/index.tsx` (the caption), `app/(tabs)/inventory.tsx` (masking), i18n EN/FR/AR (19 keys).
+
+### 6.4 Risks
+
+- 0077 is one enum value; the backfill is none. Applied to live only after a fresh backup is restore-proved, per `docs/22`.
+- The selector reaches back sixty days; older days remain readable through the route but not through the sheet (a decision for the Owner if ever needed).
+- A pre-0076 closing's derived `count_saved` rows carry the count's own time and person; a pre-0045 closing (counted and locked in one step) shows its `closed` row only.
+- The timeline's "First activity" is the first **non-reversed** sale; a day whose only sale was reversed shows none, by design.
