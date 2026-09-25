@@ -6,8 +6,12 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T08:04Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `52c1248` ·
+  backend `68c21e9` · mobile `40a9b2f`. **Scope: documentation only** — record in `docs/52` §5 and `docs/21` that the
+  three-day repair was completed (before/after figures, backup names, zero stale days, date), keeping the procedure as
+  the record of how it was done. No repair, no database or code change.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T07:47Z`, closed `2026-09-25T07:56Z`. Takeover HEADs were
   docs `24c6dcd` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin` after a fetch); live at 0081.
 - **Completed phase: the approved live daily-totals repair, Main Store only.** The three stale branch-days of
