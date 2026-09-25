@@ -6,9 +6,22 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T09:39Z`, closed `2026-09-25T05:45Z`. Takeover HEADs were
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T05:38Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `bff3cb6` ·
+  backend `b091286` · mobile `9130a9c`. Live was read at `05:30Z` (latest migration 0079, `migrate status` up to
+  date) just before the session `mysqld` was shut down; the WAMP service has stayed stopped since, so nothing could
+  have changed. The handoff below matched.
+- **Active phase and scope (the user's follow-up of 2026-09-25, Daily closing scope, no workflow, no pictures):**
+  (1) the units-sold goal reverses a cancelled sale's units in the period of the cancellation; (2) Home shows the
+  original sale on its day and its later cancellation on the cancellation's day, and the totals across both dates
+  reconcile with the Daily closing and Results; (3) focused tests for a sale cancelled the same day and on a later
+  business day, with expected and actual figures for Home, the units-sold goal, the Daily closing and Results;
+  earlier closing snapshots stay immutable; the 388 340 rollup repair stays untouched.
+- Next intended action: migration 0080 (`daily_rollups.cancelled_qty`, the goals' only source), the goals' personal
+  path, Home's cancellations, the report's cancelled items, the Results breakdown's cancelled line; then specs, the
+  real-database lifecycle on a restore-proved copy, and live.
+- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T09:39Z`, closed `2026-09-25T05:34Z`. Takeover HEADs were
   docs `8f2c9e6` · backend `f4c3381` · mobile `1e316e9` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (`migrate status` up to date, 0078).
 - **Completed phase: closing delegates verified, and the correction path for sales, payments, expenses and purchases
