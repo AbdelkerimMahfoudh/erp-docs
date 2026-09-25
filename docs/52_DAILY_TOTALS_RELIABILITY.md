@@ -79,7 +79,8 @@ end through the real service (both ends, shipped and received).
 
 ## 6. What is still owed, by name
 
-- **The three stale days on live** (§5) are not repaired — a separate decision, by instruction.
+- **The three stale days on live** (§5) were repaired on 2026-09-25, on a separate approval; a drift check on a fresh
+  copy afterwards reads 0 stale.
 - **Recovery time.** A request whose recompute died mid-way waits for its lease (60 s) and the next sweep (30 s): up to
   about 90 s after a restart before Results and branch goals catch up. Home, the Daily closing and personal goals read
   the records directly and are never stale.
@@ -89,12 +90,12 @@ end through the real service (both ends, shipped and received).
 - **Growth.** `done` rows are kept (one per change) as the history of each recompute; nothing prunes them yet.
 - **Failure visibility.** A request that keeps failing stays `pending` with its `last_error` and is logged at each
   attempt; nothing on the phone shows it.
-- `scripts/rollup-audit.js` is left as it is because the pending 388 340 procedure names it; `rollup-drift.js`
-  answers the question exactly.
+- `scripts/rollup-audit.js` is left as it is; the 388 340 procedure that named it was closed by the §5 repair, and
+  `rollup-drift.js` answers the question exactly.
 - The API was tested as the migration user on the copy; live connects as `phonestore_app`, whose schema-wide
   SELECT/INSERT/UPDATE/DELETE on `phonestore` covers the new table (checked with its own `SHOW GRANTS`).
 
-## 5. Days that could still be stale on live, and the exact repair plan (NOT applied)
+## 5. Days that were stale on live, and their repair (completed 2026-09-25)
 
 0081 protects every change from now on. It does not revisit the past: a day that lost its recompute before 0081 is
 stale until it is recomputed. Which days, exactly, was measured without writing to live:
@@ -116,11 +117,13 @@ cannot see a day that was never rolled up.
 | 2026-08-08 | revenue 40.00 · cost 8.20 · 1 sale · 2 units · net 31.80 · product facts | nothing | overstated by 40.00 |
 | 2026-09-10 | revenue 388 300.00 · cost 60 000.00 · 6 sales · 6 units · net 328 300.00 | nothing | overstated by 388 300.00 |
 
-The two overstated days are the known **388 340** overstatement (still awaiting approval). 2026-07-30 is **new**: its
+The two overstated days are the known **388 340** overstatement (awaiting approval when found; repaired with the
+third day on 2026-09-25 — see "Completed on live" below). 2026-07-30 is **new**: its
 sales predate the rollups' first row (2026-08-03) and were never rolled up; the existing audit could not see it.
 Every other branch-day (08-03, 09-14, 09-15, 09-22) matches its records column for column.
 
-**The exact repair (a separate decision — not applied, and not part of this change):**
+**The repair procedure** — written as a separate decision, approved by the Owner for the Main Store only and carried
+out exactly as below on 2026-09-25; kept as the record of how it was done:
 
 1. The Owner approves the list above by name (the three days, their before and after).
 2. Backup of live per `docs/22` §2 and its restore-proof per §3.
@@ -149,3 +152,38 @@ snapshot, sale or other record changes, and none of the three days has a closing
 the three statements inserted; the API started: its start-up sweep worked the three requests (`done`), the rollups read
 07-30 9 051.00 · cost 6 232.80 · 6 sales · 35 units · expenses 500.00 · net 2 318.20, 08-08 and 09-10 all zero, and
 Results read 9 051 / 0 / 0 for the three days; the repaired copy dumped, restored and audited again: **0 stale**.
+
+### Completed on live, 2026-09-25 (Main Store only)
+
+Carried out by CLAUDE-A on the Owner's approval, following steps 2–5 above; no sale, payment, expense, stock, audit row
+or closing snapshot was edited, and nothing beyond the three branch-days was requested.
+
+- **Backup before** (step 2): `~/erp-backups/phonestore-before-rollup-repair-20260925-075114.sql` (881 146 B, trailer
+  present, 0 raw binary) — restored into a copy: 92 tables / 26 triggers, **identical to live row for row** on the 25
+  tables fingerprinted (row count and whole-row checksum of every source and derived table).
+- **Drift before** (step 3, a fresh copy of that backup, live only read): 7 branch-days, **3 stale — exactly the three
+  above**, all Main Store (`019FB2EBD9707333AB0167454AB5BBCE`), none closed, with the same differences. Live was
+  fingerprinted again just before the requests: unchanged since the backup.
+- **Requests** (step 4): the three statements above, inserted at **07:52:36 UTC**; the user's running API (started
+  07:45:14 UTC from a build of backend `68c21e9`, 0081) worked all three at **07:52:53 UTC**, attempt 1, no error.
+
+| Branch-day | Before | After | Product facts |
+|---|---|---|---|
+| 2026-07-30 | no rollup row | revenue 9 051.00 · cost 6 232.80 · gross profit 2 818.20 · 6 sales · 35 units · expenses 500.00 (cash, 1) · net profit 2 318.20 | its 9 rows (35 units, 9 051.00) rebuilt with the same values |
+| 2026-08-08 | revenue 40.00 · cost 8.20 · gross profit 31.80 · 1 sale · 2 units · net profit 31.80 | all zero | its 1 row (2 units, 40.00) removed |
+| 2026-09-10 | revenue 388 300.00 · cost 60 000.00 · gross profit 328 300.00 · 6 sales · 6 units · net profit 328 300.00 | all zero | none, before or after |
+
+- **Source records, before → after:** all 22 source tables with the same row count and whole-row checksum — sales 9,
+  sale_items 16, payments 9, expenses 4, purchases 10, purchase_items 21, supplier_payments 1, units 53, stock_items 18,
+  audit_logs 865, daily_closings 1, closing_channel_counts 1, users 14, branches 3; return requests, return reversals,
+  refund payouts, corrections and their legs, transfers, closing events and customers 0. Only the derived tables moved:
+  `daily_rollups` 6 → 7, `product_daily_rollups` 16 → 15, `rollup_requests` 0 → 3. Every other rollup row and product
+  fact is byte-identical to before.
+- **Backup after:** `~/erp-backups/phonestore-after-rollup-repair-20260925-075339.sql` (882 058 B, trailer present,
+  0 raw binary) — restored identical to live on all 25 tables.
+- **Drift after** (step 5, a fresh copy of that backup): 7 branch-days, **0 stale**.
+- **Results, Main Store, 2026-07-01 → 2026-09-30:** **10 051 MRU** (389 340 before) — gross = net 10 051, gross profit
+  3 018.20, expenses 500, net operating 2 518.20; per day 9 051 · 0 · 0. Read through the real `analytics/summary`
+  endpoint on a copy of the post-repair backup, and the same from live's own rollups.
+- **Rollback** (step 6), if ever needed: the backup before. The three `repair_drift` rows stay in `rollup_requests` as
+  the record of the repair.

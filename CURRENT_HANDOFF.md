@@ -6,20 +6,17 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-25T08:04Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `52c1248` ·
-  backend `68c21e9` · mobile `40a9b2f`. **Scope: documentation only** — record in `docs/52` §5 and `docs/21` that the
-  three-day repair was completed (before/after figures, backup names, zero stale days, date), keeping the procedure as
-  the record of how it was done. No repair, no database or code change.
-- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T07:47Z`, closed `2026-09-25T07:56Z`. Takeover HEADs were
-  docs `24c6dcd` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin` after a fetch); live at 0081.
-- **Completed phase: the approved live daily-totals repair, Main Store only.** The three stale branch-days of
-  `docs/52` §5 were recomputed through the durable queue — three `rollup_requests` rows (`repair_drift`) worked by the
-  user's running API — exactly as documented; no sale, payment, expense, stock, audit row or closing snapshot was
-  edited; the repair was not expanded. The full record (fingerprints, figures) is the session log entry of this date.
-  `docs/52` §5 and `docs/21` keep the plan as written before it was applied; this handoff and the session log are the
-  record that it was.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T08:04Z`, closed `2026-09-25T08:06Z` — **documentation
+  only**: `docs/52` §5 ("Completed on live, 2026-09-25") and `docs/21` ("Stale days on live — repaired 2026-09-25") now
+  record the completed three-day repair — before/after figures, backup names, the zero-stale-day result, the date —
+  with the procedure kept as the record of how it was done. No repair was run; no database or code change. Takeover HEADs
+  were docs `52c1248` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin`).
+- **Completed phase before it: the approved live daily-totals repair, Main Store only** (07:47Z–07:56Z). The three
+  stale branch-days of `docs/52` §5 were recomputed through the durable queue — three `rollup_requests` rows
+  (`repair_drift`) worked by the user's running API — exactly as documented; no sale, payment, expense, stock, audit row
+  or closing snapshot was edited; the repair was not expanded. Its full record: `docs/52` §5 and the session log.
 - Authorisation: the user's approval of 2026-09-25 (no workflow, no pictures) — a fresh restore-proved backup, the
   read-only `rollup-drift` comparison on a fresh copy showing exactly the three unclosed days with the reported
   differences (it did), the documented requests, a fresh-copy drift check → 0 stale, Main Store July–September Results
@@ -44,7 +41,8 @@ Nothing was removed by this phase.
 | `erp-mobile` | `reports-export` | **`40a9b2f`** — untouched | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-Docs during this phase: `91c1f24`, then this commit. Earlier: backend `97695a8`, `68c21e9` (0081, the drift audit),
+Docs: the repair `91c1f24`, `52c1248`; its record in `docs/52` and `docs/21` `6c47a0b`, then this commit. Earlier:
+backend `97695a8`, `68c21e9` (0081, the drift audit),
 `ceba0ed`, `cdbf404` (0080); mobile `8cd38ff`, `40a9b2f` (0080).
 
 ## What changed (data only, through the production recompute)

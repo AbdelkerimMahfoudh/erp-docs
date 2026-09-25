@@ -5957,7 +5957,7 @@ Sale **S**: a phone 10 000 (cost 6 000) + 2 cables × 20 (cost 5.00) = 10 040, c
 
 ## Daily totals reliability: durable recompute requests (2026-09-25)
 
-Design, coverage, tests, the stale days and the repair plan: [`docs/52`](52_DAILY_TOTALS_RELIABILITY.md). Backend `97695a8` (0081), `68c21e9` (the drift audit). The user's brief: make the recalculation request durable, so a committed sale cannot lose its update if the API stops or the recalculation fails; retry pending work on restart without counting a sale twice; check every transaction type that changes daily figures; test a shutdown or failure between the commit and the recalculation and verify that Results and goals recover; document the days that could still be stale with a separate, exact repair plan; do not apply the 388 340 repair or change live historical totals.
+Design, coverage, tests, the stale days, the repair procedure and its completion on 2026-09-25: [`docs/52`](52_DAILY_TOTALS_RELIABILITY.md). Backend `97695a8` (0081), `68c21e9` (the drift audit). The user's brief: make the recalculation request durable, so a committed sale cannot lose its update if the API stops or the recalculation fails; retry pending work on restart without counting a sale twice; check every transaction type that changes daily figures; test a shutdown or failure between the commit and the recalculation and verify that Results and goals recover; document the days that could still be stale with a separate, exact repair plan; do not apply the 388 340 repair or change live historical totals.
 
 ### ✅ IMPLEMENTED (D25–D28)
 
@@ -5972,9 +5972,18 @@ Design, coverage, tests, the stale days and the repair plan: [`docs/52`](52_DAIL
 - **Real database** (`rollup-durability.mjs`, restore-proved copy, built API, fake clock): **22/22** — every transaction type requested and worked; **failure** (every rollup write rejected): sales and a correction commit, requests wait, Results 0 and branch goals 0 during, then **20 000 / 10 000 cancelled / net 10 000, 1 unit** after the running API retries; **API killed mid-recompute**: request held under the lease, recovered at restart (10 000, 1 unit); **API stopped with a request pending**: recovered at the next start (20 000, 2 units); **all 23 requests worked again**: every rollup row byte-identical, Results over three days unchanged (60 000 sold, net 40 000).
 - **Database:** backup `phonestore-before-0081-20260925-071413.sql` (879 111 B, trailer present, 0 raw binary) → restore-proved (91 / 26, counts and the `units` checksum equal) → 0081 rehearsed and re-run → live at `2026-09-25T07:32:20Z`; live read back unchanged (9 sales · 53 units · 865 audit rows · 9 payments · 1 closing · 6 rollups · 0 rollup requests; `units` and `daily_rollups` checksums unchanged — no historical total touched).
 
-### 🟡 STALE ON LIVE, NOT REPAIRED (a separate decision)
+### ✅ STALE DAYS ON LIVE — REPAIRED 2026-09-25 (a separate approval, Main Store only)
 
-The read-only drift audit (production recompute on a copy, every column compared): **3 of 7 branch-days stale, none closed** — 2026-07-30 has **no rollup row** (9 051.00 revenue, 6 sales, 35 units, a 500.00 expense missing from Results and branch goals — **new**, invisible to the old audit), 2026-08-08 overstated by 40.00 and 2026-09-10 by 388 300.00 (the known 388 340). The exact repair — three `rollup_requests` rows worked by the API — is written in `docs/52` §5 and was rehearsed on a copy (0 stale after); it was **not applied**.
+**Found** by the read-only drift audit (production recompute on a copy, every column compared): **3 of 7 branch-days stale, none closed** — 2026-07-30 had **no rollup row** (9 051.00 revenue, 6 sales, 35 units, a 500.00 expense missing from Results and branch goals — **new**, invisible to the old audit), 2026-08-08 overstated by 40.00 and 2026-09-10 by 388 300.00 (the known 388 340). The exact repair — three `rollup_requests` rows worked by the API — was written in `docs/52` §5 and rehearsed on a copy (0 stale after); it was not part of the 0081 change.
+
+**Repaired on live on 2026-09-25**, on the Owner's approval for the Main Store only, by the procedure of `docs/52` §5 (kept there as the record of how it was done), with nothing edited by hand and nothing beyond the three branch-days requested:
+
+- **Backup before:** `phonestore-before-rollup-repair-20260925-075114.sql` (881 146 B) — restored identical to live on all 25 fingerprinted tables. **Drift before** on a fresh copy of it: exactly the three days above, same differences, none closed.
+- **Requests:** inserted 07:52:36 UTC; worked by the running API (backend `68c21e9`, 0081) at 07:52:53 UTC, attempt 1, no error.
+- **Before → after:** 2026-07-30 no row → revenue 9 051.00 · cost 6 232.80 · gross profit 2 818.20 · 6 sales · 35 units · expenses 500.00 · net 2 318.20; 2026-08-08 revenue 40.00 · cost 8.20 · 1 sale · 2 units · net 31.80 → all zero (its one product fact removed); 2026-09-10 revenue 388 300.00 · cost 60 000.00 · 6 sales · 6 units · net 328 300.00 → all zero.
+- **Source records:** 22 tables, row counts and whole-row checksums identical before and after; only `daily_rollups` (6 → 7), `product_daily_rollups` (16 → 15) and `rollup_requests` (0 → 3) moved.
+- **Backup after:** `phonestore-after-rollup-repair-20260925-075339.sql` (882 058 B) — restored identical to live. **Drift after** on a fresh copy of it: **0 stale**.
+- **Results, Main Store, July–September 2026: 10 051 MRU** (389 340 before); per day 9 051 · 0 · 0.
 
 ### Still owed
 
