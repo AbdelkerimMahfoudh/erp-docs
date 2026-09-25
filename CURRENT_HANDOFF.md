@@ -22,8 +22,23 @@
   correction plan is `docs/51` §15 (D12–D20, migration 0079). MySQL: the WAMP service was found STOPPED with the
   user's API and Metro down (the machine had restarted); a session `mysqld` runs from a copy of the service's own
   settings group (`sql_mode=""`, `utf8mb4_unicode_ci`, binary log off) and is shut down at close-out.
-- Next intended action: migration 0079 and the backend correction engine on the isolated copy; no live change
-  before a restore-proved backup.
+- **Checkpoint 2026-09-25T06:30Z — backend of 0079 proven on the copy, uncommitted.** Migration
+  `0079_correction_path` (re-runnable, proven twice), the correction engine (`correction-targets.ts`, the
+  rewritten `corrections.service.ts`), the report / rollup / summary / goals / ranking / sales / inventory /
+  receiving readers; `corrections-lifecycle.mjs` 40/40 on the copy; backend 153 suites / 2 758 tests, tsc,
+  build, `prisma validate` clean. Found and fixed on the way: a closed day with an unchecked balance always
+  warned "changed since close" (0078 stored the pre-close verification); two requests raced in for one record
+  blocked each other's approval. Live is still 0078; nothing committed yet.
+- **Checkpoint 2026-09-25T05:24Z — migration 0079 is on live.** Backup
+  `~/erp-backups/phonestore-before-0079-20260925-052300.sql` (870 568 B, trailer present, 0 raw binary) →
+  restore-proved into `prisma_verify_home` (90 tables / 24 triggers, counts and the `units` checksum equal) →
+  0079 rehearsed on that exact copy (91 tables / 26 triggers, data unchanged, sold-once intact) →
+  `prisma migrate deploy` on live at `2026-09-25T05:23:45Z` (`migrate status` up to date). Live read back:
+  9 sales / 53 units / 865 audit rows / 9 payments / 1 closing / 6 rollups / 0 corrections / 0 legs /
+  63 permissions; 91 tables / 26 triggers; `units` checksum unchanged. Mobile done and checked (render checks
+  63 views, 0 problems); code still uncommitted at this checkpoint.
+- Next intended action: commit backend and mobile, write `docs/21`, `docs/04`, `docs/24`, the session log and
+  this handoff, drop the copy, shut down the session `mysqld`.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T04:21Z`, closed `2026-09-24T08:31Z`. Takeover HEADs were
   docs `f5c4d5b` · backend `3fa4801` · mobile `904e3ac` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (`migrate status` up to date, 0077).
