@@ -6,35 +6,24 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-25T07:47Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `24c6dcd` ·
-  backend `68c21e9` · mobile `40a9b2f`; live at 0081, up to date. The user's API is now running on 3010 (started
-  07:45:14Z from `backend/dist`, built 07:44–07:45Z from the clean `68c21e9` tree — the 0081 worker is in it); it is
-  not restarted or touched. The handoff below matched.
-- **Active phase and scope (the user's approval of 2026-09-25, no workflow, no pictures):** apply the live daily-totals
-  repair for the Main Store only — a fresh restore-proved backup; the read-only `rollup-drift` comparison on a fresh
-  copy must still show exactly the three unclosed days with the reported differences (else stop and show it); then the
-  three `rollup_requests` rows of `docs/52` §5, worked by the running API; a fresh-copy drift check → 0 stale; Main
-  Store July–September Results revenue 10 051; source-record counts and checksums before and after. No direct edit of
-  sales, payments, expenses, stock, audit rows or closing snapshots; the repair is not expanded.
-- Next intended action: the backup and its restore-proof, then the drift comparison.
-- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T06:43Z`, closed `2026-09-25T07:37Z`. Takeover HEADs were
-  docs `2695f99` · backend `cdbf404` · mobile `40a9b2f` (all clean, level with `origin` after a fetch); the previous
-  handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (0080, up to date).
-- **Completed phase: daily totals reliability — durable recompute requests (migration 0081).** Design, coverage of
-  every transaction type, tests, the stale days on live and the exact repair plan: `docs/52`; decision record:
-  `docs/21` "Daily totals reliability: durable recompute requests".
-- Authorisation: the user's brief of 2026-09-25 (daily totals reliability only, no workflow, no pictures) — durable
-  recalculation requests that survive a stop or a failure, retried on restart without double counting; every
-  transaction type that changes daily figures; a shutdown and a failure tested, Results and goals shown to recover;
-  stale days documented with a separate, exact repair plan; the 388 340 repair and live historical totals untouched.
-- **The WAMP MySQL service is RUNNING** (the user's; used as it was, not stopped). The user's API (3010) and Metro
-  (8081) are not running and were not started. When the API is started on backend `68c21e9`, its start-up sweep finds
-  `rollup_requests` empty.
-- Next intended action: **decide the stale-day repair** (`docs/52` §5: three branch-days, rehearsed on a copy, not
-  applied); then **the handset runs** — `docs/24` §40 L1–L6 and §39 K1–K14 first, then §38 R1–R14, §37, §36, §35 and
-  the older backlog, against the live API in Expo Go.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T07:47Z`, closed `2026-09-25T07:56Z`. Takeover HEADs were
+  docs `24c6dcd` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin` after a fetch); live at 0081.
+- **Completed phase: the approved live daily-totals repair, Main Store only.** The three stale branch-days of
+  `docs/52` §5 were recomputed through the durable queue — three `rollup_requests` rows (`repair_drift`) worked by the
+  user's running API — exactly as documented; no sale, payment, expense, stock, audit row or closing snapshot was
+  edited; the repair was not expanded. The full record (fingerprints, figures) is the session log entry of this date.
+  `docs/52` §5 and `docs/21` keep the plan as written before it was applied; this handoff and the session log are the
+  record that it was.
+- Authorisation: the user's approval of 2026-09-25 (no workflow, no pictures) — a fresh restore-proved backup, the
+  read-only `rollup-drift` comparison on a fresh copy showing exactly the three unclosed days with the reported
+  differences (it did), the documented requests, a fresh-copy drift check → 0 stale, Main Store July–September Results
+  revenue 10 051 MRU, source-record counts and checksums before and after.
+- **The WAMP MySQL service is RUNNING** and the **user's API is running on 3010** (started by the user at 07:45:14Z
+  from `backend/dist`, built from `68c21e9`); neither was restarted or touched. Metro (8081) is not running.
+- Next intended action: **the handset runs** — `docs/24` §40 L1–L6 and §39 K1–K14 first, then §38 R1–R14, §37, §36,
+  §35 and the older backlog, against the live API in Expo Go. No feature is next.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -47,52 +36,46 @@ Nothing was removed by this phase.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`68c21e9`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`40a9b2f`** — untouched this phase | level | 0 |
+| `erp-backend` | `reports-export` | **`68c21e9`** — no code change this phase | level | 0 |
+| `erp-mobile` | `reports-export` | **`40a9b2f`** — untouched | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This phase's backend commits, in order: `97695a8`, `68c21e9`. Docs during the phase: `ec35bec`, `5f2fade`, then this
-commit. Every one is on `origin`. Earlier phases: backend `ceba0ed`, `cdbf404` (0080), `2b7ba08`, `2c98658`, `b091286`
-(0079); mobile `8cd38ff`, `40a9b2f` (0080), `a9b9226`, `9130a9c` (0079).
+Docs during this phase: `91c1f24`, then this commit. Earlier: backend `97695a8`, `68c21e9` (0081, the drift audit),
+`ceba0ed`, `cdbf404` (0080); mobile `8cd38ff`, `40a9b2f` (0080).
 
-## What changed
+## What changed (data only, through the production recompute)
 
-| Commit | Where | In one line |
-|---|---|---|
-| backend `97695a8` | `prisma/migrations/0081_rollup_requests`, `schema.prisma`, `src/analytics/rollup-queue.ts`, `rollup-outbox.service.ts` (new, replaces `in-process-rollup-queue.ts`), `analytics.module.ts`, `rollup.listener.ts`, `src/sales/sales.service.ts`, `src/expenses/expenses.service.ts`, `src/returns/returns.service.ts`, `src/corrections/corrections.service.ts`, `src/purchasing/purchasing.service.ts`, `src/transfers/transfers.service.ts`, specs and test doubles | every transaction that changes the figures writes its recompute request inside itself; a worker drains them after commit, at start-up and every 30 s, under a lease, with a capped backoff, never abandoning one; a committed return, refund or correction is no longer failed by its recompute |
-| backend `68c21e9` | `scripts/rollup-drift.js` (new) | which days are stale, exactly: the production recompute on a restored copy, every column compared with live, live only read |
-| docs (this commit) | `docs/52` (new), `docs/21`, `SESSION_LOG.md`, this file | the design, the coverage table, the tests, the stale days and the exact repair plan |
+| Branch-day (Main Store) | Before | After | Product facts |
+|---|---|---|---|
+| 2026-07-30 | **no rollup row** | revenue 9 051.00 · cost 6 232.80 · gross profit 2 818.20 · 6 sales · 35 units · expenses 500.00 (cash 500.00, 1) · net profit 2 318.20 | 9 rows (35 units, 9 051.00) already present — rebuilt with the same values |
+| 2026-08-08 | revenue 40.00 · cost 8.20 · gross profit 31.80 · 1 sale · 2 units · net 31.80 | all zero | its 1 row (2 units, 40.00) removed |
+| 2026-09-10 | revenue 388 300.00 · cost 60 000.00 · gross profit 328 300.00 · 6 sales · 6 units · net 328 300.00 | all zero | none, before or after |
+
+Every other rollup row and product fact is byte-identical to before. `rollup_requests`: 3 rows, `repair_drift`,
+submitted 07:52:36Z, `done` at 07:52:53Z, attempt 1, no error.
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Backend gate** | tsc clean · `nest build` clean · `prisma validate` · `migrate status` up to date (0081) · full suite **155 suites / 2 791 tests, 0 failed** (new `rollup-outbox.spec` 12 — a failure marked done and a dropped mid-pass request each make it fail; `rollup-requests-coverage.spec` 10) |
-| **Real database (restore-proved copy, built API, fake clock)** | `rollup-durability.mjs` **22/22**: every transaction type requested inside its transaction and worked; a failing recompute (every rollup write rejected) — sales and a correction commit (201), requests wait, Results 0 and branch goals 0 during, then the running API retries to 20 000 / 10 000 cancelled / net 10 000, 1 unit; the API killed mid-recompute — the lease is taken over at restart (10 000, 1 unit); the API stopped with a request pending — worked at the next start (20 000, 2 units); every one of 23 requests worked again — every rollup row byte-identical |
-| **Stale-day audit (read-only on live)** | `rollup-drift.js` against a restored copy: 7 branch-days, **3 stale**, none closed (`docs/52` §5); the repair rehearsed on a copy → **0 stale** after |
-| **Migration 0081** | backup `~/erp-backups/phonestore-before-0081-20260925-071413.sql` (879 111 B, trailer present, 0 raw binary) → restore-proved into `prisma_verify_home` (91 tables / 26 triggers, counts and the `units` checksum equal) → 0081 rehearsed and re-run (idempotent) → **applied to live at `2026-09-25T07:32:20Z`** |
-| **Physical device** | not applicable to this phase (backend only); the handset backlog is unchanged — `docs/24` §40, §39, §38, §37, §36, §35 |
+| **Backup before** | `~/erp-backups/phonestore-before-rollup-repair-20260925-075114.sql` (881 146 B, trailer present, 0 raw binary) → restored into `prisma_verify_home`: 92 tables / 26 triggers, and **all 25 fingerprinted tables identical to live row for row** |
+| **Drift before (fresh copy of that backup, live read only)** | 7 branch-days, **3 stale**, all Main Store, none closed — the same days and differences as reported: 07-30 no row (recomputed 9 051.00 · 500.00 expense), 08-08 40.00 → 0.00, 09-10 388 300.00 → 0.00 |
+| **Source records, before → after** | 22 tables, row count and whole-row checksum each **unchanged**: sales 9 · sale_items 16 · payments 9 · expenses 4 · purchases 10 · purchase_items 21 · supplier_payments 1 · units 53 · stock_items 18 · audit_logs 865 · daily_closings 1 · closing_channel_counts 1 · users 14 · branches 3; returns, refunds, corrections, legs, transfers, closing events and customers 0 · derived: `daily_rollups` 6 → 7, `product_daily_rollups` 16 → 15, `rollup_requests` 0 → 3 |
+| **Backup after** | `~/erp-backups/phonestore-after-rollup-repair-20260925-075339.sql` (882 058 B, trailer present, 0 raw binary) → restored: 92 / 26, identical to live on all 25 tables |
+| **Drift after (fresh copy of that backup)** | 7 branch-days, **0 stale** |
+| **Results, Main Store, 2026-07-01 → 2026-09-30** | **10 051 MRU** (gross = net; gross profit 3 018.20; expenses 500; net operating 2 518.20) — through the real `analytics/summary` endpoint on the post-repair copy, and the same from live's own rollups (4 rows). Per day: 07-30 9 051 · 08-08 0 · 09-10 0. Before the repair the same window read 389 340 |
 
 ## Data and process safety
 
-- **Live `phonestore` received exactly one change from this phase: migration 0081**, after the backup and its
-  restore-proof. Read back: 9 sales / 53 units / 865 audit rows / 9 payments / 1 closing / 6 rollups / 0 corrections /
-  63 permissions / 0 rollup requests; 92 tables / 26 triggers; latest `0081_rollup_requests`; the `units` and
-  `daily_rollups` checksums unchanged — **no historical total was changed**. No sample record, no message.
-- Every other write went to the copies `prisma_verify_home` and `prisma_verify_drift`, rebuilt from the backup for each
-  run and **dropped at close-out**; the drift audit issued only SELECT statements against live.
-- The **388 340.00 overstatement is untouched**, and so is the newly found 2026-07-30 gap (`docs/52` §5).
-- Processes started here and stopped: the isolated API (3012), killed and restarted by the lifecycle on purpose — free
-  at close-out. Scratch tooling lives in the OS temp directory only; the rehearsal's dump was deleted.
+- Live received exactly **three `rollup_requests` rows**; the user's running API recomputed the three branch-days with
+  the production code. No source record changed (checksums above). No closing, no audit row, no sale touched.
+- Every other write went to the copies `prisma_verify_home` and `prisma_verify_drift` (throwaway credentials on the
+  copy only, for the Results endpoint), **dropped at close-out**. Live was never signed into.
+- Processes started here and stopped: the isolated API on 3012 (against the copy). 3012, 19012, 9334 free. The user's
+  API and the MySQL service were left running. Scratch tooling and fingerprints live in the OS temp directory only.
 
 ## 🔴 Blockers and pending approvals
 
-- **Stale days on live — a repair awaiting approval (NOT applied).** The exact read-only audit (`docs/52` §5) finds 3
-  branch-days, none closed: **2026-07-30 never rolled up** (9 051.00 revenue, 6 sales, 35 units, a 500.00 expense missing
-  from Results and branch goals — new), **2026-08-08** overstated by 40.00 and **2026-09-10** by 388 300.00 (the known
-  388 340). The repair — three `rollup_requests` rows worked by the API, with a docs/22 backup first — is written in
-  `docs/52` §5 and was rehearsed on a copy (0 stale after). It supersedes, for these days, the older
-  `scripts/rollup-audit.js` procedure, which cannot see 2026-07-30.
 - **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 is installed but the
   Android scan-region patch was cut against 57.0.4. Expo Go is unaffected.
 - `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): not re-checked; live runs with
@@ -103,9 +86,9 @@ commit. Every one is on `origin`. Earlier phases: backend `ceba0ed`, `cdbf404` (
 ## 📋 Known, not fixed
 
 - **Rollup recovery time:** a request whose recompute died mid-way waits for its lease (60 s) and the next sweep (30 s)
-  — up to ~90 s after a restart; Results and branch goals lag by that much, while Home, the Daily closing and personal
-  goals read the records directly. `done` requests are kept and not pruned; a request that keeps failing is visible
-  only in `rollup_requests.last_error` and the log. One API process assumed (a second is safe by lease and retry).
+  — up to ~90 s after a restart. `done` requests are kept and not pruned; a request that keeps failing is visible only
+  in `rollup_requests.last_error` and the log. One API process assumed (a second is safe by lease and retry).
+- `scripts/rollup-audit.js` (revenue-only, `DATE(sold_at)`, existing rows only) is superseded by `rollup-drift.js`.
 - The **Money tab**'s period figures and the **Analytics** screen's best sellers and employee performance still count a
   cancelled sale on the day it was sold, with no cancellation line.
 - Goals do not deduct returns; Home's expenses are not net of 0079 expense reversals.
@@ -129,11 +112,7 @@ commit. Every one is on `origin`. Earlier phases: backend `ceba0ed`, `cdbf404` (
 
 ## The next exact action
 
-1. **Decide the stale-day repair** (`docs/52` §5). If approved: backup per `docs/22`, restore into
-   `prisma_verify_drift`, `npm run build`, `COPY=prisma_verify_drift node scripts/rollup-drift.js` (confirm the same
-   three days), start the API on backend `68c21e9`, insert the three `rollup_requests` rows printed there, check they
-   are `done`, re-audit a fresh copy → 0 stale.
-2. Start the user's API (3010) and Metro (8081) on the running MySQL service.
-3. **Handset:** `docs/24` §40 L1–L6, then §39 K1–K14, §38 R1–R14, §37 H1–H10, C1–C16, §36, §35 and the older backlog —
-   on the physical phone against the live API (Expo Go). No sample record on the live store unless the user asks.
-4. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.
+1. **Handset:** `docs/24` §40 L1–L6, then §39 K1–K14, §38 R1–R14, §37 H1–H10, C1–C16, §36, §35 and the older backlog —
+   on the physical phone against the live API (Expo Go; start Metro). No sample record on the live store unless the
+   user asks.
+2. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.
