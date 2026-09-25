@@ -3646,3 +3646,16 @@ The 2026-09-25 follow-up (`docs/21`, "Closing delegates verified, and the correc
 | K12 | Close the day, then approve a waiting correction | Refused while the day is closed; approved the next day, it posts there and the closed day still reads as it was closed |
 | K13 | Each sheet with the keyboard open (reason, amount) | The reason field and the confirm button stay reachable above the keyboard; dragging the sheet down closes it without sending |
 | K14 | Arabic, then French, dark mode, iOS Dynamic Type 135 % | Every sheet, notice and refusal in plain words, right-to-left in Arabic, amounts left-to-right; nothing cut |
+
+## 40. A cancellation in its own period (Home, Daily closing, Results, goals) — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-25 follow-up (`docs/21`, "A cancellation in its own period"; `docs/51` §16). Proved on the isolated copy through the built API (`cancellation-lifecycle` 31 steps, 106 figures) and checked on the web export in EN/FR/AR, light and dark, 320 and 393 pt and 130 % text, from the page itself (no pictures). Web rendering proves neither native layout nor Dynamic Type.
+
+| # | Do this | Expect |
+|---|---|---|
+| L1 | Sell a phone with two accessories, then cancel that sale the same day (Owner approves) | Home, Today: the sales value still includes it, and a line **Sales cancelled in this period (1)** with its value taken off; the Daily closing: **Sales cancelled (1 · 3 items)** and Net sales |
+| L2 | A units-sold goal for today (branch, and one for the seller) | Achieved counts only the sale that stood |
+| L3 | Sell on one day, close it, cancel the sale the next day | The closed day reads exactly as closed; the next day's Daily closing and Home (Today) carry the cancellation; Home (7 days) shows the sale and the cancellation |
+| L4 | Results, This month, then Today on the cancellation's day | "How it adds up": Sales, Approved returns, **Cancelled sales**, **Net sales** — the lines add up; Today is not "No sales or expenses" |
+| L5 | Goals: one for the sale's day only, one for the cancellation's day only, one for both | Sale's day counts the units; cancellation's day reads below zero with the bar empty; both days: only the sale that stood |
+| L6 | Arabic and French, dark mode, 320 pt, large text | The cancelled lines wrap, never cut; amounts left-to-right in Arabic |

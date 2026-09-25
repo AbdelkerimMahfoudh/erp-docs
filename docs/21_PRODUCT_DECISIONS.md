@@ -5908,3 +5908,49 @@ Reversing a purchase payment as "not paid" — purchases are paid in full by rul
 - **Mobile:** tsc · `expo lint` 0 errors (no warning in a changed file) · **70 pure suites** · parity **3 161** (116 keys added, 20 retired) · web export.
 - **Render checks, no pictures:** `corrections-checks.mjs` **38 views** (every correction sheet, the Owner's decision, the report's new lines, the cancelled sale and reversed expense, two real submissions through the screens) and the 0078 checks re-run **25 views** — EN/FR/AR, light and dark, 320 and 393 pt, 130 % text — **0 problems** after the two fixes above. Web renders, not device verification.
 - **Physical device: not run** — `docs/24` §39 K1–K14 (and §38).
+
+## A cancellation in its own period: the units-sold goal, Home, the Daily closing and Results (2026-09-25)
+
+Plan, decisions D21–D24, formulas and risks: [`docs/51`](51_AUDIT_DAILY_CLOSING_REPORT.md) §16. Backend `ceba0ed`, `cdbf404`; mobile `8cd38ff`, `40a9b2f`; migration **0080**. The user's brief, Daily closing scope, no workflow, no pictures: fix the units-sold goal so a cancelled sale's units are reversed in the appropriate reporting period; verify that Home shows both the original sale and its later cancellation accurately and that the totals across both dates reconcile with the Daily closing and Results; keep earlier closing snapshots immutable; focused tests for a sale cancelled the same day and on a later business day, with expected and actual figures; leave the 388 340 repair untouched.
+
+### ✅ IMPLEMENTED — one rule for every reader (D21)
+
+A cancelled sale counts in the period it was sold — that day's Daily closing shows it and never changes — and comes off in the period its cancellation was approved. Same day: it nets to nothing that day. Sold one day, cancelled the next: the first day keeps it, the second loses it (a period holding only the cancellation reads below zero), and the two together net to nothing.
+
+- **Units-sold goal:** `daily_rollups.cancelled_qty` (0080), written by the rollup on the correction day and subtracted by the goal, as revenue, count and profit already were. **Personal goals** now follow the same rule on the stored business date (they used to drop the cancelled lines from the sale's own period, keyed on the UTC calendar date — rewriting a period already shown). Supersedes `docs/51` D18's "cancelled sales leave … goal progress".
+- **Home:** `figures.cancellations {count, value, phones}` for the range, keyed on the approval day; the sales value and its bars keep each sale on its own day. The phone shows **Sales cancelled in this period (n)** with the value taken off, under the sales value. Collected stays the money that arrived (as Results' collected); money given back is the Daily closing's "corrections out".
+- **Daily closing:** `sales.cancellations.items`; the line reads **Sales cancelled (1 · 3 items)**.
+- **Results (phone):** a **Cancelled sales** line and **Net sales** — the breakdown adds up again (it had shown Sales − Returns = "Sales after returns" while the server's figure also subtracted cancellations); a period holding only a cancellation or a return is no longer "No sales or expenses".
+
+**Contract.** `GET /v1/home` → `figures.cancellations: { count, value, phones }`. `GET /v1/closings/report` → `sales.cancellations.items`. Goals' responses unchanged in shape (achieved may be negative in a period holding only a cancellation).
+
+### 📋 VERIFICATION — expected (written before the run) and actual
+
+Sale **S**: a phone 10 000 (cost 6 000) + 2 cables × 20 (cost 5.00) = 10 040, cost 6 010, 3 units. Sale **T**: a phone 10 000, cost 6 000, 1 unit. Both by the seller, cash. `cancellation-lifecycle.mjs` on a restore-proved copy through the built API: **31/31 steps, 106/106 figures as expected**; raw SQL agreed on every day.
+
+| Scenario | Reader | Expected = actual |
+|---|---|---|
+| **Same day** (2026-10-06) | Daily closing | value 20 040 · 2 sales · 4 items · cancelled 1 / 10 040 / 3 items · net 10 000 · collected 10 000 · owed 0 · cost 6 000 · gross profit 4 000 |
+| | Home, Today | before the cancellation: 20 040, none cancelled; after: 20 040 and **cancelled 1 · 10 040 · 1 phone** (20 040 − 10 040 = 10 000) |
+| | Results | sales 20 040 · cancelled 10 040 · net 10 000 · net cost 6 000 · gross profit 4 000 |
+| | Goals | **units 1** (branch and the seller's) · revenue 10 000 · sales 1 · gross profit 4 000 |
+| **Later day** (sold 2026-11-09 and closed; cancelled 2026-11-10) | Daily closing D1 (closed) | value 20 040 · 4 items · no cancellation · net 20 040 · gross profit 8 030 — **stored close event, closing row, rollup row and report version byte-identical after the cancellation; no "changed since close"** |
+| | Daily closing D2 | value 0 · cancelled 1 / 10 040 / 3 items · net −10 040 · cost −6 010 · gross profit −4 030 · 10 040 out of the drawer as a correction |
+| | Home | D1 Today: 20 040, none cancelled · D2 Today: 0 and cancelled 1 · 10 040 · D2 7 days: 20 040 and cancelled 10 040 |
+| | Results | D1: 20 040 / 0 / 20 040 / GP 8 030 · D2: 0 / 10 040 / −10 040 / GP −4 030 · both: 20 040 / 10 040 / **10 000** / GP **4 000** |
+| | Units-sold goal | branch: **D1 4 · D2 −3 · both 1 · November 1**; the seller's: D1 4 · D2 −3 · both 1. Before the fix: branch D1 4 · D2 0 · both 4; the seller's D1 fell to 1 once the sale was cancelled (its own period rewritten) |
+| | Other goals, both days | revenue 10 000 · sales 1 · gross profit 4 000 |
+| **Both scenarios** | reconciliation | over the two dates Home (value − cancelled) = Σ Daily closing net = Results net = revenue goal = **10 000**; units goal = Σ closing (items − cancelled items) = **1**; gross profit 4 000 everywhere; the later-day scenario ends where the same-day one does |
+
+- **Backend:** tsc · build · `prisma validate` · full suite **154 suites / 2 771 tests** (new `cancellation-periods.spec` 13: both scenarios through the goal's own SQL expression, `profit()` and `assembleReport()`, plus source pins; it fails 4 tests against the old units rule). The 0079 lifecycles re-run on the new code: corrections **40/40**, report **45/45**.
+- **Mobile:** tsc · `expo lint` 0 errors (33 warnings, all pre-existing) · **70 pure suites** (`layout.test`: both scenarios' breakdowns add up; the Home line) · parity **3 163**.
+- **Render checks, no pictures:** **35 views, 0 problems** — Home (7 days, Today), the Daily closing and Results (This month, Today) in EN/FR/AR, light and dark, 320 and 393 pt, 130 % text, and five views that can pass only with the right period's amounts. Web renders, not device verification.
+- **Database:** backup `phonestore-before-0080-20260925-055659.sql` (878 859 B, trailer present, 0 raw binary) → restore-proved (91 tables / 26 triggers, counts and the `units` checksum equal) → 0080 rehearsed and re-run on that copy → live at `2026-09-25T06:12:46Z`; live unchanged (9 sales · 53 units · 865 audit rows · 9 payments · 1 closing · 6 rollups · 0 corrections · 63 permissions; `units` checksum unchanged). Live holds no stored close event, so no closed day reads differently.
+- **Physical device: not run** — `docs/24` §40 L1–L6.
+
+### 🟡 NOT CHANGED, BY NAME
+
+- The **Money tab**'s period figures (sales value, phones sold) and the **Analytics** screen's best sellers and employee performance still count a cancelled sale on the day it was sold, with no cancellation line.
+- Goals do not deduct **returns** (unchanged; revenue and units goals count a returned sale).
+- Home's **expenses** are not net of 0079 expense reversals (the Daily closing's and Results' are).
+- **Found while testing, not fixed:** the rollup queue runs inside the API process, fire-and-forget. If the API stops right after a sale, that day's rollup can miss the sale until the day is recomputed — Results and branch goals would then read low (the Daily closing and Home read the sales directly). Seen on the copy when the harness restarted the API immediately after a sale; the same family as the 388 340 overstatement (still untouched, awaiting approval).

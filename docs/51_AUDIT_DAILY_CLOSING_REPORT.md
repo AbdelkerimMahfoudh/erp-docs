@@ -786,3 +786,47 @@ Money     corrections in / out  = Σ legs of corrections approved on D, per chan
 ### 15.6 Status (2026-09-25, close of the session)
 
 Implemented and verified on a real database: backend `2b7ba08`, `2c98658`, `b091286`; mobile `a9b9226`, `9130a9c`; migration 0079 applied to live at `2026-09-25T05:23:45Z` after a restore-proved backup. Delegation 24/24, corrections 40/40, the 0078 report lifecycle 45/45, backend 153 suites / 2 758 tests, mobile 70 pure suites, 63 web render views with 0 problems. Two further limits found while verifying and recorded in `docs/21`: a branch's units-sold goal still counts a cancelled sale's items, and Home's period figures count a sale on its own day. Physical device checks: `docs/24` §39 K1–K14, not run.
+
+## 16. Follow-up of 2026-09-25 (second): a cancellation in its own period, everywhere
+
+The user's brief, Daily closing scope, no workflow, no pictures: the units-sold goal reverses a cancelled sale's units in the appropriate reporting period; Home shows the original sale and its later cancellation accurately; the totals across both dates reconcile with the Daily closing and Results; focused tests for a sale cancelled the same day and on a later business day; earlier closing snapshots stay immutable; the 388 340 rollup repair stays untouched.
+
+### 16.1 What was wrong
+
+| Reader | Before | Why it was wrong |
+|---|---|---|
+| Branch goals, **units sold** | `qty_sold` only — a cancelled sale's units never came off (0079 gave the rollup no column for them) | Revenue, count and profit came off on the cancellation's day; units did not, in any period |
+| Personal goals, every metric | a cancelled sale's lines filtered out of the sale's own period, keyed on `DATE(sold_at)` (UTC calendar) | Rewrote a past period — the period its Daily closing had already shown — and disagreed with the branch goal whenever the sale and its cancellation fell in different periods |
+| Home | the sale in the sales value of its day; the cancellation nowhere | Over any range Home said more than the Daily closing and Results by the cancelled value |
+| Daily closing | items sold of the day; the cancelled line had no items | Units could not be reconciled with the goal from the report alone |
+| Results (phone) | Sales − Returns = "Sales after returns", while the server's figure also subtracted the cancellation | The breakdown did not add up on screen; a period holding only a cancellation read "No sales or expenses" |
+
+### 16.2 Decisions
+
+| # | Decision |
+|---|---|
+| D21 | **One rule for every reader:** a cancelled sale counts in the period it was sold (that day's closing shows it and never changes) and comes off in the period its cancellation was approved (`correction_date`). Same day: net nothing. Sold in one period, cancelled in the next: the first keeps it, the second loses it — a period holding only the cancellation reads negative. Supersedes D18's "cancelled sales leave … goal progress" |
+| D22 | **Units get a rollup column** (`daily_rollups.cancelled_qty`, migration 0080), because branch goals read only columns the rollup writes (`goals-source.spec.ts`, Milestone F): no goal grows its own definition. Personal goals follow the rollup's own definitions for one seller, on the stored business date |
+| D23 | **Home** returns `figures.cancellations {count, value, phones}` for the range, keyed on the approval day; the sales value and its bars keep each sale on its own day (the bars still add up to the value). The phone shows one line under the sales value when there is a cancellation. **Collected** stays the money that arrived, as Results' collected does; money given back is an outflow in the Daily closing's money section |
+| D24 | **The Daily closing** gives the cancelled items (`sales.cancellations.items`); **Results** shows the cancelled sales on their own line and calls the strong line "Net sales" |
+
+### 16.3 Formulas
+
+```
+Rollup of day D   cancelled_qty = Σ quantity of the non-voided lines of the sales whose cancellation was approved on D
+Branch goal       units = Σ_D (qty_sold − cancelled_qty); revenue, count, profit as 0079 (revenue − cancelled_revenue, …)
+Personal goal     metric(person, sales with business_date in the period) − metric(person, sales cancelled with correction_date in the period)
+Home              salesValue, bars = the range's sales (their own day); cancellations = the sales cancelled in the range (approval day)
+                  salesValue − cancellations.value = Σ Daily closing (value − cancelled) = Results (grossSales − cancelledRevenue)
+Daily closing     cancellations.items = the cancelled sales' Σ quantity;  units net = itemsSold − cancellations.items = goal units
+```
+
+### 16.4 Risks
+
+- **Closed days.** Adding `items` changes the report's version, so a day closed under 0079 before this deploy would read "changed since close" (its stored snapshot itself never changes). Live holds no stored close event (one 2026-09-15 row, counted before 0078), so none is affected; proved on the copy that a day closed now stays byte-identical after a later cancellation.
+- **Negative periods.** A goal whose period holds only the cancellation reads below zero (units −3). Intended (D21); the phone's bar is clamped at zero.
+- **Timing.** A branch goal reads the rollup, rebuilt by the in-process queue after the approval; the lifecycle waits for it as the phone's next refresh does.
+
+### 16.5 Status (2026-09-25)
+
+Implemented and verified on a real database (migration 0080 after a restore-proved backup); commits and figures in `docs/21` "A cancellation in its own period" and the handoff. Not changed, by name: the Money tab's period figures and the Analytics screen's best sellers and employee performance still count a cancelled sale on the day it was sold, with no reversal; goals do not deduct returns (as before); Home's expenses are not net of expense reversals.

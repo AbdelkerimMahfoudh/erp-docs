@@ -10156,3 +10156,23 @@ patch mismatch. The product-image upgrade was not started.
 **Unavailable, by name.** Reversing a purchase payment as "not paid" (no supplier debt exists to carry it — cancel the purchase); editing a sale line or cancelling part of a sale (cancel and sell again); a sale with a return (correct it on the return); a purchase whose goods have moved (correct the later record first). A branch's units-sold goal still counts a cancelled sale's items; Home's period figures count a sale on its own day.
 
 **Owed.** Start the WAMP MySQL service (found stopped) before the handset run; the handset run (`docs/24` §39, then §38, §37 and the older backlog); the live rollup repair (approval pending).
+
+## 2026-09-25 05:38Z → 06:22Z — CLAUDE-A — a cancellation in its own period: the units-sold goal, Home, the Daily closing and Results (0080)
+
+**Takeover.** `READY_FOR_HANDOFF` / owner `NONE` (this account's own close-out of 05:34Z); docs `bff3cb6`, backend `b091286`, mobile `9130a9c`, all clean and level after a fetch; live last read at 05:30Z (0079, up to date). The previous handoff recorded its close as 05:45Z; the docs commit was at 05:33:57Z — corrected here. The WAMP MySQL service, stopped at the previous close-out, was started by the user at 05:39:37Z. A session `mysqld` launched before that was noticed exited at once (the data directory was held by the service, "Failed to initialize DD Storage Engine"); the service's log shows nothing from it, and the service was then used as it was and never stopped.
+
+**The brief.** Daily closing scope, no workflow, no pictures: the units-sold goal reverses a cancelled sale's units in the appropriate reporting period; Home shows the original sale and its later cancellation accurately; the totals across both dates reconcile with the Daily closing and Results; focused tests for the same day and a later business day with expected and actual figures; earlier closing snapshots immutable; the 388 340 repair untouched.
+
+**What was wrong (`docs/51` §16.1).** Branch units-sold goals never took a cancelled sale's units off (0079 gave the rollup no column); personal goals dropped a cancelled sale from its own period, keyed on the UTC date; Home showed no cancellation at all; the Daily closing's cancelled line had no items; Results' breakdown did not add up on the phone, and a period holding only a cancellation read "No sales or expenses".
+
+**Backend (`reports-export`: `ceba0ed`, `cdbf404`).** Migration 0080 (`daily_rollups.cancelled_qty`, guarded, backfilled); the rollup writes it; `CANCELLED_ADJUSTMENT.units_sold`; the personal goal on the rollup's rule for one seller; Home's `figures.cancellations`; the report's cancelled items; `cancellation-periods.spec` (13).
+
+**Mobile (`reports-export`: `8cd38ff`, `40a9b2f`).** Home's cancelled line; the Daily closing's items; Results' "Cancelled sales" and "Net sales", and its emptiness rule; 3 catalogue keys added, 1 retired (parity 3 163).
+
+**Database.** Backup `phonestore-before-0080-20260925-055659.sql` (878 859 B) → restore-proved (91/26, counts and the `units` checksum equal) → 0080 rehearsed and re-run on the copy → live at `2026-09-25T06:12:46Z`; live rows unchanged. The copy `prisma_verify_home` was rebuilt from that backup before each run and dropped at close-out.
+
+**Verification.** Backend 154 suites / 2 771 tests; `cancellation-lifecycle` **31/31, 106/106 figures as expected** (the table is in `docs/21`); corrections 40/40 and report 45/45 re-run on the new code; mobile tsc, lint 0 errors, 70 pure suites; render checks 35 views, 0 problems (no pictures). A first run of the checks found the fixture's 2026-11-09 rollup missing a sale: the harness had restarted the API right after that sale and the in-process rollup queue lost the recompute — recorded in `docs/21` as found, not fixed; the fixture now waits for the rollup. Web renders, not device verification; handset rows `docs/24` §40 L1–L6.
+
+**Data and process safety.** Live received exactly one change: migration 0080. No sample record was written to live, no message sent. Processes started here and stopped: the isolated API (3012), the static server (19012), headless Chrome (9334). The user's MySQL service was used and left running; the user's API (3010) and Metro (8081) were not running and were not started.
+
+**Owed.** The handset run (`docs/24` §40, §39, §38 …); the Money tab and Analytics screen still count a cancelled sale on its own day only; Home's expenses not net of reversals; a durable rollup queue (or a recompute on start); the live rollup repair (approval pending).
