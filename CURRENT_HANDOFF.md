@@ -16,10 +16,16 @@
   after a stop or a failure, never counting a sale twice; cover every transaction type that changes daily figures; test
   a stop and a failure between commit and recalculation and prove Results and goals recover; document the days that
   could still be stale with a separate, exact repair plan. The 388 340 repair and live historical totals: untouched.
-- Next intended action: migration 0081 (`rollup_requests`, append-only request log), request rows written inside the
-  sale, expense-confirmation, return-approval, refund-confirmation, correction-approval, purchase and transfer
-  transactions; a worker that drains them after commit, at start and on a timer; specs; a real-database stop/failure
-  lifecycle on a restore-proved copy; then live.
+- **Checkpoint 2026-09-25T07:33Z — migration 0081 is on live.** Backup
+  `~/erp-backups/phonestore-before-0081-20260925-071413.sql` (879 111 B, trailer present, 0 raw binary) →
+  restore-proved into `prisma_verify_home` (91 tables / 26 triggers, counts and the `units` checksum equal) → 0081
+  rehearsed and re-run (idempotent) → `prisma migrate deploy` on live at `2026-09-25T07:32:20Z` (`migrate status` up
+  to date). Live read back: 9 sales / 53 units / 865 audit rows / 9 payments / 1 closing / 6 rollups / 0 corrections /
+  63 permissions / 0 rollup requests; 92 tables / 26 triggers; `units` and `daily_rollups` checksums unchanged — no
+  historical total touched. Verified on the copy: `rollup-durability` lifecycle 22/22; the stale-day audit (3 days)
+  and its repair rehearsed on a copy (0 stale after); backend 155 suites. Code still uncommitted at this checkpoint.
+- Next intended action: commit backend, write `docs/52`, `docs/21`, the session log and this handoff, drop the copies
+  `prisma_verify_home` and `prisma_verify_drift`.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T05:38Z`, closed `2026-09-25T06:22Z`. Takeover HEADs were
   docs `bff3cb6` · backend `b091286` · mobile `9130a9c` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (0079, up to date). Its recorded close
