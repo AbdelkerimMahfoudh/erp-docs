@@ -6,8 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T07:47Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `24c6dcd` ·
+  backend `68c21e9` · mobile `40a9b2f`; live at 0081, up to date. The user's API is now running on 3010 (started
+  07:45:14Z from `backend/dist`, built 07:44–07:45Z from the clean `68c21e9` tree — the 0081 worker is in it); it is
+  not restarted or touched. The handoff below matched.
+- **Active phase and scope (the user's approval of 2026-09-25, no workflow, no pictures):** apply the live daily-totals
+  repair for the Main Store only — a fresh restore-proved backup; the read-only `rollup-drift` comparison on a fresh
+  copy must still show exactly the three unclosed days with the reported differences (else stop and show it); then the
+  three `rollup_requests` rows of `docs/52` §5, worked by the running API; a fresh-copy drift check → 0 stale; Main
+  Store July–September Results revenue 10 051; source-record counts and checksums before and after. No direct edit of
+  sales, payments, expenses, stock, audit rows or closing snapshots; the repair is not expanded.
+- Next intended action: the backup and its restore-proof, then the drift comparison.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T06:43Z`, closed `2026-09-25T07:37Z`. Takeover HEADs were
   docs `2695f99` · backend `cdbf404` · mobile `40a9b2f` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (0080, up to date).
