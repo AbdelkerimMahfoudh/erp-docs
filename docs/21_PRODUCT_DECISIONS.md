@@ -5988,3 +5988,42 @@ Design, coverage, tests, the stale days, the repair procedure and its completion
 ### Still owed
 
 Recovery after a crash mid-recompute takes up to ~90 s; `done` rows are not pruned; a request that keeps failing is visible only in the table and the log; one API process assumed (a second is safe by lease and retry). Supersedes the "found while testing, not fixed" rollup-queue note of the previous entry.
+
+## Reporting consistency: one set of dated rules for Money, Home, Analytics and goals (2026-09-25)
+
+Rules R1–R6, the audit, decisions D29–D35, the contract, every scenario's figures and what is left: [`docs/53`](53_REPORTING_CONSISTENCY.md). Backend `1a5105e`, `60fe7e3`, `c9be28e`, `b17be0c`, `c7bd82c`, `0a694a8`, `bf525b2`, `f380747`, `5acab28`; mobile `dd309fc`, `11f3d8d`, `2c22628`, `4cea1c8`, `5c1cb91`, `7ba2449`, `73fee6d`. **No migration.** The user's brief (reporting consistency only, no workflow, no pictures, the completed three-day repair not rerun): Money, Home, Analytics and goals use the Daily closing's and Results' dated rules; audit first; preserve original dates and closing snapshots; keep cost and profit gated; test cancellations, returns, reversals and refunds paid later; document what needs a product decision.
+
+### ✅ APPROVED RULES, NOW EVERYWHERE
+
+- **A sale** stays on its sale date; **its cancellation** is a separate negative adjustment on the approval date.
+- **An approved return** changes revenue (by its **net refund due** — gross refund less the adjustments the shop keeps), profit and returned units on its approval date. **Its refund confirmation** moves money on its confirmation date, with no second profit effect.
+- **A confirmed expense** stays on its accounting day (variable: confirmation date; fixed: due date); **a reversal** reduces expenses on its correction date and is shown apart, so a negative net reads as a reversal.
+- **Sales count** = invoices less whole-sale cancellations; a returned item is a separate return event. **Units sold** = invoiced units less units on cancelled invoices; returned units are their own measure. The definition is stated on Money, Analytics, goals and the Daily closing.
+
+### ✅ IMPLEMENTED (D29–D35)
+
+- **One definition** (`period-figures.ts`) feeds Home, Money, sales by day, sellers and products; the rollup readers (Results, branch goals, branches) use the rollup's columns for the same facts.
+- **Results** subtracts the net refund due (D30): a kept restocking fee stays revenue, as the Daily closing and the rollup's `net_profit` already had it.
+- **Home:** returns on their own line; count and phones net; expenses net of reversals with the reversed part stated.
+- **Money:** "Items sold" counted **phones only** (found while fixing it) — now units sold as defined; cancellations and returns apart; net sales; each day row is the day's net, and a day holding only an adjustment appears; today's expenses follow the accounting-day rule (a fixed expense on its due date) and list a reversal as its own negative row.
+- **Analytics:** products and categories net of cancelled lines and returns, returned units apart; sellers by business date, net of their own cancellations and returns, returns counted apart; branches net. Exports and the seller-margin anomaly follow.
+- **Goals:** returns come off branch and personal revenue and profit goals on their approval dates; a gross-profit goal is hidden from, and 404 for, a user without `cost.view`.
+- **Cost gating:** Results' `comparison.netOperatingProfit` and its cost-side keys are now stripped without `cost.view`.
+- **Snapshots:** no stored close, closing row or report version changes — the report's new `salesCount`/`unitsSold` sit outside the version; a closed day stayed byte-identical after a later cancellation.
+
+### 📋 VERIFICATION
+
+- **Isolated copy, built API, fake clock** (`reporting-lifecycle`): **59/59 steps, 53/53 screen checks with expected = actual** — same-day cancellation, later-day cancellation over a closed day (the cancellation day reads −10 000, −1 sale, −1 unit on every screen), partial return with a 500 fee kept and the refund paid two days later (Results over the three days: net 10 500, profit 4 500; the refund day moves money only), full return with a later refund, expense reversal on a day holding only it (Money's row "Transport, corrected" −300; Home −300; Daily closing and Results −300; 7 days 2 500), and cost gating on a day with rows. The figures per screen: `docs/53` §6.
+- **Regression on the new build:** Daily closing lifecycle 45/45, corrections 40/40, cancellation 31/31 (106/106 figures, its three Home counts updated to the sales-count rule).
+- **Backend:** tsc · **156 suites / 2 806 tests**. **Mobile:** tsc · **71 pure suites** · parity 3 180 · `expo lint` 0 errors (33 pre-existing warnings).
+- **Database:** no migration, no backup needed; live untouched. The copy was dropped.
+- **Physical device: not run** — `docs/24` §41.
+
+### 🟡 NEEDS A PRODUCT DECISION (`docs/53` §4)
+
+1. Should a return reduce **units sold** (and the units-sold goal)? Today it does not — returned units are apart, as the rule states.
+2. A **whole-sale discount** would make line-based readers (Results, goals, branches, products) and invoice-based ones (Daily closing, Home, Money, sellers) disagree by the discount; live has none today.
+3. The revenue goal's **"Money taken"** label now means net sales, not cash collected.
+4. Analytics' **movement labels** ("sold in 30 days", "last sold", dead stock) still count a cancelled sale as movement.
+
+Supersedes, in the previous entries' "not changed" lists: the Money tab and Analytics counting a cancelled sale on its sale day only; goals not deducting returns; Home's expenses gross of reversals.

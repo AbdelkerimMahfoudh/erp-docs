@@ -3659,3 +3659,18 @@ The 2026-09-25 follow-up (`docs/21`, "A cancellation in its own period"; `docs/5
 | L4 | Results, This month, then Today on the cancellation's day | "How it adds up": Sales, Approved returns, **Cancelled sales**, **Net sales** — the lines add up; Today is not "No sales or expenses" |
 | L5 | Goals: one for the sale's day only, one for the cancellation's day only, one for both | Sale's day counts the units; cancellation's day reads below zero with the bar empty; both days: only the sale that stood |
 | L6 | Arabic and French, dark mode, 320 pt, large text | The cancelled lines wrap, never cut; amounts left-to-right in Arabic |
+
+## 41. One set of dated rules on Money, Home, Analytics and goals — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-25 reporting-consistency change (`docs/53`; `docs/21`, "Reporting consistency"). Proved on the isolated copy through the built API (`reporting-lifecycle` 59 steps, 53 screen checks). No render check was run this time and no pictures were taken: every line below is unverified on any screen, web or device.
+
+| # | Do this | Expect |
+|---|---|---|
+| N1 | Sell a phone with two accessories and cancel that sale the same day (Owner approves) | Home, Today: the sales value keeps it, **Sales cancelled in this period (1)** takes it off, and the count reads 1 sale; Money, Today: **Items sold** counts accessories too and falls by the cancelled sale's units, **Sales cancelled (1)** and **Net sales** under the value, and the rule stated under them; the Daily closing reads "1 sale · 1 item" with the rule under it |
+| N2 | Sell on one day, close it, cancel the sale the next day | The closed day reads exactly as closed. The next day, on Home, Money and the Daily closing: a count of −1 and net sales below zero; Money's sales by day lists that day at its net, −10 000, captioned "… 10 000 cancelled or returned" |
+| N3 | Return one phone of a two-phone sale with a restocking fee, approve it, confirm the refund the next day | The approval day: **Returns approved (1)** on Home and Money with the net refund due (not the gross); Results' "Approved returns" is the same amount; the refund day moves money only — no sales figure changes |
+| N4 | Analytics after N1–N3 | Best sellers read "{n} sold · {r} returned"; the seller reads "{n} sales · {r} returns"; the rule is stated under the sellers; a product whose only movement that day was a cancellation shows a negative profit, signed |
+| N5 | Goals for the days of N2 and N3 | Each goal states what it counts; revenue and profit goals lose the return on its approval day |
+| N6 | As a user without "see cost" | No gross-profit goal is listed; Analytics shows no profit, cost or margin; Results shows no profit figures |
+| N7 | Confirm an expense, then have 300 of it reversed on a later day | Money's today's expenses on the reversal day: one row, "Transport, corrected", −300, and "After 300 reversed today"; Home's expenses −300 with "After 300 reversed"; tapping the row opens the original expense |
+| N8 | Arabic and French, dark mode, 320 pt, large text | The new lines and rule captions wrap, never cut; negative amounts read left-to-right in Arabic |
