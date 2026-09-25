@@ -727,3 +727,58 @@ Out of scope and recorded as owed: reversing a payment that was never received; 
 ## 14. Status (2026-09-24, close of the session)
 
 D1–D11 are implemented and verified: backend `42bfd76`, `ff531dd`, `e352cf3`, `f4c3381`; mobile `8346398`, `7ed67bc`, `1e316e9`; migration 0078 applied to live at `2026-09-24T08:24:43Z` after a restore-proved backup. The formulas as built, the lifecycle (45/45) and the render checks are recorded in `docs/21`, "The Daily closing report, closing without a physical check, and 'Correct a transaction' (2026-09-24)". The out-of-scope list above is unchanged and remains owed. Not yet verified on a handset: `docs/24` §38 R1–R14.
+
+---
+
+## 15. Follow-up of 2026-09-25: delegation check and the full correction path
+
+The user's follow-up: verify that the Owner can delegate closing to at most two employees who can then close and reclose, while other employees cannot; and complete the correction path for erroneous **sales, payments, expenses and purchases** as authorised reversals or adjustments, with a required reason and a permanent audit history, never overwriting a confirmed record or an earlier closing snapshot. Any action that cannot be completed safely is to be named with its reason.
+
+### 15.1 Delegation (verified, unchanged)
+
+0078 removed `closing.perform` from two **roles** (`administrator`, the retired `branch_manager`). Per-branch delegation (0076) was untouched: `user_branch_permissions` grants `closing.perform` to a `store_manager` or `store_employee` assignment, at most two per branch, and `AccessService` honours it for that branch only. Proved on a real database (`delegation-lifecycle.mjs`, 24/24): the Owner names an employee and a manager; a third and a fourth are refused; the delegates' effective permissions, the report's close verdict and the server route agree; the employee delegate closes, the manager delegate recloses after a later sale, the employee reopens and recloses; the other employees are refused the close, the reclose and the reopen; the delegation holds at its own branch only; a delegate can neither name another delegate nor approve a correction; a withdrawn delegate is refused again and the freed place can be given to another employee; every naming and withdrawal is audited. The wording "Owner-only" in the 0078 record was about roles and is corrected: closing authority is **the Owner plus at most two people the Owner names per branch**.
+
+### 15.2 What each correction does (decisions D12–D20)
+
+Every correction is a `financial_corrections` row: requested with a mandatory reason (`financial.correction.request`), previewed by the server with nothing written, approved by the Owner (`financial.correction.approve`) in one transaction that locks the target and the current day's closing row, posted to the **current open business day** of the target's branch (refused `409 day_already_closed` while that day is closed), idempotent by `clientUuid`, one approved correction per target (a generated unique key), append-only, audited at request and at approval with before/after. The corrected record is never edited; its own day, its rollup and every closing snapshot stay as they were.
+
+| # | Erroneous record | Correction | What moves, on the correction day |
+|---|---|---|---|
+| D12 | Money moved by any correction | **One ledger of legs** (`financial_correction_legs`): direction, channel, account, amount, and the payment, purchase payment or expense it came from | Each leg is a `correctionsIn` or `correctionsOut` of its channel. The 0078 reclassification is re-expressed as two legs (backfilled); refund-payout and settlement corrections keep their arms |
+| D13 | A sale payment recorded but **never received** (all or part) | `sale_payment` · `reverse` | An out leg from the channel the money is in; the debt comes back to the sale's customer or partner store (`amount_paid` down, `balance_due` up, the pay status, the customer's balance cache). Refused for a sale with no debtor: cancel the sale instead |
+| D14 | A **sale** that should not exist as recorded (wrong item, wrong price, duplicate, test) | `sale` · `cancel`, the whole sale | Its value and recorded cost come off the correction day's sales and result (`sales.cancellations`, rollup `cancelled_*`); every phone goes back to stock (`sold` to `in_stock`, the line released from sold-once by `sale_items.released_by_correction_id`); quantity lines go back to their stock; the money still held against it leaves the channels it is in (given back or never received) as out legs; its balance is cleared. The right sale is then recorded again. Refused: a sale with a return claim or approval, a pending correction on it or its payments, a phone no longer `sold` |
+| D15 | A confirmed **expense** that was wrong (all or part) | `expense` · `reverse` | An in leg back to the expense's channel; the correction day's expenses fall by the amount (`expenses.reversed`; rollup `expense_reversals`, and rollup `expenses` becomes net) |
+| D16 | A **purchase payment** recorded in the wrong channel (all or part) | `supplier_payment` · `reclassify` | An out leg from the recorded channel and an in leg to the real one; nothing else changes |
+| D17 | A **purchase** that should not exist as recorded (goods not received, wrong cost, wrong product, wrong quantity) | `purchase` · `cancel`, the whole purchase | Its phones leave stock as `voided` (they never entered the books); quantity lines leave their stock at the purchase's cost (the branch average re-computed); the money paid comes back to its channel as in legs. The right purchase is then recorded again: receiving an IMEI that belongs to a voided phone of the company **reactivates that record** instead of creating a second one, so IMEI uniqueness is enforced exactly as before. Refused: any phone no longer `in_stock` at the purchase's branch, fewer items in stock than were bought, a quantity cost that would fall below zero |
+| D18 | Readers of "what exists now" | Cancelled sales leave the partner ranking, goal progress and velocity; their return and payment flows refuse them; the sale shows "Cancelled" with who, when and why. Voided phones are in no stock, value or sale. Historical day figures keep them, with the reversal on its own day |
+| D19 | Readers of profit | The report's result, rollup `net_profit` and Results subtract cancelled revenue and cost and reversed expenses on the correction day; returns keep their own line |
+| D20 | "Correct a transaction" | Lists the day's sales, payments, refunds, expenses, purchases and corrections with every action that applies or a refusal by name, and the requests waiting for the Owner (approve or reject in place) |
+
+### 15.3 Formulas added to the report (§3)
+
+```
+Sales     cancellations         = Σ sale.total of sales cancelled on D (any sale date)
+          net sales             = value − returns.net_refund_due − cancellations.value
+          collected (D's sales) = Σ payments on D's sales dated ≤ D + Σ legs of those payments posted ≤ D (in − out)
+          owed (D's sales)      = value − collected − value of D's sales cancelled on D
+Result    cost of items sold    = Σ D's sales.total_cost − Σ return line_cost(D) − Σ cancelled sales' recorded cost(D)
+          missing cost          also counts the cancelled sales' lines
+Expenses  recorded              = Σ confirmed lines (as before);  reversed = Σ expense reversals posted on D
+          total                 = recorded − reversed;  result after expenses = gross profit − total
+Money     corrections in / out  = Σ legs of corrections approved on D, per channel
+```
+
+### 15.4 Schema (migration 0079, after a restore-proved backup)
+
+- `financial_corrections`: `target_kind` gains `sale`, `expense`, `supplier_payment`, `purchase`; `action` (`reverse`, `reclassify`, `cancel`); `target_sale_id`, `target_expense_id`, `target_supplier_payment_id`, `target_purchase_id` with foreign keys and approved-only unique keys; `method` NULL-able for a sale or purchase cancellation (its legs carry the channels); CHECKs for one target per kind, the allowed actions and the destination of a reclassification.
+- `financial_correction_legs` (new, append-only by trigger).
+- `sale_items.released_by_correction_id`; `active_unit_id` = `IF(voided = 0 AND released_by_correction_id IS NULL, unit_id, NULL)`.
+- `units.status` gains `voided`.
+- `daily_rollups` gains `cancelled_revenue`, `cancelled_cogs`, `cancelled_count`, `expense_reversals`.
+
+### 15.5 Risks and what stays unavailable
+
+- **Sold-once and IMEI uniqueness (sacred).** Sold-once changes only for a line released by an approved cancellation. IMEI uniqueness does not change at all: a voided phone is reactivated, never duplicated. Both are covered by specs and by the real-database lifecycle.
+- **Double counting.** An expense reversal reaches expected cash only through its leg (the rollup's cash column stays gross); a cancellation's money only through its legs; a reclassification nets to zero on the sale. Every report invariant is extended and asserted on every read.
+- **Races.** Approval re-checks eligibility inside the transaction after locking the target rows and the day's closing row; a return, a sale or a transfer landing first makes the approval refuse with its reason.
+- **Unavailable, by name:** reversing a purchase payment as "not paid" (purchases are paid in full by rule and there is no supplier debt to carry it; cancel the purchase instead); editing a sale line in place (cancel and sell again); cancelling part of a sale; a sale with a return (correct it on the return); a purchase whose goods have moved (correct the later record first).

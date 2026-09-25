@@ -17,8 +17,13 @@
   sales, payments, expenses and purchases as authorised reversals or adjustments with a required reason and a
   permanent audit history, never overwriting a confirmed record or an earlier closing snapshot; name exactly any
   action left unavailable and why. Physical phone checks may stay pending.
-- Next intended action: read the delegation path end to end and the existing correction, return, expense and
-  purchase flows; then write the plan into `docs/51` before any code.
+- **Checkpoint 2026-09-25T03:40Z — delegation verified, plan written.** `delegation-lifecycle.mjs` 24/24 on the
+  isolated copy (nothing had removed delegation; only 0078's "Owner-only" wording about roles was wrong). The
+  correction plan is `docs/51` §15 (D12–D20, migration 0079). MySQL: the WAMP service was found STOPPED with the
+  user's API and Metro down (the machine had restarted); a session `mysqld` runs from a copy of the service's own
+  settings group (`sql_mode=""`, `utf8mb4_unicode_ci`, binary log off) and is shut down at close-out.
+- Next intended action: migration 0079 and the backend correction engine on the isolated copy; no live change
+  before a restore-proved backup.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T04:21Z`, closed `2026-09-24T08:31Z`. Takeover HEADs were
   docs `f5c4d5b` · backend `3fa4801` · mobile `904e3ac` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (`migrate status` up to date, 0077).
