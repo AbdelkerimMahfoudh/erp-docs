@@ -18,9 +18,17 @@
   reconcile with the Daily closing and Results; (3) focused tests for a sale cancelled the same day and on a later
   business day, with expected and actual figures for Home, the units-sold goal, the Daily closing and Results;
   earlier closing snapshots stay immutable; the 388 340 rollup repair stays untouched.
-- Next intended action: migration 0080 (`daily_rollups.cancelled_qty`, the goals' only source), the goals' personal
-  path, Home's cancellations, the report's cancelled items, the Results breakdown's cancelled line; then specs, the
-  real-database lifecycle on a restore-proved copy, and live.
+- **Checkpoint 2026-09-25T06:13Z — migration 0080 is on live.** The WAMP MySQL service was found RUNNING (the user
+  started it at 05:39:37Z); it is used as it is and not stopped. Backup
+  `~/erp-backups/phonestore-before-0080-20260925-055659.sql` (878 859 B, trailer present, 0 raw binary) →
+  restore-proved into `prisma_verify_home` (91 tables / 26 triggers, counts and the `units` checksum equal) → 0080
+  rehearsed on that copy and re-run (idempotent) → `prisma migrate deploy` on live at `2026-09-25T06:12:46Z`
+  (`migrate status` up to date). Live read back: 9 sales / 53 units / 865 audit rows / 9 payments / 1 closing /
+  6 rollups (`cancelled_qty` 0) / 0 corrections / 63 permissions; 91 tables / 26 triggers; `units` checksum unchanged.
+  Verified on the copy: `cancellation-lifecycle` 31/31 (106 figures), corrections 40/40, report 45/45; backend
+  154 suites / 2 771 tests; mobile 70 suites. Code still uncommitted at this checkpoint.
+- Next intended action: finish the render checks, commit backend and mobile, write `docs/21`, the session log and
+  this handoff, drop the copy.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-24T09:39Z`, closed `2026-09-25T05:34Z`. Takeover HEADs were
   docs `8f2c9e6` · backend `f4c3381` · mobile `1e316e9` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (`migrate status` up to date, 0078).
