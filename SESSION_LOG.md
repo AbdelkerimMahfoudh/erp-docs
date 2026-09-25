@@ -10176,3 +10176,25 @@ patch mismatch. The product-image upgrade was not started.
 **Data and process safety.** Live received exactly one change: migration 0080. No sample record was written to live, no message sent. Processes started here and stopped: the isolated API (3012), the static server (19012), headless Chrome (9334). The user's MySQL service was used and left running; the user's API (3010) and Metro (8081) were not running and were not started.
 
 **Owed.** The handset run (`docs/24` §40, §39, §38 …); the Money tab and Analytics screen still count a cancelled sale on its own day only; Home's expenses not net of reversals; a durable rollup queue (or a recompute on start); the live rollup repair (approval pending).
+
+## 2026-09-25 06:43Z → 07:37Z — CLAUDE-A — daily totals reliability: durable recompute requests (0081)
+
+**Takeover.** `READY_FOR_HANDOFF` / owner `NONE` (this account's close-out of 06:22Z); docs `2695f99`, backend `cdbf404`, mobile `40a9b2f`, all clean and level after a fetch; live at 0080, up to date. The WAMP MySQL service running (the user's), used as it was; the user's API and Metro not running.
+
+**The brief.** Daily totals reliability only, no workflow, no pictures: a committed sale must not lose its rollup update if the API stops or the recalculation fails; pending work retried on restart without counting a sale twice; every transaction type that changes daily figures checked; a shutdown and a failure between commit and recalculation tested, Results and goals shown to recover; the days that could still be stale documented with a separate, exact repair plan; the 388 340 repair and live historical totals untouched.
+
+**What was wrong (`docs/52` §1).** Every change asked for its recompute after commit, in memory — fire-and-forget for sales, expense confirmations, purchases and transfers; awaited for return approvals, refund confirmations and correction approvals, which then answered 500 for a committed change. A stop or a failure in between left the day stale until another change touched it.
+
+**Backend (`reports-export`: `97695a8`, `68c21e9`).** Migration 0081 (`rollup_requests`); `requestRollupTx` inside the sale, expense-confirmation (now a transaction), return-approval, refund-confirmation, correction-approval, purchase and both transfer transactions; `RollupOutboxService` (the recognition outbox's design: lease, backoff, start-up sweep, 30 s timer, one recompute per branch-day, never abandoned) replacing `InProcessRollupQueue`; specs `rollup-outbox` (12) and `rollup-requests-coverage` (10); `scripts/rollup-drift.js`, the exact read-only stale-day audit.
+
+**Found and fixed on the way.** The stored error was Prisma's code frame, not its cause — the worker now keeps the cause line. Lifecycle harness issues (Windows `\r\n` from `mysql.exe`, an Owner's transfer being approved at once, a refund report's `clientUuid`) fixed in the harness only.
+
+**Database.** Backup `phonestore-before-0081-20260925-071413.sql` (879 111 B) → restore-proved (91/26, counts and the `units` checksum equal) → 0081 rehearsed and re-run on the copy → live at `2026-09-25T07:32:20Z`; live rows unchanged, `daily_rollups` checksum unchanged, `rollup_requests` empty. The copies `prisma_verify_home` and `prisma_verify_drift` were rebuilt from that backup for each run and dropped at close-out.
+
+**Verification.** Backend 155 suites / 2 791 tests (two mutations of the worker each caught); `rollup-durability` on the copy **22/22** — every transaction type, a failing recompute (Results 0 and branch goals 0 during, recovered by the running API to 20 000 / net 10 000 / 1 unit), an API killed mid-recompute (recovered at restart by lease takeover), an API stopped with a request pending (recovered at start), every request worked twice (every rollup row byte-identical).
+
+**Stale on live (read-only audit).** 3 of 7 branch-days: 2026-07-30 never rolled up (9 051.00, 6 sales, 35 units, a 500.00 expense — new), 2026-08-08 (+40.00) and 2026-09-10 (+388 300.00), none closed. The exact repair (three `rollup_requests` rows) rehearsed on a copy: 0 stale after. **Not applied.**
+
+**Data and process safety.** Live received exactly one change: migration 0081. No sample record, no message. Processes started and stopped: the isolated API (3012) only. No scratch file inside a repository; the rehearsal's dump was written to OS temp and deleted.
+
+**Owed.** The stale-day repair (approval); a prune of `done` requests; failure visibility beyond the table and the log; the handset runs (`docs/24` §40 …).

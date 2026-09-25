@@ -5954,3 +5954,28 @@ Sale **S**: a phone 10 000 (cost 6 000) + 2 cables × 20 (cost 5.00) = 10 040, c
 - Goals do not deduct **returns** (unchanged; revenue and units goals count a returned sale).
 - Home's **expenses** are not net of 0079 expense reversals (the Daily closing's and Results' are).
 - **Found while testing, not fixed:** the rollup queue runs inside the API process, fire-and-forget. If the API stops right after a sale, that day's rollup can miss the sale until the day is recomputed — Results and branch goals would then read low (the Daily closing and Home read the sales directly). Seen on the copy when the harness restarted the API immediately after a sale; the same family as the 388 340 overstatement (still untouched, awaiting approval).
+
+## Daily totals reliability: durable recompute requests (2026-09-25)
+
+Design, coverage, tests, the stale days and the repair plan: [`docs/52`](52_DAILY_TOTALS_RELIABILITY.md). Backend `97695a8` (0081), `68c21e9` (the drift audit). The user's brief: make the recalculation request durable, so a committed sale cannot lose its update if the API stops or the recalculation fails; retry pending work on restart without counting a sale twice; check every transaction type that changes daily figures; test a shutdown or failure between the commit and the recalculation and verify that Results and goals recover; document the days that could still be stale with a separate, exact repair plan; do not apply the 388 340 repair or change live historical totals.
+
+### ✅ IMPLEMENTED (D25–D28)
+
+- **The request is written inside the business transaction** (`rollup_requests`, 0081): sale (its business day + branch), expense confirmation (the day it lands on), return approval, refund confirmation, correction approval (+ branch when goods moved), purchase received, transfer shipped/received (both ends). It commits with the change or not at all. Supersedes the in-memory `InProcessRollupQueue` and the awaited post-commit recomputes.
+- **A worker drains it** after each commit, at start-up and every 30 s, under a 60 s lease, one recompute per branch-day; a failure waits with its cause and a capped backoff (5 s → 30 min) and is never abandoned.
+- **Never counted twice**: the recompute rebuilds a branch-day from its records; working a request again writes the same figures; a request committed during a recompute stays for the next pass.
+- **A committed return, refund or correction is no longer failed by its recompute** (it answered 500 before).
+
+### 📋 VERIFICATION
+
+- **Backend:** tsc · build · `prisma validate` · **155 suites / 2 791 tests** (new `rollup-outbox.spec` 12 — two mutations each caught; `rollup-requests-coverage.spec` 10).
+- **Real database** (`rollup-durability.mjs`, restore-proved copy, built API, fake clock): **22/22** — every transaction type requested and worked; **failure** (every rollup write rejected): sales and a correction commit, requests wait, Results 0 and branch goals 0 during, then **20 000 / 10 000 cancelled / net 10 000, 1 unit** after the running API retries; **API killed mid-recompute**: request held under the lease, recovered at restart (10 000, 1 unit); **API stopped with a request pending**: recovered at the next start (20 000, 2 units); **all 23 requests worked again**: every rollup row byte-identical, Results over three days unchanged (60 000 sold, net 40 000).
+- **Database:** backup `phonestore-before-0081-20260925-071413.sql` (879 111 B, trailer present, 0 raw binary) → restore-proved (91 / 26, counts and the `units` checksum equal) → 0081 rehearsed and re-run → live at `2026-09-25T07:32:20Z`; live read back unchanged (9 sales · 53 units · 865 audit rows · 9 payments · 1 closing · 6 rollups · 0 rollup requests; `units` and `daily_rollups` checksums unchanged — no historical total touched).
+
+### 🟡 STALE ON LIVE, NOT REPAIRED (a separate decision)
+
+The read-only drift audit (production recompute on a copy, every column compared): **3 of 7 branch-days stale, none closed** — 2026-07-30 has **no rollup row** (9 051.00 revenue, 6 sales, 35 units, a 500.00 expense missing from Results and branch goals — **new**, invisible to the old audit), 2026-08-08 overstated by 40.00 and 2026-09-10 by 388 300.00 (the known 388 340). The exact repair — three `rollup_requests` rows worked by the API — is written in `docs/52` §5 and was rehearsed on a copy (0 stale after); it was **not applied**.
+
+### Still owed
+
+Recovery after a crash mid-recompute takes up to ~90 s; `done` rows are not pruned; a request that keeps failing is visible only in the table and the log; one API process assumed (a second is safe by lease and retry). Supersedes the "found while testing, not fixed" rollup-queue note of the previous entry.
