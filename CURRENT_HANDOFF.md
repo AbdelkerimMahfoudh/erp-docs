@@ -6,8 +6,20 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T06:43Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `2695f99` ·
+  backend `cdbf404` · mobile `40a9b2f`; live at 0080 (`migrate status` up to date at 06:12Z). The WAMP MySQL service
+  is running and is used as it is; the user's API (3010) and Metro (8081) are not running. The handoff below matched.
+- **Active phase and scope (the user's brief of 2026-09-25, daily totals reliability only, no workflow, no pictures):**
+  make every request to recalculate the daily figures durable — written in the same transaction as the change, retried
+  after a stop or a failure, never counting a sale twice; cover every transaction type that changes daily figures; test
+  a stop and a failure between commit and recalculation and prove Results and goals recover; document the days that
+  could still be stale with a separate, exact repair plan. The 388 340 repair and live historical totals: untouched.
+- Next intended action: migration 0081 (`rollup_requests`, append-only request log), request rows written inside the
+  sale, expense-confirmation, return-approval, refund-confirmation, correction-approval, purchase and transfer
+  transactions; a worker that drains them after commit, at start and on a timer; specs; a real-database stop/failure
+  lifecycle on a restore-proved copy; then live.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T05:38Z`, closed `2026-09-25T06:22Z`. Takeover HEADs were
   docs `bff3cb6` · backend `b091286` · mobile `9130a9c` (all clean, level with `origin` after a fetch); the previous
   handoff (`READY_FOR_HANDOFF`, owner `NONE`) matched the repositories and live (0079, up to date). Its recorded close
