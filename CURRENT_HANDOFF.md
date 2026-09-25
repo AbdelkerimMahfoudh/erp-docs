@@ -6,8 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T08:21Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `7ddf674` ·
+  backend `68c21e9` · mobile `40a9b2f`; live at 0081, up to date. The user's API (3010, from `backend/dist`) and Metro
+  (8081) are running and are not touched; nothing is built into `backend/dist` while they run.
+- **Active phase and scope (the user's brief of 2026-09-25, reporting consistency only, no workflow, no pictures, the
+  completed three-day repair not rerun):** Money, Home, Analytics and goals follow the Daily closing's and Results'
+  dated rules — a sale on its sale date and its cancellation as a negative adjustment on the approval date; an approved
+  return on its approval date for revenue, profit and returned units, its refund moving money on the confirmation date
+  with no second profit effect; a confirmed expense on its date and its reversal on the correction date, shown apart;
+  sales count = invoices less whole-sale cancellations, a return a separate event, the definition stated where shown.
+  Audit first; preserve original dates and closing snapshots; cost and profit stay gated; scenarios tested on a copy.
+- Next intended action: the audit of every endpoint and rollup that feeds those screens.
 - Previous session: **CLAUDE-A**, `started_at_utc: 2026-09-25T08:04Z`, closed `2026-09-25T08:06Z` — **documentation
   only**: `docs/52` §5 ("Completed on live, 2026-09-25") and `docs/21` ("Stale days on live — repaired 2026-09-25") now
   record the completed three-day repair — before/after figures, backup names, the zero-stale-day result, the date —
