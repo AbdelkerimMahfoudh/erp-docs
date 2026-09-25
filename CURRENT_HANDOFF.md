@@ -6,8 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE** (released by CLAUDE-A at `2026-09-25T09:10Z`)
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-25T09:16Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `9ef563c` ·
+  backend `5acab28` · mobile `73fee6d`; live at 0081, up to date (9 sales, no discount, no return, no correction).
+- **Active phase and scope (the user's brief of 2026-09-25, Home and its direct links plus the reporting consistency
+  just completed; no workflow, no pictures; the three-day repair not rerun):** a whole-invoice discount agreeing on
+  Home, its chart, Daily closing, Results, Money, Analytics and goals (the recorded invoice total); Home's latest-phone
+  labels in the store's timezone; Home's sales block for an adjustment-only day (net total, what the chart plots,
+  "Collected" and older debts); Home's links (ranking, masked latest phones and Stock, closing card and Closing &
+  history), refresh, permissions and narrow EN/FR/AR layout; the revenue goal's label; Analytics' movement labels after
+  cancellations; the units-sold goal = sale units − cancelled units − approved returned units, each on its approval
+  date. Earlier closing snapshots and live historical data untouched.
+- Next intended action: audit the discount path through every reader, then Home's screen and links.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-25T08:21Z` — **reporting consistency**: Money, Home, Analytics
   and goals now follow the Daily closing's and Results' dated rules (`docs/53`, `docs/21` "Reporting consistency").
   Takeover HEADs were docs `7ddf674` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin`). No
