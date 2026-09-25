@@ -5849,3 +5849,62 @@ Closing & history becomes the **Daily closing**: date selector, status and the r
 - **Mobile:** tsc · lint 0 errors / 0 warnings in this scope · **70 pure suites** (new `closing-report-view.test`) · parity 3 065 · web export.
 - **Render checks, no pictures** (`report-checks.mjs`): 28 views — the report, Review and close, the physical check and "Correct a transaction" with its move sheet, in EN/FR/AR, light and dark, 320 and 393 pt, 130 % text, a seller, a manager without cost.view and the Owner — 0 problems after fixing the three the checks found: the sources list read a column that does not exist (`supplier_payments.created_at`, now `paid_at`); "Check physical cash or account balance" was cut at 320 pt as a one-line button (the two secondary paths are now wrapping rows); a refusal was cut in an Arabic correction row (it now has its own line). Web renders, not device verification.
 - **Physical device: not run** — `docs/24` §38 R1–R14.
+
+## Closing delegates verified, and the correction path for sales, payments, expenses and purchases (2026-09-25)
+
+Plan, decisions D12–D20 and risks: [`docs/51`](51_AUDIT_DAILY_CLOSING_REPORT.md) §15. Backend `2b7ba08`, `2c98658`, `b091286`; mobile `a9b9226`, `9130a9c`; migration **0079**. The user's follow-up of 2026-09-25 is the authorisation: stay on the Daily closing scope with no workflow; verify that the Owner can delegate closing to up to two employees who can close and reclose while other employees cannot; complete the correction path for erroneous sales, payments, expenses and purchases as authorised reversals or adjustments with a required reason and a permanent audit history, never overwriting a confirmed record or an earlier closing snapshot; name any action left unavailable and why.
+
+### ✅ VERIFIED — closing authority is the Owner and at most two named delegates per branch
+
+Nothing had removed delegation. 0078 took `closing.perform` away from two **roles** (`administrator`, the retired `branch_manager`); the per-branch delegation of 0076 stayed exactly as it was. The 0078 wording "held by the Owner role only" was about roles and read as "Owner-only"; rule 28a in `docs/04` now says it plainly. Proved on a real database (`delegation-lifecycle.mjs`, **24/24**): an employee and a manager named; a third and a fourth refused; both delegates' permissions, the report's close verdict and the server route agree; the employee closes, the manager recloses after a later sale, the employee reopens and recloses; other employees are refused the close, the reclose and the reopen; the delegation holds at its own branch only; a delegate can neither name another delegate nor approve a correction; a withdrawn delegate is refused again and the place can go to another employee; every naming and withdrawal is audited.
+
+### ✅ IMPLEMENTED — every record can be corrected, never edited (D12–D17)
+
+| Record wrong | Correction | What moves, on the current open day |
+|---|---|---|
+| A payment in the wrong channel, all or part | move (0078) | out of the recorded channel, into the real one |
+| A payment never received, all or part | reverse | out of its channel; the customer or partner store owes it again (a walk-in sale: cancel the sale instead) |
+| A sale that should not exist as recorded | cancel, whole | its value and recorded cost off the day's figures; phones back to stock (freed from sold-once), accessories back on the shelf; the money it still holds leaves the channels it is in; nothing owed on it |
+| A confirmed expense, all or part | reverse | back into its channel; the day's expenses fall by it (not before the day it counts on) |
+| A purchase paid from another channel, all or part | move | back into the recorded channel, out of the one that paid |
+| A purchase that should not exist as recorded | cancel, whole | its phones leave the books (`voided`), its accessories leave stock at its cost (average undone), the money paid comes back; receiving the same IMEI again reactivates the same record |
+
+**Contract.** `POST /v1/corrections` `{targetKind: sale_payment|sale|expense|supplier_payment|purchase|refund_payout|supplier_settlement, action?: reverse|reclassify|cancel, targetId, toMethod?, toAccountId?, amount?, reason, supportingReference?, clientUuid}` (`financial.correction.request`) — the record's own figures are never sent; a 0078 request naming a destination and no action is still a move. `POST /v1/corrections/preview` (same body, nothing written; a refusal comes back by name). `POST /v1/corrections/:id/approve|reject` (`financial.correction.approve`) unchanged: approval is one transaction that locks the day's closing row and the rows it changes, re-plans against what is there now, writes the legs and what follows (sale receivable caches, unit status with its own audit row, a line's release, stock), and audits before (the full preview) and after (the legs). `GET /v1/corrections/:id` gains `action` and `legs`. `GET /v1/closings/sources` rows carry `actions[]`, `open` and `refusal`, plus `pending[]` (with `superseded`) and `canApprove`. `GET /v1/sales/:id` gains `cancellation`; the sales list `cancelled`, `cancellationRequested`; `GET /v1/expenses/:id` gains `reversal`.
+
+**Supersedes** `docs/51` D9's "refused and owed" list (reversing a payment never received, correcting a confirmed expense or a purchase payment) and its "sale void is not narrow" line.
+
+### Formulas (0079 additions to the Daily closing report)
+
+```
+Sales     cancelled            = Σ sales.total of sales cancelled on D (correction_date = D, any sale date)
+          net sales            = value − returns.net_refund_due − cancelled
+          collected (D's sales) = Σ payments on D's sales dated ≤ D + Σ legs of those payments posted ≤ D (in − out)
+          owed (D's sales)      = value − collected − value of D's own sales cancelled by the end of D
+Result    cost of items sold   = Σ D's sales.total_cost − Σ return line_cost(D) − Σ cancelled sales' total_cost(D)
+          cannot calculate     also when a cancelled sale's line had no recorded cost
+Expenses  recorded             = Σ confirmed (as before)
+          reversed             = Σ expense reversals approved on D;  total = recorded − reversed
+          result after expenses = gross profit − total;  before fixed = gross profit − (variable − variable reversed)
+Money     corrections in / out = Σ legs of corrections approved on D, per channel — one arm for every kind
+Rollup    expenses = confirmed − reversed;  expenses_cash = confirmed cash (a reversal returns through its leg)
+          net_profit = gross − returns effect − (cancelled_revenue − cancelled_cogs) − expenses
+```
+
+### ✅ IMPLEMENTED — found and fixed while verifying
+
+- **0078 defect:** a close stored its report with the pre-close verification ("not counted"), while the closed day reads its unchecked balances back as "not verified" — every closed day with an unchecked balance warned "changed since close". The stored report now records them as the close left them.
+- Two requests raced in for one record blocked each other's approval for ever; an open request now stops only a new request, and the one-approved-per-record key settles who wins (proved by forcing the race).
+- A purchase row's payment id was sent as the purchase to cancel (render checks); a long payment row was cut in Arabic at 320 pt (render checks).
+
+### 🟡 NOT AVAILABLE, BY NAME
+
+Reversing a purchase payment as "not paid" — purchases are paid in full by rule and there is no supplier debt to carry it (Suppliers is out of the first release); cancel the purchase instead. Editing a sale line in place, or cancelling part of a sale — cancel it and sell again. A sale with a return — correct it on the return. A purchase whose goods have moved — correct the later record first. A branch's **units-sold** goal still counts a cancelled sale's items (no rollup column for it); revenue, profit and count goals and personal goals do not. Home's period figures count a sale on the day it was sold, as they count a sale later returned; the Daily closing and Results show the cancellation on its own day. The approval audit's `before` is now the full preview (`$.payment.method`, `$.move`, …) rather than 0078's flat fields.
+
+### 📋 VERIFICATION
+
+- **Backend:** tsc · `nest build` · `prisma validate` · full suite **153 suites / 2 758 tests, 0 failed** (new `correction-path.spec` 31, `correction-readers.spec` 11, the corrected day in `closing-report.spec` 8, reactivation in `purchase-dual-imei.spec` 6; the correction, rollup, goals and movement pins moved to the new design, none loosened).
+- **Real-MySQL lifecycles on the copy** (built API, fake clock): `delegation-lifecycle` **24/24**; `corrections-lifecycle` **40/40** — every correction on a day recomputed independently in SQL (sales, cancellations, collected, owed, expenses, the drawer, the result, the rollup), a closed day's correction waiting then posting the next day with the stored close byte-identical, an older sale cancelled the next day, forced and natural double requests, a cancellation racing a close, company and branch isolation, the audit history, the phone's history, reactivation of a voided IMEI as the same record; the 0078 `report-lifecycle` **45/45** (three expectations moved to the new shape: `collected.corrections`, the audit's `before.payment`, the sources' actions).
+- **Database:** backup `phonestore-before-0079-20260925-052300.sql` (870 568 B, trailer present, 0 raw binary) → restore-proved (90 tables / 24 triggers, counts and the `units` checksum equal) → 0079 rehearsed on that exact copy → live at `2026-09-25T05:23:45Z` (91 tables / 26 triggers; 9 sales · 53 units · 865 audit rows · 9 payments · 1 closing · 6 rollups · 0 corrections · 63 permissions; `units` checksum unchanged).
+- **Mobile:** tsc · `expo lint` 0 errors (no warning in a changed file) · **70 pure suites** · parity **3 161** (116 keys added, 20 retired) · web export.
+- **Render checks, no pictures:** `corrections-checks.mjs` **38 views** (every correction sheet, the Owner's decision, the report's new lines, the cancelled sale and reversed expense, two real submissions through the screens) and the 0078 checks re-run **25 views** — EN/FR/AR, light and dark, 320 and 393 pt, 130 % text — **0 problems** after the two fixes above. Web renders, not device verification.
+- **Physical device: not run** — `docs/24` §39 K1–K14 (and §38).

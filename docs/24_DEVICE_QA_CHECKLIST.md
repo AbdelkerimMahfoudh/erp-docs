@@ -3624,3 +3624,25 @@ The 2026-09-24 Daily closing scope (`docs/21`, "The Daily closing report"; audit
 | R12 | A manager whose role has no cost.view | Sales and expenses, no Result section; no cost or profit anywhere |
 | R13 | **Choose a date** → a quiet day with nothing recorded | *No activity recorded*, "There is nothing to close" — never *Needs review* |
 | R14 | Keyboard in the review sheet and in the move sheet | The reason field stays visible above the keyboard; the confirm button is reachable without closing the keyboard |
+
+
+## 39. Closing delegates and the correction path (sales, payments, expenses, purchases) — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-25 follow-up (`docs/21`, "Closing delegates verified, and the correction path"; plan and decisions `docs/51` §15; rules 28 and 28a in `docs/04`). Proved on the isolated copy through the built API (`delegation-lifecycle` 24 steps, `corrections-lifecycle` 40 steps, the 0078 `report-lifecycle` 45 steps) and checked on the web export in EN/FR/AR, light and dark, 320 and 393 pt and 130 % text, from the page itself (no pictures were made, at the user's request). Web rendering proves neither native scrolling, the keyboard, the bottom sheet's gestures, Dynamic Type nor two sheets following each other on a real screen — these rows are for a handset.
+
+| # | Do this | Expect |
+|---|---|---|
+| K1 | Team → an employee → **May close the day in Main Store**; then sign in as that employee | Home's closing entry and **Review and close** appear; closing and reclosing work; another employee (not named) sees the report without the close |
+| K2 | As the Owner, name a third person | Refused: two people already close the day in this branch |
+| K3 | Daily closing → **Correct a transaction** as the Owner, after a day with sales, a part-paid sale, an expense and a stock purchase | Every record listed with its time, channel and status; a long row (time · account · invoice) wraps in Arabic at 320 pt, never cut |
+| K4 | Tap a payment of a sale with a customer | **What was wrong?** offers "Money never received", "Went to another channel" and "Open the sale" |
+| K5 | "Money never received" → change the amount → write a reason | The preview updates: out of its channel, "Owed on the sale goes from … to …"; **Correct it** is disabled until the reason is written; after it, the sale's screen shows the new amount owed |
+| K6 | A walk-in sale's payment | "Money never received" is not offered; the row says a sale with nobody to owe it is cancelled instead |
+| K7 | A sale → **Cancel this sale** (from the sale's own screen) | The sheet lists the phones going back in stock and the money leaving each channel; after it, the sale reads **Cancelled** with who, when, why and the money given back; no payment, return or receipt is offered; the phone can be sold again |
+| K8 | A confirmed expense → **Correct this expense** → 300 of 800 | "Today's expenses fall by 300"; afterwards the expense says 300 was reversed and on which day; the Daily closing shows "Transport, corrected" and the total net of it |
+| K9 | A stock purchase paid by Bankily that was really paid in cash → **Paid from another channel** | Into Bankily, out of the cash drawer; the purchase itself unchanged |
+| K10 | A purchase recorded in error → **Cancel the purchase**, then receive the same phone again at the right cost | Its phones leave stock (Stock no longer lists them); the money comes back; scanning the same IMEI at receiving is accepted and the phone reappears with its full history under the new purchase |
+| K11 | As a manager, ask to cancel a sale; then as the Owner open **Correct a transaction** | "Waiting for the Owner" lists the request first with who asked and why; **Approve** moves everything, **Reject** changes nothing |
+| K12 | Close the day, then approve a waiting correction | Refused while the day is closed; approved the next day, it posts there and the closed day still reads as it was closed |
+| K13 | Each sheet with the keyboard open (reason, amount) | The reason field and the confirm button stay reachable above the keyboard; dragging the sheet down closes it without sending |
+| K14 | Arabic, then French, dark mode, iOS Dynamic Type 135 % | Every sheet, notice and refusal in plain words, right-to-left in Arabic, amounts left-to-right; nothing cut |
