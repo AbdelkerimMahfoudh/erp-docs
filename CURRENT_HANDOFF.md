@@ -6,8 +6,21 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE** (released by CLAUDE-A at `2026-09-26T00:45Z`)
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T01:38Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `21168a3` ·
+  backend `9a1155a` · mobile `056bb6e`; live at 0081 (11 sales). Running, started by this account after the shutdown:
+  MySQL as a session process (3306), the API on 3010 from `9a1155a`, Metro on 8081.
+- **Active phase and scope (the user's brief of 2026-09-26; no pictures; physical-phone checks left for the user's
+  final test):** the 320-pt "Partenaires" tab clipping; Money's today-only expenses and account movements checked
+  against the recorded decisions (period totals only if agreed; labels explicit); Home and Money links and error
+  states verified; and the imported-stock review reached from Home → Receive: the 100-phone workbook reproduced on the
+  current build, clipped names/counts/amounts fixed, the horizontal filters made clearly usable, the pinned footer
+  tidied, the lag measured per stage (parse, first render, filter, expand, edit, scroll, draft save) and the measured
+  bottleneck fixed, all 100 items and their corrections kept, unresolved rows never hidden, payment never enabled
+  while items need review; timings before and after.
+- Next intended action: instrument and measure the review screen on the current build (the "before"), then the
+  Money labels and the tab fix.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-25T09:16Z` — **Home completed**: a whole-invoice discount
   agreeing everywhere, Home in the store's time, Home's sales block, links, refresh, permissions and narrow layout, the
   revenue goal renamed, movement labels read live, the units-sold goal less returned units, and an older server shown
