@@ -6,8 +6,23 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T04:43Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `2b4ad31` ·
+  backend `9a1155a` · mobile `578df5d`; 80 migrations, database up to date. MySQL (session process), the API on 3010
+  and Metro still running.
+- **Active phase and scope (the user's brief of 2026-09-26; Home, Daily closing reached from Home, and their direct
+  data and navigation dependencies; no pictures, no page redesign beyond Home):** (1) investigate the real opening at
+  ~03:41 boutique time on 26 Sep 2026 and the two sales and two expenses that followed — timestamps, business dates,
+  branch, the opening event — and report; no silent reassignment; any correction proposed for review first.
+  (2) The pre-06:00 Open the boutique flow: the date choice before the opening is recorded — Continue the previous
+  business day selected by default, Start the new business day early as the explicit alternative — with exact dates
+  and boutique-local time, which date receives new transactions, what a staff member without early-start permission
+  sees, the choice preserved on Reopen, the opening recorded with actor, timestamp, business date and audit history,
+  an unclosed previous day kept visible as needing review, no transactions moved. (3) The approved simple Home design
+  on the working behaviour. (4) EN/FR/AR RTL, light/dark, 320–430 pt, large text, real navigation; the 03:41 choice,
+  staff permission, repeat taps, closed and unclosed previous day, the 06:00 boundary — on an isolated database.
+- Next intended action: read the live opening event and the business-date rules; report; then the plan.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T03:28Z` — **the review sheet's Close at 48 points and the
   corrected-draft check** (Home / Money / Home → Receive scope; no pictures, no live purchase): the design-system
   sheet's Close is the touch minimum (D49); the review checked with a partly corrected and excluded 100-phone draft —
