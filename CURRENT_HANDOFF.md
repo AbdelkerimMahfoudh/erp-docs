@@ -6,8 +6,15 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE** (released by CLAUDE-A at `2026-09-26T02:35Z`)
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T03:28Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `eab5b75` ·
+  backend `9a1155a` · mobile `2b3b739`; live at 0081. MySQL (session process), the API on 3010 and Metro still running.
+- **Active phase and scope (the user's brief of 2026-09-26, Home / Money / Home → Receive; no pictures, no live
+  purchase):** the review sheet's Close control at least 48 points; the review checked with a partly corrected and
+  excluded 100-phone draft — corrections surviving navigation, the footer totals right — and any difference from the
+  fresh-file performance run reported; commit; handoff.
+- Next intended action: the sheet's Close, then the corrected-draft scenario on the isolated copy.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T01:38Z` — **Home/Money follow-up and the imported-stock
   review**: the French tab label at 320 points, Money's today-only figures kept by the 0074 decision and their hints
   naming the day, Home and Money links and error states verified, and the review of the 100-phone workbook measured
