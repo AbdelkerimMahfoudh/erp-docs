@@ -34,6 +34,39 @@ Mobile: `app/closing/index.tsx` (the screen), `app/closing/count.tsx` (`focus` p
 `dailyReport.salesDetails*`, `checkBalances*`, `countCash`, `checkBalance`, `account.counted`, `movements*`,
 `result.cannot.short` (EN/FR/AR), `lib/daily-closing-screen.test.ts` (pins). Backend untouched.
 
+### 1.2 The words, checked (the copy pass, D69)
+
+A pass over the Daily closing and its counting screen in EN/FR/AR, copy only — calculations, optional checks, the
+close contract and live data unchanged. Two rules: **the drawer's figure is called "should be in the drawer" only
+when a counted close anchors it**; with no counted opening it is the day's recorded cash movement from a 0 start and
+says so. **An account is never counted and never has a balance here**: its figure is the *recorded movement*, its
+check is the *movement shown by the account app*, and its states say *checked*, not *counted*.
+
+| Where | EN | FR | AR |
+|---|---|---|---|
+| Report, drawer line, **no counted opening** (`dailyReport.expected.movementFromZero`; also the review sheet) | Recorded cash movement, from a 0 start | Mouvement de caisse enregistré, à partir de 0 | حركة النقد المسجَّلة، بدءًا من 0 |
+| Report, drawer line, anchored (unchanged) | Should be in the drawer | Devrait être en caisse | يجب أن يكون في الدرج |
+| Report, account line (unchanged) | Recorded movement | Mouvement enregistré | الحركة المسجلة |
+| Report, account once checked (unchanged) | Movement in the account app | Mouvement dans l’application du compte | الحركة في تطبيق الحساب |
+| Report, account chip once checked (`dailyReport.verify.account.counted`) | Checked against the app | Vérifié dans l’application | تم التحقق في التطبيق |
+| Report, account chip checked before a reopen (`…account.stale`) | Checked before reopening | Vérifié avant réouverture | تم التحقق قبل إعادة الفتح |
+| Report, the account's action (`dailyReport.checkBalance`, value changed) | Check movement | Vérifier le mouvement | التحقق من الحركة |
+| Report, history row for an account's check (`closing.history.checked`) | {amount} shown by the account app | {amount} affichés par l’application du compte | {amount} كما يظهر في تطبيق الحساب |
+| Counting screen, title (`closingCheck.title`, value changed) | Check the drawer and accounts | Vérifier la caisse et les comptes | التحقق من الصندوق والحسابات |
+| Counting screen, drawer row, anchored (`closing.expected.drawer`) | Expected in the drawer | Attendu en caisse | المتوقّع في الدرج |
+| Counting screen, drawer row, no counted opening | Recorded cash movement, from a 0 start | Mouvement de caisse enregistré, à partir de 0 | حركة النقد المسجَّلة، بدءًا من 0 |
+| Counting screen, drawer row while the report is not yet known (`closing.expected`, unchanged) | Expected | Attendu | المتوقّع |
+| Counting screen, account row | Recorded movement | Mouvement enregistré | الحركة المسجلة |
+| Counting screen, account field (unchanged) | Movement shown by the account app | Mouvement affiché par l’application | الحركة الظاهرة في تطبيق الحساب |
+| Counting screen, account chips (`closing.channel.checked` / `unchecked`) | Checked · Not checked yet | Vérifié · Pas encore vérifié | تم التحقق · لم يُتحقَّق بعد |
+| Counting screen, account settled line | Movement in the account app · Difference · Less/More than the recorded movement. | … · Écart · Moins/Plus que le mouvement enregistré. | … · الفرق · أقل/أكثر من الحركة المسجَّلة. |
+| Counting screen, account after a reopen (`closingCheck.stale.account`, `recheck`) | Checked before the day was reopened — check again · Check again | Vérifié avant la réouverture de la journée — vérifiez à nouveau · Vérifier à nouveau | تم التحقق قبل إعادة فتح اليوم — تحقق مرة أخرى · التحقق مرة أخرى |
+
+The drawer keeps its own words (Counted, Count again, "The drawer is short…"). The counting screen learns whether the
+drawer is anchored from the report the person just left (a cached read); until it knows, the neutral "Expected".
+`verificationKey(v, channel)` picks the account's words; the accounting and the `verification` states themselves
+are untouched.
+
 ---
 
 ## 2. `spent_on`, said apart from the business date
