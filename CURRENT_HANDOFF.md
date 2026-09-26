@@ -6,46 +6,31 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-26T04:43Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `2b4ad31` ·
-  backend `9a1155a` · mobile `578df5d`; 80 migrations, database up to date. MySQL (session process), the API on 3010
-  and Metro still running.
-- **Active phase and scope (the user's brief of 2026-09-26; Home, Daily closing reached from Home, and their direct
-  data and navigation dependencies; no pictures, no page redesign beyond Home):** (1) investigate the real opening at
-  ~03:41 boutique time on 26 Sep 2026 and the two sales and two expenses that followed — timestamps, business dates,
-  branch, the opening event — and report; no silent reassignment; any correction proposed for review first.
-  (2) The pre-06:00 Open the boutique flow: the date choice before the opening is recorded — Continue the previous
-  business day selected by default, Start the new business day early as the explicit alternative — with exact dates
-  and boutique-local time, which date receives new transactions, what a staff member without early-start permission
-  sees, the choice preserved on Reopen, the opening recorded with actor, timestamp, business date and audit history,
-  an unclosed previous day kept visible as needing review, no transactions moved. (3) The approved simple Home design
-  on the working behaviour. (4) EN/FR/AR RTL, light/dark, 320–430 pt, large text, real navigation; the 03:41 choice,
-  staff permission, repeat taps, closed and unclosed previous day, the 06:00 boundary — on an isolated database.
-- Next intended action: read the live opening event and the business-date rules; report; then the plan.
-- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T03:28Z` — **the review sheet's Close at 48 points and the
-  corrected-draft check** (Home / Money / Home → Receive scope; no pictures, no live purchase): the design-system
-  sheet's Close is the touch minimum (D49); the review checked with a partly corrected and excluded 100-phone draft —
-  the footer totals matched an independent count at every step, corrections and exclusions survived navigation and
-  restore, no purchase posted — and measured against the fresh file (no cost to the corrected state); on the way,
-  Match product offered only where a choice exists (D50) and the "Corrected" caption only when the cost changed (D51)
-  (`docs/55` §6, `docs/21` addendum). Takeover HEADs were docs `eab5b75` · backend `9a1155a` · mobile `2b3b739`.
-  No backend change; no migration; this session wrote nothing to live.
-- **Live moved by the user's hand during this session:** the phone (192.168.100.251) used the API on 3010 from
-  03:41Z to 04:05Z — sign-in, `devices/adopt`, `closings/open`, **two `POST /sales` at 03:44 and two `POST /expenses`
-  with their confirmations at 03:46** (all 201), then Home, Money, the closing's view/report/overview and inventory.
-  Live (`phonestore`) now holds **13 sales** (11 + today's 2) and **7 expenses** (5 + today's 2).
-- **Running — started by CLAUDE-A after the 2026-09-25 shutdown, left running for the phone:**
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T04:43Z` — **the pre-06:00 opening choice and the simple
+  Home** (Home, the Daily closing reached from Home, their direct dependencies; no pictures): the real 03:41 opening
+  investigated and reported (consistent with the rules; no correction required, none made); *Open the boutique*
+  before 06:00 now asks which business day first — the Owner's two-day sheet with *Continue yesterday* selected, a
+  notice for anybody else — and records the choice with actor, instant, business date and audit (D52–D55); Home
+  rebuilt on its working behaviour: the shared header on one tint with the store's date and the before-06:00 note,
+  sales value first with a server-supplied comparison and one compact chart, three plain money lines, one Daily
+  closing entry (D56–D60). `docs/56`, `docs/21` "The pre-06:00 opening choice and the simple Home", `docs/04` rule
+  25a, `docs/24` §44. Takeover HEADs were docs `2b4ad31` · backend `9a1155a` · mobile `578df5d`. No migration;
+  nothing written to live.
+- **Running — left running for the phone:**
   - **MySQL as a session process** (pid 14604, port 3306) with the WAMP service's own configuration
     (`C:/Users/HP/AppData/Local/Temp/claude/session-my.ini`: `sql_mode` empty, `utf8mb4_unicode_ci`, no binary log).
     The WAMP service `wampmysqld64` is **Stopped** and cannot be started from the non-elevated shell. **Before
     starting the service, stop this process:** `mysqladmin -uroot --protocol=tcp -P3306 shutdown`.
-  - **The API on 0.0.0.0:3010** (pid 14576) from `backend/dist` built from `9a1155a`; log
-    `C:/Users/HP/AppData/Local/Temp/claude/api-3010.log`. The phone reaches it (above).
+  - **The API on 0.0.0.0:3010 — restarted this session on the new build** (`backend/dist` from **`4bc2d72`**,
+    **pid 14540**, started with `node --enable-source-maps dist/src/main` in `backend/`); logs
+    `C:/Users/HP/AppData/Local/Temp/claude/api-3010.out.log` / `api-3010.err.log`. The phone had not called it since
+    the restart at the time of this handoff.
   - **Metro on 0.0.0.0:8081** (pid 7632, launcher 14128), `expo start --clear` in `mobile/`; log
-    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`. It serves the working tree, i.e. mobile `578df5d`.
-- Next intended action: **the phone** (`docs/24` §43 T1–T13, then §42, §41 and the older backlog). Reload Expo Go
-  (`exp://192.168.100.3:8081`); the review's own timings appear as `[timing]` lines in the Metro terminal.
+    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`. It serves the working tree, i.e. mobile `407b1fd`.
+- Next intended action: **the phone** (`docs/24` §44 U1–U11, then §43 T1–T13 and the older backlog). Reload Expo Go
+  (`exp://192.168.100.3:8081`). A test "before 06:00" means before 06:00 **by the boutique's clock (UTC on live)**.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -58,39 +43,42 @@ Nothing was removed by this phase.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`9a1155a`** — untouched this phase | level | 0 |
-| `erp-mobile` | `reports-export` | **`578df5d`** | level | 0 |
+| `erp-backend` | `reports-export` | **`4bc2d72`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`407b1fd`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This phase: mobile `925fb22` (the sheet's Close at 48 pt), `578df5d` (Match product only where a choice exists; the
-Corrected caption only when the cost changed; pins). The phase before, same day: `6ca8ab1`, `99c5b69`, `5c3adae`,
-`46bdeb9`, `2b3b739` (`docs/55` §1–§5). Docs: `docs/55` §6, `docs/21` addendum, `docs/24` §43 T12–T13, the session
-log and this file.
+This phase: backend `4f63ccd` (the opening's `mode`, `openChoices`, the shared early start, `closing-open.spec`),
+`4bc2d72` (Home's `figures.comparison`); mobile `00a0575` (`openingPrompt`, `DayChoiceSheet` for open and reopen,
+`useOpenDay(mode?)`, the `openChoice.*` keys), `407b1fd` (`HomeHeader`, the Home layout, `comparison` in the type and
+the reply check, the pins). Docs: `docs/56` (new), `docs/21`, `docs/04` rule 25a, `docs/24` §44, the session log, this
+file.
 
 ## What changed (no schema change, no data change)
 
 | Where | Now |
 |---|---|
-| **Every sheet** | Close is a 48-point target (was 36) (D49) |
-| **Imported-stock review** | Match product appears only on a group whose phones share a candidate, and Match products opens the first such group — the seven "No product match" groups no longer offer a sheet that can only say nothing matches (D50); a row says "Corrected. The file said …" only when its cost was corrected, not for a product choice (D51). From the phase before: light named row actions (D44), the four filters wrapping into view at 48 pt (D45), the footer's ready · total beside "N remain" / "Left out N" with Continue disabled exactly as before (D46), native text that shrinks (D47), `[timing]` lines in the development build (D48) |
-| **Tab bar / Money** | Unchanged this phase: the compact 10-pt label below 360 pt (D43); Accounts today and Daily expenses today-only by 0074, hints naming the day (D42) |
+| **`POST /closings/open`** | `mode: continue \| start_new`. `continue` (default) opens the running business date — before 06:00, the previous calendar day. `start_new` (Owner, `closing.start_early`, midnight–06:00; `not_before_day_start` otherwise) writes the same `day_started_early` event a reopen writes, then opens the new date. The `opened` payload and audit row carry `choice` and `calendarDate` whenever a choice existed. Nothing already recorded moves. A closed day is still a reopen (`open_day_closed`); an open one still `open_already_open` |
+| **`GET /closings/open/view`** | `openChoices` beside `reopenChoices` (both days for the Owner before 06:00, else `['continue']`) |
+| **Open the boutique (phone)** | Before recording anything: the Owner's sheet (*Continue {yesterday}* selected, *Start {today} early*, the store's time, both dates, which date receives new sales and expenses, "Nothing already recorded moves to another day"), or — without the early start — a notice naming the day and that only the Owner may start today early, with Cancel; after 06:00 nothing is asked. `mode` sent only when chosen. The reopen sheet is the same component with its own words — unchanged behaviour |
+| **`GET /home`** | `figures.comparison`: the invoiced sales value against the preceding window of equal length, `available: false` on a zero base |
+| **Home** | `HomeHeader`: the shared `TabHeader` on one restrained svg tint, the bell, the store's calendar date (server's, informational), and before 06:00 "Sales still count for {yesterday} until 06:00"; sales value first with the range and the comparison (only when supplied; rounded whole percent, signed, worded), the compact chart (96 pt) under it, then cancellations / returns / net as before; Collected · Expenses · Still owed as three plain lines with their scope, no icon; one Daily closing entry (row → `/closing`, "Today · {standing}" or "{date} · {standing}" when the business day is not the calendar date, the *Yesterday needs review* chip); Top boutique, Latest phones + filtered Stock link, pending rows, five tabs, all gating and states kept; "{branch} · {period}" and "Ready when you are." dropped |
+| **Rule 25a (`docs/04`)** | extended: before 06:00 the opening names its business day first |
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **The corrected and excluded 100-phone draft** (isolated copy, the real controls, CPU 4× throttled, 24 of 24 steps) | Fresh 0 ready · 100 remain → Match product on the first group with a choice: 10 ready · 165 000 · 90 remain → two costs corrected: 164 000 → three rows excluded: 87 remain, three Include again. Leave for Home and back: unchanged, both captions and all three exclusions kept; the store cleared ("Nothing to check") and restored: unchanged. Exclude all → "Left out 90", Continue enabled only then; the payment step "Paying now for 10 phones", back: unchanged; one Include again → 1 remain, Continue disabled. Close 48 × 48; closing lands on the same open group. `POST /purchases`: none |
-| **Fresh file vs the corrected draft, same session** | expand 671 → 500 ms (corrected group 367); filter 308 → 151; edit 1 037 → 553; scroll 60 → no long task; DOM 369 → 392/368. No cost to the corrected state; this session's machine was slower than the one behind `docs/55` §3.4 (fresh first render 1 531 vs 402), so only same-session figures compare |
-| **Gates** | mobile tsc clean · **74 pure suites** (`review-screen.test` 9) · parity 3 187 · `expo lint` 0 errors (33 pre-existing warnings); backend untouched |
-| **From the phase before** | Review pages 21 of 21 clean; Money and Home 29 of 29; the workbook's before/after timings (`docs/55` §3–§4) |
-| **Phone** | **Not run by this session** — `docs/24` §43 T1–T13. The user opened Home, Money and the closing on the phone and posted two sales and two expenses without an error reply |
+| **The 03:41 records on live** (read-only) | `opened` 2026-09-25 nth 1 at 03:41 by the Owner; sales 00005/00006 business date 2026-09-25; the two expenses confirmation date 2026-09-25; no early start; the 25th unclosed. Consistent with rules 24a/25a and with the new flow's default. **No change made.** The exact optional correction is `docs/56` §1.3 |
+| **The rules, built API on a fake clock, isolated copy** | **31 of 31** (`docs/56` §4.1): the choice at 03:41 (Owner both, seller *continue* only, seller's early start 403), `start_new` → two events + two audit rows, the 6th started early, the unclosed 5th *needs_review* everywhere, sales dated right and nothing moved, repeat taps inert, `continue` on record, 05:59:30 vs 06:00:30, a closed previous day → reopen with both choices, the comparison real |
+| **The screens, read from the page** (web export) | **32 of 33** (`docs/56` §4.2): Home at 03:41 in EN/FR/AR at 320–430 pt, light/dark, 130 % text; the notice; the sheet in three languages with *Continue* selected (`aria-checked`); Continue and Start early through the sheet; 06:00:30 without a prompt; the closed day's reopen sheet unchanged. The one finding: the harness's own expectation on the Stock page |
+| **Gates** | backend 95 specs green, `tsc` clean; mobile `tsc` clean, **75 pure suites**, i18n parity **3 202**, `expo lint` 0 errors (31 pre-existing warnings) |
+| **Phone** | **Not run** — `docs/24` §44 |
 
 ## Data and process safety
 
-- This session wrote nothing to live; the user's phone did (above). The copy `prisma_verify_home` was rebuilt per run
-  and **dropped**; 3012, 19012 and 9334 are free; the temporary instrumentation never reached a commit (the file was
-  restored from its saved clean copy; the mobile tree is clean at `578df5d`).
-- MySQL (session process), the API on 3010 and Metro are running for the phone (above).
+- Live received nothing; the 03:41 records are untouched. The copy `prisma_verify_home` was rebuilt per run and
+  **dropped**; 3012, 19012 and 9334 are free. The API on 3010 restarted on the new build (above); MySQL and Metro
+  untouched. Scratch tooling in OS temp only; the three trees are clean.
 
 ## 🔴 Blockers and pending approvals
 
@@ -103,11 +91,14 @@ log and this file.
 
 ## 📋 Known, not fixed
 
+- **A stored business date cannot be corrected from any screen** (the optional 03:41 correction of `docs/56` §1.3 would
+  be a scripted, backed-up, approved change).
+- **Only D−1 is checked for *Needs review*** (docs/51 limit): the 22nd's unclosed day is not announced.
+- **The expense form kept `spent_on 2026-09-18`** across the 03:46 entries on the phone — the accounting day is the
+  confirmation date, so the figures are right, but the form's remembered date is worth a look (expenses scope).
 - **Resuming a half-checked delivery** after the app was killed means picking the same file again on Receive — the
-  saved draft then replaces the fresh read (and would replace a *different* file's read until discarded). Receive could
-  offer "Continue the delivery you were checking"; a product decision, not taken here.
-- The review's **draft** is still the whole batch (43 KB) on every change — measured negligible in JavaScript; its
-  native write is the one part not measurable off the phone.
+  saved draft then replaces the fresh read. Receive could offer "Continue the delivery you were checking".
+- The review's **draft** is still the whole batch (43 KB) on every change — measured negligible in JavaScript.
 - Home's failed-server body still reads "Everything else on this screen still works" although the cards that need the
   same reply (top boutique, latest phones, closing) are absent; Sell, Receive and the pending rows are what still work.
 - **`product_velocity`** is no longer read or written — drop it in a later migration.
@@ -121,8 +112,7 @@ log and this file.
 - `scripts/rollup-audit.js` (revenue-only, `DATE(sold_at)`, existing rows only) is superseded by `rollup-drift.js`.
 - **Corrections not available, by name:** reversing a purchase payment as "not paid" (cancel the purchase instead);
   editing a sale line or cancelling part of a sale (cancel and sell again); a sale with a return (correct it on the
-  return); a purchase whose goods have moved (correct the later record first). Reassigning a stored business date is
-  still an Owner correction that does not exist.
+  return); a purchase whose goods have moved (correct the later record first).
 - The approval audit's `before` is the full preview (`$.payment.method`, `$.move`, …) since 0079.
 - Loans, consignment and employee-debt cash are outside the report, as they are outside the closing.
 - Expense and refund confirmations check the day's lock without taking the closing row's lock.
@@ -138,10 +128,13 @@ log and this file.
 
 ## The next exact action
 
-1. **Phone:** reload Expo Go (`exp://192.168.100.3:8081`) and run `docs/24` §43 T1–T13 — the review on the 100-phone
-   workbook with the `[timing]` lines from the Metro terminal as the handset's figures, the sheet's Close, and a
-   partly corrected draft resumed after a kill — then §42 N1–N10, §41 N1–N8, §40 L1–L6 and the older backlog. No
-   sample record on the live store unless the user asks.
-2. When the WAMP service is wanted back: stop the session MySQL (`mysqladmin -uroot --protocol=tcp -P3306 shutdown`),
+1. **Phone:** reload Expo Go (`exp://192.168.100.3:8081`) and run `docs/24` §44 U1–U11 — Home's header, date and
+   before-06:00 note; the opening sheet as the Owner and the notice as a store employee **before 06:00 by the
+   boutique's clock**; Continue, Start early, repeat taps, the 06:00 boundary, a closed previous day's reopen; FR/AR,
+   320 pt, large text — then §43 T1–T13 and the older backlog. No sample record on the live store unless the user
+   asks; a real opening before 06:00 records a real event.
+2. If the Owner says the 03:41 records were meant for 26 September: the scripted correction of `docs/56` §1.3, after
+   a backup per `docs/22`, on written approval only.
+3. When the WAMP service is wanted back: stop the session MySQL (`mysqladmin -uroot --protocol=tcp -P3306 shutdown`),
    then start `wampmysqld64` from an elevated prompt or the WAMP tray.
-3. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.
+4. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.

@@ -3713,3 +3713,24 @@ that Expo Go forwards to the Metro terminal (development build only). Use Expo G
 | T11 | Correct every row (Match products for the ambiguous groups, exclude or fix the rest) | Only then does Continue to payment enable; the payment step shows the count and total of the rows that are ready; the excluded ones are named in the note and not received |
 | T12 | The item sheet's **Close** (the ×) | A 48-point target; closing lands back in the same open group |
 | T13 | A **partly corrected and excluded** draft: match one group, change two costs, exclude three rows; leave the review (Home tab, or kill and reopen the app) and come back through Receive → the file | The footer reads the same before and after ("10 ready · <total>", "87 remain"); the two corrected rows still say what the file said; the three excluded rows still offer Include again; Exclude all the rest → Continue enables and the payment step shows the count and total of the ready rows; Include one again → Continue is disabled again. **Reopening after a kill requires picking the same file again** (the saved draft then replaces the fresh read and says it was restored) |
+
+## 44. The pre-06:00 opening choice and the simple Home — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-26 phase (`docs/56`; `docs/21`, "The pre-06:00 opening choice and the simple Home"). Read on the web
+export against the isolated API on a fake clock (EN/FR/AR, 320–430 pt, light/dark, larger text); the handset has not
+run it. Use Expo Go against the API on 3010 (restarted on the new build). The store's clock is the server's: a test
+"before 06:00" means before 06:00 **in the boutique's timezone** (UTC on live), whatever the phone shows.
+
+| # | Do | Expect |
+|---|---|---|
+| U1 | Home, as the Owner, between midnight and 06:00 store time | The header carries the calendar date (e.g. "Sat 27 Sep"); under the greeting: "Sales still count for {yesterday} until 06:00"; the Daily closing entry reads "{yesterday} · Not closed" (not "Today"); the header's tint is quiet in light and dark, the bell still opens Notifications |
+| U2 | Daily closing → **Open the boutique**, same time | A sheet, not an immediate opening: "Open the boutique · {store time}", "It is {today}, before 06:00…", **Continue {yesterday}** selected, **Start {today} early** as the second choice, each saying which date receives new sales and expenses; "Nothing already recorded moves to another day."; dismissing the sheet records nothing (the button is still there) |
+| U3 | Confirm with **Continue** | "Opened at {time}"; the opening line "Opened today · {today} · {time}"; the button gone; a sale made now shows under {yesterday} in the report and in Money; Home still says sales count for {yesterday} |
+| U4 | Another night: confirm **Start {today} early** | "{today} started early · opened at {time}"; the report's context is {today}; Home: no note, the closing entry "Today · Not closed", the **Yesterday needs review** chip when {yesterday} had activity and was never closed; a sale made now shows under {today}; {yesterday}'s sales did not move |
+| U5 | As a store employee (counts, no early start), before 06:00: Open the boutique | Not the sheet but a notice: "Open the boutique for {yesterday}? It is {time} on {today}, before 06:00: the business day is still {yesterday}… Only the Owner can start {today} early." Cancel keeps the button; Open records it for {yesterday} |
+| U6 | The same evening at 05:59, then at 06:00 store time | 05:59: the sheet (Owner) or the notice (staff); 06:00: neither — Open records at once for {today}, Home's note is gone, the entry reads "Today · Not closed" |
+| U7 | A previous day **closed** the evening before, then before 06:00 | No Open button; **Reopen this day** → the same two-day sheet as before ("Reopen at {time}", Continue / Start early, "Confirm and reopen") — unchanged |
+| U8 | Repeat taps: Open twice quickly; Open again after it succeeded | One opening only; the second attempt says the day is already open; the timeline shows one "Boutique opened" |
+| U9 | Home in French and Arabic (RTL) on a 320-pt phone, and with the system text at its largest | Header, date, note, the three money lines (word · scope · amount, no icon), the compact chart, the closing entry — nothing cut, nothing overflowing sideways; Arabic mirrored |
+| U10 | The comparison under the sales value | Present only when the window before sold something (e.g. Today vs a yesterday with sales: "+12 % vs yesterday"); absent on a zero base and on an older server; never a figure the server did not send |
+| U11 | Navigation from Home | Bell → Notifications; the Daily closing row → the report (no close happens); Top boutique's See more → Boutique ranking; Latest phones' See more → Stock filtered to phones, newest received |
