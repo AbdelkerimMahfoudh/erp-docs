@@ -67,6 +67,22 @@ drawer is anchored from the report the person just left (a cached read); until i
 `verificationKey(v, channel)` picks the account's words; the accounting and the `verification` states themselves
 are untouched.
 
+### 1.3 The UI correction against the five phone screenshots (D70)
+
+The user's before-state screenshots (in another conversation; none reached this one) showed Sales details carrying
+paragraphs and a second block of collected / owed lines with a link, and Money movements folded behind a disclosure
+with a repeated Received / Paid out / Net block, details by channel and the expenses. Corrected, presentation only:
+
+| # | Decision |
+|---|---|
+| **D70a** | **Sales details is figure rows only**: Invoiced sales · (Sales cancelled, Returns approved — each only when its value is not zero) · Net sales · Cost of items sold · Gross profit · Expenses · Result after expenses. No paragraph inside. The words — the counting rule, how the result is calculated, the fixed-cost scope, or "Cannot calculate yet" with its count — sit behind a small accessible **(?)** beside the title ("What these figures mean"), shown in a dialog only when asked. |
+| **D70b** | **The collected / owed block is gone from Sales details** — no "Collected for these sales", "At the till", "Paid later the same day", "Still owed", no explanatory line, no "See the transactions". The sales themselves stay one tab away on Money. |
+| **D70c** | **Money movements is always in view, with no expand/collapse**, as a short list: the day's recorded movement of **each configured channel** (Cash, Bankily, Masrivi, … — money in less money out through it; the unattributed bucket only when it holds something), a line, **"Debt settled for this day (included above)"** (`totals.olderDebts` — already inside the channel it arrived through, never added again), and **"Money in the shop — recorded movement"** (`totals.net`, the net of the channels). The repeated Received / Paid out / Net block, "Details by channel" and the expenses subsection are gone; the server's figures throughout. |
+| **D70d** | **"Money in the shop" alone would read as a balance**, which the accounts cannot claim (rule 26a); so the label carries "— recorded movement" and the card ends with one line: "The net of what was recorded through these channels this day — not counted cash, not provider balances." Flagged to the user as the honest form of the label they asked for. |
+
+Keys: `dailyReport.salesDetails.help`, `movements.debtSettled`, `movements.total`, `movements.total.note` (EN/FR/AR);
+`movements.hint`, `salesDetails.transactions` and `money.details` no longer appear on the screen.
+
 ---
 
 ## 2. `spent_on`, said apart from the business date
@@ -130,6 +146,18 @@ Offline was not driven (the web check cannot cut the connection): the offline no
 counting screen's offline line are pinned in the source and left to the phone (§45 V12). The first matrix run found
 one harness fault — the history *section* and the history *disclosure* share the words "Closing history", and the tap
 hit the heading — corrected in the check, not the app.
+
+### 3.4 The UI correction (D70), read from the page — **14 of 14** (web export of `fe55588`, a copy of live at 03:41 on the 26th)
+
+EN/FR/AR at 320 and 393 pt, EN dark, EN 320 at 130 % text: the statement, **Sales details** closed (no "Invoiced
+sales", no collected / owed line, no link, no paragraph on the page) and opened (Invoiced sales · Net sales · Cost of
+items sold · Gross profit · Expenses · Result after expenses, nothing else), the **(?)** opening the words in a dialog,
+**Money movements** in view with no expand control — "Cash drawer +5 558 · Bankily +350 · Debt settled for this day
+(included above) 0 · Money in the shop — recorded movement +5 908" and its line — and no "Details by channel". The
+channel lines add up to the last one (5 558 + 350 = 5 908; the debt line is inside them, not added). The page's own
+text per language was written out for the user's review. The first two runs' misses were the check's (a page-wide
+ban on the word "Received", which rightly still labels the money-in line inside each Check balances card) and a cash
+word that differed between the card and the list — aligned in `fe55588`.
 
 ### 3.3 Gates, in full
 
