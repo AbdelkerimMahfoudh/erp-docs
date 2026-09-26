@@ -6,8 +6,21 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T08:15Z` — takeover HEADs (all clean, level): docs `8b4c145` · backend `4bc2d72` · mobile
+  `fe55588`. Set before any edit.
+- **Active phase and scope (the user's brief of 2026-09-26, the Daily closing and its closing flow only):** Closing
+  history as one rectangular header with the chevron at the end edge and a short, smooth slide-out reveal (reduced
+  motion respected); the Check balances section, its cards and buttons removed, the separate counting page removed
+  if nothing else uses it (recorded counts and server data preserved); "Review and close" → "Close the business day"
+  opening a short popup — "Have you checked today's cash and account movements?" — with *Enter the amounts* (a compact
+  counting step inside the popup, then back to closing) and *I've checked* (an attestation: who and when, shown as
+  "Checked; amounts not recorded", never a counted amount, never matched, never a difference of 0); the backend
+  contract checked first and changed minimally if it cannot say that honestly; the protections against changed figures
+  and duplicate taps kept; EN/FR/AR; the revised screen and popup returned for review before the page is called
+  complete.
+- Next intended action: read the close contract and the history component; decide the smallest contract change.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T07:40Z` — **the Daily closing UI correction** (`docs/58`
   §1.3, D70; presentation only): Sales details as figure rows with the words behind an accessible (?); the collected /
   owed block and its link gone from it; Money movements always in view as a short channel list ending in "Money in
