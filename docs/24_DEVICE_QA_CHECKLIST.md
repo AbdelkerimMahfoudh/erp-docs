@@ -3691,3 +3691,23 @@ The 2026-09-25 Home completion (`docs/54`; `docs/21`, "Home completed"). Proved 
 | N8 | As a seller without transfers or returns, pull Home down to refresh | Nothing refused, no error toast |
 | N9 | French, 320 pt (iPhone SE size), and Arabic | The counter buttons stack and "Réceptionner" is whole; **check the tab label "Partenaires"** (2 points too wide on the web's font); Arabic product names in Analytics are whole |
 | N10 | Analytics · Not moving | The rule under the list: a cancelled sale does not count, a returned item does |
+
+## 43. Money's day, the French tab, and the imported-stock review on the 100-phone file — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-26 follow-up (`docs/55`; `docs/21`, "Home/Money follow-up and the imported-stock review"). Measured and read
+on the web export (CPU throttled 4×, EN/FR/AR, 320 and 393 pt); the handset's own numbers come from the `[timing]` lines
+that Expo Go forwards to the Metro terminal (development build only). Use Expo Go against the API on 3010.
+
+| # | Do this | Expect |
+|---|---|---|
+| T1 | Money, in French at 320 pt (iPhone SE size) | The tab bar reads "Partenaires" whole; nothing else on the bar moved |
+| T2 | Money → open **Cash & accounts**; read the **Daily expenses** card | Both hints name today's date: "…each account today (26 Sep 2026)…" and "Today only (26 Sep 2026) — the period above changes sales, not this."; switching the period to 7 days or the month changes the sales figures and **not** these two |
+| T3 | Money → View all sales · View all expenses · Add expense · Results · Daily closing · Outstanding payments | Each opens its own screen; Back returns to Money with the same period |
+| T4 | Home → Receive → the file icon → pick the **100-phone workbook** | "Reading…" then the review: 100 read, 10 groups, "0 ready · 0 MRU", "100 remain" in amber beside it, Continue to payment disabled. Metro: `[timing] review: file parsed (round trip)` and `review: first list shown` |
+| T5 | The four filters (All 100 · Ready 0 · Needs review 100 · Excluded 0) | All four visible without sideways scrolling, on two lines at 320 pt; each 48 pt tall; tapping one is never mistaken for a scroll. Metro: `review: filter applied` |
+| T6 | Open a group | Its ten rows appear at once, smoothly; each row: "Row N · IMEI 1 [· 2 IMEIs]", the identifier's last four, cost, status in words, then **Accept · Edit · Exclude** as words (Accept greyed while a problem blocks). Metro: `review: group opened` — compare with the figure before the change if you have it; the web went 754 → 308 ms |
+| T7 | Edit a row: change the cost, Save | The sheet closes onto the same open group; the row shows "Corrected. The file said …"; the footer's ready count and total update at once. Metro: `review: change applied` and `draft written (receive.file)` |
+| T8 | Exclude a row; then open the Excluded filter and Include it again | The row greys with "Include again"; "Left out 1" never hides it; back to 100 remain after Include |
+| T9 | Scroll the open list to the end and back; open the last group | Smooth throughout (**physical smoothness — handset only**); Exclude all and Leave it sit at the list's end, clear of the pinned footer |
+| T10 | French and Arabic, dark, iOS Dynamic Type 120 % / 135 %, at 320 pt | No product name, count or amount cut at a row's edge; the group's name keeps at least half its row; the footer's two lines wrap rather than clip; Arabic mirrors the rows and the chevrons |
+| T11 | Correct every row (Match products for the ambiguous groups, exclude or fix the rest) | Only then does Continue to payment enable; the payment step shows the count and total of the rows that are ready; the excluded ones are named in the note and not received |
