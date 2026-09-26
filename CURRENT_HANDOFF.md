@@ -6,8 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T05:40Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `d8f9e00` ·
+  backend `4bc2d72` · mobile `407b1fd`. MySQL (session process), the API on 3010 (`4bc2d72`, pid 14540) and Metro
+  still running.
+- **Active phase and scope (the user's brief of 2026-09-26, Home / Money / Daily closing; no pictures, live
+  transactions untouched):** Home against the approved simple reference — "Ready when you are" back under the
+  greeting, the before-06:00 note beside it, Collected / Expenses / Still owed as three distinct quiet text-first
+  cards readable at 320 pt and large text; the two 03:46 expenses' `spent_on 18 Sep` investigated (what each date
+  drives on Home, Money, the Daily closing, the history and the warnings; why the form kept 18 Sep; the stale default
+  fixed for future entries; records and any correction reported, none applied); the page check's last discrepancy
+  resolved and the check rerun; full backend and mobile gate totals; the handoff.
+- Next intended action: the expense form's draft date, then Home, then the checks and the totals.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T04:43Z` — **the pre-06:00 opening choice and the simple
   Home** (Home, the Daily closing reached from Home, their direct dependencies; no pictures): the real 03:41 opening
   investigated and reported (consistent with the rules; no correction required, none made); *Open the boutique*
