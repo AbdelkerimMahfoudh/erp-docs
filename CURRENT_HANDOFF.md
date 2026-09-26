@@ -6,8 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T07:40Z` — takeover HEADs (all clean, level): docs `8d548c0` · backend `4bc2d72` · mobile
+  `1ad460f`. Set before any edit.
+- **Active phase and scope (the user's brief of 2026-09-26, Daily closing UI correction only; accounting,
+  permissions, counting, closing and reopening unchanged; no pictures; no other page):** Sales details as figure rows
+  only (invoiced, cancellations/returns when nonzero, net, cost of items, gross profit, expenses, result) with the
+  explanations behind a small accessible (?) beside the title; the collected / owed block and *See the transactions*
+  removed from it; Money movements always visible as a short list — each configured channel's recorded movement, a
+  divider, debt settled for this day (already inside the channels, not added again), the total recorded movement
+  across the channels said as such, never as cash or a balance; checked on a narrow phone in EN/FR/AR and the page's
+  text returned for review.
+- Next intended action: the screen, the keys, the pins, the page check on a copy of live.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T07:05Z` — **the Daily closing copy pass** (copy only, EN/FR/AR;
   `docs/58` §1.2, D69): the drawer's figure named "Recorded cash movement, from a 0 start" whenever no counted opening
   anchors it (report, review sheet, counting screen) and "Should be in the drawer" only when one does; accounts as
