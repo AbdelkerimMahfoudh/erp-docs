@@ -6,8 +6,23 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T06:05Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `28f7154` ·
+  backend `4bc2d72` · mobile `05c76bf`. MySQL (session process), the API on 3010 (`4bc2d72`, pid 14540) and Metro
+  still running.
+- **Active phase and scope (the user's brief of 2026-09-26, Home → Daily closing and its direct Money / correction /
+  history paths; no pictures; live historical expenses untouched; no other page):** the compact, bill-like Daily
+  closing on the existing server report and closing system — first view (boutique, business date, opening time,
+  standing; sales and item count; gross profit / expenses / result where permitted and calculable), an expandable
+  Sales details with its route to the transactions, Check balances per channel with its own count / check action and
+  the recorded-movement-versus-balance precision, Money movements behind a disclosure, Review & close, Correct a
+  transaction and Closing history easy to find; the accounting rules, the close contract, reopening and the
+  before-06:00 choice unchanged. The real 03:41 scenario verified on a copy (the 25th with its two sales and two
+  expenses, needing review; the 26th at 06:00 with the 25th in history). `spent_on` documented apart from the
+  business date; the three suspect rows not edited. EN/FR/AR, RTL, 320 pt, large text, dark, permissions, loading /
+  offline, the lifecycle.
+- Next intended action: read the approved layout (docs/51, docs/21), then the screen.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T05:40Z` — **the expense's two dates, the Home reference
   pass and the check rerun** (Home / Money / Daily closing; no pictures; live untouched): the two 03:46 expenses'
   `spent_on 18 Sep` explained (a continuity column that drives no money — both count for 25 Sep everywhere) and its
