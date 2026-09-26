@@ -6,8 +6,16 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-26T07:05Z` — takeover HEADs (all clean, level): docs `466ddb0` · backend `4bc2d72` · mobile
+  `ad78607`. **Set after the first edits of this pass, not before** — recorded as such in the session log.
+- **Active phase and scope (the user's brief of 2026-09-26, copy only):** the Daily closing and its counting screen in
+  EN/FR/AR — the drawer's figure named as recorded cash movement from a 0 start when no counted opening anchors it;
+  accounts consistently "recorded movement" and "movement shown by the account app", never a balance or a physical
+  count; calculations, optional checks, the close contract and live data unchanged; the focused suites and parity;
+  the exact wording reported.
+- Next intended action: the focused suites, parity, the commit, the docs note.
 - Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T06:05Z` — **the compact Daily closing** (Home → Daily
   closing and its direct Money / correction / history paths; no pictures; live untouched): the screen reorganised on
   the same report, count, close, reopen and opening — the statement first (sales and items; gross profit, expenses
