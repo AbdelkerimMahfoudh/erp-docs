@@ -6,31 +6,30 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-26T03:28Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `eab5b75` ·
-  backend `9a1155a` · mobile `2b3b739`; live at 0081. MySQL (session process), the API on 3010 and Metro still running.
-- **Active phase and scope (the user's brief of 2026-09-26, Home / Money / Home → Receive; no pictures, no live
-  purchase):** the review sheet's Close control at least 48 points; the review checked with a partly corrected and
-  excluded 100-phone draft — corrections surviving navigation, the footer totals right — and any difference from the
-  fresh-file performance run reported; commit; handoff.
-- Next intended action: the sheet's Close, then the corrected-draft scenario on the isolated copy.
-- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T01:38Z` — **Home/Money follow-up and the imported-stock
-  review**: the French tab label at 320 points, Money's today-only figures kept by the 0074 decision and their hints
-  naming the day, Home and Money links and error states verified, and the review of the 100-phone workbook measured
-  stage by stage, its bottleneck (the views a row mounts) fixed, its filters, footer and native text hardened
-  (`docs/55`, `docs/21` "Home/Money follow-up"). Takeover HEADs were docs `21168a3` · backend `9a1155a` · mobile
-  `056bb6e`. No backend change; no migration; nothing written to live.
-- **Running — started by CLAUDE-A after the 2026-09-25 shutdown, left running for the phone check:**
-  - **MySQL as a session process** (pids 9440 → 14604, port 3306) with the WAMP service's own configuration
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T03:28Z` — **the review sheet's Close at 48 points and the
+  corrected-draft check** (Home / Money / Home → Receive scope; no pictures, no live purchase): the design-system
+  sheet's Close is the touch minimum (D49); the review checked with a partly corrected and excluded 100-phone draft —
+  the footer totals matched an independent count at every step, corrections and exclusions survived navigation and
+  restore, no purchase posted — and measured against the fresh file (no cost to the corrected state); on the way,
+  Match product offered only where a choice exists (D50) and the "Corrected" caption only when the cost changed (D51)
+  (`docs/55` §6, `docs/21` addendum). Takeover HEADs were docs `eab5b75` · backend `9a1155a` · mobile `2b3b739`.
+  No backend change; no migration; this session wrote nothing to live.
+- **Live moved by the user's hand during this session:** the phone (192.168.100.251) used the API on 3010 from
+  03:41Z to 04:05Z — sign-in, `devices/adopt`, `closings/open`, **two `POST /sales` at 03:44 and two `POST /expenses`
+  with their confirmations at 03:46** (all 201), then Home, Money, the closing's view/report/overview and inventory.
+  Live (`phonestore`) now holds **13 sales** (11 + today's 2) and **7 expenses** (5 + today's 2).
+- **Running — started by CLAUDE-A after the 2026-09-25 shutdown, left running for the phone:**
+  - **MySQL as a session process** (pid 14604, port 3306) with the WAMP service's own configuration
     (`C:/Users/HP/AppData/Local/Temp/claude/session-my.ini`: `sql_mode` empty, `utf8mb4_unicode_ci`, no binary log).
     The WAMP service `wampmysqld64` is **Stopped** and cannot be started from the non-elevated shell. **Before
     starting the service, stop this process:** `mysqladmin -uroot --protocol=tcp -P3306 shutdown`.
   - **The API on 0.0.0.0:3010** (pid 14576) from `backend/dist` built from `9a1155a`; log
-    `C:/Users/HP/AppData/Local/Temp/claude/api-3010.log`. The phone has not called it since the restart.
+    `C:/Users/HP/AppData/Local/Temp/claude/api-3010.log`. The phone reaches it (above).
   - **Metro on 0.0.0.0:8081** (pid 7632, launcher 14128), `expo start --clear` in `mobile/`; log
-    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`. It serves the working tree, i.e. mobile `2b3b739`.
-- Next intended action: **the phone** (`docs/24` §43 T1–T11, then §42, §41 and the older backlog). Reload Expo Go
+    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`. It serves the working tree, i.e. mobile `578df5d`.
+- Next intended action: **the phone** (`docs/24` §43 T1–T13, then §42, §41 and the older backlog). Reload Expo Go
   (`exp://192.168.100.3:8081`); the review's own timings appear as `[timing]` lines in the Metro terminal.
 
 ### ⚠️ The scope rule, unchanged
@@ -45,38 +44,38 @@ Nothing was removed by this phase.
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
 | `erp-backend` | `reports-export` | **`9a1155a`** — untouched this phase | level | 0 |
-| `erp-mobile` | `reports-export` | **`2b3b739`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`578df5d`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This phase: mobile `6ca8ab1` (compact tab label below 360 pt), `99c5b69` (i18n), `5c3adae` (Money's hints name the day;
-the reply check requires `today`), `46bdeb9` (dev-build stage timings), `2b3b739` (the review: light row actions,
-filters in view, the footer, native text shrink); docs `docs/55` (new), `docs/21`, `docs/24` §43, the session log and
-this file.
+This phase: mobile `925fb22` (the sheet's Close at 48 pt), `578df5d` (Match product only where a choice exists; the
+Corrected caption only when the cost changed; pins). The phase before, same day: `6ca8ab1`, `99c5b69`, `5c3adae`,
+`46bdeb9`, `2b3b739` (`docs/55` §1–§5). Docs: `docs/55` §6, `docs/21` addendum, `docs/24` §43 T12–T13, the session
+log and this file.
 
 ## What changed (no schema change, no data change)
 
 | Where | Now |
 |---|---|
-| **Tab bar** | Below 360 points the label is the compact 10-point token; "Partenaires" fits at 320 (D43) |
-| **Money** | Accounts today and Daily expenses stay today's, by the 0074 decision — no period totals were agreed, none added; both hints name the business day: "Today only (26 Sep 2026) — …", "…each account today (26 Sep 2026)…" (D42) |
-| **Imported-stock review** | Accept / Edit / Exclude / Include again are light named actions, 48 pt, no icon, no animation library (D44); the four filters wrap into view at 320 pt, each 48 pt (D45); the footer: ready · total beside "N remain" (amber) or "Left out N", Continue disabled exactly as before, payment reached only through it (D46); texts in a row may shrink so a name, count or amount cannot run past a phone's row edge; the group's name keeps ≥ half its row (D47) |
-| **Development build** | `[timing]` lines for parse, first list, filter, group opened, change applied and each draft write, forwarded by Expo Go to Metro; nothing in production (D48) |
+| **Every sheet** | Close is a 48-point target (was 36) (D49) |
+| **Imported-stock review** | Match product appears only on a group whose phones share a candidate, and Match products opens the first such group — the seven "No product match" groups no longer offer a sheet that can only say nothing matches (D50); a row says "Corrected. The file said …" only when its cost was corrected, not for a product choice (D51). From the phase before: light named row actions (D44), the four filters wrapping into view at 48 pt (D45), the footer's ready · total beside "N remain" / "Left out N" with Continue disabled exactly as before (D46), native text that shrinks (D47), `[timing]` lines in the development build (D48) |
+| **Tab bar / Money** | Unchanged this phase: the compact 10-pt label below 360 pt (D43); Accounts today and Daily expenses today-only by 0074, hints naming the day (D42) |
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **The 100-phone workbook** (real parse on the copy; web export with temporary counters; CPU 4× throttled; before → after) | 100 entries, 10 groups, 70 unknown / 30 ambiguous. Parse 82 → 71 ms; first render 593 → **402**; filter 114 → 56; **expand 754 → 308**; edit 778 → 461; exclude 108 → no long task; scroll 78 → 70 (0 row re-renders); DOM open group 499 → 333. Profile: layout/paint 1 009 → 650 ms on expand, script flat. Draft path negligible in JS (43 KB, 0.08 ms stringify, 0.7 ms guard). After each run: 100 entries, the correction and exclusion intact, "0 ready · 0 MRU", Continue disabled |
-| **Review pages read, no pictures** | 21 of 21 clean (EN/FR/AR, 320/393, light/dark, 130 % text; collapsed, open, filtered, sheet, excluded); no clipped element, no control under 48 pt but the sheet's own Close |
-| **Money and Home pages** | 29 of 29 clean: the dated hints (with an account paid today, an expense today, rent due tomorrow not listed); View all sales, View all expenses, Add expense, Results, Daily closing, Outstanding payments; older-server and failed-server states on the overview, sales by day and Home; "Partenaires" whole at 320 in French |
-| **Gates** | mobile tsc clean · **74 pure suites** · parity 3 187 · `expo lint` 0 errors (33 pre-existing warnings); backend untouched |
-| **Phone** | **Not run** — `docs/24` §43 |
+| **The corrected and excluded 100-phone draft** (isolated copy, the real controls, CPU 4× throttled, 24 of 24 steps) | Fresh 0 ready · 100 remain → Match product on the first group with a choice: 10 ready · 165 000 · 90 remain → two costs corrected: 164 000 → three rows excluded: 87 remain, three Include again. Leave for Home and back: unchanged, both captions and all three exclusions kept; the store cleared ("Nothing to check") and restored: unchanged. Exclude all → "Left out 90", Continue enabled only then; the payment step "Paying now for 10 phones", back: unchanged; one Include again → 1 remain, Continue disabled. Close 48 × 48; closing lands on the same open group. `POST /purchases`: none |
+| **Fresh file vs the corrected draft, same session** | expand 671 → 500 ms (corrected group 367); filter 308 → 151; edit 1 037 → 553; scroll 60 → no long task; DOM 369 → 392/368. No cost to the corrected state; this session's machine was slower than the one behind `docs/55` §3.4 (fresh first render 1 531 vs 402), so only same-session figures compare |
+| **Gates** | mobile tsc clean · **74 pure suites** (`review-screen.test` 9) · parity 3 187 · `expo lint` 0 errors (33 pre-existing warnings); backend untouched |
+| **From the phase before** | Review pages 21 of 21 clean; Money and Home 29 of 29; the workbook's before/after timings (`docs/55` §3–§4) |
+| **Phone** | **Not run by this session** — `docs/24` §43 T1–T13. The user opened Home, Money and the closing on the phone and posted two sales and two expenses without an error reply |
 
 ## Data and process safety
 
-- Live received nothing. The copy `prisma_verify_home` was rebuilt per run and **dropped**; 3012, 19012 and 9334 are
-  free; the temporary instrumentation never reached a commit (the file was restored from its saved clean copy).
-- MySQL (session process), the API on 3010 and Metro are running for the phone check (above).
+- This session wrote nothing to live; the user's phone did (above). The copy `prisma_verify_home` was rebuilt per run
+  and **dropped**; 3012, 19012 and 9334 are free; the temporary instrumentation never reached a commit (the file was
+  restored from its saved clean copy; the mobile tree is clean at `578df5d`).
+- MySQL (session process), the API on 3010 and Metro are running for the phone (above).
 
 ## 🔴 Blockers and pending approvals
 
@@ -89,9 +88,11 @@ this file.
 
 ## 📋 Known, not fixed
 
+- **Resuming a half-checked delivery** after the app was killed means picking the same file again on Receive — the
+  saved draft then replaces the fresh read (and would replace a *different* file's read until discarded). Receive could
+  offer "Continue the delivery you were checking"; a product decision, not taken here.
 - The review's **draft** is still the whole batch (43 KB) on every change — measured negligible in JavaScript; its
   native write is the one part not measurable off the phone.
-- The design-system **sheet's Close** is a 36-point icon button (every sheet).
 - Home's failed-server body still reads "Everything else on this screen still works" although the cards that need the
   same reply (top boutique, latest phones, closing) are absent; Sell, Receive and the pending rows are what still work.
 - **`product_velocity`** is no longer read or written — drop it in a later migration.
@@ -122,9 +123,10 @@ this file.
 
 ## The next exact action
 
-1. **Phone:** reload Expo Go (`exp://192.168.100.3:8081`) and run `docs/24` §43 T1–T11 — the review on the 100-phone
-   workbook with the `[timing]` lines from the Metro terminal as the handset's figures — then §42 N1–N10, §41 N1–N8,
-   §40 L1–L6 and the older backlog. No sample record on the live store unless the user asks.
+1. **Phone:** reload Expo Go (`exp://192.168.100.3:8081`) and run `docs/24` §43 T1–T13 — the review on the 100-phone
+   workbook with the `[timing]` lines from the Metro terminal as the handset's figures, the sheet's Close, and a
+   partly corrected draft resumed after a kill — then §42 N1–N10, §41 N1–N8, §40 L1–L6 and the older backlog. No
+   sample record on the live store unless the user asks.
 2. When the WAMP service is wanted back: stop the session MySQL (`mysqladmin -uroot --protocol=tcp -P3306 shutdown`),
    then start `wampmysqld64` from an elevated prompt or the WAMP tray.
 3. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.

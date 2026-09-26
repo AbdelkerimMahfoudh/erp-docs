@@ -117,3 +117,66 @@ from backend `9a1155a`, against web exports of the app, read from the page in he
 - The draft is still the whole batch (43 KB) on every change; measured negligible in JavaScript, its native write is
   small, so it was left as designed.
 - The sheet's Close control is the design-system sheet's own 36-point icon button (all sheets).
+
+## 6. The corrected draft, the sheet's Close, and two defects found on the way (2026-09-26, later)
+
+> The user's follow-up: make the review sheet's Close at least 48 points; check the review with a partly corrected and
+> excluded 100-phone draft, confirming that corrections survive navigation and the footer totals stay right; report any
+> difference from the fresh-file performance run. No pictures, no live purchase. (No screenshot reached this session;
+> the draft was built from the description.)
+
+### 6.1 Decisions
+
+| # | Decision |
+|---|---|
+| **D49** | The design-system sheet's **Close** is the touch minimum, 48 points (it was 36 — the one control under the minimum on the review's item sheet). Every sheet. |
+| **D50** | **A group offers Match product only where a shared choice exists.** Found by driving the scenario through the real controls: all ten groups carried the button — the seven "No product match" groups included — and their sheet could only say that nothing in the catalogue matches, while the headline Match products opened that empty sheet first. The button now appears only for a group whose phones share at least one candidate, and Match products opens the first such group. The rules (`matchableKeys`, `groupCandidates`) are unchanged. |
+| **D51** | **The row's "Corrected. The file said {cost}" speaks only when the cost was corrected.** A row whose only correction was a product choice printed it for a cost that had not moved, and read as if it had. A product choice still shows as the row's status turning Ready and the group's reason clearing; the item sheet still shows what the file said for any correction. |
+
+### 6.2 The scenario, on the isolated copy through the real controls (`review-draft`, CPU throttled 4×)
+
+Every footer figure was checked against an independent count kept outside the app; nothing was posted to
+`/purchases` (0 in the API's log for the phase).
+
+| Step | Footer (page) | Independent count |
+|---|---|---|
+| Fresh workbook | 0 ready · 0 MRU · 100 remain | 0 / 0 / 100 |
+| Match product on the first group with a choice (Apple iPhone 13 → its one candidate; the dialog "10 phones matched to Apple iPhone 13") | 10 ready · 165 000 · 90 remain | 10 / 165 000 / 90 |
+| Two costs corrected through Edit → Save (17 000 and 15 000 in place of 16 500) | 10 ready · 164 000 · 90 remain | 10 / 164 000 / 90; both rows say "Corrected. The file said 16 500 MRU", the other eight do not (D51) |
+| Three rows of an unknown group excluded through Exclude → its confirmation | 10 ready · 164 000 · 87 remain; three rows offer Include again | 10 / 164 000 / 87, 3 excluded |
+| **Leave for Home through the app's router, come back** | the same footer; the two corrected rows and the three excluded rows as they were | — |
+| **The batch cleared, then put back as a draft is** (the store's `restore`) | "Nothing to check", then the same footer | — |
+| Exclude all 87 → its confirmation | 10 ready · 164 000 · **Left out 90**; Continue to payment enabled only now | 10 / 164 000 / 0, 90 excluded |
+| Continue to payment → the payment step → Back to the delivery | "Paying now for 10 phones", 164 000; back: the same footer | — |
+| One excluded row included again | 10 ready · 164 000 · 1 remain; Continue disabled again | 10 / 164 000 / 1, 89 excluded |
+| The item sheet's Close | 48 × 48; closing lands on the same open group (nine of its ten rows still excluded) | — |
+
+**A limit of the web run:** the real draft file lives on the phone (the web keeps no drafts), so "leaving" was the app's
+own navigation and "restoring" was the store's restore of the saved batch — the two halves the phone's draft joins.
+
+**Found, not fixed (a product decision):** on the phone, coming back to a half-checked delivery after the app was killed
+means picking the same file again — the saved draft then replaces the fresh read and says it was restored. Picking a
+*different* file would also be replaced by the old draft until it is discarded. Receive could offer "Continue the
+delivery you were checking" instead; not done here.
+
+### 6.3 Performance on the corrected draft, against the fresh file
+
+The same stages as §3.4, measured twice in one session on the same export: the fresh file, then the corrected draft.
+This session's machine was slower than the one that produced §3.4's figures (the fresh file itself read 1 531 ms on
+first render against 402), so only figures from the same session compare.
+
+| Stage | Fresh file, §3.4 session | Fresh file, this session | Corrected draft, this session |
+|---|---|---|---|
+| Expand an untouched group | 308 ms | 671 ms | **500 ms** |
+| Expand the corrected group (10 matched rows, 2 with the cost caption) | — | — | **367 ms** |
+| Filter Needs review | 56 ms | 308 ms | **151 ms** |
+| Edit one item | 461 ms | 1 037 ms | **553 ms** |
+| Scroll to the end and back | 70 ms | 60 ms | **no long task** |
+| DOM, a group open | 333 | 369 | 392 (untouched) / 368 (corrected) |
+
+**No difference to report against the corrected state**: on every stage the partly corrected and excluded draft measured
+at or below the fresh file run in the same session; the spread between sessions is the machine's, not the draft's.
+
+A repeat of the draft run alone, after the harness's last expectation was corrected (24 of 24 steps): expand an
+untouched group 476 ms, the corrected group 375 ms at most (three tasks, 535 in all), filter 180, edit 585 in three
+tasks, scroll none — the same picture, with the same run-to-run spread.
