@@ -6027,3 +6027,30 @@ Rules R1–R6, the audit, decisions D29–D35, the contract, every scenario's fi
 4. Analytics' **movement labels** ("sold in 30 days", "last sold", dead stock) still count a cancelled sale as movement.
 
 Supersedes, in the previous entries' "not changed" lists: the Money tab and Analytics counting a cancelled sale on its sale day only; goals not deducting returns; Home's expenses gross of reversals.
+
+## Home completed: a whole-invoice discount, the store's time, and the connected reporting checks (2026-09-25)
+
+Findings, decisions D36–D41, the contract, every scenario's figures before and after, the links, the layout checks and what is left: [`docs/54`](54_HOME_COMPLETION.md). Backend `3c3f629`, `75cc60f`, `c6b1bba`, `a33f47e`, `416268b`, `da00ed2`, `9a1155a`; mobile `9969e2d`, `d2ffcea`, `8272b33`, `3b96d1a`, `056bb6e`. **No migration.** The user's brief (Home, its direct links and the reporting consistency just completed; no workflow, no pictures; the three-day repair not rerun), and, during it: Expo Go crashed on Home (`figures.returns.count` of undefined) — check whether the phone reaches the old API on 3010, update and restart it when safe, verify Home opens, and make an incompatible reply show an error instead of crashing or showing zeros.
+
+### ✅ APPROVED BY THE USER, NOW IMPLEMENTED
+
+- **The units-sold goal** = units on sales − units on whole-sale cancellations − approved returned units, each subtraction on its approval date. The sales count is unchanged: a returned item is not a cancelled invoice (D37). **No conflict with a binding decision** — the goals decision above (§7, "returns reduce progress") already said so; it supersedes `docs/53` R6 for this goal only.
+- **The revenue goal is named "Net sales"** (EN/FR/AR), what it measures since `docs/53` D30.
+- **Disagreements from a whole-invoice discount are fixed on the recorded invoice total** (D36): each line is worth its share of `sales.total` (in cents, rounding cent on the largest line). Results, branch goals, branches, the product and category reports, personal goals and the closing digest now agree with Home, its chart, Money and the Daily closing. **A returned line refunds its share** — it refunded the undiscounted price (10 000 for a phone paid 9 500); `docs/27`'s principle (the refund is what the rollup gave the line) is kept, its formula superseded.
+- **Home's latest phones in the store's timezone**, "Today"/"Yesterday" included (D40); **a bare date is the same calendar day on every phone** (Home's range, the Daily closing and its history, the closing sheets, expenses and corrections were a day early west of UTC).
+- **Home's sales block** (D41): Net sales under the gross value and its adjustment lines when a cancellation or return falls in the period (below zero on a day holding only one); the chart says it plots sales as invoiced; Collected says it includes older debts. Refresh asks only for what the person may read.
+- **Analytics' movement labels** (D39): read from the sales that stand, when asked — a cancelled sale is left out wherever it falls (its goods never left), a returned item still counts as sold; the window is the last 30 business dates ending today (it ended at the last stock event). The rule is stated under "Not moving".
+- **A server reply missing a figure is refused whole** (D38): Home, Money's overview and sales by day say "This screen needs an updated server" — no crash, no missing amount as zero, no retry.
+
+### 📋 VERIFICATION
+
+- **The crash:** the phone called `192.168.100.3:3010`, the user's API still running `backend/dist` from `68c21e9`. Restarted by PID on `5acab28` at 09:23Z, then on `9a1155a` after the commits (detached, log in OS temp); the new build's Home passes the app's check. Nothing written to live by this work; the user's two sales of the day (no discount) were rolled up by the running API.
+- **Isolated copy** (store at UTC+4 on the copy only, built API, fake clock): `home-lifecycle` **42/42 steps, 37/37 screens expected = actual**; the same acts on the build before this phase recorded the "before" (`docs/54` §5.1) — Results 10 040 where Home said 9 040; a refund of 10 000 for a phone paid 9 500; the units goal 2 after a same-day return; "sold in 30 days" 2 weeks after the window moved on; the app refusing that build's Home instead of crashing.
+- **Links and permissions:** ranking, Stock (the same three phones, masked on Home only) and the closing card agree with their screens; a store employee and a warehouse employee see no money — hidden, not zero.
+- **Rendered and read, no pictures:** 35 views in EN/FR/AR, light/dark, 320/393 pt, 130 % text, including a server one version behind — 30 clean; 5 show only the French tab label "Partenaires" 2 points too wide at 320 pt (navigator inset, left for the phone). Fixed on the way: the counter buttons stack below ~360 pt; Arabic product names in Analytics keep their width.
+- **Regression on the new build:** docs/53 lifecycle 59/59 (units goals updated to D37), Daily closing 45/45, corrections 40/40, cancellation 31/31. **Backend** 158 suites / 2 825 tests; **mobile** 73 pure suites, parity 3 187, lint 0 errors.
+- **Physical phone: not run** — `docs/24` §42.
+
+### 🟡 NOT CHANGED, BY NAME
+
+The French tab label at 320 pt; `product_velocity` unused (drop later); the Catalogue's "Last sold" finds quantity lines only; the exports' movement headers unchanged. Supersedes `docs/53` §4's four open questions.

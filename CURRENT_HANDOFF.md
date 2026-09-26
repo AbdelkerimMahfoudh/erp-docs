@@ -6,28 +6,27 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-25T09:16Z` — takeover HEADs (all clean, level with `origin` after a fetch): docs `9ef563c` ·
-  backend `5acab28` · mobile `73fee6d`; live at 0081, up to date (9 sales, no discount, no return, no correction).
-- **Active phase and scope (the user's brief of 2026-09-25, Home and its direct links plus the reporting consistency
-  just completed; no workflow, no pictures; the three-day repair not rerun):** a whole-invoice discount agreeing on
-  Home, its chart, Daily closing, Results, Money, Analytics and goals (the recorded invoice total); Home's latest-phone
-  labels in the store's timezone; Home's sales block for an adjustment-only day (net total, what the chart plots,
-  "Collected" and older debts); Home's links (ranking, masked latest phones and Stock, closing card and Closing &
-  history), refresh, permissions and narrow EN/FR/AR layout; the revenue goal's label; Analytics' movement labels after
-  cancellations; the units-sold goal = sale units − cancelled units − approved returned units, each on its approval
-  date. Earlier closing snapshots and live historical data untouched.
-- Next intended action: audit the discount path through every reader, then Home's screen and links.
-- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-25T08:21Z` — **reporting consistency**: Money, Home, Analytics
-  and goals now follow the Daily closing's and Results' dated rules (`docs/53`, `docs/21` "Reporting consistency").
-  Takeover HEADs were docs `7ddf674` · backend `68c21e9` · mobile `40a9b2f` (all clean, level with `origin`). No
-  migration; live untouched.
-- **The WAMP MySQL service is RUNNING**, the **user's API is running on 3010** (started by the user at 07:45:14Z from
-  `backend/dist`, built from `68c21e9` — it does **not** carry this session's backend commits until the user rebuilds
-  and restarts it) and **Metro (8081) is running**. None was restarted or touched.
-- Next intended action: **the handset runs** — `docs/24` §41 N1–N8 (after the user's API is rebuilt from `5acab28`),
-  then §40 L1–L6, §39 K1–K14, §38 R1–R14, §37, §36, §35 and the older backlog, against the live API in Expo Go.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE** (released by CLAUDE-A at `2026-09-26T00:45Z`)
+- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-25T09:16Z` — **Home completed**: a whole-invoice discount
+  agreeing everywhere, Home in the store's time, Home's sales block, links, refresh, permissions and narrow layout, the
+  revenue goal renamed, movement labels read live, the units-sold goal less returned units, and an older server shown
+  as a notice instead of a crash (`docs/54`, `docs/21` "Home completed"). Takeover HEADs were docs `9ef563c` · backend
+  `5acab28` · mobile `73fee6d`. No migration; nothing of this work wrote to live.
+- **The PC shut down** during the documentation (2026-09-25); on 2026-09-26 the docs edits were found whole and kept,
+  backend and mobile clean and level, and the services were brought back (below).
+- **Running now — started by CLAUDE-A, left running for the phone check:**
+  - **MySQL as a session process** (pids 9440 → 14604, port 3306) with the WAMP service's own configuration
+    (`C:/Users/HP/AppData/Local/Temp/claude/session-my.ini`: `sql_mode` empty, `utf8mb4_unicode_ci`, no binary log).
+    The WAMP service `wampmysqld64` is **Stopped** and cannot be started from the non-elevated shell. **Before
+    starting the service, stop this process:** `mysqladmin -uroot --protocol=tcp -P3306 shutdown`.
+  - **The API on 0.0.0.0:3010** (pid 14576) from `backend/dist` built from `9a1155a`; log
+    `C:/Users/HP/AppData/Local/Temp/claude/api-3010.log`.
+  - **Metro on 0.0.0.0:8081** (pid 7632, launcher 14128), `expo start --clear` in `mobile/`; log
+    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`.
+- Next intended action: **the phone** — open Home in Expo Go (`exp://192.168.100.3:8081`) and confirm it opens
+  (`docs/24` §42 N1); the API log shows the phone's `GET /api/v1/home` when it does. Then §42 N2–N10, §41, §40 and the
+  older backlog.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -40,60 +39,51 @@ Nothing was removed by this phase.
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`5acab28`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`73fee6d`** | level | 0 |
+| `erp-backend` | `reports-export` | **`9a1155a`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`056bb6e`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This phase: backend `1a5105e` (the dated definition), `60fe7e3` (Results: net refund due), `c9be28e` (cost keys),
-`b17be0c` (Home, branches, sellers), `c7bd82c` (Money), `0a694a8` (closing report count), `bf525b2` (products and
-categories), `f380747` (goals), `5acab28` (spec); mobile `dd309fc` (i18n), `11f3d8d` (Home), `2c22628` (Money),
-`4cea1c8` (Analytics), `5c1cb91` (goals), `7ba2449` (Daily closing), `73fee6d` (test); docs `docs/53` (new),
-`docs/21`, `docs/24` §41, the session log and this file. Earlier: backend `97695a8`, `68c21e9` (0081, the drift
-audit); the completed three-day repair (`docs/52` §5).
+This phase: backend `3c3f629` (invoice-total shares), `75cc60f` (rollup, product report, digest), `c6b1bba` (return
+refund), `a33f47e` (goals), `416268b` (movement), `da00ed2` (Home store time), `9a1155a` (specs); mobile `9969e2d`
+(i18n), `d2ffcea` (calendar dates), `8272b33` (reply check), `3b96d1a` (Home), `056bb6e` (Analytics); docs `docs/54`
+(new), `docs/53` (R6 and §4 settled), `docs/21`, `docs/24` §42, the session log and this file.
 
 ## What changed (no schema change, no data change)
 
-| Screen | Now |
+| Where | Now |
 |---|---|
-| **Home** | Sales value on the sale dates; cancellations and **returns** (net refund due) on their approval dates, each its own line; count and phones = invoices less whole-sale cancellations; expenses = recorded − reversed, "After N reversed" |
-| **Money** | **Items sold** = units sold (it counted phones only); cancellations, returns, net sales and the rule under the figures; day rows at their net, adjustment-only days listed; today's expenses on the accounting day (fixed = due date) with each reversal a negative row |
-| **Analytics** | Products and categories net of cancelled lines and returns, returned units apart; sellers by business date, net, returns apart; branches net; the rule stated |
-| **Goals** | Returns come off revenue and profit (branch and personal) on their approval dates; each goal states what it counts; gross-profit goals hidden and 404 without `cost.view` |
-| **Daily closing** | The defined count and units, with the rule; the report version and every stored close unchanged |
-| **Results** | Approved returns = net refund due (it took the gross); cost-side comparison keys stripped without `cost.view` |
+| **Every reader** | A line is worth its share of the recorded invoice total: a whole-invoice discount reaches Results, branch and personal goals, branches, the product report and the digest (Results said 10 040 where Home said 9 040) |
+| **Returns** | A returned line refunds its share of what the invoice charged (it refunded the list price: 10 000 for a phone paid 9 500) |
+| **Goals** | Units sold less cancelled units less returned units, each on its approval day; the sales count unchanged; the revenue goal is named **Net sales** |
+| **Home** | Arrivals in the store's time ("Today"/"Yesterday" by the store's calendar); Net sales under the gross value and adjustments; the chart says it plots sales as invoiced; Collected says it includes older debts; refresh within permissions; counter buttons stack below ~360 pt |
+| **Every screen** | A bare date is the same calendar day on every phone (a day early west of UTC before) |
+| **App vs server** | A reply missing a figure is refused whole: "This screen needs an updated server" — no crash, no zero |
+| **Analytics** | Sold in 30 days / last sold / not moving read live from sales that stand (a cancelled sale left out, a return still sold); the rule stated; product names keep their width in Arabic |
 
-Contract details: `docs/53` §5.
+Contract details: `docs/54` §3.
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Scenarios on an isolated copy** (`prisma_verify_home` from `phonestore-after-rollup-repair-20260925-075339.sql`; API built into OS temp, 3012, fake clock) | `reporting-lifecycle` **59/59 steps, 53/53 screen checks expected = actual**: same-day cancellation; later-day cancellation over a closed day (the closed day byte-identical; the cancellation day −10 000 / −1 sale / −1 unit everywhere); partial return with a 500 fee kept, refund two days later (three days: net 10 500, profit 4 500; the refund day money only); full return, refund later; expense reversal on a day holding only it (−300 on Money, Home, Daily closing, Results). Figures per screen: `docs/53` §6 |
-| **Cost gating** (manager without `cost.view`, day with rows) | 5/5 — no cost, profit or margin on products, categories, sellers, branches; no profit block or profit comparison in Results; no gross-profit goal; the Owner still sees them |
-| **Regression on the new build** (fresh copy each) | Daily closing 45/45 · corrections 40/40 · cancellation 31/31, 106/106 figures (three Home counts updated to the sales-count rule, by the brief) |
-| **Backend** | tsc clean · **156 suites / 2 806 tests** |
-| **Mobile** | tsc clean · **71 pure suites** · i18n parity 3 180 · `expo lint` 0 errors (33 pre-existing warnings) |
-| **Render / device** | **Not run** — no render check this phase; `docs/24` §41 |
+| **Scenarios on an isolated copy** (store at UTC+4 on the copy only; built API, fake clock) | `home-lifecycle` **42/42 steps, 37/37 screen checks expected = actual**; the same acts on the pre-phase build recorded the "before" (`docs/54` §5.1) |
+| **Links and permissions** | ranking, Stock (same three phones, masked on Home only), closing card agree with their screens; store and warehouse employees see no money — hidden, not zero |
+| **Rendered and read, no pictures** | 35 views EN/FR/AR, light/dark, 320/393 pt, 130 % text, and a server one version behind: 30 clean; 5 show only the French tab label "Partenaires" 2 pt too wide at 320 pt |
+| **Regression on the new build** | docs/53 lifecycle 59/59 (units goals per D37) · Daily closing 45/45 · corrections 40/40 · cancellation 31/31 |
+| **Backend** | tsc clean · **158 suites / 2 825 tests** |
+| **Mobile** | tsc clean · **73 pure suites** · parity 3 187 · `expo lint` 0 errors (33 pre-existing warnings) |
+| **Phone** | **Not seen** — the phone had not reached the final build before the shutdown; stack running for it now |
 
 ## Data and process safety
 
-- Live received **nothing**: no migration, no write, never signed into. No backup was needed (no schema change).
-- Every write went to the copy `prisma_verify_home` (throwaway credentials on the copy only), rebuilt for each run and
-  **dropped at close-out**. The isolated API on 3012 stopped; 3012 free.
-- Scratch tooling lives in the OS temp directory only. The user's API, Metro and the MySQL service were left running.
-
-## 🟡 Needs a product decision (`docs/53` §4)
-
-1. Should a **return reduce units sold** and the units-sold goal? Today it does not; returned units are apart.
-2. A **whole-sale discount** would split line-based readers (Results, goals, branches, products) from invoice-based ones
-   (Daily closing, Home, Money, sellers) by the discount; live has none today.
-3. The revenue goal's **"Money taken"** label now means net sales, not cash collected.
-4. Analytics' **movement labels** ("sold in 30 days", "last sold", dead stock) still count a cancelled sale as movement.
+- Nothing of this work wrote to live. The user sold twice meanwhile (00003, 00004, no discount), rolled up by the
+  running API; the new basis gives the same figures. Live now: 0081, 11 sales, 8 rollup requests done.
+- The user's `npm run start` API chain was stopped by PID on the user's instruction and replaced by detached restarts
+  (09:23Z on `5acab28`; after the commits on `9a1155a`; after the shutdown, pid 14576).
+- The copy `prisma_verify_home` was dropped. 3012, 19012, 9334 free. Scratch tooling lives in OS temp only.
 
 ## 🔴 Blockers and pending approvals
 
-- **The user's API runs the previous build** (`68c21e9`). The new figures reach the phone only after the user rebuilds
-  `backend/dist` from `5acab28` and restarts it — not done here, by instruction not to touch it.
 - **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 is installed but the
   Android scan-region patch was cut against 57.0.4. Expo Go is unaffected.
 - `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): not re-checked; live runs with
@@ -103,12 +93,16 @@ Contract details: `docs/53` §5.
 
 ## 📋 Known, not fixed
 
-- The Analytics **snapshot** (`today`/`month`, API only, on no screen) reads "today" as the UTC date (its figures are
-  now net). The exports carry the net figures but no returned-units or returns-count column and no rule statement.
-- A count or a goal whose period holds only a cancellation reads below zero (intended); the goal's bar is empty.
+- **French tab label at 320 pt:** "Partenaires" needs 56 of 54 points on the web's font (the navigator's inner inset);
+  check on the phone (`docs/24` §42 N9).
+- **`product_velocity`** is no longer read or written — drop it in a later migration.
+- **The Catalogue's "Last sold"** finds quantity lines only, so a phone never shows one (outside this scope).
+- `closingHistory.title` is unused; the exports keep their movement headers.
+- The Analytics **snapshot** (`today`/`month`, API only, on no screen) reads "today" as the UTC date.
+- A count or a goal whose period holds only a cancellation or return reads below zero (intended); the goal's bar is empty.
 - **Rollup recovery time:** a request whose recompute died mid-way waits for its lease (60 s) and the next sweep (30 s)
-  — up to ~90 s after a restart. `done` requests are kept and not pruned; a request that keeps failing is visible only
-  in `rollup_requests.last_error` and the log. One API process assumed (a second is safe by lease and retry).
+  — up to ~90 s after a restart. `done` requests are kept and not pruned; a failing request is visible only in
+  `rollup_requests.last_error` and the log. One API process assumed (a second is safe by lease and retry).
 - `scripts/rollup-audit.js` (revenue-only, `DATE(sold_at)`, existing rows only) is superseded by `rollup-drift.js`.
 - **Corrections not available, by name:** reversing a purchase payment as "not paid" (cancel the purchase instead);
   editing a sale line or cancelling part of a sale (cancel and sell again); a sale with a return (correct it on the
@@ -128,10 +122,9 @@ Contract details: `docs/53` §5.
 
 ## The next exact action
 
-1. **The user rebuilds and restarts their API** from backend `5acab28` (`npm run build`, then start it as before), so
-   the phone reads the new figures.
-2. **Handset:** `docs/24` §41 N1–N8, then §40 L1–L6, §39 K1–K14, §38 R1–R14, §37 H1–H10, C1–C16, §36, §35 and the older
-   backlog — on the physical phone against the live API (Expo Go). No sample record on the live store unless the user
-   asks.
-3. The four product decisions above, when the user chooses.
-4. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.
+1. **Phone:** open Home in Expo Go (`exp://192.168.100.3:8081`) — `docs/24` §42 N1; confirm in
+   `C:/Users/HP/AppData/Local/Temp/claude/api-3010.log` that the phone's `GET /api/v1/home` answered 200. Then §42
+   N2–N10, §41 N1–N8, §40 L1–L6 and the older backlog. No sample record on the live store unless the user asks.
+2. When the WAMP service is wanted back: stop the session MySQL (`mysqladmin -uroot --protocol=tcp -P3306 shutdown`),
+   then start `wampmysqld64` from an elevated prompt or the WAMP tray.
+3. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy.

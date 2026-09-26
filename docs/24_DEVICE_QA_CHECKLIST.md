@@ -3674,3 +3674,20 @@ The 2026-09-25 reporting-consistency change (`docs/53`; `docs/21`, "Reporting co
 | N6 | As a user without "see cost" | No gross-profit goal is listed; Analytics shows no profit, cost or margin; Results shows no profit figures |
 | N7 | Confirm an expense, then have 300 of it reversed on a later day | Money's today's expenses on the reversal day: one row, "Transport, corrected", −300, and "After 300 reversed today"; Home's expenses −300 with "After 300 reversed"; tapping the row opens the original expense |
 | N8 | Arabic and French, dark mode, 320 pt, large text | The new lines and rule captions wrap, never cut; negative amounts read left-to-right in Arabic |
+
+## 42. Home completed: a whole-invoice discount, store time, the older-server notice — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-25 Home completion (`docs/54`; `docs/21`, "Home completed"). Proved on the isolated copy through the built API (`home-lifecycle` 42 steps, 37 screen checks) and read from the web export in EN/FR/AR, light and dark, 320 and 393 pt and 130 % text (35 views, no pictures). Web rendering proves neither native layout, native fonts nor Dynamic Type. Run against the user's API on 3010 (rebuilt from backend `9a1155a`).
+
+| # | Do this | Expect |
+|---|---|---|
+| N1 | Open Home after reloading Expo Go | Home opens; no red screen. If the server were older than the app, Home would say "This screen needs an updated server" and show no figure |
+| N2 | Sell a phone and two accessories with a discount on the whole sale | Home (value and chart), Money, the Daily closing and Results all show the discounted total; Analytics splits it across the phone and the accessories; the revenue goal (now "Net sales") counts the discounted total |
+| N3 | Return one phone from a discounted two-phone sale | The refund offered is the phone's share of what was paid, not its list price; the return day reads below zero on Home (Net sales) and in the Daily closing, by that amount |
+| N4 | A units-sold goal over the return's day, and one over the sale's day and the return's day | Return day: −1; both days: units sold less the returned one. The number of sales does not move |
+| N5 | A phone received after midnight, store time; look at Home with the phone set to another timezone | "Today · HH:MM" in the store's time; the next day "Yesterday · HH:MM"; the date range under Sales value is the store's |
+| N6 | A day holding only a cancellation or a return | Sales value 0, the adjustment line, and Net sales below zero; the chart says it plots sales as invoiced, before cancellations and returns |
+| N7 | Collect a payment on an older sale | Home's Collected includes it, and says "Received in this period, older debts included" |
+| N8 | As a seller without transfers or returns, pull Home down to refresh | Nothing refused, no error toast |
+| N9 | French, 320 pt (iPhone SE size), and Arabic | The counter buttons stack and "Réceptionner" is whole; **check the tab label "Partenaires"** (2 points too wide on the web's font); Arabic product names in Analytics are whole |
+| N10 | Analytics · Not moving | The rule under the list: a cancelled sale does not count, a returned item does |

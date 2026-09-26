@@ -16,7 +16,7 @@
 | R3 | A **refund confirmation** moves money on its **confirmation date**; it has no profit effect. |
 | R4 | A confirmed **expense** stays on its recorded date — a variable one on its confirmation date, a fixed one on its due date. An approved **reversal** reduces expenses on the **correction date**, shown apart so a negative net is understandable. |
 | R5 | **Sales count** = invoices on the dates − whole-sale cancellations approved on the dates. A returned item is a separate **return** event and does not change the count. |
-| R6 | Units follow the count: **units sold** = units on the invoices − units on the cancelled invoices (cancellation dates); **units returned** is its own measure on the approval dates. |
+| R6 | Units follow the count: **units sold** = units on the invoices − units on the cancelled invoices (cancellation dates); **units returned** is its own measure on the approval dates. *The units-sold goal also takes returned units off on their approval dates — `docs/54` D37, the user's decision of 2026-09-25; Money's "Items sold" and Analytics keep them apart.* |
 
 ## 2. Audit (before any change, 2026-09-25)
 
@@ -58,6 +58,10 @@ expenses; the rollup's `net_profit`; branch goals' cancellations; Home's cancell
 | D35 | **Cost gating**: `netOperatingProfit`, `netCogs`, `returnsCogs`, `cancelledCogs`, `returnsGrossProfit` and the new cost-side keys join the stripped set; a gross-profit goal is not listed for, nor readable by, a user without `cost.view`. |
 
 ## 4. What cannot be reconciled without a product decision
+
+*All four were settled on 2026-09-25 — see [`docs/54`](54_HOME_COMPLETION.md): 1 by D37, 2 by D36, 3 by D41, 4 by
+D39. Item 4 as written here was also inaccurate: the movement snapshot already left a cancelled sale out; what was
+wrong was its window (docs/54 A7).*
 
 1. **Does a return reduce "items sold"?** R6 keeps units sold net of cancellations only and shows returned units
    apart, as R5 does for the count. So the units-sold goal and "best sellers" count a returned phone as sold, while
