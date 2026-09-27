@@ -6,22 +6,19 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-27T21:20Z` — takeover HEADs (all clean, level with their remotes): docs `7b78caf` · backend
-  `69346fc` · mobile `6b6b651`; `prisma migrate status` on live: 81 migrations (0082 included), up to date; the
-  `money_anchors` triggers present. Previous session: CLAUDE-A, handed off complete (`READY_FOR_HANDOFF`).
-- **Active phase and scope (the user's brief of 2026-09-27, 21:1xZ), inline — no workflows or subagents:** (1) a visible
-  back arrow on every authenticated child screen, with a logical no-history fallback and the native swipe kept, and a
-  structural test; (2) a later debt payment refused with 409 `store_closed` while the day is closed — no automatic
-  reopen left; the phone keeps the form; (3) name and resolve the one failed page check of the last matrix; (4)
-  authenticated verification of 0082 — read-only on live, the full write lifecycle on a copy; (5) record the user-
-  reported phone review. No redesign of Home, Money, the Daily closing, Sell, Receive, stock selection or the tab bar.
-- **Live moved by the user's hand since the last handoff** (read-only, 21:18Z): the Test Store's 27th reclosed on the
-  word at 21:10:37Z and reopened at 21:10:49Z (13 closing events); two anchors recorded by Test Owner — Bankily 2 000
-  (21:11:12Z) and Owner1 (inactive) 10 000 (21:11:21Z), each with its audit row. Records otherwise as before: 17 sales,
-  7 expenses, 3 closing rows, 17 payments.
-- Next intended action: the route audit.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last session: **CLAUDE-A**, `2026-09-27T21:20Z` → `23:50Z`, complete — the user's navigation and verification brief of
+  2026-09-27 (21:1xZ), worked inline as the brief asked (no workflows or subagents). Takeover HEADs were docs `7b78caf`,
+  backend `69346fc`, mobile `6b6b651`, all clean and level.
+- **Scope done** (`docs/61`; `docs/21` D93–D94): (1) a back arrow on every authenticated child screen with a logical
+  no-history fallback, the native swipe kept, structural tests; (2) a later payment on a debt refused with 409
+  `store_closed` while the day is closed — no automatic reopen left; the phone keeps the form; (3) the 51/52 check of
+  `docs/60` named (a harness defect) and green; (4) 0082 verified — read-only on live, the whole lifecycle through
+  authenticated HTTP on a copy, append-only as the app's own database user; (5) the Owner's phone review of `docs/24`
+  §47 recorded as **user-reported**.
+- **The machine restarted at 22:30Z** during a matrix run: the run, the API on 3010 and Metro on 8081 stopped; the run
+  was repeated from a fresh copy and both servers were restarted on the new build (below).
 
 ### ⚠️ The scope rule, unchanged
 
@@ -35,66 +32,69 @@ reversed at the user's request (D92).
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`69346fc`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`6b6b651`** | level | 0 |
+| `erp-backend` | `reports-export` | **`eea15e3`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`6edad6b`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This pass: backend `7db4be1` (money held, 0082, `POST /money/anchors`), `ada05f9` (`store_closed` for sales and
-receipts), `69346fc` (partial splits, `overpayment`); mobile `eaf1a6a` (no function-form Pressable style; both headers
-on `Expandable`), `59f9746` (partial splits on the sheet), `1cdab39` (the refusal covers the screen; the words),
-`6b6b651` (Today first; Money held; Set amount). Docs: `docs/60` (new), `docs/21`, `docs/04` rules 19, 25, 26a,
-`docs/59` D76–D78/D81/D83 annotated, `docs/24` §47, the session log, this file.
+This pass: backend `eea15e3` (a later payment refused with `store_closed`; `autoReopenTx` removed; `businessDate` in
+the body); mobile `fd57d26` (back navigation: the map, the shared arrow, the root header, every way out through
+`useLeave`, `lib/navigation/back.test.ts`), `6edad6b` (the refused payment keeps its form, *Open store now*, the
+words). Docs: `docs/61` (new), `docs/21` (D93–D94), `docs/04` rule 25, `docs/24` §47 status and §48, `docs/60`
+annotated where `docs/61` corrects it, the session log, this file. **No migration.**
 
 ## What changed
 
 | Where | Now |
 |---|---|
-| **Home / Money periods** | Today at launch, on the first visit and after another tab; a choice kept through refreshes and screens opened from the tab (one hook, `lib/use-tab-arrival.ts`); the store starts on Today; Expenses' *Back to Money* uses `dismissTo` |
-| **Daily closing headers** | one `Expandable`: Sales details underlined on a violet wash, chevron after the words, (?) at the end; Closing history purple, "Closing history" / "N events", chevron at the right; turn and slide from beneath, none under Reduce Motion |
-| **Native styles** | no Pressable styled by a function (13 converted; `lib/design/pressable-style.test.ts` refuses new ones) |
-| **Money held** | `overview.trackedMoney`: each method's anchor + movements after it; drawer anchored by a counted locked close, accounts by `money_anchors` (0082); unknown → no total; accounts for the Owner only (`accountsVisible`); Set amount → `POST /money/anchors` (`money.anchor.record`) |
-| **Closed store** | `POST /sales` and `POST /purchases` → 409 `store_closed` while the day is locked; replays answered; the phone covers the screen and keeps the work; a later payment still reopens today's closed day ("Reopened by a payment") |
-| **Splits** | up to four places, each once, all or part of the sale, the rest owed by the named debtor; `overpayment` coded |
+| **Back navigation** | `lib/navigation/back.ts` maps every authenticated child route to its logical parent (`BACK_PARENTS`) and names every route without an arrow (`NO_BACK`: the five tabs, `/platform`, `/select-branch`, `/subscription-blocked`, `/stores`). The root stack shows the header on every child in every state; with history the native arrow and swipe (same pop), without history `HeaderBack` replaces the screen with its parent. Left in EN/FR, right in AR, 48 pt, "Back". Quick sell, Quick receive, Receive and New expense's review keep their own arrow; Sell's title row carries the shared one. Every in-page Back, Cancel, Discard and after-save step goes through `useLeave`. 72 screens: 63 with an arrow, 9 without |
+| **Closed store** | `POST /sales`, `POST /purchases` **and `POST /sales/{id}/payments`** answer 409 `store_closed` (with `businessDate`) while the current business day is closed; nothing is written and **nothing reopens a day by itself**. A refused key stores nothing |
+| **Record payment** | a refusal keeps the form, says nothing was recorded, offers *Open store now* to the Owner or a delegate (who then sends it again) and says who can open to anyone else; the close popup names payments on debts |
+| **The harness** (OS temp, not a repository) | split fields found by their row and typed with `Input.insertText`; a warned sale (201 `warnings_pending`) acknowledged and a sale counted only by its row; the page given the server's clock for date-defaulting forms; SQL through stdin as UTF-8 |
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Gates** | backend `tsc`, **164 suites / 2 957 tests**, `nest build`; mobile `tsc`, **80 suites / 1 123 cases**, lint 0 errors (31 warnings), parity **3 220 × 3**; every commit alone from a clean export |
-| **Review** | six reviewers + sceptic verification: 16 confirmed, 2 refuted, all 16 fixed before commit |
-| **DB proof** (rolled back, copy) | account windows 15 of 15 |
-| **Web harness** (fresh copy of the 08:28Z dump, fixed clock) | **51 of 52 page checks, 33 of 33 server facts** — the numbers in `docs/60` §3: **7 000 at 23:00 and still 7 000 at 07:00**; `store_closed` for an older client; 1 200 paid + 300 owed = 1 500 on four places; the headers in EN/AR |
-| **Live** | 0082 applied after a verified backup; records unchanged; the API and Metro run the new code |
-| **Phone** | **Not run** — `docs/24` §47 X1–X15 |
+| **Gates** | backend `tsc`, **165 suites / 2 961 tests** (closed-day and permission specs 84/84), `prisma validate`, `nest build`; mobile `tsc`, **81 suites / 1 249 cases**, lint 0 errors (31 warnings), parity **3 222 × 3**, the web export (72 of 72 screens), the Android bundle through Metro; **Expo Doctor 20/21** (six Expo packages a patch behind SDK 57's latest — no dependency changed); every commit alone from a clean export (same as the pre-pass baseline) |
+| **Web matrix** (fresh copy of live at 22:01Z, fixed clock, final build) | **88 of 90 — 40/42 page checks, 48/48 server facts.** The two misses: Results' and Expenses' large figures cut at 320 pt with text 1.3× (a pre-existing finding, `docs/61` §6); every header assertion there passed |
+| **The 51/52 of `docs/60`** | harness defect (fields picked by position while the debtor's name and phone joined the page); fixed, `OVER:yes` green. Also: `docs/60`'s "the same sale goes through (201)" was a price warning, nothing sold — now proven recorded (invoice 00011) |
+| **0082** | live read-only: up to date, both triggers, `money.anchor.record` on the two Owner roles only, the phone's two anchors (Bankily 2 000, Owner1 10 000) with audit rows and the API log's two 201s; copy: the 12-step lifecycle through authenticated HTTP (`docs/61` §4.2); as `phonestore_app`: UPDATE and DELETE refused (45000), INSERT accepted; the body equal to the phone's contract |
+| **Phone** | §47 **user-reported complete, no new defect** (not automated); §48 **not run** |
 
 ## Data and process safety
 
-- Backups: `~/erp-backups/phonestore-now-20260927-082820.sql` (the base of every copy) and
-  **`~/erp-backups/phonestore-before-0082-20260927-195629.sql`** (verified, before 0082). **To roll 0082 back**: its
-  reverse SQL is in the migration's comments; a Git rollback alone does not roll back the database.
-- `prisma_verify_home` rebuilt per run and **dropped**; 3012, 19012 and 9334 are free.
-- **The API on 3010 runs `69346fc`** (pid 23240); **Metro on 8081** (pid 21232, launcher 2640) serves `6b6b651` at
-  `exp://192.168.100.3:8081`; the Android bundle builds. MySQL runs as the WAMP service (the machine rebooted at 18:23Z).
-- Scratch tooling in OS temp only; the three trees are clean.
+- **Live unchanged by this pass**: 17 sales, 7 expenses, 13 closing events, 3 closing rows, 17 payments, 2 anchors, 910
+  audit rows — read at 22:01Z and again at 23:3xZ. No authenticated request was made to live; no anchor written there.
+- Dump used for every copy this pass: `~/erp-backups/phonestore-now-20260927-220111.sql` (read-only, 954 KB). The 0082
+  backup stays `~/erp-backups/phonestore-before-0082-20260927-195629.sql`; its reverse SQL is in the migration.
+- Temporary databases: `prisma_verify_home` (rebuilt per run) and `prisma_staging_cleaninstall_proof` (the app-user
+  proof; a name the app user was already granted, no grant changed) — **both dropped**. 3012, 19012 and 9334 free.
+- **The API on 3010 runs `eea15e3`** (pid 13032, `node dist/src/main.js`, logs `%TEMP%/claude/api-3010.out.log`; the log
+  from before the restart kept as `api-3010.out-before-reboot-20260927.log`). **Metro on 8081** (pid 1684, launcher
+  26164, `expo start --clear --port 8081`) serves `6edad6b` at `exp://192.168.100.3:8081`; the Android bundle builds.
+- Scratch tooling in OS temp only; the three trees clean and pushed.
 
 ## 🔴 Blockers and pending approvals
 
-- **Awaiting the user's phone review** of this phase (`docs/24` §47) and of §45–§46 as amended.
-- **The user's calls:** whether a later payment on a sale should also be refused on a closed day (today it reopens it);
-  the Arabic Home order (`docs/59`); counting by a store employee without the closing delegation.
-- **Live has no tracked position** until the Owner sets each account (Money → Set amount) and a close counts the drawer.
+- **Awaiting the phone** for this pass: `docs/24` §48 Y1–Y10 (the arrow and the swipe on the same screen, the
+  no-history fallback through a deep link, the Arabic arrow, the largest text, the refused payment kept and sent).
+- **The user's calls:** Results' and Expenses' large figures ending in "…" at 320 pt with large text (the shared
+  `MoneyValue` never shrinks, by an earlier choice); the Arabic Home order (`docs/59`); counting by a store employee
+  without the closing delegation.
+- **Live has no complete tracked total** until every account has an amount and a close counts the drawer (the Test
+  Store has Bankily and Owner1 set).
 - **Pending the user's decision:** the `spent_on` tidy-up of three expenses (`docs/57` §1.5).
 - **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 vs the Android
-  scan-region patch cut against 57.0.4. Expo Go is unaffected.
-- `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): the new account query was proven under
+  scan-region patch cut against 57.0.4. Expo Go is unaffected. Expo Doctor also lists six packages a patch behind.
+- `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): the account query was proven under
   it on a copy; the older parts were not re-checked; live runs with `sql_mode=""`.
 - **WhatsApp:** no provider adapter exists and none is faked.
 - **Deferred by instruction:** the control website (`docs/38`), scanner and refund work.
 
 ## 📋 Known, not fixed
 
-- **A later payment on an existing sale still reopens today's closed day** (rule 25, 0076) — the one automatic reopen
-  left; sales and receipts are refused with `store_closed`.
+- **A later payment recorded in the same minute as its sale** is refused as "earlier than the sale" (the form's time
+  is to the minute) until the next minute; nothing is written and the form stays (`docs/61` §6).
 - **Money held counts only what the app records** — not loans, consignment, owner drawings, transfers or provider fees;
   re-anchoring absorbs the drift and keeps the difference. The account query scans company-wide from each anchor.
 - **A count saved and then a sale before the close** still leaves that sale out of the next opening (the closing's
@@ -140,20 +140,19 @@ on `Expandable`), `59f9746` (partial splits on the sheet), `1cdab39` (the refusa
 - The Stock tab's own list shows full identifiers (rule 19d); the list reached from Home masks.
 - Filter chips are 36 pt tall by design-system decision (hit slop to 48) — except the review's, which are 48 pt (D45).
 - Two scripts logging in the same user concurrently deadlock on `users.last_login`; harmless for one phone.
-- On web, a screen pushed from a tab announces its back button as "(tabs), back"; the tab navigator keeps inactive
-  tabs mounted.
+- On web the tab navigator keeps inactive tabs mounted.
 - Prisma drift report: `units.identifier` is a stored generated column from 0008 that Prisma cannot model.
 - `npx eslint .` reports one pre-existing error in `scripts/verify-native-patch.js`; the backend has no ESLint
   configuration.
 
 ## The next exact action
 
-1. **The user's review on the phone** (reload Expo Go, `exp://192.168.100.3:8081`; the API on 3010 already runs the
-   new backend with 0082): `docs/24` §47 X1–X15 — Today at a cold start and after another tab; Sales details and
-   Closing history (purple, "Closing history" / "N events", chevron right, Arabic after a relaunch, Reduce Motion);
-   the converted rows; Money held (Unknown until set; Set amount per account as the Owner; the drawer counted at a
-   close); a sale on a closed day from a second phone; a split of part of a sale with a named debtor. The phase is
-   complete only on the user's word; anything set or closed during the review is the user's own act on live.
+1. **The user's review on the phone** (reload Expo Go, `exp://192.168.100.3:8081`; the API on 3010 already runs
+   `eea15e3`): `docs/24` §48 Y1–Y10 — the back arrow on each child screen and the swipe landing on the same screen;
+   a deep link (`exp://192.168.100.3:8081/--/closing`) with no history, the arrow going to the parent; Arabic after a
+   relaunch; the largest text; a closed day with a debt payment typed, refused, kept, *Open store now*, sent once; a
+   manager seeing who can open. The pass is complete only on the user's word; anything closed, opened or paid during
+   the review is the user's own act on live.
 2. **The user's calls** listed above; build only what they choose.
 3. Then `docs/24` §45–§46 as amended, §44, §43 and the older backlog.
 4. **If the user approves it:** the `spent_on` tidy-up of `docs/57` §1.5 (three rows, audited, after a backup per `docs/22`).

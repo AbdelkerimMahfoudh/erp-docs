@@ -3790,7 +3790,11 @@ card.
 | W13 | Sell with a split: add methods until four; try a fifth; set parts that fall short, then parts that match | Four distinct places (the drawer one of them) filled in turn; the fifth refused with "A sale can be split across at most four payment methods."; short parts keep Complete greyed with "The parts add up to … of …"; matching parts complete; with the keyboard up every part's field reachable |
 | W14 | **Choose from stock** on a long shelf (60+ items), scroll fast, search, filter, pick one | Cards with even margins, name / variant / •••• identifier / price spaced apart, an easy target; smooth scrolling; the picked card outlined; Continue opens the sale with it |
 
-## 47. Today first, the closing headers, money held, the closed store, partial splits — UNVERIFIED ON ANY DEVICE
+## 47. Today first, the closing headers, money held, the closed store, partial splits — REVIEWED ON THE OWNER'S PHONE (user-reported)
+
+> **Status, 2026-09-27 (21:1xZ):** the Owner reports this review completed on the phone with **no new defect**. That is
+> the user's report, not an automated result; no individual observation was captured beyond it (`docs/61` §5). X13's
+> wording is superseded by §48 Y10 (a later payment on a debt now waits too).
 
 The 2026-09-27 follow-up (`docs/60`; `docs/21`, D85–D92). Read on the web export against a fixed-clock copy of live;
 **the web never showed the native defect it fixes** (a function-form Pressable style that NativeWind drops on native),
@@ -3814,3 +3818,22 @@ migration 0082 on live. **Supersedes §46 W8 and W11's header** and amends W13 (
 | X13 | Close the day; read the close popup first | "After closing, Sell and Receive wait until the Owner or a named delegate opens the store again." |
 | X14 | A sale of 7 000: split Cash 3 000 + Bankily 2 000, name a customer | "Remaining to pay 2 000 · Partially paid", *Who owes the balance?*, *Review sale* lists both parts and 2 000 owed; the sale shows 2 000 still owed |
 | X15 | In the split: add a fifth method; type parts above the total; type 12.345; remove the last part | The four-method message; "The parts add up to …, more than the … due"; the two-decimals message; removing the last part returns to the single *Received now* field with its amount |
+
+## 48. The back arrow everywhere, and a debt payment on a closed day — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-27 pass (`docs/61`; `docs/21`). Proven on the web export against a fixed-clock copy of live, where there
+is no swipe and no system text size — so the swipe, the phone's own large text and the native arrow are the handset's
+to prove. Use Expo Go against the API on 3010, which runs the new build (no migration in this pass).
+
+| # | Do | Expect |
+|---|---|---|
+| Y1 | From each tab open a few screens (Money → Daily closing, Results, Expenses; Stock → Transfers; More → Settings, Sales → a sale → Record payment; Home → Quick sell) | Every screen except the five tabs has a **back arrow** at the top; one arrow only; the title beside it; nothing overlapping |
+| Y2 | On each of them, tap the arrow; then open it again and **swipe back** from the edge (iPhone) / use the system Back (Android) | The arrow and the swipe land on the **same** screen — where you came from. The swipe works on every screen |
+| Y3 | Switch the app to **Arabic**, relaunch, repeat Y1–Y2 on three screens | The arrow points **right**, at the right edge; it and the swipe go back |
+| Y4 | Settings → the **largest** text size; open Daily closing, Results, Settings and Quick sell | The arrow stays whole and tappable, the title never covers it. (Known: the big figures on Results and Expenses may end in "…" on a narrow phone — `docs/61` §6) |
+| Y5 | Open a child screen with **no history**: close Expo Go, then open the deep link `exp://192.168.100.3:8081/--/closing` (and `/--/settings`) from the phone's browser or camera | The screen opens with the arrow; tapping it goes to that screen's **parent** (Daily closing → Money, Settings → More), never nowhere, never out of the app; the swipe has nothing to go back to |
+| Y6 | Receive → From a file with no file picked, if reachable; New transfer → **Cancel**; New return → **Cancel** | Each leaves to the screen before it (or its parent) — none does nothing |
+| Y7 | Close the day. Then as the Owner: a sale with money still owed → **Record payment**, type an amount, a reference, *Record payment*, confirm | "**The store is closed** — Nothing was recorded. Your payment stays here, to send once the store is open." The amount, method and reference **still typed**; *Open store now* beneath |
+| Y8 | Tap *Open store now*, confirm (before 06:00: the choice sheet — keep *Continue*) | The notice goes; the form is unchanged; tap *Record payment* again → recorded once; the sale shows the new balance |
+| Y9 | Close the day; as a Store Manager or Employee (not a delegate) try the same | The same notice, the typed payment kept, and "Only the Owner or a named delegate can open the store." — **no** *Open store now* button |
+| Y10 | Close the day and read the close popup first | "After closing, Sell, Receive and payments on debts wait until the Owner or a named delegate opens the store again." |

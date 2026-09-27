@@ -6182,3 +6182,54 @@ The audit, the decisions and the verification are in [`docs/60`](60_TODAY_HEADER
 ### 🟡 OWED
 
 - The phone (`docs/24` §47). Live has no tracked position until the Owner sets each account and a close counts the drawer. Whether a later payment should also be refused on a closed day. Still open: counting by a store employee; "+0 MRU cash", "1 balances"; the three `spent_on` rows.
+
+## Back navigation, closed-day debt payments, the failed check, 0082 verified (2026-09-27, navigation and verification pass)
+
+The audit, the fallback map and the verification are in [`docs/61`](61_BACK_NAVIGATION_CLOSED_DAY_PAYMENTS.md); rule 25
+in `docs/04`; the phone's next checks are `docs/24` §48. Corrects `docs/60` D91 (payments) and one line of its §3.
+
+### ✅ DECIDED AND IMPLEMENTED (backend `eea15e3`; mobile `fd57d26`, `6edad6b`; no migration)
+
+- **A back arrow on every authenticated child screen (D93).** One map (`lib/navigation/back.ts`) names each child's
+  logical parent and every screen without an arrow, with its reason. The root stack shows the header on every child
+  route in every state. With history the phone keeps its native arrow and swipe (the same pop); without history — a
+  deep link, a cold start, a replaced route — the arrow goes to the logical parent, never nowhere and never out of the
+  app. Left in EN/FR, right in Arabic; 48-pt; "Back" translated. Four multi-step flows keep their own arrow and step
+  back inside the flow first; sheets, dialogs and camera overlays keep Close/Cancel. Every other way out — an in-page
+  Back, Cancel, Discard and the step after a save — follows the same rule. A structural test fails on any future
+  child route outside the map, a hidden header, a disabled swipe, an unapproved arrow or a bare `router.back()`.
+- **A later payment on a debt waits for the store too (D94; rule 25).** `POST /sales/{id}/payments` on a closed current
+  business day answers 409 `store_closed` with the day as a field; nothing is written and **nothing reopens a day by
+  itself any more** (`autoReopenTx` removed; older "Reopened by a payment" events still read so). A refused key stores
+  nothing: refused again while closed, recorded once after the opening. On the phone the typed payment stays; the Owner
+  or a delegate gets *Open store now* (the existing reopen, the before-06:00 choice unchanged) and sends it again on
+  purpose; anyone else is told who can open the store. The close popup says payments on debts wait too.
+
+### 📋 VERIFICATION
+
+- **The matrix** (a fresh copy of live, 22:01Z; the built API on a fixed clock; the final web build): **88 of 90 — 40 of
+  42 page checks, 48 of 48 server facts.** The two misses are one finding outside this pass: Results' and Expenses'
+  large figures cut short at 320 pt with text 1.3× (`docs/61` §6).
+- **The 51/52 of `docs/60`:** the harness typed into fields by position, and the debtor's name and phone joined the
+  page mid-typing; the app was right. Fixed (fields found by their row, typed as a keyboard does) and green, `OVER:yes`.
+  Found on the way: `docs/60`'s "after Open store now the same sale goes through" was a 201 price warning, nothing
+  sold — now proven recorded (invoice 00011).
+- **Back:** ten routes opened with no history land on their parent, left-pointing at 393 pt, right-pointing in Arabic
+  at 320 pt, 48 × 48, nothing overlapping; with history, back to where the person came from.
+- **The payment:** 409 `store_closed` naming the day, nothing written, no reopen event; refused again under the same
+  key; after the opening recorded once, then replayed; on the page the typed 2 000 kept, opened, sent, recorded once.
+- **0082:** read-only on live (up to date; both triggers; the permission on the two Owner roles only; the phone's two
+  anchors with their audit rows); the whole lifecycle through authenticated HTTP on the copy (unknown → anchored →
+  carried across midnight → a correction counted once → a renamed, switched-off account stable → 403 for a manager →
+  company and branch scope → an untracked account hides the total → its anchor restores it → cash only from a counted
+  close); UPDATE and DELETE refused as the app's own database user (45000); the body equal to the phone's contract.
+- **Gates:** backend 165 suites / 2 961 tests; mobile 81 suites / 1 249 cases, lint 0 errors, parity 3 222 × 3, Expo
+  Doctor 20/21 (six packages a patch behind — unchanged). Live records unchanged.
+- **The phone:** the Owner reports `docs/24` §47 done with no new defect (user-reported, not automated).
+
+### 🟡 OWED
+
+- The phone (`docs/24` §48): the arrow and the swipe on the same screen, the no-history fallback, the Arabic arrow, the
+  largest text, the refused payment kept and sent after *Open store now*.
+- **The user's call:** Results' and Expenses' large figures end in "…" at 320 pt with text at 1.3× (`docs/61` §6).
+- Known edge: a later payment recorded in the same minute as its sale is refused as earlier than the sale.
