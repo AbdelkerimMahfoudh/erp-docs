@@ -6,15 +6,22 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **CLAUDE-A** (last), `started_at_utc: 2026-09-27T08:26Z`, ended 2026-09-27T20:10Z.
-- Takeover HEADs: docs `e1ee11b` · backend `56c3649` · mobile `c577d53` (all clean and level); 80 migrations.
-- **Phase:** the user's follow-up brief of 2026-09-27 (`docs/60` D85–D92) — Today first, the two closing headers,
-  money held, open first on the server, partial splits. Implemented, reviewed (16 confirmed findings fixed), verified
-  on the web against a copy of live, committed and pushed; **migration 0082 applied to live**. **Home, Money and the
-  Daily closing stay pending the phone review** (`docs/24` §47); the phase is complete only on the user's word.
-- **Live**: records unchanged — 17 sales, 7 expenses, 11 closing events, 3 closing rows (15 Sep *counted*, 26 Sep
-  *locked*, 27 Sep *reopened*), 17 payments, 10 purchases. `money_anchors` exists and is empty.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-27T21:20Z` — takeover HEADs (all clean, level with their remotes): docs `7b78caf` · backend
+  `69346fc` · mobile `6b6b651`; `prisma migrate status` on live: 81 migrations (0082 included), up to date; the
+  `money_anchors` triggers present. Previous session: CLAUDE-A, handed off complete (`READY_FOR_HANDOFF`).
+- **Active phase and scope (the user's brief of 2026-09-27, 21:1xZ), inline — no workflows or subagents:** (1) a visible
+  back arrow on every authenticated child screen, with a logical no-history fallback and the native swipe kept, and a
+  structural test; (2) a later debt payment refused with 409 `store_closed` while the day is closed — no automatic
+  reopen left; the phone keeps the form; (3) name and resolve the one failed page check of the last matrix; (4)
+  authenticated verification of 0082 — read-only on live, the full write lifecycle on a copy; (5) record the user-
+  reported phone review. No redesign of Home, Money, the Daily closing, Sell, Receive, stock selection or the tab bar.
+- **Live moved by the user's hand since the last handoff** (read-only, 21:18Z): the Test Store's 27th reclosed on the
+  word at 21:10:37Z and reopened at 21:10:49Z (13 closing events); two anchors recorded by Test Owner — Bankily 2 000
+  (21:11:12Z) and Owner1 (inactive) 10 000 (21:11:21Z), each with its audit row. Records otherwise as before: 17 sales,
+  7 expenses, 3 closing rows, 17 payments.
+- Next intended action: the route audit.
 
 ### ⚠️ The scope rule, unchanged
 
