@@ -83,6 +83,30 @@ with a repeated Received / Paid out / Net block, details by channel and the expe
 Keys: `dailyReport.salesDetails.help`, `movements.debtSettled`, `movements.total`, `movements.total.note` (EN/FR/AR);
 `movements.hint`, `salesDetails.transactions` and `money.details` no longer appear on the screen.
 
+### 1.4 The closing popup, the history rectangle, no balance cards (D71–D73)
+
+| # | Decision |
+|---|---|
+| **D71** | **"Close the business day" is a short popup, and the contract gained one honest state.** The button (was "Review and close") opens: *Have you checked today's cash and account movements?* — **Enter the amounts** (a compact count of the drawer and each account inside the popup, each figure saved on its own through the same `POST /closings/count`, the report re-read, then back to closing — no separate page) or **I've checked** (an attestation). The confirmation shows the day in a few lines and, per channel, either its count or **"Checked; amounts not recorded"**; the button is *Close the business day*. The close sends `clientUuid` and `reportVersion` as before and, when anything has no amount, **`attestChecked: true`** — a new optional flag on `POST /closings`. The server closes such channels as **attested**: the row keeps the person and the time under the machine key `ATTESTED_AT_CLOSE`, `counted` stays null, no difference is computed, nothing reads as matched; the close event carries `attested[]` beside `verified[]` and `unverified[]` and `attestedCount`; the audit reason is `closed_attested`; the report answers `verification: 'attested'`, an info warning *"{n} balances checked; amounts not recorded."*, and never `channels_not_verified` for them; a reopen makes the attestation stale like any earlier count. The history never lists the rows a close froze — attested or not verified — as saved counts: the close event carries their numbers. (The timeline's fallback, meant for days closed before the timeline existed, also ran on any closed day where nobody had saved a count, and listed those frozen rows as "Count saved" without an amount.) The older way — `acknowledgeUnverified` with a reason — still works for older clients. Duplicate taps replay by `clientUuid`; figures that moved are refused (`report_changed`) and re-read. The popup never asks for a reason and never shows a toggle. |
+| **D72** | **Closing history is one rectangle**: a header with the title, the count and the chevron at the end edge; a tap slides the entries out from beneath the header (height and a short upward slide, 240 ms, eased) and folds them back the same way; the chevron turns; with the phone's reduced-motion setting there is no motion at all. Every entry stays — openings, counts (including counts after a reopen), closes, reopens. The second "Closing history" heading is gone. |
+| **D73** | **No balance cards on the page.** The Check balances section, the drawer and account cards and their Count cash / Check movement buttons are removed; the counting happens inside the popup. The separate counting page (`/closing/count`) is removed — nothing else routed to it; the *Unsettled differences* link it carried now sits beside *Correct a transaction*. Counts already recorded stay in the history and on the server; the accounting data is untouched. |
+| **D74** | **The popup and the close, hardened after an independent review** (two read-only reviewers, one per repository; every finding reproduced on a copy of live before it was fixed). *The popup:* the question is the first step's own text and the title may take two lines (a new optional `titleLines` on the shared sheet), so neither is cut at large text; the amount step and the confirmation scroll, so no channel hides under the buttons when the keyboard is up; a typed amount is saved or cleared, never dropped — Continue waits with "Save the amount you typed, or clear it.", Back clears, a Change can be Cancelled with the saved figure kept; a figure is saved only if the strict amount parser accepts it — Arabic-Indic digits and ٫ are the amount, a leading minus only on an account's movement (with a keyboard that has one: Android's signed pad, iOS numbers-and-punctuation), two decimals at most, else "Enter a valid amount, with at most two decimals."; **Close the business day spins and waits while the report or the live view is read again** — after a count, after a 409 — so it never signs figures the person has not seen; a duplicate reads "This day was already closed."; each opening starts on the question. *The page:* the closing-time loan reminders the counting page carried (*Money owed*, Milestone I) sit on today's Daily closing, only when something waits; the history's reveal follows Reduce Motion as the phone has it now, not as it was at launch; its header's announced name carries the count; a close with the drawer counted still names the balances it took on the person's word. *The server:* a count may not carry the close's machine keys (`reserved_reason` — `ATTESTED_AT_CLOSE` stored by a count lifted the acknowledgement without anyone attesting); a close may not both attest and acknowledge (`conflicting_statements`); a person's own skip and the stored close now agree on both paths (they disagreed, and the day read "changed since close" for ever — on the older acknowledgement path too, since before this phase). This holds for closes made from now on: a snapshot already stored keeps what it stored, and live has no closed day at all (read-only, 2026-09-27: two closing rows, *counted* and *counting*, no skipped or machine-marked row); a reclose freezes no stale warning; a close stored before the attestation reads back with an empty `attested`; a skip's reason is kept in its count's event and audit, not only on the row a later close may replace. *The shared money field* now turns Arabic-Indic digits into the amount instead of dropping them — in every money field of the app, the one change outside the closing flow. *A second review round, on the fixes themselves,* added: the confirmation reads the day again as it opens (so figures that went stale while the page sat open never block or mislead the close); *Enter the amounts* only when the live view has channels to show; the invalid-amount sentence only once typing on cannot fix it ("-" or "." alone are an amount on its way), under the field as its error; each field and its Save / Change / Cancel named with its channel for a screen reader; a signed figure written left to right in Arabic ("-300", as every figure is shown); the Reduce Motion reader shared once for the app (react-native-web keys its listeners by the handler's text). 52 catalogue keys the removed page and sheet left behind are deleted in EN/FR/AR. |
+
+Files: backend `create-closing.dto.ts` (`attestChecked`), `closing-lifecycle.ts` (`ATTESTED_AT_CLOSE`, `Verification` +
+`attested`, `closeVerification` returns `attested`), `closing.service.ts` (the split, the rows, the payload, the audit,
+the notice, the snapshot), `closing-report.ts` (`close.attested`, `channels_attested`), specs. Mobile
+`components/closing/CloseDaySheet.tsx` (new; `CloseReviewSheet.tsx` removed), `components/closing/HistoryPanel.tsx`
+(new), `app/closing/index.tsx`, `app/closing/count.tsx` removed with its suite, `lib/closing-report{,-view}.ts`,
+`lib/navigation/registry.ts`, i18n `dailyReport.closeDay`, `closeDay.*`, `dailyReport.verify.attested`,
+`dailyReport.warning.channels_attested`, `closing.history.attested` (EN/FR/AR), pins.
+D74 adds: backend `closing-lifecycle.ts` (`isMachineSkipReason`), `closing.service.ts` (the two refusals, the
+skip on both paths, the stale warning, the snapshot's `attested`, the reason in the event and audit), `close-statements.spec.ts`
+(new), `correction-readers.spec.ts` (its pin). Mobile `lib/price-input.ts` (`toAsciiDigits`, `maskAmount`, `parseAmount`;
+`parsePrice` unchanged in behaviour), `components/ui/Field.tsx` (`MoneyField`: the mask, `allowNegative`),
+`components/overlay/BottomSheet.tsx` (`titleLines`), `lib/design/use-reduce-motion.ts` (new), `CloseDaySheet.tsx`,
+`HistoryPanel.tsx`, `app/closing/index.tsx` (the refresh state, the reminders, the mixed caption), i18n
+`closeDay.count.unsaved`, `closeDay.count.invalid`, `closeDay.alreadyClosed` and 52 keys removed (EN/FR/AR), pins.
+
 ---
 
 ## 2. `spent_on`, said apart from the business date
@@ -159,21 +183,83 @@ text per language was written out for the user's review. The first two runs' mis
 ban on the word "Received", which rightly still labels the money-in line inside each Check balances card) and a cash
 word that differed between the card and the list — aligned in `fe55588`.
 
+### 3.5 The closing popup, the attestation, the history rectangle and the review fixes (D71–D74), verified
+
+**How it was checked.** Two read-only reviewers read each repository's change; every finding was reproduced on a copy of
+live before it was fixed, then a second pair of reviewers read the fixes. Copies of live: the read-only dump of
+2026-09-26 06:06Z, and a fresh read-only dump taken for this pass (2026-09-27 00:42Z, 15 sales, 7 expenses, 5 closing
+events — live as it stands, including the phone's 06:57 opening, sales 00007 and 00008 and the 07:12 Bankily check).
+Each run rebuilt its copy; the built API ran on 127.0.0.1:3012 on a fake clock; the web export ran in headless Chrome.
+**Large text on the web is emulated by multiplying each text element's size and line height by 1.3** — react-native-web
+writes px, so the root font size used by the earlier checks (§3.2, §3.4 and the first D71 run) moved nothing and those
+"130 %" views proved nothing about large text. **The keyboard is emulated by a short sheet**: 320 × 262 leaves the room a
+320 × 568 phone keeps above its keyboard (0.85 × 262 ≈ 0.85 × 568 − 260).
+
+**The close contract — 16 of 16** (`close-attest.mjs`, OS temp), on the final build: the 25th at 03:41 asks for an
+acknowledgement or an attestation for the drawer and Bankily; neither → 400 `acknowledgement_required`; `attestChecked`
+closes it — both *attested*, `counted` and `difference` null, the info warning `channels_attested`, no
+`channels_not_verified`, rows `ATTESTED_AT_CLOSE` with the person and the time and no amount, the timeline's close
+"attested 2, unverified 0", audit `closed_attested`; the same `clientUuid` replays; another key → 409 `already_closed`;
+a reopen makes the attestation stale; Demo at 09:00: figures that moved → 409 `report_changed`; a cash amount 100 short
+with the accounts attested (cash −100 counted, both accounts attested); the older acknowledgement with a reason still
+closes as *not verified*.
+
+**The review's findings, reproduced then fixed — 9 of 9** (`close-guards.mjs`; the unfixed build failed 6 of them):
+a person could store `ATTESTED_AT_CLOSE` or ` not_verified_at_close ` as a skip reason (201 → now 400
+`reserved_reason`); a skip's reason was nowhere but the row (now also in the count's event and audit); a close on the
+word over a person's skip read "changed since close" for ever (row, snapshot and read-back now agree: attested); a
+reclose froze a stale warning (gone); the older acknowledgement over a person's skip also read "changed since close"
+(now *skipped*, with its reason); both statements in one close were accepted (now 400 `conflicting_statements`, nothing
+closed).
+
+**The page — 31 of 31 views clean, and 7 of 7 facts read back from the server** (web export of the final mobile code). *The 06:06 copy at 03:41, Test Store:* the page in
+EN/FR/AR at 320 pt and in EN at 320 pt with text 1.3× — no Check balances, Count cash, Check movement or Review and
+close; the button whole. The history rectangle closed (`aria-expanded` false, height 0, hidden from readers), open after
+one tap, open at once under reduced motion — **also when Reduce Motion is switched on while the page stays open** (full
+height 60 ms after the tap). The question at 320 × 568 with text 1.3× in EN, FR and AR: the question, the title and
+*I've checked* whole. The confirmation in the three languages; the close on the word: *Closed*, "Checked; amounts not
+recorded.", "2 balances checked; amounts not recorded.", no "Difference". *Demo at 09:00, the drawer and two
+accounts:* at 320 × 262 with text 1.3× in EN and AR every field and then Continue come wholly into view (a 111-pt scroll
+area; the amount step pins nothing); "12" typed and not saved → Continue disabled with "Save the amount you typed, or
+clear it."; "12.345" → Save disabled and "Enter a valid amount, with at most two decimals."; "." → Save disabled, no
+error yet; cleared → Continue enabled; in Arabic "١٢٫٥" becomes 12.5, "-٣٠٠" becomes −300 in a field written left to
+right (the drawer's stays right to left), "١٢٣٤" saves as **1 234 on the server**; an account's "-300" saves as
+**−300**, the drawer never takes a minus (the server still refuses one, 400); Change then Cancel keeps 1 234; with the
+report's reply held 2.5 s, **Close spins and stays disabled after a save, then enables**; a sale made under the open
+popup → "The figures changed…", Close disabled while the new figures come, then enabled, then closed — the history
+reads "1 500 MRU counted · difference −8 500 MRU · Checked; amounts not recorded (1)"; with the live view failing, the
+popup offers *I've checked* alone. *The fresh copy of live at 00:45 on the 27th, Test Store:* the real 26th in EN/FR/AR
+(opened 06:57, 2 sales · 5 700, Bankily +5 700, *Money owed* with its real lines), the page at text 1.3×, the French
+question at 320 × 568 × 1.3 whole, the confirmation (drawer "Checked; amounts not recorded", Bankily "Checked against the
+app"), and the close on the word: Bankily's real count **5 700 kept**, the drawer **attested, no amount** — "Day closed ·
+Checked; amounts not recorded (1)" after the three real Bankily entries.
+
+A browser preflight (OPTIONS) to the same address is held too by a naive interception; the check lets it through, or
+the hold doubles (the first timing miss was the check's, not the app's).
+
 ### 3.3 Gates, in full
 
-**Mobile** (final code, `ad78607`): `tsc --noEmit` clean; **77 pure suites, 1 079 cases, 0 failed** (new
-`daily-closing-screen.test`, 6 pins); i18n parity **3 213 / 3 213 / 3 213** keys in one order, no duplicate;
-`expo lint` **0 errors**, 31 pre-existing warnings.
+**Mobile** (final code): `tsc --noEmit` clean; **76 pure suites, 1 083 cases, 0 failed**; i18n parity **3 192 / 3 192 / 3 192** keys in one
+order, no duplicate (52 keys removed, `closeDay.count.unsaved`, `closeDay.count.invalid` and `closeDay.alreadyClosed`
+added); `expo lint` **0 errors**, 31 pre-existing warnings.
 
-**Backend** unchanged this phase (`4bc2d72`): its last full run stands — **159 suites / 2 835 tests passed**, `tsc`
-clean.
+**Backend** (final code): `tsc` clean; **160 suites / 2 844 tests passed** (`npm test -- --ci`, with the new
+`close-statements.spec`); `nest build` clean.
 
 ---
 
 ## 4. Owed
 
-- The phone: `docs/24` §45.
-- Offline on the Daily closing was read in the source (the offline notice, Review and close disabled, the counting
-  screen's offline line), not driven: the web check cannot cut the connection. On the handset it is one flight-mode
-  toggle.
+- **The user's review** of the revised screen and popup on the phone, then `docs/24` §45 V1–V15 — the keyboard, the
+  system's largest text and Reduce Motion are the handset's to prove.
+- **The user's decision — counting by a store employee.** With the balance cards and the counting page gone, the only
+  place to enter an amount is the closing popup, which only a person who may close can open: an employee without the
+  closing delegation can no longer record a count (the server still accepts one from them). Options: leave it; or give
+  such a person the popup's amount step alone. Nothing was built either way.
+- Seen on the real data, older than this phase and left as they were: a sale paid through an account reads "+0 MRU
+  cash" in the history; counts of one read "1 balances", "1 payments".
+- A snapshot stored before this phase keeps what it stored (a person's acknowledged skip as *not verified*); live has no
+  closed day, so nothing reads "changed since close" there.
+- On the iPhone's **web** browser the signed field offers a digits-only pad (the native app uses the signed pads).
+- Offline on the Daily closing was read in the source (the offline notice, Close disabled), not driven.
 - The three `spent_on` rows (§2), on the user's decision only.
