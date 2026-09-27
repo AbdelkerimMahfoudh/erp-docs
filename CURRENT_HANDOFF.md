@@ -6,17 +6,35 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **CLAUDE-A** (last), `started_at_utc: 2026-09-27T05:50Z`, ended 2026-09-27T08:00Z.
-- Takeover HEADs: docs `fa1ef2d` · backend `b4e4342` · mobile `de1ae74` (all clean and level); `prisma migrate
-  status` on live: 80 migrations, up to date — **no migration in this phase**.
-- **Phase:** the user's brief of 2026-09-27 — Home, Money, the Daily closing and the sale flow reached from Home
-  (`docs/59` D75–D84). Implemented, verified on the web against copies of live, committed and pushed. **Not run on a
-  phone**; the user's review decides whether it is complete.
-- **Live moved by the user's hand before this session** (read at 05:45Z, untouched since): the 26th closed on the
-  word at 05:05, auto-reopened by a sale at 05:08, reclosed at 05:11; the 27th started early at 05:11, closed at 05:20,
-  reopened at 05:21; a sale at 05:32. Live now: **17 sales, 7 expenses, 11 closing events, 3 closing rows** (15 Sep
-  *counted*, 26 Sep *locked*, 27 Sep *reopened*) — unchanged by this session.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-27T08:26Z` — takeover HEADs (all clean, level with their remotes): docs `e1ee11b` · backend
+  `56c3649` · mobile `c577d53`; `prisma migrate status` on live: 80 migrations, up to date. Set before any edit.
+  Previous session: CLAUDE-A, 05:50Z–08:00Z, handed off complete (`READY_FOR_HANDOFF`).
+- **Active phase and scope (the user's follow-up brief of 2026-09-27, 08:2xZ):** (1) Today as the starting period on
+  every screen with Today / 7 days / This month — on launch, on a fresh visit and after leaving and returning; kept
+  while the person stays, through refreshes; the boutique's business day for figures, Home's header the calendar date,
+  the before-06:00 boundary checked; history and detail dates untouched. (2) Daily closing **Sales details ›  (?)**:
+  a light-violet, clearly tappable control, the chevron after the words turning down as the rows slide out from under
+  it, the (?) at the far end, amounts in the right-hand column, Reduce Motion / large text / RTL. (3) **Closing
+  history**'s header visibly titled, the count as "4 events", full purple with the prominence of *Close the business
+  day*, the chevron on the right open or closed (Arabic too), the same turn-and-slide; empty history and an event
+  arriving while open tested. (4) **Money's top card as tracked money held** across Cash and the configured accounts,
+  each method beneath, the total their sum, carried across midnight (3 400 + 3 600 = 7 000 still in the morning);
+  today's in/out kept separate; each method's anchor audited — unknown shown as unknown with the missing anchor, never
+  a fabricated zero or total; any ledger/opening-position contract built and tested on a copy first, backup and
+  migration per `docs/22`. (5) **The closed-store rule on the server** for Sell and Receive: a clear closed-store error
+  to any client, never a silent reopen through a sale; Open store now, its before-06:00 choice, permissions,
+  idempotency and historical dates intact; other entry points audited, unrelated accounting untouched. (6) **Partial
+  split payments restored**: up to four distinct methods (Cash one of them) may pay part and the rest becomes a
+  recorded debt under the debtor rules; each part valid, no duplicates, no overpayment, paid + owed = the sale amount;
+  full splits still work; the same rules on the phone and the server.
+- **Constraints:** no pictures, scanner or refund work; live business records unchanged; scratch in OS temp only;
+  Home, Money and the Daily closing stay *pending the phone review*.
+- Next intended action: audit the six areas (period selectors, the Money anchors on a copy, the Sell/Receive entry
+  points, the split rules, the two disclosure headers), then implement area by area; verify on a fresh copy of live.
+- **Live at takeover** (read-only, 08:24Z): 17 sales, 7 expenses, 11 closing events, 3 closing rows (15 Sep
+  *counted*, 26 Sep *locked*, 27 Sep *reopened*), 10 purchases, 17 payments — unchanged since 05:32Z.
 
 ### ⚠️ The scope rule, unchanged
 
