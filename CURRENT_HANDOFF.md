@@ -6,35 +6,33 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T08:15Z`, ended 2026-09-27T01:55Z — **the Daily closing
-  follow-up** (`docs/58` §1.4, D71–D74): "Close the business day" as a short popup (*Enter the amounts* inside it, or
-  *I've checked* — an attestation, "Checked; amounts not recorded", never an amount, never matched), the backend's one
-  new state (`attestChecked` → *attested*), Closing history as one rectangle with a slide-out reveal, the balance cards
-  and the counting page removed, then the fixes from two independent review rounds and the user's second message
-  (scrolling under the keyboard, the question as body text, unsaved amounts blocking Continue, Close waiting while the
-  report is re-read, Arabic-Indic digits, negative account movements, invalid decimals). Takeover HEADs were docs
-  `8b4c145` · backend `4bc2d72` · mobile `fe55588`.
-- **Awaiting the user:**
-  1. **The visual review of the Daily closing and its popup on the phone** before the page is called complete (reload
-     Expo Go, `exp://192.168.100.3:8081`, Home → the Daily closing entry). The page is **not** marked complete.
-  2. **A decision — counting by a store employee.** With the balance cards and the counting page gone, the only place to
-     enter an amount is the closing popup, which only a person who may close can open; an employee without the closing
-     delegation can no longer record a count (the server still accepts one). Leave it, or give such a person the
-     popup's amount step alone. Nothing was built.
-  3. Still open from before: the label "Money in the shop — recorded movement" and the meaning of "Debt settled for this
-     day"; the `spent_on` tidy-up of three expenses (`docs/57` §1.5, `docs/58` §2) — not authorised, not done.
-- **Running — left running for the phone:**
-  - **MySQL as a session process** (pid 18588, port 3306) with the WAMP service's own configuration
-    (`C:/Users/HP/AppData/Local/Temp/claude/session-my.ini`: `sql_mode` empty, `utf8mb4_unicode_ci`, no binary log).
-    Started again after the machine restarted twice during the session; `CHECK TABLE` OK on the money and closing
-    tables. The WAMP service `wampmysqld64` is **Stopped** and cannot be started from the non-elevated shell. **Before
-    starting the service, stop this process:** `mysqladmin -uroot --protocol=tcp -P3306 shutdown`.
-  - **The API on 0.0.0.0:3010** (`backend/dist` from **`b4e4342`**, **pid 8608**, `node --enable-source-maps
-    dist/src/main` in `backend/`); logs `C:/Users/HP/AppData/Local/Temp/claude/api-3010.out.log` / `.err.log`.
-  - **Metro on 0.0.0.0:8081** (pid 19216, launcher 12828), `expo start --clear` in `mobile/`; log
-    `C:/Users/HP/AppData/Local/Temp/claude/metro-8081.log`. It serves mobile **`de1ae74`**.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-27T05:50Z` — takeover HEADs (all clean, level with their remotes): docs `fa1ef2d` · backend
+  `b4e4342` · mobile `de1ae74`; `prisma migrate status` on live: 80 migrations, up to date. Set before any edit.
+- **Active phase and scope (the user's brief of 2026-09-27):** Home, Money, the Daily closing and the sale flow reached
+  from Home; the approved simple design; no scanner or refund work, no pictures, no change to live records.
+  *Home:* Receive left, Sell right; no "Sell several items" on Home; when the current business day is closed, Sell and
+  Receive locked with **Open store now** beneath them, through the existing opening flow (the before-06:00 choice
+  included), permissions respected, the server's business-day state used, Sell and Receive guarded on direct
+  navigation too. *Money:* the top card lists Cash, Bankily, Masrivi and every configured method with a total equal to
+  the sum of the rows shown, on one audited server basis, labelled accurately; Today selected on every visit to the
+  tab, a choice kept during the visit. *Daily closing:* Sales details amounts in one right-hand column, the chevron
+  beside the title with the (?) on the same line, the Money owed card removed, Closing history as one purple header
+  with the title and count centred and a larger chevron fixed at the right edge in LTR and RTL. *Sale flow:* "Why is
+  this sale different?" removed with its validation and any server requirement; a split payment limited to four
+  distinct methods (form and server), duplicates refused, parts summing to the amount due; Choose from stock given
+  margins, spacing and touch targets without losing speed, search, filters, selection or Continue.
+- Next intended action: read the Home, opening, Money, sale-payment and stock-picker code (mobile and backend), then
+  implement area by area; verify on copies of live only.
+- **Live moved by the user's hand since the last session** (read-only, 05:45Z): the 26th closed on the word at 05:05,
+  auto-reopened by a sale at 05:08, reclosed at 05:11; the 27th started early at 05:11, closed at 05:20, reopened at
+  05:21; a sale at 05:32. Live: 17 sales, 7 expenses, 11 closing events, 3 closing rows (15 Sep *counted*, 26 Sep
+  *locked*, 27 Sep *reopened*). The machine rebooted at 04:44Z; MySQL (pid 18824), the API on 3010 (pid 24352, `dist`
+  of `b4e4342`) and Metro on 8081 (pid 23768) were restarted at 04:45–04:52, not by this session.
+- Last session: **CLAUDE-A**, `started_at_utc: 2026-09-26T08:15Z`, ended 2026-09-27T01:55Z — the Daily closing
+  follow-up (`docs/58` D71–D74); the user's review on the phone and the decision on counting by a store employee were
+  then pending.
 
 ### ⚠️ The scope rule, unchanged
 
