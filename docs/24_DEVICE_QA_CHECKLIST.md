@@ -3763,3 +3763,29 @@ a short screen in place of the keyboard. Use Expo Go against the API on 3010.
 | V13 | Reopen the day after a close on your word | The attestation counts for nothing any more: the popup asks again on the next close; the earlier close and its attestation stay in the history |
 | V14 | A loan proposal waiting, a payment to confirm, or an open balance (with `loan.view`) | *Money owed* on today's Daily closing with its lines and **Loans**; nothing when nothing waits; nothing on a past day |
 | V15 | Flight mode on the report | "Offline — figures as last read at …"; Close the business day disabled; back online, pull to refresh |
+
+## 46. Home, Money, the Daily closing and the sale flow from Home — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-27 phase (`docs/59`; `docs/21`, D75–D84). Read on the web export against the isolated API on a fixed
+clock over a fresh copy of live, in EN/FR/AR at 320 and 393 pt and at 320 × 568 with text 1.3× (each text element
+scaled — the web cannot use the phone's own font scale); the handset has not run it. **Supersedes §45 V14 and the
+*Money owed* part of V1** (the card is removed), and **§45 V12's header** (now purple, centred). Use Expo Go against
+the API on 3010 — the backend first: an older app still works, a newer app on an older server does not show the Money
+card.
+
+| # | Do | Expect |
+|---|---|---|
+| W1 | Home with the day open, in English, then in Arabic | **Receive** then **Sell** (English: Receive on the left; Arabic: Receive on the right, mirrored — tell us if it should be on the left there too); no *Sell several items* link; each opens Quick Receive / Quick Sell as before; inside Quick Sell the way to a sale of several items is still there |
+| W2 | Close the day (Daily closing → *Close the business day*), go back to Home | Sell and Receive greyed and not tappable; **Open store now** beneath them with "The business day ({date}) is closed. Open the store to sell or receive." |
+| W3 | Tap **Open store now** after 06:00 | One confirmation ("Sell and Receive open again as soon as you confirm."); after it, a toast, and Sell and Receive enabled without leaving Home; the Daily closing history shows the reopen; nothing else changed |
+| W4 | Close the day before 06:00 (as the Owner, when starting early is allowed), then **Open store now** | The choice sheet: *Continue {date}* or *Start {next} early*; either choice unlocks Sell and Receive; *Start early* makes the new date the business day while the closed day stays closed |
+| W5 | As a store employee without the closing delegation, with the day closed | Sell and Receive greyed; no button — "…Only the Owner or a named delegate can open the store." |
+| W6 | With the day closed: open Sell from the Stock tab or a notification, and use Back into Sell | "The store is closed" with a lock, **Open store now** (or who can open it) and Back — never the sale screen; the same for Receive and its file steps |
+| W7 | Close the day on another phone (or the web), then bring this phone's app back to the front on Home; also pull to refresh | Home locks within a moment of coming back, and on the pull |
+| W8 | **Money** tab | "Money recorded today", the total, then Cash, Bankily, Masrivi and every other configured method, each with "… in · … out" and its net; the rows add up to the total; the line saying it is neither a drawer count nor an account balance; at the phone's largest text the total is whole |
+| W9 | On Money choose **7 days**, pull to refresh, open **Results** and come back; then go to Home and back to Money | 7 days stays through the refresh and Results; **Today** again after Home |
+| W10 | Daily closing → **Sales details** | The chevron right beside the title, the (?) at the end of the same line; open: every amount, Invoiced sales included, ending in one right-hand column; at the largest text the (?) still reachable |
+| W11 | Daily closing, the whole page | No *Money owed* card; *Debt settled for this day* still in Money movements; **Closing history** as one purple header across the card, the title and count centred, a large white chevron at the right edge — in Arabic too — that turns, never jumps; the entries slide out and fold back; with Reduce Motion on they simply appear; every entry kept |
+| W12 | Sell one item with a 3-day return window | No "Why is this sale different?" and nothing asking why; the sale completes |
+| W13 | Sell with a split: add methods until four; try a fifth; set parts that fall short, then parts that match | Four distinct places (the drawer one of them) filled in turn; the fifth refused with "A sale can be split across at most four payment methods."; short parts keep Complete greyed with "The parts add up to … of …"; matching parts complete; with the keyboard up every part's field reachable |
+| W14 | **Choose from stock** on a long shelf (60+ items), scroll fast, search, filter, pick one | Cards with even margins, name / variant / •••• identifier / price spaced apart, an easy target; smooth scrolling; the picked card outlined; Continue opens the sale with it |
