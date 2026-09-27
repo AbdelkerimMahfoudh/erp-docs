@@ -33,6 +33,7 @@
   Home, Money and the Daily closing stay *pending the phone review*.
 - Next intended action: audit the six areas (period selectors, the Money anchors on a copy, the Sell/Receive entry
   points, the split rules, the two disclosure headers), then implement area by area; verify on a fresh copy of live.
+- **Checkpoint 09:05Z:** a fresh verified dump of live, `~/erp-backups/phonestore-now-20260927-082820.sql` (919 KB, ends "Dump completed"), is the base of every copy and the backup for 0082. **Migration `0082_money_anchors` is written (backend, uncommitted) and proven on the copy `prisma_verify_home`** — the table, its two append-only triggers, `money.anchor.record` granted to both Owner roles; the Prisma model matches it (only the usual FK-action drift). **Not applied to live.** The Prisma client was regenerated, which needed the API on 3010 stopped and restarted on the unchanged `56c3649` build (now pid 36640). Implementation runs in two chains (backend: the store-closed refusal, partial splits, tracked money; mobile: the Pressable style fix, the two headers, Today, splits, the refusal, the Money card), uncommitted until reviewed.
 - **Live at takeover** (read-only, 08:24Z): 17 sales, 7 expenses, 11 closing events, 3 closing rows (15 Sep
   *counted*, 26 Sep *locked*, 27 Sep *reopened*), 10 purchases, 17 payments — unchanged since 05:32Z.
 
