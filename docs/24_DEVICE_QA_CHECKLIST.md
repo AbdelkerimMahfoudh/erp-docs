@@ -3789,3 +3789,28 @@ card.
 | W12 | Sell one item with a 3-day return window | No "Why is this sale different?" and nothing asking why; the sale completes |
 | W13 | Sell with a split: add methods until four; try a fifth; set parts that fall short, then parts that match | Four distinct places (the drawer one of them) filled in turn; the fifth refused with "A sale can be split across at most four payment methods."; short parts keep Complete greyed with "The parts add up to … of …"; matching parts complete; with the keyboard up every part's field reachable |
 | W14 | **Choose from stock** on a long shelf (60+ items), scroll fast, search, filter, pick one | Cards with even margins, name / variant / •••• identifier / price spaced apart, an easy target; smooth scrolling; the picked card outlined; Continue opens the sale with it |
+
+## 47. Today first, the closing headers, money held, the closed store, partial splits — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-27 follow-up (`docs/60`; `docs/21`, D85–D92). Read on the web export against a fixed-clock copy of live;
+**the web never showed the native defect it fixes** (a function-form Pressable style that NativeWind drops on native),
+so every look here is the handset's to prove. Use Expo Go against the API on 3010, which runs the new build with
+migration 0082 on live. **Supersedes §46 W8 and W11's header** and amends W13 (a split may now pay part).
+
+| # | Do | Expect |
+|---|---|---|
+| X1 | Close the app completely, open it | Home on **Today** (not 7 days). Pick 7 days, open the Daily closing, come back: still 7 days. Switch to Stock and back: **Today** |
+| X2 | Money tab: pick 7 days, pull to refresh, open Results and come back; then Home and back to Money; also Expenses → *Back to Money* | 7 days through the refresh, Results and Expenses; **Today** again after Home |
+| X3 | Daily closing, **Sales details** | Underlined violet words on a light-violet band, the chevron **right after the words** pointing right (left in Arabic), the (?) at the far end of the row. Tap: the chevron turns down and the rows slide out from under the header; tap again: they fold back. Every amount in one right-hand column. The (?) opens only the explanation |
+| X4 | Daily closing, **Closing history** — in English, then Arabic after a relaunch | A **purple** header as prominent as *Close the business day*: **"Closing history"** and **"N events"** beneath, white, legible; the chevron at the **right edge** in both languages, closed and open; the same turn and slide; every event in order; an empty past day: "No events" |
+| X5 | Settings → Reduce Motion on (while the app is open), then X3 and X4 | The panels open and close at once, no slide |
+| X6 | The largest system text, a 320-pt-wide phone | Headers and captions wrap, nothing cut; the (?) still reachable |
+| X7 | Also check these rows now render on the phone: Choose from stock's cards, the before-06:00 choice sheet (the selected choice), the debtor picker, Money's day and sale rows, Outstanding, the receiving file's groups | Each keeps its margins, border, background and a pressed look |
+| X8 | Money tab as the Owner | **Money held**: until anything is set, "Not every method is tracked yet: …", **Unknown** on each row with what is missing, and **no total figure** |
+| X9 | *Set amount* on Bankily (and each account): enter what the Bankily app shows now; save — with the keyboard up | Save stays visible above the keyboard; "Amount saved."; the row shows the amount and "From {amount} on {date} by {name}"; when every account is set and the drawer has been counted at a close, the total appears and equals the rows |
+| X10 | Close the day with **Enter the amounts** and count the drawer; next morning (after 06:00), nothing sold | The total is the same as the night before; *Money recorded today* shows 0 |
+| X11 | Money tab as a Store Manager | The drawer only and "Account amounts are shown to the Owner." — no total, no Set amount |
+| X12 | Close the day; on a second phone (or an older app) open Quick sell before the close and complete the sale after it | "The store is closed. Nothing was sold — open the store first."; the lock covers the screen (no touch behind it); after *Open store now* the same sale is still on screen and goes through |
+| X13 | Close the day; read the close popup first | "After closing, Sell and Receive wait until the Owner or a named delegate opens the store again." |
+| X14 | A sale of 7 000: split Cash 3 000 + Bankily 2 000, name a customer | "Remaining to pay 2 000 · Partially paid", *Who owes the balance?*, *Review sale* lists both parts and 2 000 owed; the sale shows 2 000 still owed |
+| X15 | In the split: add a fifth method; type parts above the total; type 12.345; remove the last part | The four-method message; "The parts add up to …, more than the … due"; the two-decimals message; removing the last part returns to the single *Received now* field with its amount |

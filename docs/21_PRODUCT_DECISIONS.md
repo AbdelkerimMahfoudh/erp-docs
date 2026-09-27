@@ -6157,3 +6157,28 @@ The decisions and their verification are in [`docs/59`](59_HOME_MONEY_CLOSING_SA
 ### 🟡 OWED
 
 - The phone (`docs/24` §46 W1–W14). The Arabic Home order, on the user's word. Deploy the backend before the app. `/loans/closing-reminders` unused. Still open from before: counting by a store employee; "+0 MRU cash" and "1 balances".
+
+## Today first, the closing headers, money held, open first on the server, partial splits (2026-09-27, follow-up)
+
+The audit, the decisions and the verification are in [`docs/60`](60_TODAY_HEADERS_MONEY_HELD_OPEN_FIRST.md); rules 19, 25 and 26a in `docs/04`; the phone's checks are `docs/24` §47. Corrects `docs/59` D76, D77, D78, D81 and D83. Home, Money and the Daily closing stay **pending the phone review**.
+
+### ✅ DECIDED AND IMPLEMENTED (backend `7db4be1`, `ada05f9`, `69346fc`; mobile `eaf1a6a`, `59f9746`, `1cdab39`, `6b6b651`; migration 0082 on live)
+
+- **Today first (D85):** Home and Money open on Today at launch, on the first visit and after another tab; a choice stays through refreshes and screens opened from the tab. Home had been hard-coded to 7 days. The business day decides the figures; Home's header keeps the calendar date.
+- **The two closing headers (D86–D87) on one Expandable:** Sales details underlined on a light-violet wash, the chevron right after the words turning down as the rows slide out from beneath it, the (?) at the row's end only explaining, amounts in the right-hand column; Closing history as a purple header as prominent as the primary button, "Closing history" with "4 events" beneath, the chevron at the physical right in every language. Reduce Motion read live.
+- **The "only 4" defect (D88):** NativeWind drops a Pressable style given as a function on native; the history header lost its purple and its white title sat on the white card. All thirteen such Pressables converted; a test refuses any new one. D81's purple had never rendered on a phone.
+- **Money held (D89–D90; rule 26a; migration 0082):** each method's latest anchor plus everything recorded after it, the total their sum, carried across midnight. The drawer is anchored only by a locked close whose drawer was counted; an account by the amount the Owner reads in the provider's app (Set amount, `POST /money/anchors`, `money.anchor.record`, the Owner's alone). Unknown methods say what is missing, and then no total is shown. Account positions are the company's and shown to the Owner; anyone else sees the drawer. Today's in and out stays its own card.
+- **Open first on the server (D91; rule 25):** while the current business day is closed, `POST /sales` and `POST /purchases` answer 409 `store_closed` to every client; nothing is written and nothing reopens. Replays are answered; the reopen and its before-06:00 choice are unchanged. **A later payment on an existing sale still reopens today's closed day** — kept, labelled "Reopened by a payment", the user's call. On the phone a refusal covers the screen instead of losing the sale in progress; the close popup says Sell and Receive wait until the store is opened.
+- **Partial splits (D92; rule 19; amends D83):** up to four places, Cash one of them, each once, paying all or part of the sale; the rest owed by the named debtor; never more than the total; paid + owed = the sale amount.
+
+### 📋 VERIFICATION
+
+- **Across midnight, on a fresh copy of live through the built API on a fixed clock:** at 23:00 on the 29th **Cash 3 400 + Bankily 2 000 + Masrvi 1 600 + Bankily – Second Shop 0 = 7 000**; at 07:00 on the 30th, nothing moved, **still 7 000** (recorded today 0). Before any anchor every method was unknown and no total was shown.
+- **An older client on a closed day:** 409 `store_closed` for a sale and for a receipt, nothing written, the day still locked, no automatic reopen; the sale made before the close still answered by its key.
+- **A partial four-place sale:** 1 500 paid 300 × 4 (cash, Bankily, Masrvi, Second Shop), 300 owed by the named customer — stored paid 1 200.00 + owed 300.00 = 1 500.00, `partial`, four payments; a fifth method, a place twice, more than the total and an unnamed remainder refused.
+- **The headers (EN/AR, 320 pt, 1.3× text):** "Closing history" / "4 events" on rgb(81,70,217), the chevron 16 px from the right edge folded and open, −90°/+90° folded, 0° open; Sales details' 10 amounts within 0 px; the (?) explains only; an event saved while the history was open grew it (4 → 5); instant under reduced motion.
+- **Totals:** 51 of 52 page checks (the one miss was the harness typing into a split part) and 33 of 33 server facts; backend 164 suites / 2 957 tests; mobile 80 suites / 1 123 cases; parity 3 220 × 3; lint 0 errors. Six independent reviewers found 16 confirmed defects, all fixed before commit. Live records unchanged.
+
+### 🟡 OWED
+
+- The phone (`docs/24` §47). Live has no tracked position until the Owner sets each account and a close counts the drawer. Whether a later payment should also be refused on a closed day. Still open: counting by a store employee; "+0 MRU cash", "1 balances"; the three `spent_on` rows.
