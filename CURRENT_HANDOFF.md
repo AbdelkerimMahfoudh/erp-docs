@@ -27,7 +27,17 @@
   `__DEV__`) — to be removed before the phase's final commit. Leading hypothesis, unproven until the phone says so:
   on iOS a scroll view refuses to drag while a JS responder is its **ancestor**, and `Screen scroll={false}` wraps
   every inner list in its blank-space `Pressable`.
-- Next intended action: the user's swipe protocol on the phone (Expo Go → Metro 8081), read from the Metro log.
+- **Processes (since ~05:08Z):** the user runs the API (3010, `backend/dist/src/main`) and Metro (8081) from VS Code;
+  this session's own API (pid 6596) and Metro (pid 1684) are gone. With the user's permission a **read-only console
+  tap** (Metro's inspector, `Runtime.enable` only; scratch `rn-console-tap.mjs`) records the phone's trace lines.
+- **(1) evidence so far:** 107 natural touches (Home, More, Settings — `Screen scroll` pages) all scrolled; the user
+  reports failed swipes on **Vérifier la livraison** (`/receive/file`: the blank area around the chips, the
+  expanded item rows) and across **More → Sales** (`/sales`). No fix until the traces name the layer.
+- **(2) queued — the user's brief of 2026-09-28 (~06:0xZ), after (1):** Money's top card ("Expected money in store
+  today"), the Daily closing off the Money list (Home keeps it, `/closing` unchanged), and a required opening-money
+  step in the Owner's open and reopen. Major (schema, cash reconciliation): **plan presented, awaiting the user's
+  approval**; nothing implemented.
+- Next intended action: the user's swipes on those two screens while the tap listens; then the fix and its phone check.
 
 ### ⚠️ The scope rule, unchanged
 
