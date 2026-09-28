@@ -33,10 +33,14 @@
 - **(1) evidence so far:** 107 natural touches (Home, More, Settings — `Screen scroll` pages) all scrolled; the user
   reports failed swipes on **Vérifier la livraison** (`/receive/file`: the blank area around the chips, the
   expanded item rows) and across **More → Sales** (`/sales`). No fix until the traces name the layer.
-- **(2) queued — the user's brief of 2026-09-28 (~06:0xZ), after (1):** Money's top card ("Expected money in store
-  today"), the Daily closing off the Money list (Home keeps it, `/closing` unchanged), and a required opening-money
-  step in the Owner's open and reopen. Major (schema, cash reconciliation): **plan presented, awaiting the user's
-  approval**; nothing implemented.
+- **(2) APPROVED with the user's corrections (2026-09-28), implementing while (1) waits on the phone:** Money's top card
+  ("Expected money in store today"), the Daily closing off the Money list (Home keeps it, `/closing` unchanged), and a
+  required opening step. The user's decisions: a shop's opening sets **that shop's cash only** — company accounts
+  carry forward, changed only by a separate, clearly company-wide Owner action; a permitted non-Owner opens with
+  carried amounts under a visible **awaiting Owner review**; Keep leaves unknown unknown; Set needs explicit values,
+  0 chosen, never assumed. **Timing:** the server requires an `opened` event before new-day sales and receipts (older
+  clients included); a set amount is anchored at its **confirmation instant** and only later movements count —
+  never backdated. Migration 0083 (additive) planned; backup per `docs/22` before any live apply.
 - Next intended action: the user's swipes on those two screens while the tap listens; then the fix and its phone check.
 
 ### ⚠️ The scope rule, unchanged
