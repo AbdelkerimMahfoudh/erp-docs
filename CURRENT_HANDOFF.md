@@ -6,19 +6,16 @@
 
 ## Session control
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-28T00:07Z` — takeover HEADs (all clean, level with their remotes): docs `be2038f` · backend
-  `eea15e3` · mobile `6edad6b`; `prisma migrate status` on live: 81 migrations, up to date. Previous session: CLAUDE-A,
-  handed off complete (`READY_FOR_HANDOFF`). Live at takeover: 17 sales, 7 expenses, 13 closing events, 3 closing rows,
-  17 payments, 2 anchors, 910 audit rows; the API on 3010 (pid 13032) and Metro on 8081 (pid 1684) running.
-- **Active phase and scope (the user's brief of 2026-09-28, 00:0xZ), inline — no workflows or subagents:** (1) no
-  monetary amount ever truncated — a stacked label/amount at narrow widths or large text, a controlled wrap as the
-  last resort; (2) a debt payment in the same displayed minute as its sale accepted server-side, stored no earlier than
-  the sale, earlier minutes still refused; (3) the four no-arrow routes named and each justified or given the arrow;
-  every route classified as tab / child / modal / invisible redirect; (4) the matrix rerun to a genuine 90/90. No
-  redesign, no change to 0082 or anchor semantics, no Expo dependency update, no other milestone.
-- Next intended action: the money-value audit.
+- Status: **READY_FOR_HANDOFF**
+- Owner: **NONE**
+- Last session: **CLAUDE-A**, `2026-09-28T00:07Z` → `03:50Z`, complete — the user's correction brief of 2026-09-28
+  (00:0xZ), worked inline (no workflows or subagents). Takeover HEADs were docs `be2038f`, backend `eea15e3`, mobile
+  `6edad6b`, all clean and level; no discrepancy.
+- **Scope done** (`docs/61` §8–§11; `docs/21` D95–D97): (1) no monetary amount is ever cut — fitted, moved below
+  its label, or `MRU` on the next line, never "…"; (2) a debt payment in the same displayed minute as its sale is
+  accepted server-side, stored at the sale's instant, earlier minutes still refused; (3) the four routes without an
+  arrow named and resolved — `/platform` given the arrow, `/stores` an invisible redirect, `/select-branch` and
+  `/subscription-blocked` authentication roots — and every route in exactly one class; (4) the matrix **192 of 192**.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -32,60 +29,61 @@ reversed at the user's request (D92).
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`eea15e3`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`6edad6b`** | level | 0 |
+| `erp-backend` | `reports-export` | **`f66c1ff`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`2476430`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This pass: backend `eea15e3` (a later payment refused with `store_closed`; `autoReopenTx` removed; `businessDate` in
-the body); mobile `fd57d26` (back navigation: the map, the shared arrow, the root header, every way out through
-`useLeave`, `lib/navigation/back.test.ts`), `6edad6b` (the refused payment keeps its form, *Open store now*, the
-words). Docs: `docs/61` (new), `docs/21` (D93–D94), `docs/04` rule 25, `docs/24` §47 status and §48, `docs/60`
-annotated where `docs/61` corrects it, the session log, this file. **No migration.**
+This pass: backend `f66c1ff` (a payment in its sale's minute); mobile `61f0f56` (money never cut: `MoneyValue`'s fit,
+the half-row rule, wrapping buttons, seventeen plain-text amounts to `MoneyValue`), `2476430` (every route one class;
+`/platform`'s arrow; the guard's decision pure and tested). Docs: `docs/61` §6 annotated and §8–§12, `docs/21`
+(D95–D97), `docs/04` rule 19a, `docs/24` §48 Y4 and §49, the session log, this file. **No migration.**
 
 ## What changed
 
 | Where | Now |
 |---|---|
-| **Back navigation** | `lib/navigation/back.ts` maps every authenticated child route to its logical parent (`BACK_PARENTS`) and names every route without an arrow (`NO_BACK`: the five tabs, `/platform`, `/select-branch`, `/subscription-blocked`, `/stores`). The root stack shows the header on every child in every state; with history the native arrow and swipe (same pop), without history `HeaderBack` replaces the screen with its parent. Left in EN/FR, right in AR, 48 pt, "Back". Quick sell, Quick receive, Receive and New expense's review keep their own arrow; Sell's title row carries the shared one. Every in-page Back, Cancel, Discard and after-save step goes through `useLeave`. 72 screens: 63 with an arrow, 9 without |
-| **Closed store** | `POST /sales`, `POST /purchases` **and `POST /sales/{id}/payments`** answer 409 `store_closed` (with `businessDate`) while the current business day is closed; nothing is written and **nothing reopens a day by itself**. A refused key stores nothing |
-| **Record payment** | a refusal keeps the form, says nothing was recorded, offers *Open store now* to the Owner or a delegate (who then sends it again) and says who can open to anyone else; the close popup names payments on debts |
-| **The harness** (OS temp, not a repository) | split fields found by their row and typed with `Input.insertText`; a warned sale (201 `warnings_pending`) acknowledged and a sale counted only by its row; the page given the server's clock for date-defaulting forms; SQL through stdin as UTF-8 |
+| **Money figures** | `MoneyValue` never limits its lines: one line full size → a little smaller (floor 0.7, never below body size) → `MRU` on the next line → the number broken between digit groups (`lib/money-fit.ts`), measured on the device by an invisible full-size copy. Every standalone amount goes through it (17 plain-text ones converted). A `Button` may wrap (Sell's charge button does); a picker's value may be a `MoneyValue` |
+| **Label and amount rows** | `lib/design/amount-row.ts`: side by side while the amount needs at most half the row, below the label with the full width after that — `ListRow`, the statement lines of Results, the Daily closing, its popup, a sale, the returns breakdown |
+| **Later payments** | a payment in the sale's own displayed minute is valid: stored at the sale's instant, same minute and business day, the chosen minute audited (`paidAtRequested`); an earlier minute refused as before; the closed store still decided first |
+| **Routes** | 76 route files: 5 parent tabs, 64 children with the shared back arrow (`/platform` → `/login` now among them), 1 invisible redirect (`/stores`), 1 splash, 5 authentication roots (sign-in, register, verify, `/select-branch`, `/subscription-blocked`); no modal routes. The sign-in guard's decision is `lib/navigation/entry.ts` |
+| **Earlier (27 Sep, still true)** | the back arrow on every child screen with its no-history fallback; `store_closed` for sales, receipts and later payments; Money held and `money_anchors` (0082); Today first; partial splits |
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Gates** | backend `tsc`, **165 suites / 2 961 tests** (closed-day and permission specs 84/84), `prisma validate`, `nest build`; mobile `tsc`, **81 suites / 1 249 cases**, lint 0 errors (31 warnings), parity **3 222 × 3**, the web export (72 of 72 screens), the Android bundle through Metro; **Expo Doctor 20/21** (six Expo packages a patch behind SDK 57's latest — no dependency changed); every commit alone from a clean export (same as the pre-pass baseline) |
-| **Web matrix** (fresh copy of live at 22:01Z, fixed clock, final build) | **88 of 90 — 40/42 page checks, 48/48 server facts.** The two misses: Results' and Expenses' large figures cut at 320 pt with text 1.3× (a pre-existing finding, `docs/61` §6); every header assertion there passed |
-| **The 51/52 of `docs/60`** | harness defect (fields picked by position while the debtor's name and phone joined the page); fixed, `OVER:yes` green. Also: `docs/60`'s "the same sale goes through (201)" was a price warning, nothing sold — now proven recorded (invoice 00011) |
-| **0082** | live read-only: up to date, both triggers, `money.anchor.record` on the two Owner roles only, the phone's two anchors (Bankily 2 000, Owner1 10 000) with audit rows and the API log's two 201s; copy: the 12-step lifecycle through authenticated HTTP (`docs/61` §4.2); as `phonestore_app`: UPDATE and DELETE refused (45000), INSERT accepted; the body equal to the phone's contract |
-| **Phone** | §47 **user-reported complete, no new defect** (not automated); §48 **not run** |
+| **Gates** | backend `tsc`, **166 suites / 2 975 tests** (focused 140/140), `prisma validate`, `nest build`; mobile `tsc`, **83 suites / 1 270 cases**, lint 0 errors (31 warnings), parity **3 222 × 3**, the web export (76/76 route files), the Android bundle through Metro; **Expo Doctor 20/21** (six SDK patch versions, documented, no dependency changed); every commit alone from a clean export (same as the pre-pass baseline plus its new suite) |
+| **Web matrix** (fresh copy of live at 22:01Z, fixed clock, final build) | **192 of 192 — 53/53 facts, 139/139 page checks**: the existing 90 all green with a money scan on every page; 91 boundary checks (0, −9 500, 27 648, 999 999, 12 345 678 on Home, Money, Results, Expenses, the Daily closing, a sale, Record payment; EN/FR/AR; 320/393 pt; 1×/1.3×; light/dark; scrolled through); 5 same-minute facts; 6 route checks. **699 money figures scanned, none cut** |
+| **Same minute (real HTTP)** | sale 12:07:22.035, payment for 12:07 → stored 12:07:22.035 (= the sale), same business day, minute audited, cash +1 500 once; the minute before refused; the closed store first, nothing written; replay same, changed payload 409 |
+| **Found, not money** | at 320 pt with 1.3× text the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" — reported in the matrix, not failed; outside this pass |
+| **Phone** | §49 Z1–Z8 and §48 **not run**; §47 user-reported complete |
 
 ## Data and process safety
 
-- **Live unchanged by this pass**: 17 sales, 7 expenses, 13 closing events, 3 closing rows, 17 payments, 2 anchors, 910
-  audit rows — read at 22:01Z and again at 23:3xZ. No authenticated request was made to live; no anchor written there.
-- Dump used for every copy this pass: `~/erp-backups/phonestore-now-20260927-220111.sql` (read-only, 954 KB). The 0082
-  backup stays `~/erp-backups/phonestore-before-0082-20260927-195629.sql`; its reverse SQL is in the migration.
-- Temporary databases: `prisma_verify_home` (rebuilt per run) and `prisma_staging_cleaninstall_proof` (the app-user
-  proof; a name the app user was already granted, no grant changed) — **both dropped**. 3012, 19012 and 9334 free.
-- **The API on 3010 runs `eea15e3`** (pid 13032, `node dist/src/main.js`, logs `%TEMP%/claude/api-3010.out.log`; the log
-  from before the restart kept as `api-3010.out-before-reboot-20260927.log`). **Metro on 8081** (pid 1684, launcher
-  26164, `expo start --clear --port 8081`) serves `6edad6b` at `exp://192.168.100.3:8081`; the Android bundle builds.
+- **This pass wrote nothing to live.** **Live moved by the user's hand** during it (the API's log): between 00:53Z and
+  01:05Z two iPhones on Expo Go (…100.251, …100.246) scanned, created two products, a receipt, sale 00011 (3 500: 2 500
+  cash + 1 000 mobile) and a loan, created and decided. Live now: 18 sales, 7 expenses, 13 closing events, 3 closing
+  rows, 19 payments, 2 anchors, 919 audit rows.
+- Every copy was restored from `~/erp-backups/phonestore-now-20260927-220111.sql` (read-only, before the user's new
+  records) as `prisma_verify_home`, rebuilt per run and **dropped**; a throwaway platform administrator existed on a
+  copy only. 3012, 19012 and 9334 free.
+- **The API on 3010 runs `f66c1ff`** (pid 6596, `node dist/src/main.js`, log `%TEMP%/claude/api-3010.out.log`; the
+  previous log kept as `api-3010.out-20260928-eea15e3.log`). **Metro on 8081** (pid 1684, launcher 26164,
+  `expo start --clear --port 8081`) serves `2476430` at `exp://192.168.100.3:8081`; the Android bundle builds.
 - Scratch tooling in OS temp only; the three trees clean and pushed.
 
 ## 🔴 Blockers and pending approvals
 
-- **Awaiting the phone** for this pass: `docs/24` §48 Y1–Y10 (the arrow and the swipe on the same screen, the
-  no-history fallback through a deep link, the Arabic arrow, the largest text, the refused payment kept and sent).
-- **The user's calls:** Results' and Expenses' large figures ending in "…" at 320 pt with large text (the shared
-  `MoneyValue` never shrinks, by an earlier choice); the Arabic Home order (`docs/59`); counting by a store employee
-  without the closing delegation.
-- **Live has no complete tracked total** until every account has an amount and a close counts the drawer (the Test
-  Store has Bankily and Owner1 set).
+- **Awaiting the phone:** `docs/24` §49 Z1–Z8 (money at the phone's own largest text in EN/FR/AR, a list row stacking,
+  the charge button, a payment in its sale's minute, the minute before refused, the closed store first, the platform
+  overview's arrow) and §48 Y1–Y10.
+- **The user's calls:** the French tab label "Partenaires" and the Arabic Home header's branch name cut at 320 pt with
+  1.3× text (not money; tab bar and header outside this pass); the Arabic Home order (`docs/59`); counting by a store
+  employee without the closing delegation.
+- **Live has no complete tracked total** until every account has an amount and a close counts the drawer.
 - **Pending the user's decision:** the `spent_on` tidy-up of three expenses (`docs/57` §1.5).
 - **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 vs the Android
-  scan-region patch cut against 57.0.4. Expo Go is unaffected. Expo Doctor also lists six packages a patch behind.
+  scan-region patch cut against 57.0.4. Expo Go is unaffected. Expo Doctor lists six packages a patch behind.
 - `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): the account query was proven under
   it on a copy; the older parts were not re-checked; live runs with `sql_mode=""`.
 - **WhatsApp:** no provider adapter exists and none is faked.
@@ -93,8 +91,9 @@ annotated where `docs/61` corrects it, the session log, this file. **No migratio
 
 ## 📋 Known, not fixed
 
-- **A later payment recorded in the same minute as its sale** is refused as "earlier than the sale" (the form's time
-  is to the minute) until the next minute; nothing is written and the form stays (`docs/61` §6).
+- **The access refusal's *Check again*** opens the app only when writing is allowed too (`canRead` and `canWrite`),
+  while the guard needs only `canRead`: a shop allowed to read but not write stays on the refusal until it signs out
+  and in (seen in the route review, not changed).
 - **Money held counts only what the app records** — not loans, consignment, owner drawings, transfers or provider fees;
   re-anchoring absorbs the drift and keeps the difference. The account query scans company-wide from each anchor.
 - **A count saved and then a sale before the close** still leaves that sale out of the next opening (the closing's
@@ -148,12 +147,11 @@ annotated where `docs/61` corrects it, the session log, this file. **No migratio
 ## The next exact action
 
 1. **The user's review on the phone** (reload Expo Go, `exp://192.168.100.3:8081`; the API on 3010 already runs
-   `eea15e3`): `docs/24` §48 Y1–Y10 — the back arrow on each child screen and the swipe landing on the same screen;
-   a deep link (`exp://192.168.100.3:8081/--/closing`) with no history, the arrow going to the parent; Arabic after a
-   relaunch; the largest text; a closed day with a debt payment typed, refused, kept, *Open store now*, sent once; a
-   manager seeing who can open. The pass is complete only on the user's word; anything closed, opened or paid during
-   the review is the user's own act on live.
+   `f66c1ff`): `docs/24` §49 Z1–Z8 — the phone's largest text on Results, Expenses, Home, Money, the Daily closing, a
+   sale and Record payment (every amount whole, a long one smaller or with `MRU` below); Arabic; a list row with its
+   amount below the description; Sell's charge button; a debt paid in the sale's own minute; the minute before
+   refused; the platform overview's arrow to sign-in. Then §48 Y1–Y10. The pass is complete only on the user's word.
 2. **The user's calls** listed above; build only what they choose.
-3. Then `docs/24` §45–§46 as amended, §44, §43 and the older backlog.
+3. Then `docs/24` §45–§47 as amended and the older backlog.
 4. **If the user approves it:** the `spent_on` tidy-up of `docs/57` §1.5 (three rows, audited, after a backup per `docs/22`).
 5. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy; deploy the backend before the app.

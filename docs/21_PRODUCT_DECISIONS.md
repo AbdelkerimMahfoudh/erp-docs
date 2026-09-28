@@ -6233,3 +6233,46 @@ in `docs/04`; the phone's next checks are `docs/24` §48. Corrects `docs/60` D91
   largest text, the refused payment kept and sent after *Open store now*.
 - **The user's call:** Results' and Expenses' large figures end in "…" at 320 pt with text at 1.3× (`docs/61` §6).
 - Known edge: a later payment recorded in the same minute as its sale is refused as earlier than the sale.
+
+## Money never cut, a payment in its sale's minute, the routes without an arrow (2026-09-28, correction pass)
+
+The detail is in [`docs/61`](61_BACK_NAVIGATION_CLOSED_DAY_PAYMENTS.md) §8–§11; rule 19a in `docs/04`; the phone's
+checks are `docs/24` §49. Resolves `docs/61` §6 and the same-minute edge; corrects D93's list of routes without an arrow.
+
+### ✅ DECIDED AND IMPLEMENTED (backend `f66c1ff`; mobile `61f0f56`, `2476430`; no migration)
+
+- **A money figure is never cut (D95).** Every amount keeps every digit, its sign, its decimals and the whole `MRU`;
+  nothing ends in "…". `MoneyValue` fits the width it is given: one line full size; one line a little smaller, down to
+  the app's established floor (0.7) and never below body size; then `MRU` on the next line; only then the number
+  broken between whole digit groups. A label beside an amount keeps at least half the row; when the amount needs
+  more, it moves below the label with the row's full width (the shared list row and the statement lines). A button
+  whose label carries an amount wraps; a picker's balance is a `MoneyValue`. No horizontal scrolling, no clipping, no
+  overlap.
+- **The routes without an arrow, each one justified (D96; corrects D93).** Every route file is exactly one of: a parent
+  tab (5); a child with the shared back arrow (64 — `/platform` now among them, back to the shop's sign-in); an
+  invisible redirect (`/stores`) or the bootstrap splash; or, outside the signed-in app, an authentication root
+  (sign-in, register, verify, the branch choice, the access refusal — each with its own way on and Sign out). No
+  modal routes; nothing miscellaneous. The sign-in guard's decision is pure and tested: nobody is left on the splash
+  or a redirect.
+- **A payment in its sale's minute is valid (D97; rule 19a).** The phone names a minute and the sale is an instant
+  inside one: the server records such a payment at the sale's own instant — never before the sale, same minute, same
+  business day, the chosen minute audited. An earlier minute is refused as before. Server-side, for every client.
+
+### 📋 VERIFICATION
+
+- **The matrix** (a fresh copy of live, 22:01Z; the final build): **192 of 192 — 53 of 53 facts, 139 of 139 page
+  checks**: the existing 90 all green with the money scan on every page; 91 boundary checks (seven screens × 0,
+  −9 500, 27 648, 999 999, 12 345 678; EN, FR, AR; 320 and 393 pt; 1× and 1.3×; light and dark; each page scrolled
+  through); the same minute over real HTTP (recorded at the sale's instant, cash once, the minute before refused, the
+  closed store first); the routes (`/stores` → Partners, the platform arrow → sign-in). **699 money figures scanned,
+  none cut.**
+- **Gates:** backend 166 suites / 2 975 tests (focused 140/140); mobile 83 suites / 1 270 cases, lint 0 errors, parity
+  3 222 × 3, Expo Doctor 20/21 (documented patch versions); each commit alone from a clean export.
+- **Live:** nothing written by this pass; the user's phones added a sale, a receipt, two products and a loan meanwhile.
+
+### 🟡 OWED
+
+- The phone (`docs/24` §49): the figures at the phone's own largest text, a list row stacking, the charge button, a
+  payment in its sale's minute, the platform overview's arrow.
+- **The user's call:** the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" at 320 pt
+  with 1.3× text — not money; the tab bar and the header are outside this pass.

@@ -1,4 +1,4 @@
-# 61 — Back navigation, closed-day debt payments, the 51/52 check, 0082 verified (2026-09-27)
+# 61 — Back navigation, closed-day debt payments, the 51/52 check, 0082 verified (2026-09-27; correction pass 2026-09-28)
 
 The user's brief of 2026-09-27 (21:1xZ), after `docs/60`: one focused navigation and verification pass, worked inline.
 Five parts only — a visible back arrow on every authenticated child screen; a later payment on a debt refused while the
@@ -6,7 +6,8 @@ business day is closed; the one failed page check of `docs/60` named and resolve
 authentication; the Owner's phone review recorded. **No redesign** of Home, Money, the Daily closing, Sell, Receive,
 stock selection or the tab bar; no refund, scanner/OCR or other milestone. Decisions D93 (back navigation) and D94 (a
 later payment waits for the store). Recorded in `docs/21`, `docs/04` rule 25 and
-`docs/24` §47 (status) and §48 (the next checks).
+`docs/24` §47 (status) and §48 (the next checks). **The correction pass of 2026-09-28** (§8–§11: money never cut, a
+payment in its sale's minute, the four routes without an arrow, a matrix at 192 of 192) is D95–D97 and `docs/24` §49.
 
 ---
 
@@ -41,8 +42,8 @@ each for a stated reason. Every one of the 72 is in the web export. No screen di
 | **Stock** `/inventory` | `/transfers` · `/unit/[identifier]` · `/unit/edit` · `/pricing/unit` · `/pricing/history` → `/inventory` · `/transfers/[id]`, `/transfers/new` → `/transfers` |
 | **Partners** `/partners` | `/partners/[id]`, `/consignments` → `/partners` · `/consignments/[id]`, `/consignments/new` → `/consignments` |
 | **More** `/more` | `/sales` · `/returns` · `/approvals` · `/catalog` · `/imports` · `/analytics` · `/goals` · `/team` · `/subscription` · `/settings` · `/appearance` · `/devices` · `/sync` · `/notifications` · `/hub/[id]` · `/dev/gallery` → `/more` · `/sales/[id]` → `/sales` · `/sales/pay/[id]` → `/sales/{id}` · `/returns/[id]`, `/returns/new` → `/returns` · `/approvals/[id]` → `/approvals` · `/catalog/[id]`, `/catalog/new`, `/catalog/edit`, `/catalog/categories` → `/catalog` · `/imports/[id]` → `/imports` · `/goals/new` → `/goals` · `/alerts` → `/analytics` |
-| **Platform** (its own identity) | `/platform/[id]`, `/platform/new`, `/platform/audit` → `/platform` · `/platform/sign-in` → `/login` |
-| **No arrow** | the five tabs; `/platform` (the platform identity's home); `/select-branch` (an entry flow reached by replacement — the choice replaces the whole app, and Sign out is offered); `/subscription-blocked` (shown instead of the app); `/stores` (a legacy link that replaces itself with Partners) |
+| **Platform** (its own identity) | `/platform/[id]`, `/platform/new`, `/platform/audit` → `/platform` · `/platform/sign-in` → `/login` · *since the correction pass (§10):* `/platform` → `/login` |
+| **No arrow** | the five tabs; `/platform` (the platform identity's home); `/select-branch` (an entry flow reached by replacement — the choice replaces the whole app, and Sign out is offered); `/subscription-blocked` (shown instead of the app); `/stores` (a legacy link that replaces itself with Partners). *Reviewed in the correction pass (§10): `/platform` now has the arrow; `/stores` is an invisible redirect; branch choice and the access refusal are authentication roots.* |
 
 **Every row alike:** with history, back is a pop (the native arrow and the swipe on the phone; our arrow on the web); in
 English and French the arrow points left at the left edge, in Arabic right at the right edge. **Notifications** are
@@ -199,7 +200,7 @@ The database was dropped afterwards.
 user's report, not an automated result; no individual observation was captured beyond that statement, and none is
 recorded here. The next checks are `docs/24` §48.
 
-## 6. Found, not fixed — the large money figures at 320 pt
+## 6. Found, not fixed — the large money figures at 320 pt *(fixed in the correction pass, §8)*
 
 The large-text back checks read the whole page, and on two Money screens found a figure cut short at **320 pt with
 text at 1.3×**: Results' **Profit "+38 350 MRU"** needs 269 px and has 254; Expenses' **Cash in store now**
@@ -212,7 +213,8 @@ reverses a recorded choice, so it is the user's call. The two checks are counted
 **And a small edge in the app, found by the same check.** The form's time is to the minute (15:10), and the server
 refuses a payment earlier than its sale. A payment recorded in the **same minute** as the sale it pays is therefore
 refused — "A payment cannot be earlier than the sale it pays for" — until the next minute. Rare at a counter (a debt
-paid within a minute of the sale), harmless (nothing is written, the form stays), and not changed here.
+paid within a minute of the sale), harmless (nothing is written, the form stays), and not changed here. *(Fixed in the
+correction pass, §9.)*
 
 ## 7. Verification and commits
 
@@ -255,9 +257,152 @@ and Metro); the API on 3010 was restarted on the new build (`eea15e3`, pid 13032
 **Commits.** Backend `eea15e3`; mobile `fd57d26` (back navigation) and `6edad6b` (the refused payment's form); docs
 last.
 
-## 8. Owed
+## 8. Money is never cut (the correction pass, 2026-09-28)
 
-- **The phone** (`docs/24` §48): the back arrow and the swipe landing on the same screen; the no-history fallback from
-  a cold start and a deep link; the Arabic arrow; the swipe kept everywhere; the header at the largest text; the
-  refused payment's form kept and sent after *Open store now*.
-- **The user's call:** the large money figures at 320 pt with large text (§6).
+The user's brief of 2026-09-28 (00:0xZ): a monetary amount always shows every digit, its sign, its decimals and the
+whole `MRU`, and nothing ends in "…". Decision D95 in `docs/21`.
+
+**The figure itself — `MoneyValue`, the one component every amount goes through.** It no longer limits its lines.
+Its box is never wider than the space it is given, and it fits the width it has, in this order (`lib/money-fit.ts`,
+pure and tested):
+
+1. **one line, full size**;
+2. **one line, a little smaller** — down to the app's established floor for a fitted figure (`StatTile`'s
+   `minimumFontScale`, 0.7) and never below body size (15 pt): a display figure may go to 70 %, a large one to 70 %,
+   a row figure to body size, a small one not at all;
+3. **`MRU` on the next line**, the number alone on the first — full size, or shrunk no further than that floor;
+4. only then, **the number broken between whole digit groups** at the floor, `MRU` below.
+
+The widths are measured on the device: the figure's own box, and the number and the whole figure at full size by an
+invisible copy that is never shown, never read aloud and (on the web) out of the page's text. A figure at the end of
+a row hugs its text, so once fitted its box only echoes the fit; the room then changes only when the box is clearly
+larger (more space arrived) or clearly narrower (it was squeezed) — otherwise a row's figure would shrink itself
+again on every layout. Screen readers read the whole figure once, however it is laid out.
+
+**The rows — a label beside an amount (`lib/design/amount-row.ts`).** Side by side while the amount needs at most half
+of the row; beyond that the amount moves **below** the label, on its own line with the row's full width, and the label
+keeps the width to be read — never squeezed to a sliver or cut. Plain flex (`flexWrap` with the label's basis at half
+the row), so it holds on the phone and the web without measuring. Used by the shared list row (`ListRow`: every list
+of the app — Expenses, Sales, Outstanding, pickers) and by the statement lines of Results, the Daily closing and its
+close popup.
+
+**The other one-line paths an amount could reach**, found by a scan of every `formatMoney` in the app:
+
+- *Sell*'s charge button carries the total in its label: a `Button` may now **wrap** (`wrap`), and this one does;
+- *Sell*'s customer picker gave a balance to a one-line row as text: it now passes a `MoneyValue`
+  (`SelectSheet`'s value may be one);
+- the design gallery's demos passed money strings to a tile and rows: now `MoneyValue`.
+- **seventeen standalone amounts drawn as plain text** — which cannot fit or break (their spaces do not break) and ran
+  off the card with a long figure: a sale's lines, payments, subtotal, discount and total, the sales list, Outstanding,
+  the receipt totals and their done screens, the file receipt's total, a staged item, the cart line, the sale-success
+  figure, the refund payout, the returns breakdown and its investigation sheet, the gallery's specimen. Each is now a
+  `MoneyValue` of the same size (display, title → large, heading → default, bold body → small; plain body and
+  captions → small, the captions muted), and the rows holding them follow the half-row rule. *Found by the
+  boundary checks on a sale at 320 pt with 1.3× text, where the figure was clipped by its card.*
+
+A test (`lib/money-fit.test.ts`, 12) refuses any money figure in a line-limited text, a standalone amount drawn as
+plain text, a money string handed to a row,
+tile, picker or confirmation label, a button label with an amount that does not wrap, `MoneyValue` limiting its lines
+or shrinking by itself, and pins the rows' rule; the fit's four steps, the floor and the boundary figures (0, −9 500,
+27 648, 999 999, 12 345 678, +38 350, 1 234,50) are tested directly. Removing the charge button's `wrap` fails it.
+
+## 9. A later payment in the same displayed minute as its sale (correction pass)
+
+The phone names a minute (10:15, sent as 10:15:00); the sale is an instant inside one (10:15:47). The server had
+refused the payment as earlier than the sale. **Now** (`resolvePaidAt`, D97): a payment whose minute is the sale's
+minute is valid, and is **stored at the sale's own instant** — never before the sale, still in its minute, so still
+10:15 wherever it is shown, and in the sale's business day (the day's boundaries, midnight and 06:00, fall on whole
+minutes). The minute the person chose is kept in the audit (`paidAtRequested`) when it was lifted. **An earlier
+minute is still refused** (`paid_at_before_sale`), to the millisecond: 10:14:59.999 against a sale at 10:15:00 is
+refused. The comparison is on the instant, so the store's, the phone's and the server's time zones do not matter —
+every zone is whole minutes (India +05:30 and Nepal +05:45 tested). Server-side, so an older app is covered.
+
+The closed store is decided first: a same-minute payment on a closed day is refused with `store_closed` and writes
+nothing; after *Open store now* the same key records it once; a retry replays it; the same key with another amount is
+refused (`idempotency_key_reused`). Focused tests: `sale-payment-same-minute.spec.ts`, 14 — 9 fail without the change.
+
+## 10. The four routes without an arrow — named and resolved (correction pass)
+
+The pass before counted 72 authenticated screens: 63 with an arrow, 9 without — the five tabs and four others. Every
+route file is now exactly one class (D96, `lib/navigation/back.ts`, `back.test.ts`):
+
+| Route | Before | Now |
+|---|---|---|
+| **`/platform`** | "no arrow — the platform identity's home" | **Corrected.** A visible page (businesses, search, buttons): it gets the **shared arrow** — with history the same pop as the swipe, without history to the shop's sign-in it is entered from (`/login`). As the first screen of its own navigator it has no native back button, so ours is always drawn there (and on the platform sign-in). The platform session stays until *Sign out* |
+| **`/stores`** | "a legacy link" | **Invisible redirect** — renders only `<Redirect href="/(tabs)/partners" />`: no page, no parameter, no data |
+| **`/select-branch`** | "an entry flow" | **Authentication root**, outside the signed-in app: the branch is the last step of signing in; switching from More clears it first and the guard brings any other route back here, so an arrow would lead nowhere. Its way on: choose a branch, or *Sign out* (always shown); a failed list has *Try again* |
+| **`/subscription-blocked`** | "shown instead of the app" | **Authentication root**: the server refuses the shop access and the guard returns here from anywhere. Its way on: *Check again*, *Sign out* |
+
+**The whole map** — 76 route files: **5 parent tabs**; **64 children with the shared back arrow** (4 flows with their
+own arrow inside, Sell in its title row); **0 modal or sheet routes** (sheets and dialogs are components with Close or
+Cancel); **1 invisible redirect** (`/stores`) and **1 bootstrap splash** (`app/index.tsx`, a spinner); **5
+authentication roots** outside the signed-in app (sign-in, register, verify, the branch choice, the access refusal).
+None unclassified; none in two classes; every one in the web export.
+
+**The redirect and the splash never strand anybody.** The sign-in guard's decision is now a pure function
+(`lib/navigation/entry.ts`, 8 tests) used by `useAuth`: a session that expired → sign-in; a restore that failed (the
+session is cleared) → sign-in; access refused → the refusal screen; no branch → the branch choice; the access check
+itself failing → nobody shut out; `/stores` needs no parameter and its target is a real tab (pinned); every
+combination of session, branch, access and route settles within two steps, never back where it started. On the web:
+`/stores` lands on Partners with the tab bar as the Owner and as a Store Employee, and on sign-in when signed out or
+with an expired token.
+
+## 11. Correction pass — verification and commits
+
+**The matrix** — a fresh read-only copy of live (22:01Z), the built API on a fixed clock, the final build: **192 of 192
+clean — 53 of 53 server facts and 139 of 139 page checks.** They are:
+- **the existing 90** (48 facts, 42 page checks), every one, now with the money scan on every page;
+- **91 money boundary checks** — seven screens (Home, Money, Results, Expenses, the Daily closing, a sale, Record
+  payment) with every money figure in their replies set to 0, −9 500, 27 648, 999 999 and 12 345 678 at 320 pt with
+  1.3× text in English; the extreme and the negative in French and Arabic; 393 pt at 1× and 1.3×; dark at 320 pt —
+  each page scrolled through with the scan at every step;
+- **5 same-minute facts** over real HTTP; **6 route checks**.
+
+**699 money figures scanned**, none ending in "…", incomplete, outside its box or its card, over other text, or below
+body size. The scan was proven not blind: a figure pushed over its label is reported as an overlap, one forced to
+"…" as an ellipsis and cut. Its false positives were removed on the way — a tab kept mounted behind the one on screen,
+a dialog over the page, a folded panel, a list's rows under its footer: an overlap counts only where both texts are in
+front on the screen. The payment page for a sale that owes nothing (0 or less) rightly shows "Nothing is owed on this
+sale" — that, not a figure, is what its check expects.
+
+**Found, not money — reported, not failed.** At 320 pt with 1.3× text the French tab label **"Partenaires"** and, in
+Arabic, the Home header's branch name **"Main Store"** end in "…" (six of the boundary checks). Neither is an amount;
+the tab bar and the header are outside this pass, which redesigns nothing. The user's call.
+
+**The same minute, over real HTTP** (the Test Store, the 27th). A sale at 12:07:22.035 with 5 000 paid. The store
+closed: the same-minute payment, and one for the minute before, refused with `store_closed` — payments 1 → 1, paid
+5 000 → 5 000, no reopen. Opened: the minute before refused (400 `paid_at_before_sale`), nothing written; the
+same-minute payment recorded (201) with `paid_at` 12:07:22.035 = `sold_at`, business day 27 Sep for both, the chosen
+minute 12:07:00 audited, cash now 33 000 → 34 500 — once. The same key again returned the same payments; the same key
+with 1 600 was refused (409 `idempotency_key_reused`); nothing more written.
+
+**The routes, on the page.** `/stores` lands on Partners with the tab bar as the Owner and as a Store Employee, on
+sign-in when signed out and with an expired token. The platform sign-in opened cold: the arrow at the left, 48 × 48,
+to `/login`. A throwaway platform administrator on the copy only, signed in through the page: the overview shows the
+arrow and, with no history, it goes to `/login`.
+
+**Gates.** Backend: `tsc`; **166 suites / 2 975 tests**; the focused specs **140 of 140** (the same minute 14, the
+payment rules, the closed-day payment, sales and receipts on a closed day, the permission drift and catalogue);
+`prisma validate`; `prisma migrate status` on live up to date (81); `nest build`. Mobile: `tsc`; **83 suites /
+1 270 cases**; `expo lint` 0 errors (31 warnings, the baseline); parity **3 222** × 3; the web export with all 76 route
+files; the Android bundle through Metro; Expo Doctor 20/21 (the six SDK patch versions, as documented — no dependency
+changed). Each commit alone from a clean export: backend `f66c1ff` `tsc` clean and 695 closing/sales/purchasing/rbac
+tests; mobile `61f0f56` and `2476430` the same as the pre-pass baseline plus their new suite.
+
+**Live.** This pass wrote nothing to live — read-only queries, `prisma migrate status` and the earlier read-only dump
+only. Live moved by the user's hand during it: between 00:53Z and 01:05Z, from two iPhones on Expo Go (on the LAN,
+…100.251 and …100.246) — scans, two products, a receipt, sale 00011 (3 500: 2 500 cash + 1 000 mobile), a loan created
+and decided (the API's own log). Now 18 sales, 7 expenses, 13 closing events, 3 closing rows, 19 payments, 2 anchors,
+919 audit rows. The copies were rebuilt per run and dropped; 3012, 19012 and 9334 are free. The API on 3010 was
+restarted on `f66c1ff` (pid 6596); Metro on 8081 (pid 1684) serves `2476430`.
+
+**Commits.** Backend `f66c1ff`; mobile `61f0f56` (money never cut) and `2476430` (routes); docs last.
+
+## 12. Owed
+
+- **The user's call:** the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" at
+  320 pt with 1.3× text (§11) — not money; the tab bar and the header are outside this pass.
+- **The phone** (`docs/24` §48 and §49): the back arrow and the swipe landing on the same screen; the no-history
+  fallback from a cold start and a deep link; the Arabic arrow; the swipe kept everywhere; the header at the largest
+  text; the refused payment's form kept and sent after *Open store now*; the money figures at the phone's own largest
+  text; a payment in its sale's minute; the platform overview's arrow.

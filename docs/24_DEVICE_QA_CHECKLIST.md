@@ -3830,10 +3830,28 @@ to prove. Use Expo Go against the API on 3010, which runs the new build (no migr
 | Y1 | From each tab open a few screens (Money → Daily closing, Results, Expenses; Stock → Transfers; More → Settings, Sales → a sale → Record payment; Home → Quick sell) | Every screen except the five tabs has a **back arrow** at the top; one arrow only; the title beside it; nothing overlapping |
 | Y2 | On each of them, tap the arrow; then open it again and **swipe back** from the edge (iPhone) / use the system Back (Android) | The arrow and the swipe land on the **same** screen — where you came from. The swipe works on every screen |
 | Y3 | Switch the app to **Arabic**, relaunch, repeat Y1–Y2 on three screens | The arrow points **right**, at the right edge; it and the swipe go back |
-| Y4 | Settings → the **largest** text size; open Daily closing, Results, Settings and Quick sell | The arrow stays whole and tappable, the title never covers it. (Known: the big figures on Results and Expenses may end in "…" on a narrow phone — `docs/61` §6) |
+| Y4 | Settings → the **largest** text size; open Daily closing, Results, Settings and Quick sell | The arrow stays whole and tappable, the title never covers it. (The big figures on Results and Expenses no longer end in "…" — `docs/61` §8; checked in §49 Z1) |
 | Y5 | Open a child screen with **no history**: close Expo Go, then open the deep link `exp://192.168.100.3:8081/--/closing` (and `/--/settings`) from the phone's browser or camera | The screen opens with the arrow; tapping it goes to that screen's **parent** (Daily closing → Money, Settings → More), never nowhere, never out of the app; the swipe has nothing to go back to |
 | Y6 | Receive → From a file with no file picked, if reachable; New transfer → **Cancel**; New return → **Cancel** | Each leaves to the screen before it (or its parent) — none does nothing |
 | Y7 | Close the day. Then as the Owner: a sale with money still owed → **Record payment**, type an amount, a reference, *Record payment*, confirm | "**The store is closed** — Nothing was recorded. Your payment stays here, to send once the store is open." The amount, method and reference **still typed**; *Open store now* beneath |
 | Y8 | Tap *Open store now*, confirm (before 06:00: the choice sheet — keep *Continue*) | The notice goes; the form is unchanged; tap *Record payment* again → recorded once; the sale shows the new balance |
 | Y9 | Close the day; as a Store Manager or Employee (not a delegate) try the same | The same notice, the typed payment kept, and "Only the Owner or a named delegate can open the store." — **no** *Open store now* button |
 | Y10 | Close the day and read the close popup first | "After closing, Sell, Receive and payments on debts wait until the Owner or a named delegate opens the store again." |
+
+## 49. Money never cut, a payment in its sale's minute, the platform arrow — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-28 correction pass (`docs/61` §8–§11; `docs/21` D95–D97). Proven on the web export against a fixed-clock
+copy of live, with every money figure forced to boundary values; the phone's own text size, font and native header
+are the handset's to prove. Use Expo Go against the API on 3010 (the new build; no migration). **Amends §48 Y4**: the
+big figures no longer end in "…".
+
+| # | Do | Expect |
+|---|---|---|
+| Z1 | Settings → the **largest** text size (and Display Zoom, if offered); open Money → Results, Expenses, Home, Money, the Daily closing, a sale and Record payment | Every amount whole — every digit, the sign, the decimals and **MRU**; never "…". A long one is a little smaller, or has **MRU** on the next line; nothing runs out of its card or over a label |
+| Z2 | The same in **Arabic** after a relaunch | The same; the figures read left to right (−9 500 MRU), placed at the start of the line |
+| Z3 | A list with amounts (Expenses, Sales, Outstanding) at the largest text on a narrow phone | Where the amount would squeeze the description, it moves **under** it; the description is not cut to a few letters |
+| Z4 | Sell → the charge button with a large total at the largest text | The whole amount on the button, on two lines if it needs them — never "…" |
+| Z5 | Make a sale with money owed; **within the same minute** open it → Record payment, leave the date and time as shown, record part of it | Recorded, no "earlier than the sale" message; the sale's history shows the payment at the sale's own time, never before it |
+| Z6 | Record payment and set the time **one minute before** the sale | "A payment cannot be earlier than the sale it pays for"; nothing recorded; the form kept |
+| Z7 | Close the day, then try Z5 | "The store is closed" first, nothing recorded; after *Open store now*, the same payment records once |
+| Z8 | Sign-in → Platform administration → sign in; on the overview tap the back arrow (and swipe) | Back to the shop's sign-in screen; the platform session stays until *Sign out* |
