@@ -18,7 +18,16 @@
   repeated — inventory every scroll surface, find where the first gesture is lost (physical phone and Metro logs), fix
   it without disabling the native swipe-back, verify on the phone. Mobile and docs only: no backend, no database, no
   live data, no redesign, no other feature.
-- Next intended action: the two label truncations.
+- **Checkpoint 04:58Z — (0) done:** mobile **`8d101f6`** pushed (tab names fitted to their tab, the header's store
+  name wraps, Home's two actions stack before a label is cut; 42/42 web checks EN/FR/AR × 320/393 × 1.3×, ordinary
+  and 2×; 84 suites green; the commit alone from a clean export = the known baseline). Docs for it come with the
+  phase's docs commit (`docs/61` §13).
+- **Now (1):** the static scroll inventory is done (scratch); a **dev-only touch trace is uncommitted in the mobile
+  working tree** (`lib/dev/touch-trace.ts`, hooks in `app/_layout.tsx` and `components/ui/Screen.tsx` behind
+  `__DEV__`) — to be removed before the phase's final commit. Leading hypothesis, unproven until the phone says so:
+  on iOS a scroll view refuses to drag while a JS responder is its **ancestor**, and `Screen scroll={false}` wraps
+  every inner list in its blank-space `Pressable`.
+- Next intended action: the user's swipe protocol on the phone (Expo Go → Metro 8081), read from the Metro log.
 
 ### ⚠️ The scope rule, unchanged
 
