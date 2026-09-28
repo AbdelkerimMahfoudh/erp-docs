@@ -6,19 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-A**, `2026-09-27T21:20Z` → `23:50Z`, complete — the user's navigation and verification brief of
-  2026-09-27 (21:1xZ), worked inline as the brief asked (no workflows or subagents). Takeover HEADs were docs `7b78caf`,
-  backend `69346fc`, mobile `6b6b651`, all clean and level.
-- **Scope done** (`docs/61`; `docs/21` D93–D94): (1) a back arrow on every authenticated child screen with a logical
-  no-history fallback, the native swipe kept, structural tests; (2) a later payment on a debt refused with 409
-  `store_closed` while the day is closed — no automatic reopen left; the phone keeps the form; (3) the 51/52 check of
-  `docs/60` named (a harness defect) and green; (4) 0082 verified — read-only on live, the whole lifecycle through
-  authenticated HTTP on a copy, append-only as the app's own database user; (5) the Owner's phone review of `docs/24`
-  §47 recorded as **user-reported**.
-- **The machine restarted at 22:30Z** during a matrix run: the run, the API on 3010 and Metro on 8081 stopped; the run
-  was repeated from a fresh copy and both servers were restarted on the new build (below).
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-28T00:07Z` — takeover HEADs (all clean, level with their remotes): docs `be2038f` · backend
+  `eea15e3` · mobile `6edad6b`; `prisma migrate status` on live: 81 migrations, up to date. Previous session: CLAUDE-A,
+  handed off complete (`READY_FOR_HANDOFF`). Live at takeover: 17 sales, 7 expenses, 13 closing events, 3 closing rows,
+  17 payments, 2 anchors, 910 audit rows; the API on 3010 (pid 13032) and Metro on 8081 (pid 1684) running.
+- **Active phase and scope (the user's brief of 2026-09-28, 00:0xZ), inline — no workflows or subagents:** (1) no
+  monetary amount ever truncated — a stacked label/amount at narrow widths or large text, a controlled wrap as the
+  last resort; (2) a debt payment in the same displayed minute as its sale accepted server-side, stored no earlier than
+  the sale, earlier minutes still refused; (3) the four no-arrow routes named and each justified or given the arrow;
+  every route classified as tab / child / modal / invisible redirect; (4) the matrix rerun to a genuine 90/90. No
+  redesign, no change to 0082 or anchor semantics, no Expo dependency update, no other milestone.
+- Next intended action: the money-value audit.
 
 ### ⚠️ The scope rule, unchanged
 
