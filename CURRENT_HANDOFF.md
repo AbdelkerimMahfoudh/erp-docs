@@ -6,16 +6,19 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-A**, `2026-09-28T00:07Z` → `03:50Z`, complete — the user's correction brief of 2026-09-28
-  (00:0xZ), worked inline (no workflows or subagents). Takeover HEADs were docs `be2038f`, backend `eea15e3`, mobile
-  `6edad6b`, all clean and level; no discrepancy.
-- **Scope done** (`docs/61` §8–§11; `docs/21` D95–D97): (1) no monetary amount is ever cut — fitted, moved below
-  its label, or `MRU` on the next line, never "…"; (2) a debt payment in the same displayed minute as its sale is
-  accepted server-side, stored at the sale's instant, earlier minutes still refused; (3) the four routes without an
-  arrow named and resolved — `/platform` given the arrow, `/stores` an invisible redirect, `/select-branch` and
-  `/subscription-blocked` authentication roots — and every route in exactly one class; (4) the matrix **192 of 192**.
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-A**
+- `started_at_utc: 2026-09-28T03:51Z` — takeover HEADs (all clean, level with their remotes): docs `de7396a` · backend
+  `f66c1ff` · mobile `2476430`; 81 migrations, up to date (none expected). Previous session: CLAUDE-A, handed off
+  complete (`READY_FOR_HANDOFF`, owner NONE). No discrepancy.
+- **Active phase and scope (the user's brief of 2026-09-28, 03:5xZ), inline — no workflows or subagents:** (0) finish the
+  correction pass: the French "Partenaires" tab label and the Arabic Home branch name must never end in "…" at 320 pt
+  with large text — the tab bar and header design kept — with EN/FR/AR checks at 320 and 393 pt; (1) the scrolling
+  and touch-responsiveness investigation: a vertical swipe on information-heavy pages sometimes does nothing until
+  repeated — inventory every scroll surface, find where the first gesture is lost (physical phone and Metro logs), fix
+  it without disabling the native swipe-back, verify on the phone. Mobile and docs only: no backend, no database, no
+  live data, no redesign, no other feature.
+- Next intended action: the two label truncations.
 
 ### ⚠️ The scope rule, unchanged
 
