@@ -35,16 +35,33 @@
     gone; the early start inside the opening's transaction; a failure keeps the chosen day, the amounts and the key.
     HTTP 10/10, web 14/14. **Live read only:** the 28th was never closed — started early at 05:25:40Z on the 28th under
     the old build, never opened, nothing recorded since.
-  - **(4) QA data setup (the user's brief of 29 Sep, 02:2xZ) — IN PROGRESS.** Opening blocker resolved on the phone
-    (live, 02:12:21Z on the 29th: the Owner started the 29th early and opened it, keep, recorded once). A separate
-    disposable database **`prisma_qa`** (never `phonestore`, never staging) with a QA API from the current backend: ten
-    boutiques (`boutique1…10@test.com`, one company and one branch each, 100 available units: ~80 phones, ~20
-    accessories) and a platform administrator (`admin@test.com`), through the real registration, verification,
-    activation, catalogue, opening and receipt paths; passwords only from the environment, hashed by the app, never
-    committed or printed. Kept apart from scope (1) (its trace stays uncommitted) and from live.
-- **Next intended action:** the user restarts the API (to run `285ba78`) and reloads the phone; `docs/24` §50 AA12a–c on
-  the iPhone before 06:00; then scope (1) on the phone: swipes on the sale detail, More → Sales and *Vérifier la
-  livraison* — the `LOG  [touch]` lines should read `SCROLLED`; then the scroll doc, `docs/24` checks, the trace removed.
+  - **(4) QA data setup (the user's brief of 29 Sep) — DONE** (backend `1d6caa0`, `scripts/qa-boutiques.ts`). Opening
+    blocker resolved on the phone first (live, 02:12:21Z: the Owner started the 29th early and opened it, keep, once).
+    **The QA environment** (all outside the repositories, `~/erp-qa/` with a README; nothing on live):
+    - database **`prisma_qa`** (82 migrations through 0083) — retained on purpose, not a verification copy;
+    - **QA API `http://192.168.100.3:3020/api/v1`** — `node C:UsersHPerp-qaqa-api.cjs` (start; running now, pid
+      7476) / `… qa-api.cjs stop`; built from backend `285ba78` into `~/erp-qa/dist`; its own token secret; messaging
+      disabled; connects as the migrator (the app user has no rights on `prisma_qa`, so the append-only triggers do not
+      restrain QA data);
+    - **Expo Go:** `~/erp-qa/qa-metro.ps1` — a second Metro on 8082 with `EXPO_PUBLIC_API_ORIGIN=…:3020` and its own
+      cache folder (proven: its bundle holds only `:3020`; the live Metro's still only `:3010`), then
+      `exp://192.168.100.3:8082`.
+    **The data:** ten boutiques (`boutique1…10@test.com`, one company, one branch, one Owner each; registered,
+    verified and activated through the platform's routes) and `admin@test.com` (platform administrator; the QA password
+    is below `create-platform-admin.ts`'s 12-character rule — QA only). Each boutique: 2 categories, 32 products, **80
+    phones** (26 variants of 12 brands; 800 distinct synthetic Luhn-valid IMEIs overall, 350 with a distinct second IMEI)
+    and **20 accessories** (6 quantity products, 60 distinct EAN-13 barcodes, none an IMEI); the 29th opened (started
+    early, keep) and one cash receipt each. **`--verify`: 64 of 64** (eleven sign-ins; 100 available per Owner; own
+    product and phone readable, the next boutique's refused 404/404/403; no platform access for Owners; the
+    administrator on the platform, 401 on any shop route and at the shop sign-in). A second `--apply` changed nothing.
+    Passwords only from `QA_PASSWORD`, hashed by the app (argon2id), never printed or committed. **Not modelled:**
+    a phone's condition (the schema keeps it out of the variant by design) — the user's call.
+- **Next intended action:** scope (1) on the phone — swipes on the sale detail, More → Sales and *Vérifier la livraison*
+  (the `LOG  [touch]` lines should read `SCROLLED`; the live Metro serves the fix and the trace); then the scroll doc,
+  `docs/24` checks, the trace removed, `READY_FOR_HANDOFF`. QA testing (scope 4) can run meanwhile on
+  `exp://192.168.100.3:8082` (`~/erp-qa/qa-metro.ps1`); after a reboot, start the QA API again (`~/erp-qa/qa-api.cjs`).
+  Opening (scope 3): proven on the iPhone at 02:12Z (start early, keep); `docs/24` §50 AA12a–c remain for the other choice
+  and the failure path; the user's API should run `285ba78` (the atomic early start).
 
 ### ⚠️ The scope rule, unchanged
 
@@ -57,7 +74,7 @@ Nothing was removed in this session beyond what the user asked for (the Daily cl
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`285ba78`** | level | 0 |
+| `erp-backend` | `reports-export` | **`1d6caa0`** | level | 0 |
 | `erp-mobile` | `reports-export` | **`3d24222`** | level | **6 — the dev touch trace (scope 1), uncommitted on purpose** |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
