@@ -35,6 +35,13 @@
     gone; the early start inside the opening's transaction; a failure keeps the chosen day, the amounts and the key.
     HTTP 10/10, web 14/14. **Live read only:** the 28th was never closed — started early at 05:25:40Z on the 28th under
     the old build, never opened, nothing recorded since.
+  - **(4) QA data setup (the user's brief of 29 Sep, 02:2xZ) — IN PROGRESS.** Opening blocker resolved on the phone
+    (live, 02:12:21Z on the 29th: the Owner started the 29th early and opened it, keep, recorded once). A separate
+    disposable database **`prisma_qa`** (never `phonestore`, never staging) with a QA API from the current backend: ten
+    boutiques (`boutique1…10@test.com`, one company and one branch each, 100 available units: ~80 phones, ~20
+    accessories) and a platform administrator (`admin@test.com`), through the real registration, verification,
+    activation, catalogue, opening and receipt paths; passwords only from the environment, hashed by the app, never
+    committed or printed. Kept apart from scope (1) (its trace stays uncommitted) and from live.
 - **Next intended action:** the user restarts the API (to run `285ba78`) and reloads the phone; `docs/24` §50 AA12a–c on
   the iPhone before 06:00; then scope (1) on the phone: swipes on the sale detail, More → Sales and *Vérifier la
   livraison* — the `LOG  [touch]` lines should read `SCROLLED`; then the scroll doc, `docs/24` checks, the trace removed.
