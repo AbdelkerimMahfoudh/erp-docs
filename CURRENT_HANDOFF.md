@@ -22,7 +22,12 @@
     swipe started on content inside the page's `ScrollView` (a `MoneyValue`, a `Fact`, in a `Card`), the ScrollView
     never scrolled (`scroll=[]`, `content=0`), the blank-space `Pressable` of `Screen scroll={false}` — an **ancestor** of
     that ScrollView — took the touch (`screen-blank(ABOVE-list)`) and ran its press on release (`Keyboard.dismiss@779`).
-    The layer is named for that screen; `/receive/file` has no trace yet.
+    The layer is named for that screen; `/receive/file` has no trace yet (same structure: its whole page is a
+    `FlatList` inside `Screen scroll={false}`, the chips in the list's header). **Fix pushed — mobile `3d24222`:**
+    outside the scroll view, `Screen`'s body, header and footer are plain Views with the dismissal `Pressable` as a layer
+    BEHIND the content (34 screens render that branch; Stock's chip rows sit in a header). **The phone must prove it;**
+    the dev trace stays (uncommitted) with the sale detail's ScrollView now hooked (`listTrace('sale')`), the
+    blank-space layer labelled `screen-blank(behind)`.
   - **(2) Money and the opening — DONE** (`docs/63`, D98–D102; backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`,
     `9d54803`, `812ba09`). **Migration 0083 applied to live at 21:50Z** (backup `~/erp-backups/phonestore-before-0083-20260928-215031.sql`).
   - **(3) The iPhone opening failure (the user's brief of 29 Sep, prioritized over (1)) — FIXED, the iPhone owed**
@@ -31,8 +36,8 @@
     HTTP 10/10, web 14/14. **Live read only:** the 28th was never closed — started early at 05:25:40Z on the 28th under
     the old build, never opened, nothing recorded since.
 - **Next intended action:** the user restarts the API (to run `285ba78`) and reloads the phone; `docs/24` §50 AA12a–c on
-  the iPhone before 06:00; then scope (1): the fix of the blank-space `Pressable` above inner scroll views, and its
-  phone check on the sale detail, More → Sales and *Vérifier la livraison*.
+  the iPhone before 06:00; then scope (1) on the phone: swipes on the sale detail, More → Sales and *Vérifier la
+  livraison* — the `LOG  [touch]` lines should read `SCROLLED`; then the scroll doc, `docs/24` checks, the trace removed.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -46,7 +51,7 @@ Nothing was removed in this session beyond what the user asked for (the Daily cl
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
 | `erp-backend` | `reports-export` | **`285ba78`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`3bd2937`** | level | **5 — the dev touch trace (scope 1), uncommitted on purpose** |
+| `erp-mobile` | `reports-export` | **`3d24222`** | level | **6 — the dev touch trace (scope 1), uncommitted on purpose** |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
 This session: mobile `8d101f6` (names never cut); backend `b0f9bd0` (0083), `90ef14a` (`closedReason` through the
