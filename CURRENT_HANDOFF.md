@@ -18,14 +18,21 @@
     `app/sales/index.tsx`, `app/receive/file.tsx`, all behind `__DEV__`) — to be removed (or kept behind the dev guard)
     before the phase's final commit. The user reports failed swipes on **Vérifier la livraison** (`/receive/file`: the
     blank area around the chips and above *Modification groupée*; the expanded item rows) and across **More → Sales**
-    (`/sales`, rows included). **No trace from the phone yet**; no fix until the traces name the layer. Leading
-    hypothesis, unproven: on iOS (Fabric) a scroll view does not cancel a touch whose ancestor is the JS responder, and
-    `Screen scroll={false}` wraps inner lists in its blank-space `Pressable`; the Sales rows need their own explanation.
+    (`/sales`, rows included). **Traces received 29 Sep for the sale detail (`/sales/{id}`, #32–#36):** every lost
+    swipe started on content inside the page's `ScrollView` (a `MoneyValue`, a `Fact`, in a `Card`), the ScrollView
+    never scrolled (`scroll=[]`, `content=0`), the blank-space `Pressable` of `Screen scroll={false}` — an **ancestor** of
+    that ScrollView — took the touch (`screen-blank(ABOVE-list)`) and ran its press on release (`Keyboard.dismiss@779`).
+    The layer is named for that screen; `/receive/file` has no trace yet.
   - **(2) Money and the opening — DONE** (`docs/63`, D98–D102; backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`,
     `9d54803`, `812ba09`). **Migration 0083 applied to live at 21:50Z** (backup `~/erp-backups/phonestore-before-0083-20260928-215031.sql`).
-- **Next intended action:** the user starts WAMP's MySQL and the API (the new build; 0083 is on live), then Metro; the
-  user's swipes on those two screens with the phone attached — read the `LOG  [touch]` lines (or the read-only tap,
-  scratch `rn-console-tap.mjs`), then the fix and its phone check; then `docs/24` §50.
+  - **(3) The iPhone opening failure (the user's brief of 29 Sep, prioritized over (1)) — FIXED, the iPhone owed**
+    (`docs/63` §10, D103; backend `285ba78`, mobile `3bd2937`): the amounts only after the day sheet's native modal is
+    gone; the early start inside the opening's transaction; a failure keeps the chosen day, the amounts and the key.
+    HTTP 10/10, web 14/14. **Live read only:** the 28th was never closed — started early at 05:25:40Z on the 28th under
+    the old build, never opened, nothing recorded since.
+- **Next intended action:** the user restarts the API (to run `285ba78`) and reloads the phone; `docs/24` §50 AA12a–c on
+  the iPhone before 06:00; then scope (1): the fix of the blank-space `Pressable` above inner scroll views, and its
+  phone check on the sale detail, More → Sales and *Vérifier la livraison*.
 
 ### ⚠️ The scope rule, unchanged
 
@@ -38,8 +45,8 @@ Nothing was removed in this session beyond what the user asked for (the Daily cl
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`55c1a3b`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`812ba09`** | level | **5 — the dev touch trace (scope 1), uncommitted on purpose** |
+| `erp-backend` | `reports-export` | **`285ba78`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`3bd2937`** | level | **5 — the dev touch trace (scope 1), uncommitted on purpose** |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
 This session: mobile `8d101f6` (names never cut); backend `b0f9bd0` (0083), `90ef14a` (`closedReason` through the

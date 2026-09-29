@@ -6329,3 +6329,13 @@ never cut (`docs/61` §13, mobile `8d101f6`), the user's call of §12 there.
 
 - The phone (`docs/24` §50). The live rollout (`docs/63` §8): a verified backup, 0083, then the API restarted on the new
   build — from which moment a day must be opened before it takes money.
+
+### ✅ Follow-up, 29 Sep (backend `285ba78`; mobile `3bd2937`)
+
+- **The business day moves only with its opening (D103).** Starting the next day early before 06:00 is written in the same
+  transaction as the opening and its money: a refused, failed or unanswered amounts step leaves the business day where
+  it was, and the same request then records once. (The Owner's iPhone, 01:09 on 29 Sep; `docs/63` §10.)
+- **One modal at a time; a failure keeps everything.** The amounts sheet appears only once the day sheet's native modal
+  is gone; a staff member's before-06:00 notice is inside the amounts sheet; a failed opening keeps the chosen day, the
+  amounts and the request's key. Verified over HTTP (10 of 10) and on the web (14 of 14); the iPhone is owed (`docs/24`
+  §50 AA12a–c).

@@ -3877,4 +3877,7 @@ old rules run.
 | AA10 | As the Owner: Review → Set an amount | *Reviewed*; the awaiting line disappears; a sale made before the review is not added twice |
 | AA11 | Home → the Daily closing card → **Review closing** | The Daily closing opens; its back arrow returns to Home. Money's list has no Daily closing row |
 | AA12 | Close the day; before 06:00 as the Owner: **Open store now** | The day choice first, its button **Next**; *Start {date} early* → the amounts sheet titled *Open the boutique — {date}*; confirming opens the new day |
+| AA12a | **(29 Sep, mobile `3bd2937`)** Before 06:00, day not opened: **Open the boutique** → choose *Continue* → **Next** → the amounts sheet appears → close it without confirming; again with *Start … early* → **Next** → the amounts sheet appears → close it | Both times the amounts sheet appears after the day sheet has gone; closing it records nothing; **Open** keeps working. Then confirm the day you actually want: opened once |
+| AA12b | With the network off, confirm the amounts; turn it on; close the sheet and press **Open** again | The chosen day and the typed amount are still there; confirming records one opening; the business day moved only if the opening was recorded |
+| AA12c | Money → **Company account amounts** → an account → save the amount | The amount sheet appears after the list has gone; after saving, the list comes back |
 | AA13 | AA3–AA12 in **Arabic** | Right to left throughout; the amounts read left to right; nothing cut at the largest text |

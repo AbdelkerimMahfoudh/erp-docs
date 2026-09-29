@@ -220,3 +220,36 @@ The opening sheet at the phone's own largest text (the radios, the cash field ab
 total); a refusal keeping the typed amount; a double tap recording one opening; the staff member's carried opening and
 the Owner's review from Money; Money's card with an unknown method and with every method known; *Company account
 amounts*; Home's *Review closing*; the before-06:00 choice followed by the amounts; Arabic right to left throughout.
+
+## 10. The iPhone before 06:00 (29 Sep) — one modal at a time; the early start inside the opening
+
+**Reported** at 01:09 on the Owner's iPhone (Test Store): choosing either day and tapping *Suivant* closed the choice
+sheet, showed no amounts, and left *Open* doing nothing until the screen changed. **Live, read only:** the 28th was not
+closed by anybody — the Owner started it early at 05:25:40Z on the 28th under the build before 0083 (no opening
+recorded then), there is no closing row for it and nothing was recorded after; under the new rule it is a day never
+opened, so the opening with its day choice was the right offer. The failed attempt wrote nothing (no decision, no event,
+no audit row).
+
+**Cause.** `BottomSheet` unmounted its native `Modal` and reported its close in the same moment, so the flow presented the
+amounts sheet while iOS was still dismissing the day sheet — and iOS does not present a modal during another's
+dismissal. The web has no native modals, which is why the renders of §7 passed. **Fix (mobile `3bd2937`):**
+
+- `BottomSheet` keeps its `Modal` rendered, hidden, until UIKit reports the dismissal (`onDismiss`; a short wait stands
+  in for a modal never presented), then calls `onDismissed`; on Android and the web at once. A sheet asked to open
+  while still leaving opens once gone.
+- The opening flow shows the amounts only from the day sheet's `onDismissed`. An older server's reopen dialog no longer
+  follows the day sheet. Before 06:00 a staff member's notice of which day runs is shown **in** the amounts sheet, not
+  in a dialog before it. *Company account amounts* sequences its list and its amount sheet the same way.
+- **A failure keeps everything:** refused or unanswered, and also when the sheet is closed and opened again, the chosen
+  day, the amounts and the request's key stay; only a success, or a fresh start after none failed, begins from nothing.
+
+**The early start is part of the opening (backend `285ba78`, D103).** Before, the early start was written on its own and
+then the opening in a second transaction, so a refused or failed amounts step could move the business day with nothing
+opened. Now the new date is computed, not read back, and the early start, the opening, the decision and their audit rows
+are one transaction.
+
+**Verified.** HTTP on a disposable copy: **10 of 10** — a refused amount, then a save forced to fail inside the
+transaction (a trigger on the copy) for *start early* and for *continue*: the business day, the events, the decision and
+the audit untouched; the same request then recorded once. Web renders **14 of 14** — both choices reach the amounts
+(looking records nothing), the staff notice in the sheet, the company round trip, the early start confirmed. Suites:
+backend 168 / 3 052; mobile 83. **The iOS part is the phone's to prove** (`docs/24` §50 AA12a).
