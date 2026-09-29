@@ -9,118 +9,109 @@
 - Status: **IN_PROGRESS**
 - Owner: **CLAUDE-A**
 - `started_at_utc: 2026-09-28T03:51Z` — takeover HEADs (all clean, level with their remotes): docs `de7396a` · backend
-  `f66c1ff` · mobile `2476430`; 81 migrations, up to date (none expected). Previous session: CLAUDE-A, handed off
-  complete (`READY_FOR_HANDOFF`, owner NONE). No discrepancy.
-- **Active phase and scope (the user's brief of 2026-09-28, 03:5xZ), inline — no workflows or subagents:** (0) finish the
-  correction pass: the French "Partenaires" tab label and the Arabic Home branch name must never end in "…" at 320 pt
-  with large text — the tab bar and header design kept — with EN/FR/AR checks at 320 and 393 pt; (1) the scrolling
-  and touch-responsiveness investigation: a vertical swipe on information-heavy pages sometimes does nothing until
-  repeated — inventory every scroll surface, find where the first gesture is lost (physical phone and Metro logs), fix
-  it without disabling the native swipe-back, verify on the phone. Mobile and docs only: no backend, no database, no
-  live data, no redesign, no other feature.
-- **Checkpoint 04:58Z — (0) done:** mobile **`8d101f6`** pushed (tab names fitted to their tab, the header's store
-  name wraps, Home's two actions stack before a label is cut; 42/42 web checks EN/FR/AR × 320/393 × 1.3×, ordinary
-  and 2×; 84 suites green; the commit alone from a clean export = the known baseline). Docs for it come with the
-  phase's docs commit (`docs/61` §13).
-- **Now (1):** the static scroll inventory is done (scratch); a **dev-only touch trace is uncommitted in the mobile
-  working tree** (`lib/dev/touch-trace.ts`, hooks in `app/_layout.tsx` and `components/ui/Screen.tsx` behind
-  `__DEV__`) — to be removed before the phase's final commit. Leading hypothesis, unproven until the phone says so:
-  on iOS a scroll view refuses to drag while a JS responder is its **ancestor**, and `Screen scroll={false}` wraps
-  every inner list in its blank-space `Pressable`.
-- **Processes (since ~05:08Z):** the user runs the API (3010, `backend/dist/src/main`) and Metro (8081) from VS Code;
-  this session's own API (pid 6596) and Metro (pid 1684) are gone. With the user's permission a **read-only console
-  tap** (Metro's inspector, `Runtime.enable` only; scratch `rn-console-tap.mjs`) records the phone's trace lines.
-- **(1) evidence so far:** 107 natural touches (Home, More, Settings — `Screen scroll` pages) all scrolled; the user
-  reports failed swipes on **Vérifier la livraison** (`/receive/file`: the blank area around the chips, the
-  expanded item rows) and across **More → Sales** (`/sales`). No fix until the traces name the layer.
-- **(2) APPROVED with the user's corrections (2026-09-28), implementing while (1) waits on the phone:** Money's top card
-  ("Expected money in store today"), the Daily closing off the Money list (Home keeps it, `/closing` unchanged), and a
-  required opening step. The user's decisions: a shop's opening sets **that shop's cash only** — company accounts
-  carry forward, changed only by a separate, clearly company-wide Owner action; a permitted non-Owner opens with
-  carried amounts under a visible **awaiting Owner review**; Keep leaves unknown unknown; Set needs explicit values,
-  0 chosen, never assumed. **Timing:** the server requires an `opened` event before new-day sales and receipts (older
-  clients included); a set amount is anchored at its **confirmation instant** and only later movements count —
-  never backdated. Migration 0083 (additive) planned; backup per `docs/22` before any live apply.
-- Next intended action: the user's swipes on those two screens while the tap listens; then the fix and its phone check.
+  `f66c1ff` · mobile `2476430`; 81 migrations, up to date. Previous session: CLAUDE-A, handed off complete
+  (`READY_FOR_HANDOFF`, owner NONE). No discrepancy.
+- **Scope (the user's briefs of 2026-09-28), inline — no workflows or subagents:**
+  - **(0) Names never cut — DONE** (mobile `8d101f6`, `docs/61` §13).
+  - **(1) The scroll / touch investigation — OPEN, waiting on the phone.** A dev-only touch trace is **uncommitted in the
+    mobile tree** (`lib/dev/touch-trace.ts`; hooks in `app/_layout.tsx`, `components/ui/Screen.tsx`,
+    `app/sales/index.tsx`, `app/receive/file.tsx`, all behind `__DEV__`) — to be removed (or kept behind the dev guard)
+    before the phase's final commit. The user reports failed swipes on **Vérifier la livraison** (`/receive/file`: the
+    blank area around the chips and above *Modification groupée*; the expanded item rows) and across **More → Sales**
+    (`/sales`, rows included). **No trace from the phone yet**; no fix until the traces name the layer. Leading
+    hypothesis, unproven: on iOS (Fabric) a scroll view does not cancel a touch whose ancestor is the JS responder, and
+    `Screen scroll={false}` wraps inner lists in its blank-space `Pressable`; the Sales rows need their own explanation.
+  - **(2) Money and the opening — DONE** (`docs/63`, D98–D102; backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`,
+    `9d54803`, `812ba09`). **Migration 0083 applied to live at 21:50Z** (backup `~/erp-backups/phonestore-before-0083-20260928-215031.sql`).
+- **Next intended action:** the user starts WAMP's MySQL and the API (the new build; 0083 is on live), then Metro; the
+  user's swipes on those two screens with the phone attached — read the `LOG  [touch]` lines (or the read-only tap,
+  scratch `rn-console-tap.mjs`), then the fix and its phone check; then `docs/24` §50.
 
 ### ⚠️ The scope rule, unchanged
 
 Only **two** features are absent from the first release: **Suppliers** and
 **low stock / reordering**. No removal without the user's explicit approval.
-Nothing was removed in this phase beyond what the user asked for; the equal-total split rule of `docs/59` D83 was
-reversed at the user's request (D92).
+Nothing was removed in this session beyond what the user asked for (the Daily closing's row on Money, moved to Home).
 
 ## HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`f66c1ff`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`2476430`** | level | 0 |
+| `erp-backend` | `reports-export` | **`55c1a3b`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`812ba09`** | level | **5 — the dev touch trace (scope 1), uncommitted on purpose** |
 | `retail-erp-control-web` | `master` | `c764d63` — untouched | level | 0 |
 
-This pass: backend `f66c1ff` (a payment in its sale's minute); mobile `61f0f56` (money never cut: `MoneyValue`'s fit,
-the half-row rule, wrapping buttons, seventeen plain-text amounts to `MoneyValue`), `2476430` (every route one class;
-`/platform`'s arrow; the guard's decision pure and tested). Docs: `docs/61` §6 annotated and §8–§12, `docs/21`
-(D95–D97), `docs/04` rule 19a, `docs/24` §48 Y4 and §49, the session log, this file. **No migration.**
+This session: mobile `8d101f6` (names never cut); backend `b0f9bd0` (0083), `90ef14a` (`closedReason` through the
+filter), `55c1a3b` (the opening and its money); mobile `c3eb47e` (the Daily closing off Money), `9d54803` (the opening
+step, Money's card, the review, the company action), `812ba09` (a sheet's late close; names that wrap whole). Docs:
+`docs/63` (new), `docs/21` (D98–D102), `docs/04` rules 25/25a/26a, `docs/24` §50, `docs/61` §12–§13, the session log,
+this file.
 
-## What changed
+## What changed (`docs/63`)
 
 | Where | Now |
 |---|---|
-| **Money figures** | `MoneyValue` never limits its lines: one line full size → a little smaller (floor 0.7, never below body size) → `MRU` on the next line → the number broken between digit groups (`lib/money-fit.ts`), measured on the device by an invisible full-size copy. Every standalone amount goes through it (17 plain-text ones converted). A `Button` may wrap (Sell's charge button does); a picker's value may be a `MoneyValue` |
-| **Label and amount rows** | `lib/design/amount-row.ts`: side by side while the amount needs at most half the row, below the label with the full width after that — `ListRow`, the statement lines of Results, the Daily closing, its popup, a sale, the returns breakdown |
-| **Later payments** | a payment in the sale's own displayed minute is valid: stored at the sale's instant, same minute and business day, the chosen minute audited (`paidAtRequested`); an earlier minute refused as before; the closed store still decided first |
-| **Routes** | 76 route files: 5 parent tabs, 64 children with the shared back arrow (`/platform` → `/login` now among them), 1 invisible redirect (`/stores`), 1 splash, 5 authentication roots (sign-in, register, verify, `/select-branch`, `/subscription-blocked`); no modal routes. The sign-in guard's decision is `lib/navigation/entry.ts` |
-| **Earlier (27 Sep, still true)** | the back arrow on every child screen with its no-history fallback; `store_closed` for sales, receipts and later payments; Money held and `money_anchors` (0082); Today first; partial splits |
+| **The counter** | A sale, a receipt or a later payment on a current day **nobody opened** is refused (409 `store_closed`, `closedReason: 'not_opened'`) — every client; the phone's gates cover Sell and Receive and offer the opening to whoever counts |
+| **Opening** | `POST /closings/open` and `/reopen` carry `openingMoney`: the Owner **keeps** (unknown stays unknown) or **sets** the cash; anybody else opens **carried**, *awaiting the Owner's review*; the opening event and the decision are one transaction; keyed retries |
+| **Review** | `POST /closings/opening/review` (Owner): keep or set, a new row, true from its own instant |
+| **The drawer** | anchored at the confirmation instant (the day's net at that instant stored): only later movement counts; later days carry from it; the close's cross-check carries the same adjustment |
+| **Company accounts** | never set by a shop's opening; the Owner's **Company account amounts** row on Money (the existing `money/anchors`) |
+| **Money** | one card, *Expected money in store today*: the server's total, Cash and each method on short lines, *Unknown* never 0, no total while anything is unknown; the old explanations, *Set amount* buttons and *Money recorded today* gone from the top |
+| **The Daily closing** | off the Money list; Home's card has **Review closing**; `/closing` unchanged |
+| **Before 06:00** | the day choice first (its button now **Next**), then the amounts |
+| **Data** | 0083 `opening_decisions` (additive, append-only), **on live since 21:50Z on the 28th** |
 
 ## Verification
 
 | Kind | Result |
 |---|---|
-| **Gates** | backend `tsc`, **166 suites / 2 975 tests** (focused 140/140), `prisma validate`, `nest build`; mobile `tsc`, **83 suites / 1 270 cases**, lint 0 errors (31 warnings), parity **3 222 × 3**, the web export (76/76 route files), the Android bundle through Metro; **Expo Doctor 20/21** (six SDK patch versions, documented, no dependency changed); every commit alone from a clean export (same as the pre-pass baseline plus its new suite) |
-| **Web matrix** (fresh copy of live at 22:01Z, fixed clock, final build) | **192 of 192 — 53/53 facts, 139/139 page checks**: the existing 90 all green with a money scan on every page; 91 boundary checks (0, −9 500, 27 648, 999 999, 12 345 678 on Home, Money, Results, Expenses, the Daily closing, a sale, Record payment; EN/FR/AR; 320/393 pt; 1×/1.3×; light/dark; scrolled through); 5 same-minute facts; 6 route checks. **699 money figures scanned, none cut** |
-| **Same minute (real HTTP)** | sale 12:07:22.035, payment for 12:07 → stored 12:07:22.035 (= the sale), same business day, minute audited, cash +1 500 once; the minute before refused; the closed store first, nothing written; replay same, changed payload 409 |
-| **Found, not money** | at 320 pt with 1.3× text the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" — reported in the matrix, not failed; outside this pass |
-| **Phone** | §49 Z1–Z8 and §48 **not run**; §47 user-reported complete |
+| **HTTP proof** (copy of live, dump 19:19Z; built API, fake clock) | **58 of 58**: 3 400 + 3 600 = 7 000; carry with no movement; all zero; partial; movement after the opening; retries; the 06:00 choice; Owner, Employee, Store Manager, closing delegate; older phones; the rollout day. Live compared before and after |
+| **Web renders** | **55 of 56 — 48 of 48 page checks, 7 of 8 facts** (the eighth expected a total of 250 where the app rightly recorded 3 850: 250 in cash plus the accounts’ 2 600 and 1 000): the opening step (Owner EN/FR/AR × 320/393 × 1×/1.3×, staff), Money’s card (known, unknown, awaiting review, a manager, dark), the company sheet and setting an account from it, the review, Home’s *Review closing*, the before-06:00 choice then the amounts; 284 money figures scanned, none cut; no label cut |
+| **Gates** | backend `tsc`, **168 suites / 3 049 tests**; mobile `tsc`, **83 suites**, lint 0 errors (31 warnings: the 30 known + one in the uncommitted trace), parity **3 250 × 3**; each mobile commit alone = the clean-export baseline (`global.css` and three suites need untracked files, as on `8d101f6`) |
+| **Phone** | `docs/24` §50 AA1–AA13 **not run**; §49, §48 still open |
 
 ## Data and process safety
 
-- **This pass wrote nothing to live.** **Live moved by the user's hand** during it (the API's log): between 00:53Z and
-  01:05Z two iPhones on Expo Go (…100.251, …100.246) scanned, created two products, a receipt, sale 00011 (3 500: 2 500
-  cash + 1 000 mobile) and a loan, created and decided. Live now: 18 sales, 7 expenses, 13 closing events, 3 closing
-  rows, 19 payments, 2 anchors, 919 audit rows.
-- Every copy was restored from `~/erp-backups/phonestore-now-20260927-220111.sql` (read-only, before the user's new
-  records) as `prisma_verify_home`, rebuilt per run and **dropped**; a throwaway platform administrator existed on a
-  copy only. 3012, 19012 and 9334 free.
-- **The API on 3010 runs `f66c1ff`** (pid 6596, `node dist/src/main.js`, log `%TEMP%/claude/api-3010.out.log`; the
-  previous log kept as `api-3010.out-20260928-eea15e3.log`). **Metro on 8081** (pid 1684, launcher 26164,
-  `expo start --clear --port 8081`) serves `2476430` at `exp://192.168.100.3:8081`; the Android bundle builds.
-- Scratch tooling in OS temp only; the three trees clean and pushed.
+- **Migration 0083 applied to live at 21:50Z (28 Sep)**, after a verified backup
+  `~/erp-backups/phonestore-before-0083-20260928-215031.sql` (953 KB, `-- Dump completed`). Table empty, both triggers
+  present; business rows unchanged: 18 sales, 19 payments, 7 expenses, 17 closing events, 3 closings, 3 anchors, 926
+  audit rows. **Nothing else was written to live.**
+- **The API rules change on the next API start**: the user's `nest start` builds the committed code; from then a day
+  must be opened before it takes money (today's live day was started early at 05:25Z on the 28th with no opening).
+- **The machine rebooted at 23:49Z (28 Sep).** The WAMP MySQL service was found **STOPPED** and is left so; this session
+  ran MySQL as a **session process** from the service's own settings (`sql_mode` empty, `utf8mb4_unicode_ci`, no
+  binary log) from 00:1xZ on the 29th, and shut it down cleanly at 00:25Z — **the service is left STOPPED, as found**; the user starts WAMP as usual. The user's API (3010) and Metro (8081) were already stopped.
+- The backend's generated Prisma client carries the new model (the proof ran on it); its copied `schema.prisma` file
+  is stale from an EPERM while the API held the engine — `npx prisma generate` with the API stopped refreshes it.
+- Copies: `prisma_verify_home`, restored per run from `~/erp-backups/phonestore-now-20260928-191949.sql`,
+  **dropped** (no `prisma_verify_*` schema left). 3012, 19012, 9334 free. Scratch tooling in OS temp only.
 
 ## 🔴 Blockers and pending approvals
 
-- **Awaiting the phone:** `docs/24` §49 Z1–Z8 (money at the phone's own largest text in EN/FR/AR, a list row stacking,
-  the charge button, a payment in its sale's minute, the minute before refused, the closed store first, the platform
-  overview's arrow) and §48 Y1–Y10.
-- **The user's calls:** the French tab label "Partenaires" and the Arabic Home header's branch name cut at 320 pt with
-  1.3× text (not money; tab bar and header outside this pass); the Arabic Home order (`docs/59`); counting by a store
-  employee without the closing delegation.
-- **Live has no complete tracked total** until every account has an amount and a close counts the drawer.
+- **Scope (1) waits on the phone:** Metro running, the phone attached, the user's swipes on **Vérifier la livraison**
+  and **More → Sales**; the `LOG  [touch]` lines in the user's VS Code terminal (or the read-only tap) name the layer.
+  No fix before that. The trace is `__DEV__`-only and must not be committed as is.
+- **Awaiting the phone:** `docs/24` §50 AA1–AA13 (after the API restart on the new build), then §49 Z1–Z8 and §48.
+- **The rollout's first morning:** with the new build, Sell and Receive wait until somebody opens the boutique; an
+  Owner phone on an older build cannot open (it sends no decision) — the phone must reload the new bundle.
+- **The user's calls:** the Arabic Home order (`docs/59`); counting by a store employee without the closing delegation.
+- **Live has no complete tracked total** until every account has an amount and the drawer is counted or set.
 - **Pending the user's decision:** the `spent_on` tidy-up of three expenses (`docs/57` §1.5).
 - **Native build blocker (pre-existing):** `npm install`'s postinstall fails — `expo-camera` 57.0.5 vs the Android
-  scan-region patch cut against 57.0.4. Expo Go is unaffected. Expo Doctor lists six packages a patch behind.
-- `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`): the account query was proven under
-  it on a copy; the older parts were not re-checked; live runs with `sql_mode=""`.
-- **WhatsApp:** no provider adapter exists and none is faked.
-- **Deferred by instruction:** the control website (`docs/38`), scanner and refund work.
+  scan-region patch cut against 57.0.4. Expo Go is unaffected.
+- `GET /closings/overview` under MySQL's default `sql_mode` (`ONLY_FULL_GROUP_BY`) is not proven; live runs with
+  `sql_mode=""`.
+- **WhatsApp:** no provider adapter exists and none is faked. **Deferred by instruction:** the control website
+  (`docs/38`), scanner and refund work.
 
 ## 📋 Known, not fixed
 
 - **The access refusal's *Check again*** opens the app only when writing is allowed too (`canRead` and `canWrite`),
   while the guard needs only `canRead`: a shop allowed to read but not write stays on the refusal until it signs out
   and in (seen in the route review, not changed).
-- **Money held counts only what the app records** — not loans, consignment, owner drawings, transfers or provider fees;
+- **An Owner phone on an older build cannot open the boutique** (it sends no decision; 400 `opening_amounts_required`) — the phone must run the new bundle. A staff member's older phone opens as carried.
+- **Money's figures count only what the app records** — not loans, consignment, owner drawings, transfers or provider fees;
   re-anchoring absorbs the drift and keeps the difference. The account query scans company-wide from each anchor.
 - **A count saved and then a sale before the close** still leaves that sale out of the next opening (the closing's
   existing carry, unchanged).
@@ -172,12 +163,17 @@ the half-row rule, wrapping buttons, seventeen plain-text amounts to `MoneyValue
 
 ## The next exact action
 
-1. **The user's review on the phone** (reload Expo Go, `exp://192.168.100.3:8081`; the API on 3010 already runs
-   `f66c1ff`): `docs/24` §49 Z1–Z8 — the phone's largest text on Results, Expenses, Home, Money, the Daily closing, a
-   sale and Record payment (every amount whole, a long one smaller or with `MRU` below); Arabic; a list row with its
-   amount below the description; Sell's charge button; a debt paid in the sale's own minute; the minute before
-   refused; the platform overview's arrow to sign-in. Then §48 Y1–Y10. The pass is complete only on the user's word.
-2. **The user's calls** listed above; build only what they choose.
-3. Then `docs/24` §45–§47 as amended and the older backlog.
-4. **If the user approves it:** the `spent_on` tidy-up of `docs/57` §1.5 (three rows, audited, after a backup per `docs/22`).
+1. **The user starts WAMP's MySQL, then the API** (its `nest start` builds backend `55c1a3b`; 0083 is already on live).
+   From then on a day is opened before it takes money: the first *Open the boutique* asks the Owner to keep or set the
+   cash. (If the API complains about the Prisma client, stop it, run `npx prisma generate` in `backend/`, start again.)
+2. **Scope (1), the scroll investigation:** Metro running, the phone reloaded; the user swipes on **Vérifier la
+   livraison** (the blank area around the chips and above *Modification groupée*; the expanded rows) and on **More →
+   Sales**, and copies the `LOG  [touch]` lines containing `/receive/file` or `/sales` from the VS Code terminal (or the
+   read-only tap, scratch `rn-console-tap.mjs`, attaches while Metro runs). Name the layer that received each failed
+   swipe, then fix both screens without disabling the native swipe-back, verify on the iPhone, remove the trace (or keep
+   it behind the explicit dev guard with no production output), write the scroll doc and the `docs/24` checks, commit,
+   and only then `READY_FOR_HANDOFF` with owner NONE.
+3. **The phone:** `docs/24` §50 AA1–AA13 (the opening, Money's card, the review, the company action, Home's *Review
+   closing*, before 06:00, Arabic), then §49 Z1–Z8 and §48.
+4. The user's calls listed above; the older backlog.
 5. Fix `ONLY_FULL_GROUP_BY` in `closing.service.ts` before any staging deploy; deploy the backend before the app.

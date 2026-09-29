@@ -3855,3 +3855,26 @@ big figures no longer end in "…".
 | Z6 | Record payment and set the time **one minute before** the sale | "A payment cannot be earlier than the sale it pays for"; nothing recorded; the form kept |
 | Z7 | Close the day, then try Z5 | "The store is closed" first, nothing recorded; after *Open store now*, the same payment records once |
 | Z8 | Sign-in → Platform administration → sign in; on the overview tap the back arrow (and swipe) | Back to the shop's sign-in screen; the platform session stays until *Sign out* |
+
+## 50. Names never cut; Money's one card; the money a shop opens with — UNVERIFIED ON ANY DEVICE
+
+The 2026-09-28 passes (`docs/61` §13; `docs/63`; `docs/21` D98–D102). Proven over HTTP and on the web export against a
+fixed-clock copy of live; the handset's own text size, keyboard, sheets and taps are the phone's to prove. Use Expo Go
+against the API on 3010 **after migration 0083 and a restart on the new build** (`docs/63` §8). Until the restart the
+old rules run.
+
+| # | Do | Expect |
+|---|---|---|
+| AA1 | French, the largest text, a narrow phone: look at the tab bar; Arabic: Home's header | « Partenaires » and every tab name whole on one line, a little smaller if it must be; the store's name wraps rather than ending in "…"; Home's Réceptionner / Vendre stack before a label is cut |
+| AA2 | The morning's first visit, before anybody opened: Home | Sell and Receive wait; *The boutique has not been opened for {date}* and **Open the boutique** (for whoever counts). A sale attempted from an older screen is refused, nothing recorded |
+| AA3 | As the Owner: **Open the boutique** | The amounts sheet: the previous amounts (cash, each account — *Unknown* where unknown, never 0), **Keep** and **Set** with **nothing selected**, the button *Confirm amounts and open the boutique* disabled |
+| AA4 | Choose **Set** | The cash field prefilled with the drawer's known amount (empty when unknown); the keyboard does not hide the button; **Set to 0** fills 0; the total follows the cash (or says *Unknown until every amount is known*) |
+| AA5 | Turn the network off, confirm; turn it on | An error in the sheet, the typed amount kept, the store still closed; confirming again opens it once (one opening in the Daily closing's timeline) |
+| AA6 | Double-tap the confirmation | One opening, one decision |
+| AA7 | Money | One card, *Expected money in store today*: the total, then Cash and each account on short lines; no Set amount buttons, no *Money recorded today*; the periods and the rest below as before |
+| AA8 | Money → **Company account amounts** → an account → set an amount | The sheet says the amount is the one every shop sees; the card's account line changes; another shop's drawer does not |
+| AA9 | Next day, as an Employee who counts: **Open the boutique** | Only the drawer, *The Owner will review today's opening amounts*, **Open the boutique**; opens. The Owner's Money then says *awaiting the Owner's review* with **Review opening amounts** |
+| AA10 | As the Owner: Review → Set an amount | *Reviewed*; the awaiting line disappears; a sale made before the review is not added twice |
+| AA11 | Home → the Daily closing card → **Review closing** | The Daily closing opens; its back arrow returns to Home. Money's list has no Daily closing row |
+| AA12 | Close the day; before 06:00 as the Owner: **Open store now** | The day choice first, its button **Next**; *Start {date} early* → the amounts sheet titled *Open the boutique — {date}*; confirming opens the new day |
+| AA13 | AA3–AA12 in **Arabic** | Right to left throughout; the amounts read left to right; nothing cut at the largest text |

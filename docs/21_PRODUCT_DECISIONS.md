@@ -6276,3 +6276,56 @@ checks are `docs/24` §49. Resolves `docs/61` §6 and the same-minute edge; corr
   payment in its sale's minute, the platform overview's arrow.
 - **The user's call:** the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" at 320 pt
   with 1.3× text — not money; the tab bar and the header are outside this pass.
+
+## Money's one card, the Daily closing from Home, the money a shop opens with (2026-09-28)
+
+The detail is in [`docs/63`](63_MONEY_CARD_AND_OPENING_AMOUNTS.md); rules 25, 25a and 26a in `docs/04`; the phone's
+checks are `docs/24` §50. The user's brief of 2026-09-28, approved with the user's corrections the same day. **Supersedes**
+rule 25a's "the opening is never required": a day is now opened before it takes money. Also recorded here: the names
+never cut (`docs/61` §13, mobile `8d101f6`), the user's call of §12 there.
+
+### ✅ DECIDED AND IMPLEMENTED (backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`, `9d54803`, `812ba09`; migration 0083, on live since 2026-09-28 21:50Z)
+
+- **Money's one card (D98).** *Expected money in store today*: the server's total, large, then Cash and each configured
+  method on short aligned lines; **Unknown** stays unknown — no total while any method is unknown, never a 0, never a
+  claim that a provider verified a balance. The anchor explanations, the per-account *Set amount* buttons and the
+  *Money recorded today* card left the top; the period reports and every other function stay below. Company accounts
+  are set from their own Owner-only row, **Company account amounts**, whose sheet says the amount is the one every shop
+  sees.
+- **The Daily closing from Home (D99).** Off the Money list; Home's Daily closing card gains **Review closing**. `/closing`
+  and all it does are unchanged; everybody who counts still reaches it.
+- **The opening step (D100).** Part of opening the boutique — after any before-06:00 choice, before the store is recorded
+  as open; on a closed-to-open transition only (opening and reopen, from Home, the Daily closing and the closed-store
+  covers), never on app launch. The Owner sees the previous amounts and chooses explicitly — **Keep the previous
+  amounts** or **Set today's opening amounts** (the cash prefilled when known, editable to 0, *Set to 0*, the total
+  shown) — and confirms with **Confirm amounts and open the boutique**. A shop's opening sets **that shop's cash only**;
+  company accounts carry forward. A permitted non-Owner opens with the carried amounts and the day reads **awaiting the
+  Owner's review** until the Owner keeps or sets them from Money — never labelled verified. Delegated rights unchanged.
+- **The counter waits for the opening (D101).** The server refuses a sale, a receipt and a later payment on a current
+  day nobody opened (409 `store_closed`, `closedReason: 'not_opened'`), for every client, older builds included. The
+  opening event, the decision, its values, the person and the instant are written in one transaction — refused or
+  failed, the store stays closed, a new business day included. Retries are safe (a key bound to the request). An older
+  Owner phone cannot open (it sends no decision) and must be updated; an older staff phone opens as carried.
+- **Anchored at the confirmation instant (D102).** A set (or kept, or carried) amount is true from the moment it is
+  confirmed: the drawer holds it plus only what the day records after it; a transaction recorded before the opening
+  keeps its place in history and profit and is never counted twice; nothing is backdated. An opening amount is a
+  position, never a sale or an expense. Money's cash and the Daily closing's expected cash use the same decision; the
+  close's cross-check carries it as a declared term.
+
+### 📋 VERIFICATION
+
+- **HTTP proof** on a disposable copy of live (fresh read-only dump, 19:19Z; built API, fake clock): **58 of 58** —
+  3 400 + 3 600 = 7 000; carry forward with no movement; all zero; partial; movement after opening; repeated requests;
+  the 06:00 choice; Owner, Employee, Store Manager and closing delegate; older phones; the rollout day. Live unchanged.
+  It found and fixed two defects: the refusal's reason never reached the phone (now `closedReason`), and a day whose
+  drawer was set could not be closed (the close's cross-check lacked the adjustment).
+- **Web renders** (`docs/63` §7): **55 of 56 — 48 of 48 page checks, 7 of 8 facts** (the eighth expected a total of 250 where the app rightly recorded 3 850: 250 in cash plus the accounts’ 2 600 and 1 000); 284 money figures scanned, none cut; no label cut. They found and fixed three more: before 06:00 the Owner could not reach
+  the amounts (a sheet's late close reset the flow), the company list not coming back after an account was set, and
+  two account/row names cut at 320 pt with 1.3× text (French title shortened; `ListRow` `titleLines`).
+- **Gates:** backend 168 suites / 3 049 tests, `tsc` clean; mobile 83 pure suites, `tsc` clean, lint 0 errors, parity
+  3 250 × 3; each commit alone from a clean export equals the known baseline.
+
+### 🟡 OWED
+
+- The phone (`docs/24` §50). The live rollout (`docs/63` §8): a verified backup, 0083, then the API restarted on the new
+  build — from which moment a day must be opened before it takes money.

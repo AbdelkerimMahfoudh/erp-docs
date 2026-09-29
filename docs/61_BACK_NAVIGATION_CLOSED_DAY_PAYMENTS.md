@@ -400,9 +400,22 @@ restarted on `f66c1ff` (pid 6596); Metro on 8081 (pid 1684) serves `2476430`.
 
 ## 12. Owed
 
-- **The user's call:** the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" at
-  320 pt with 1.3× text (§11) — not money; the tab bar and the header are outside this pass.
+- ~~**The user's call:** the French tab label "Partenaires" and the Arabic Home header's branch name end in "…" at
+  320 pt with 1.3× text (§11)~~ — the user asked for it on 2026-09-28; done in §13.
 - **The phone** (`docs/24` §48 and §49): the back arrow and the swipe landing on the same screen; the no-history
   fallback from a cold start and a deep link; the Arabic arrow; the swipe kept everywhere; the header at the largest
   text; the refused payment's form kept and sent after *Open store now*; the money figures at the phone's own largest
   text; a payment in its sale's minute; the platform overview's arrow.
+
+## 13. The names that must never be cut (2026-09-28, mobile `8d101f6`)
+
+The user's brief of 2026-09-28 (03:5xZ): the French tab « Partenaires » and the Arabic Home header's store name must
+never end in "…" at 320 pt with large text, **the tab bar and the header design kept**. The web checks found a third:
+« Réceptionner » on Home at 393 pt and 1.3×.
+
+| | |
+|---|---|
+| **The tab bar** | Every shown tab's name is measured at full size in the navigator's own font (`components/ui/TextMeasure.tsx`) and drawn **just small enough to fit its tab** (`lib/label-fit.ts`: the tab's room less its padding, the scale that fits with a 3 % margin; the checks found every name at 10 pt or more); the other names keep their size, and with ordinary text nothing changes. The navigator's label, its accessibility names and iOS's rule of not scaling tab names (the Large Content Viewer) are untouched. |
+| **The header** | `TabHeader`'s context line (the store's name, sometimes the role) wraps instead of being limited to one line. |
+| **Home's two actions** | *Receive* and *Sell* stay side by side while both labels fit their half; the width each asks for comes from the measured labels, so they stack **before** a label is cut. |
+| **Checks** | EN/FR/AR × 320/393 pt × 1.3× on the five tabs, ordinary text and 2× on Home — **42 of 42** (web export, isolated copy); `lib/label-fit.test.ts`. The phone: `docs/24` §50 AA1. |
