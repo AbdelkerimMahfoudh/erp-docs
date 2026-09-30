@@ -61,8 +61,16 @@ app credential cannot drop a table.
 
 | Variable | S/P | local | test | staging | prod | Validated | Notes |
 |---|---|---|---|---|---|---|---|
-| `WHATSAPP_CHANNEL` | P | O | O | R | **R** | ✅ enum + **module refuses `development-log` in production** | Only `disabled` and `development-log` exist. **There is no real provider** — risk R6 |
-| `WHATSAPP_TEMPLATE_AUTH_OTP` | P | O | O | O | R | ✅ default `''` | Provider template id. Empty until a provider exists |
+| `WHATSAPP_CHANNEL` | P | O | O | R | **R** | ✅ enum `disabled` · `development-log` · `cloud-api`; the module refuses `development-log` in production and a `cloud-api` without credentials | **`cloud-api` is the real WhatsApp Business Cloud API** (backend `ae64de8`, `docs/64` §4). Risk R6 closed in code; the provider account is owed (`docs/48` §12) |
+| `WHATSAPP_API_BASE_URL` · `WHATSAPP_API_VERSION` | P | O | O | O | O | ✅ defaults `https://graph.facebook.com`, `v21.0`; production requires `https://` | |
+| `WHATSAPP_PHONE_NUMBER_ID` | P | O | O | R with cloud-api | **R** with cloud-api | ✅ + production guard | The sending number's id. An identifier, not a secret |
+| `WHATSAPP_ACCESS_TOKEN` | **S** | O | O | R with cloud-api | **R** with cloud-api | ✅ + production guard | A system-user token. **Server-side only**: a request header and nothing else; never in a bundle, log, audit row or response |
+| `WHATSAPP_APP_SECRET` · `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | **S** | O | O | O | O (both or neither) | ✅ the guard requires both together | The delivery-status webhook exists only with both (`GET/POST messaging/whatsapp/webhook`) |
+| `WHATSAPP_SEND_TIMEOUT_MS` | P | O | O | O | O | ✅ 1 000–60 000, default 10 000 | |
+| `WHATSAPP_TEMPLATE_LANGUAGE_EN/FR/AR` | P | O | O | O | O | ✅ defaults `en` `fr` `ar` | The provider's language codes for the approved templates |
+| `WHATSAPP_TEMPLATE_AUTH_OTP` · `WHATSAPP_TEMPLATE_ACCOUNT_DELETION` | P | O | O | R with cloud-api | **R** with cloud-api | ✅ the guard refuses cloud-api without both | The approved template **names** (copy in `docs/64` §4). Empty = that message cannot be sent, said honestly |
+| `WHATSAPP_TEMPLATE_ACCOUNT_DELETED` · `WHATSAPP_TEMPLATE_CLOSING_REOPENED` · `_SALE` · `_RECLOSED` | P | O | O | O | O | ✅ default `''` | Optional messages; unsent while unnamed |
+| `ACCOUNT_THROTTLE_LIMIT` | P | O | O | O | O | ✅ 1–100 000, default **5** | Per-client per-minute limit on the code-issuing account routes (`docs/64` §3). Raised only by a test harness |
 | `OTP_TTL_SECONDS` · `OTP_MAX_ATTEMPTS` · `OTP_RESEND_COOLDOWN_SECONDS` · `OTP_MAX_SENDS_PER_WINDOW` · `OTP_SEND_WINDOW_SECONDS` · `OTP_MAX_SENDS_PER_DAY` | P | O | O | O | O | ✅ bounded | Abuse controls. Every one has a validated min and max |
 
 ### Seeding and uploads
@@ -70,7 +78,8 @@ app credential cannot drop a table.
 | Variable | S/P | local | test | staging | prod | Validated | Notes |
 |---|---|---|---|---|---|---|---|
 | `OWNER_SEED_PASSWORD` | **S** | R to seed | R to seed | R to seed | ❌ | ❌ seed script only | The seed **throws** without it rather than inventing one |
-| `SEED_DEMO` | P | O | O | **R** | **R** | ❌ seed script only | **Opt-out**: demo data is written unless this is exactly `false`. Risk **R7** |
+| `SEED_DEMO` | P | O | O | O | ❌ must be unset | ✅ **production guard refuses `true`**; the seed refuses a production runtime regardless | **Opt-in** since backend `1925a0d`: demo data only when exactly `true`. Risk R7 closed |
+| `PLATFORM_ADMIN_KEY` | **S** | O | O | O (staging tooling) | ❌ must be unset | ✅ **production guard refuses it set**; the route answers 404 in production | The legacy static-key provisioning route (risk R5) is closed in production since `1925a0d`; the administrator API replaces it |
 | `UPLOAD_MAX_BYTES` | P | O | O | O | O | ✅ default 10 MiB | |
 | `UPLOAD_DIR` | P | O | O | R | R | ✅ default `./uploads` | Local disk today. A container without a mounted volume loses uploads on restart |
 | `APP_COMMIT` · `APP_BUILT_AT` | P | O | O | R | R | ❌ | Surfaced by `/api/health/version`. Absent, a deployed build cannot say what it is |
@@ -122,6 +131,7 @@ These are values nobody has chosen yet. Each blocks the production checklist in
 | `APP_DATABASE_URL`, `DATABASE_URL` | Where the production database lives, and who holds each credential |
 | `JWT_ACCESS_SECRET`, `OTP_PEPPER`, `PLATFORM_ADMIN_KEY` | Generated, stored where, rotated how often, by whom |
 | `CORS_ORIGINS`, `EXPO_PUBLIC_*` URLs | **The domain** — every one of these embeds it |
-| `WHATSAPP_CHANNEL`, `WHATSAPP_TEMPLATE_AUTH_OTP` | A real provider, or registration cannot issue a session |
+| `WHATSAPP_CHANNEL=cloud-api`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_AUTH_OTP`, `WHATSAPP_TEMPLATE_ACCOUNT_DELETION` (+ `_ACCOUNT_DELETED`, the webhook pair) | The WhatsApp Business account, its approved templates in EN/FR/AR and its token (`docs/64` §4, §8). Without them registration cannot issue a session and **no account can be deleted** |
+| `BACKUP_PASSPHRASE_FILE`, the backup host | Where encrypted backups are kept off the host and who holds the passphrase (`deploy/backup-encrypted.sh`, `docs/22`) |
 | `UPLOAD_DIR` | Local volume or object storage |
 | `LOG_LEVEL`, log destination | Where logs go and how long they are kept |

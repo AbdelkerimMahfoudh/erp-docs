@@ -3881,3 +3881,33 @@ old rules run.
 | AA12b | With the network off, confirm the amounts; turn it on; close the sheet and press **Open** again | The chosen day and the typed amount are still there; confirming records one opening; the business day moved only if the opening was recorded |
 | AA12c | Money → **Company account amounts** → an account → save the amount | The amount sheet appears after the list has gone; after saving, the list comes back |
 | AA13 | AA3–AA12 in **Arabic** | Right to left throughout; the amounts read left to right; nothing cut at the largest text |
+
+## 51. Your account, the WhatsApp number, and deleting the account (docs/64) — UNVERIFIED ON ANY DEVICE
+
+Backend `1925a0d` + `bde6bc4` + `da0d340`, mobile's two commits on `reports-export` (`CURRENT_HANDOFF.md`). Proven over real HTTP on a disposable database (117 of 117,
+`docs/48` §11) and by the unit suites; **no phone, no real WhatsApp send, no store build yet.** Run against a server
+with `WHATSAPP_CHANNEL=cloud-api` and approved templates; until then the development channel prints the code on the
+server (never on a phone).
+
+| # | Check | Expected | EN | FR | AR |
+|---|---|---|---|---|---|
+| AB1 | More → **Your account** | name, personal ID, the WhatsApp number with **Verified** / **Not verified** in words and colour, the **Delete account** row with what it would delete (a login, or the business) | | | |
+| AB2 | A login with no verified number → **Verify a WhatsApp number** → wrong password | refused, "That password did not match", nothing sent | | | |
+| AB3 | … a number already used by a colleague | refused, "Another person in this business already uses that number" | | | |
+| AB4 | … a valid number, the password | **a real WhatsApp message arrives** with the sign-in-code template in the app's language; the screen shows the masked number and a 6-digit field (digits left-to-right in Arabic) | | | |
+| AB5 | … a wrong code | "That code is not right. 4 attempts left." | | | |
+| AB6 | … the right code | "WhatsApp number verified"; the account shows the number as Verified; the other signed-in phone of the same login is signed out | | | |
+| AB7 | **Delete account** → the confirmation screen | the heading *Delete your account permanently?*, *This cannot be undone.*, the code sentence, *What will be deleted* for this login (or the business), *What is kept, and why*, the masked destination, the password field, **Send deletion code** in the danger colour, **Keep my account** | | | |
+| AB8 | Send with a wrong password | refused; nothing sent; the account intact | | | |
+| AB9 | Send with the password | **a real WhatsApp message arrives**: the account-deletion template, saying what the code is for and that it is irreversible, in the app's language; the screen shows the code step with the masked number, attempts, **Send a new code in 60 s**, **Keep my account** | | | |
+| AB10 | Kill the app, reopen, More → Your account | the row reads *Deletion requested — enter the code to finish*; opening it resumes the code step | | | |
+| AB11 | **Keep my account** | "Deletion cancelled. Your account is unchanged."; the code no longer works | | | |
+| AB12 | Ask again (password), then a wrong code five times | after the fifth: "Too many wrong codes. Start again with your password." — back at the confirmation step; the account intact | | | |
+| AB13 | Ask again, wait past 5 minutes, enter the code | "That code has expired. Ask for a new one." → **Send a new code** → the new code completes | | | |
+| AB14 | A staff login: the right code | *Your login has been deleted.* + the body, **Done** signs out; the number can no longer sign in; the personal ID neither; a second phone of that login is signed out at its next request; **a completion message arrives on WhatsApp** | | | |
+| AB15 | The Owner (the only Owner): the right code | *Your business has been closed and every login in it deleted.*; every phone of the business is signed out; the administrator's business page shows *Deleted user* for each person and the subscription **cancelled** | | | |
+| AB16 | The refusal screen (a pending, refused or suspended shop) | **Delete my account** under *Sign out* leads to the confirmation screen; the back arrow returns to the refusal screen | | | |
+| AB17 | Airplane mode while the code screen is open, then online | the screen says what the server says; a retried confirmation after a lost response shows the final state, never a second deletion | | | |
+| AB18 | Arabic layout | the screens read right-to-left; the code and the number fields left-to-right; the danger button's icon on the reading side | | | |
+
+Record the message texts received in AB4, AB9 and AB14 here, in each language.

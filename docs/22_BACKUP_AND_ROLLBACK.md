@@ -267,6 +267,40 @@ mysql --defaults-extra-file="$HOME/.my.cnf" -N -e "SELECT l.TRIGGER_NAME, (l.ACT
 
 Drop the scratch database as soon as the drill is done.
 
+### The scripted, encrypted path (2026-09-30, backend `bde6bc4`)
+
+Two scripts now carry the whole procedure, so it is run the same way every time and by a schedule rather than by
+memory (`docs/48` §8):
+
+- **`deploy/backup-encrypted.sh`** — `mysqldump --single-transaction --routines --triggers --events --no-tablespaces
+  --hex-blob` as the **read-only backup identity** (`phonestore_backup`, `deploy/mysql-identities.sql`), piped through
+  gzip and `openssl enc -aes-256-cbc -pbkdf2` with a passphrase read from a file (mode 600), never an argument. The
+  plaintext never touches the disk. Before it exits 0 it decrypts and decompresses the file in memory and demands
+  mysqldump's own `-- Dump completed` trailer, writes a `.sha256` beside the file and prunes to the newest 14.
+- **`deploy/restore-drill.sh`** — checks the checksum, restores into a **new** database `<db>_drill_<stamp>` (never over
+  live) with DEFINER clauses stripped, compares table and trigger counts, representative row counts, the first binary
+  key and the last audit id with the source, proves the append-only guard came back (an `UPDATE` as the application
+  account refused), and drops the drill database unless `KEEP_DRILL=1`.
+
+Credentials for both come from files; the passphrase must be kept **off the database host** (a backup on the same
+disk as its key is not a backup). The off-host copy of the encrypted files (`docs/48` §8.2) is a separate job.
+
+### Drill record — 2026-09-30 (E.2, encrypted, on a disposable copy)
+
+Run in the session's disposable MySQL 8.0.46 against `prisma_sec` (a fresh database built from all 85 migrations and
+the security journey's data — **not live**, which this session cannot reach), with the four identities created by
+`deploy/mysql-identities.sql`:
+
+| Check | Result |
+|---|---|
+| Identities (`deploy/verify-mysql-identities.sh`) | **20 of 20**: the application account reads, cannot `ALTER`/`CREATE`/`DROP`/create a trigger/`GRANT`/read `mysql.*`; it appends an audit row and its `UPDATE`/`DELETE` on `audit_logs` and `UPDATE` on `subscription_events` are refused by the triggers (**§2.5 of the gate, exercised as the application account**); the backup account reads and dumps schema objects, cannot insert/update/delete/alter; the migrator alters its schema, cannot touch `mysql.*` or grant server-wide |
+| Backup | `prisma_sec-20260930T144525Z.sql.gz.enc`, 52 KB, **95 tables**, trailer verified after decrypt + gunzip, `.sha256` written |
+| Restore | into `prisma_sec_drill_20260930T144527Z`: checksum ok; **95 / 95 tables, 30 / 30 triggers**; rows identical for `companies` (2), `users` (4), `sales`, `sale_items`, `payments`, `units`, `audit_logs` (32), `subscription_events` (12), `otp_challenges` (5); first company id `01A0F2B93EF47D9CA581FF2C8AA5FEFC` intact; last audit id 32; the restored append-only trigger refused an `UPDATE` as the application account |
+| Cleanup | the drill database dropped by the script; no `*_drill_*` database left |
+
+**Owed on production:** the same two scripts run on the production host with its own passphrase, the encrypted file
+copied off-host, and this table repeated with production's numbers.
+
 ### Drill record — 2026-08-05 (E.1, `--hex-blob`)
 
 The canonical command was re-run and the whole path exercised again against

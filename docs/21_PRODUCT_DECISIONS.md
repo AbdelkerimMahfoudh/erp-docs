@@ -6339,3 +6339,52 @@ never cut (`docs/61` §13, mobile `8d101f6`), the user's call of §12 there.
   is gone; a staff member's before-06:00 notice is inside the amounts sheet; a failed opening keeps the chosen day, the
   amounts and the request's key. Verified over HTTP (10 of 10) and on the web (14 of 14); the iPhone is owed (`docs/24`
   §50 AA12a–c).
+
+## Account deletion with a WhatsApp code, the real WhatsApp channel, and the pre-release security gate (2026-09-30)
+
+### ✅ DECIDED AND IMPLEMENTED (backend `ae64de8`, `1925a0d`, `bde6bc4`, `da0d340`; mobile on `reports-export` — see `CURRENT_HANDOFF.md` for the ids; migrations 0084, 0085 — on disposable databases only, **not on live**)
+
+- **No account is deleted without a WhatsApp code (D104).** Through no route — app, web, API, administrator tool or
+  job — unless a single-use deletion code was sent to the account's **verified WhatsApp number** and typed back by the
+  account holder. Enforced by the server's executor, which re-reads the proof inside the transaction; deactivation and
+  the administrator's suspend/cancel are separate, clearly named actions and are never called deletion. No other
+  channel is substituted; a login without a verified number is told so and offered the way to verify one. (`docs/64`)
+- **What a deletion deletes (D105).** The last active Owner **closes the business** (every login de-identified and
+  revoked, customers' and suppliers' contact details removed, the subscription cancelled, the company closed);
+  anybody else — including an Owner who is not the last — deletes **their own login**. Decided from the role table,
+  never from the request.
+- **What is kept (D106).** Sales, purchases, payments, closings, ledgers and the audit trail stay, because business,
+  accounting and tax records must be retained; they refer to a row that reads *Deleted user* with every contact
+  removed. The retention **period** is a legal question the owner must answer before release (`docs/64` §6).
+- **The WhatsApp Business Cloud API is the provider (D107).** Approved templates by name from configuration, one per
+  message, EN/FR/AR; credentials server-side only; failures visible, never faked; a signed delivery webhook. Codes
+  are the `account.deletion` UTILITY template, which says what the code is for and that confirming is irreversible.
+- **A person may always verify a number and leave (D108).** The account routes are reachable in every subscription
+  state — pending, refused, suspended, expired — and the refusal screen links to *Delete my account*.
+- **The audit trail is tamper-evident (D109).** A per-company hash chain written by the database on every insert;
+  `scripts/verify-audit-chain.ts` detects a modified, removed or reordered row and a trigger bypass. The legacy
+  static-key provisioning route is closed in production; demo seeding is opt-in and refused in production.
+- **The App Review conflict is a decision, not a claim (D110 — OPEN).** Registration accepts an email as the only
+  contact, so an email-only login cannot delete in-app without first verifying a WhatsApp number. The owner chooses:
+  (a) a WhatsApp number required of every login at registration, (b) an explicitly approved second confirmation for
+  logins that provably hold no WhatsApp number, or (c) accept the review risk. **Until decided, a release blocker.**
+
+### 📋 VERIFICATION
+
+- **Real HTTP on a fresh disposable database** (`docs/48` §11): **117 of 117** — registration → contact code → pending
+  (no operational read or write; the account page open) → the Super Admin's approval with a duration (step-up, stale
+  version, forged id, duplicate all handled) → the Owner's timeline equal to the server's instants → grace at +1 h,
+  expired at +4 d (writes refused, reads kept), extension from now, suspension, reinstatement, refusal and
+  approval-after-refusal; an employee's deletion with a code (wrong password, wrong code, another person's code,
+  the administrator's session, the spent code, cancel), WhatsApp verification for a login without a number, the Owner
+  closing the business, and no administrator deletion route. The 5-per-minute route limit answered 429 in a run at the
+  default. The audit chain verified after the journey and after 30 parallel audited writes.
+- **Unit suites:** backend **175 suites / 3 166 tests** (`tsc` clean); mobile **85 pure suites**, `tsc` (the one known
+  `global.css` error), lint 0 errors / 30 known warnings, web export clean of server secret names.
+- **Identities, backup and restore drill:** `docs/22` E.2, 20 of 20 identity probes.
+
+### 🟡 OWED
+
+- The WhatsApp Business account, approved templates and token; `OTP_PEPPER`; the production host's TLS; the owner's
+  D110 decision and the legal retention period; the phone (`docs/24` §51); the first CI run; the independent
+  assessment (`docs/48` §12).
