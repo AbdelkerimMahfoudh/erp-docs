@@ -7,10 +7,26 @@
 ## Session control
 
 - Status: **IN_PROGRESS**
-- Owner: **CLAUDE-A**
-- `started_at_utc: 2026-09-28T03:51Z` — takeover HEADs (all clean, level with their remotes): docs `de7396a` · backend
-  `f66c1ff` · mobile `2476430`; 81 migrations, up to date. Previous session: CLAUDE-A, handed off complete
-  (`READY_FOR_HANDOFF`, owner NONE). No discrepancy.
+- Owner: **CLAUDE-B** (a claude.ai cloud session; the previous owner CLAUDE-A works on the user's PC)
+- `started_at_utc: 2026-09-30T13:44Z` — **explicit takeover, authorised by the user's brief of 2026-09-30** ("continue as
+  the next authorized Claude session"). The previous session (CLAUDE-A, started 2026-09-28T03:51Z) was left
+  `IN_PROGRESS`: its scope (1) — the scroll investigation — is **open, waiting on the phone**, and its dev-only touch
+  trace is uncommitted **on the user's PC only** (nothing dirty on any remote; the cloud checkouts are clean). Nothing of
+  it is touched here: its scanner, returns, navigation and closing work on `reports-export` is preserved as pushed.
+  Takeover HEADs (all clean, level with their remotes): docs `850dc52` · backend `1d6caa0` (`reports-export`) · mobile
+  `3d24222` (`reports-export`); 83 migrations, up to date. Two unmerged draft PRs from this account's own earlier
+  audit (backend #2 `claude/audit-fixes`, mobile #2 `claude/audit-fixes`, mobile #1 `claude/stock-finds-products`)
+  stay as they are.
+- **Active phase and scope (the user's brief of 2026-09-30): pre-production security and App Store readiness.**
+  (A) account deletion with a WhatsApp-delivered single-use code, server-enforced, EN/FR/AR; (B) Super Admin approval
+  and the subscription timeline, verified over real HTTP; (C) the 20 pre-release security controls of `docs/48` with
+  evidence, plus the gate's additional blockers. Disposable databases only; nothing published; the live database, the
+  user's PC and the iPhone are out of reach of this session.
+- **Next intended action:** WhatsApp Cloud API channel → account deletion (schema 0084, routes, mobile) → approval
+  journey → the 20 controls → gates → docs → `READY_FOR_HANDOFF`, owner NONE.
+
+### Inherited from the CLAUDE-A session (unchanged, for the record)
+
 - **Scope (the user's briefs of 2026-09-28), inline — no workflows or subagents:**
   - **(0) Names never cut — DONE** (mobile `8d101f6`, `docs/61` §13).
   - **(1) The scroll / touch investigation — OPEN, waiting on the phone.** A dev-only touch trace is **uncommitted in the
