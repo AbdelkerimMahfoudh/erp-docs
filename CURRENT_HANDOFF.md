@@ -6,11 +6,21 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-B** (a claude.ai cloud session), `2026-09-30T13:44Z → 15:10Z` — the pre-production security
-  and App Store readiness phase (the user's brief of 2026-09-30). Everything below is pushed; all three working trees
-  are clean. **Nothing was published, and the live database was neither reached nor changed.**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-B** (a claude.ai cloud session)
+- `started_at_utc: 2026-10-01T20:04Z` — taken from `READY_FOR_HANDOFF`, owner NONE (the previous handoff was complete).
+  Takeover HEADs, all clean and level with their remotes: docs `6d312e1` · backend `da0d340` (`reports-export`) ·
+  mobile `1de5226` (`reports-export`). Migrations in the repository through **0085** (84 directories; there is no
+  0005); live is through 0083 — 0084 and 0085 are still not on live and this phase does not apply them.
+- **Active phase and scope (the user's brief of 2026-10-01):** (A) the existing daily and monthly Owner reports
+  prepared as **in-app PDFs** — generate, preview, optional manual native share — from the server's report contract,
+  EN/FR/AR with RTL; (B) a **complete visual review** of every accessible page, nested tab and state of the web app
+  (Owner/Manager/Employee, Super Admin for platform pages; EN full set, FR and AR every distinct layout at 393 pt; the
+  320 pt × 1.3× matrix), with an INDEX, contact sheets and sample PDFs delivered. **Automatic WhatsApp report
+  delivery, recipients, templates, jobs and report APIs for WhatsApp are postponed — not built in this phase.**
+  Disposable databases only; live untouched.
+- **Next intended action:** audit the report APIs and screens and the receipt PDF code, then the PDF builder; then the
+  disposable fixture, the capture harness and the review package; gates; docs; `READY_FOR_HANDOFF`, owner NONE.
 - **The gate (`docs/48`) is NOT PASS.** Its ten release blockers are listed below and in `docs/48` §12; none of them
   can be produced by a session alone.
 
