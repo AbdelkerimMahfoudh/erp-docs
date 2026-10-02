@@ -5,6 +5,10 @@ comes from the service that already owns it, because a second query for "profit
 by product" is a second definition of profit, and the first time the two
 disagreed the shop would have no way to tell which was right.
 
+> The daily and monthly **PDFs** are not CSV exports: they are made in the app from the report document of
+> [`docs/66`](66_REPORT_PDFS_AND_VISUAL_REVIEW.md) (`GET /reports/daily`, `GET /reports/monthly`), on the same rule —
+> every figure copied from the service that owns it.
+
 ---
 
 ## The endpoint

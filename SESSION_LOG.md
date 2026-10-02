@@ -10534,3 +10534,92 @@ patch mismatch. The product-image upgrade was not started.
 **Data and process safety.** Live: **unreachable from this session and untouched.** Migrations 0084 and 0085 exist only on the container's disposable databases (`prisma_sec`, rebuilt per run; `prisma_qa` and `phonestore` from earlier phases left as they were). The disposable MySQL was shut down at the end. Scratch tooling in the session's scratch directory only. No secret in any commit (the scanner says so for every ref).
 
 **Not done, owed.** Everything in `docs/48` §12: the WhatsApp Business account and templates (no real send happened), D110, production secrets and hosting (TLS, off-host backups), dependency triage, the per-module adversarial tenant suite, the legal retention period and an incident-response procedure, Apple (archive checks, demo journey, the phone: `docs/24` §51), the first CI run, bot protection, the independent assessment. **The gate is NOT PASS.** Applying 0084 and 0085 to live is the next session's first act, after a verified backup (`docs/22`), off-hours (0085 seals every existing audit row in one procedure).
+
+## 2026-10-01 20:04Z → 2026-10-02 16:42Z — CLAUDE-B (cloud) — the daily and monthly report PDFs in the app; the complete visual review of the web app
+
+**Takeover.** From `READY_FOR_HANDOFF`, owner NONE (the previous handoff was complete), recorded in docs `70cbb81`
+before anything else changed. HEADs at takeover, all clean and level: docs `6d312e1`, backend `da0d340`, mobile
+`1de5226` (both `reports-export`). Migrations in the repository through 0085; live at 0083 — not touched by this phase.
+
+**The brief (2026-10-01).** (A) The existing daily and monthly reports as **PDFs made in the app** — choose the day or
+month, *Generate PDF*, preview or open it, optionally share or save it through the phone's own sheet; server figures
+only from one reusable contract, EN/FR/AR with right-to-left Arabic, user text escaped, file names like
+`RetailERP_MainStore_Daily_2026-10-01_EN.pdf`. **Scheduled WhatsApp reports, recipients, templates, jobs and WhatsApp
+report APIs postponed — not built.** (B) A **complete visual review** of every accessible page, tab and state of the
+web app, captured from the final committed export against a disposable database, with a permissions matrix, the
+320 pt × 1.3× matrix, contact sheets, an index and the sample PDFs; clear low-risk defects fixed and re-verified,
+subjective redesign ideas recorded apart.
+
+**Done — backend `reports-export` `da0d340` → `1a4bd6f`.** `86ef9a0` the report documents: `GET /reports/daily`
+(`report.view` + `closing.count`) and `GET /reports/monthly` (`report.view`), version 1, copied from the calculations
+the server already owns (the Daily closing's report or its closed snapshot; the period summary and the dated figures;
+the refund summary; open balances) — the only arithmetic is the monthly split of expenses the rollup keeps, checked
+back against the summary's net result (`figures_disagree` when it does not add up); cost, margin and profit only with
+`cost.view` (*hidden*, never zero), refunds only with `return.view`, names only, no ids or notes; one audit row per
+document served; 39 tests. `1a4bd6f` loans say whose offer is on the table (`ownOffer`, the shared `isOwnOffer`
+rule), so no screen offers an answer the server refuses.
+
+**Done — mobile `reports-export` `1de5226` → `e484b58`.** `420c83d` + `64595fe` the PDFs: the pure builder
+`lib/report-pdf-html.ts` (A4, logical CSS properties, tabular figures, a true minus, colour and words for every state,
+every person-entered string escaped), `expo-print` into the cache under the canonical name, the *PDF ready* card
+(**Open**; on a phone **Share or save** through the system sheet), a second tap ignored, a switched branch discarded,
+a newer contract refused; on the Daily closing and Results' *This month*; 34 + 11 tests. `3055799` requests wait for
+the restored branch. `c7c6265`, `aec0d95`, `3e819d4`, `248288f`, `ec5eac6`, `220994b`, `e484b58` the review's fixes
+(`docs/66` §7): the *Custom* return window, pinned buttons over the page's end, the difference's decisions, debts offering refused
+answers, plurals and placeholders, refusals by link, Analytics without `report.view`, the 320-point status chips and
+rows (shop and platform), a Manager's *Set a target*, the sale header squeezing the product's name, a time beside
+chips (notifications, returns, alerts).
+
+**The review.** Every page of the web app, captured from the committed export of `e484b58` against the disposable
+database: 78 routes (three left out — two invisible redirects and the development gallery), 90 page states. The
+Owner's full set in EN, FR and AR — 121 images each (every tab, every closed section opened, *PDF ready* and the PDF
+page); the Manager and the Employee visited everywhere and imaged only where they differ (38 and 59 images per
+language; 11 and 20 refusals); 51 states per language (signed out, sheets, the account and its deletion, empty lists,
+suspended / expired / grace / pending shops with More, the platform administration signed in). Every page checked for
+overflow, clipping, an ellipsis, squeezed text, overlap, raw keys, junk values, JavaScript errors, error boundaries,
+the back arrow and API errors: **0 issues at 393 pt**; the 320 pt × 1.3× matrix **645 of 645**; the permissions matrix
+**246 of 246**. Fixed 20 findings (2 high, 7 medium, 11 low — `docs/66` §7), left 15 for the owner and 7 subjective
+notes (§8). Delivered to the user: the package (`INDEX.md`, both matrices, the results, 84 contact sheets, 18 sample
+PDFs, every image) in six zip parts — one zip was over the upload limit — and the contact sheets on a private page.
+
+**Docs.** `docs/66` (new: the contract, the PDF, the tests, the review's inventory, matrices, fixes and open
+findings), `docs/21` D111–D115 and the fixed list, `docs/24` §52 (AC1–AC11) and §53 (AD1–AD15), `docs/40` and
+`docs/53` pointers, this entry, the handoff.
+
+**Verification.** Backend 177 suites / 3 206 tests (3 skipped — the demo-file receiving tests, no demo file in the
+container), `tsc` clean, `prisma validate`, migrate status up to date on the disposable database (84), the permission
+catalogue 64 of 64 with every grant. Mobile 89 pure suites, `tsc` (the one known `global.css` error), lint 0 errors / 29
+known warnings, Expo Doctor 19 of 21 (the two checks that call the network blocked by the container's allowlist), the
+web export of `e484b58` with all 78 routes and no stale API origin, the copy / colour / catalogue audit clean (188
+files; 3 410 keys × 3 in one order). The reporting journey 43 of 43 over real HTTP, re-run on `1a4bd6f` with the API's
+clock fixed at 1 Oct 22:00 UTC because the business day had turned; 18 sample PDFs inspected page by page.
+
+**Mistakes of this session, recorded.** A `pkill` pattern matched its own shell and stopped the capture driver
+(re-run, killing by PID). A backgrounded `cd … &&` chain launched nothing for one compare run. The French catalogue
+edit first landed inside a two-line value (moved before commit). A hook placed after an early return (lint error,
+fixed before commit). The first permissions-matrix expectations misread an ungated route and missed endpoints (fixed
+in the matrix, not in the app). Price approvals expire after 30 minutes, so one capture caught an expired approval
+where a pending one was meant — both states are now captured, a fresh one made before each final run. Found only
+in the last full run, and corrected before the final capture: the platform administration had been photographed
+**signed out in every earlier run** (its session lives in memory and the harness reloaded between screens; in English
+it also never pressed the platform's *Sign in*, worded differently from the shop's *Sign In*); Arabic tab images
+overwrote one another (labels without ASCII letters gave every tab one file name); and the fixture's platform grants,
+running to 2027, hid the *expired* and *grace* states, so those two captures showed ordinary shops.
+
+**Data and process safety.** Live: unreachable from this session and untouched. Every write went to the disposable
+`prisma_qa_pdf` (ten QA boutiques plus a September history) on the container's own MySQL; 21 business tables
+checksummed before and after every report read. Fixture changes made for the review, all on that copy: price
+approvals asked by the QA employee (they expire), and the platform grants of Boutique 4 and Boutique 5 ended
+(`complimentary_until` 15 Sep) so the server reports *expired* and *grace*. The container restarted once (2 Oct, about 16:36 UTC) and took every server with it; MySQL was brought back to
+finish, then all four disposable databases (`prisma_qa_pdf`, `prisma_qa`, `prisma_sec`, `phonestore`) were dropped and
+MySQL shut down. Before that, `phonestore` matched its 29 Sep fingerprint exactly (`prisma_qa` and `prisma_sec` had no
+fingerprint from this phase's start, so no claim is made for them), and 20 of the fixture's 21 business tables were
+identical before and after the last two captures (`users` differed only in `last_login_at` / `updated_at`, from the
+sign-ins). No server, browser or port left open. Scratch tooling, captures and the
+package lived only in the session's scratch directory; nothing of it is committed. No secret, dump or environment file in any commit.
+
+**Not done, owed.** The phone: `docs/24` §52 (the native preview, the file name in the share sheet, saving and every
+share target) and §53 (the fixes on a device, the largest text on an iPhone SE). D115 (a past month's PDF). A
+Manager's personal targets (a names-only people list for `goal.manage` — the owner's call). The findings of
+`docs/66` §8. Automatic WhatsApp report delivery stays postponed (D111). Everything the previous handoff carried
+(`docs/48` §12's release blockers, 0084/0085 on live) is unchanged.

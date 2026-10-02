@@ -3911,3 +3911,48 @@ server (never on a phone).
 | AB18 | Arabic layout | the screens read right-to-left; the code and the number fields left-to-right; the danger button's icon on the reading side | | | |
 
 Record the message texts received in AB4, AB9 and AB14 here, in each language.
+
+## 52. The daily and monthly report PDFs (docs/66) — UNVERIFIED ON ANY DEVICE
+
+Backend `86ef9a0`, mobile `420c83d` + `64595fe` + `3e819d4` on `reports-export` (`CURRENT_HANDOFF.md`). Proven over
+real HTTP on a disposable database (43 of 43), by the unit suites and by 18 PDFs rendered through the app's builder in
+Chromium (`docs/66` §3); **the native print preview, the file on the phone and the share sheet were never run on a
+device.** Nothing in this flow may send anything by itself.
+
+| # | Check | Expected | EN | FR | AR |
+|---|---|---|---|---|---|
+| AC1 | Owner → Home → the Daily closing card → **Review closing** → **Generate PDF** | *PDF ready* with the file name `RetailERP_<Branch>_Daily_<YYYY-MM-DD>_<LANG>.pdf`; **Open** and **Share or save** | | | |
+| AC2 | **Open** | the system print preview shows the A4 report: identity, the business date and its 06:00 window, the generation time, sales, result, expenses, money per channel (*recorded movement*), checks, refunds, amounts owed, warnings; no heading alone at the bottom of a page, no footer alone on a page | | | |
+| AC3 | **Share or save** → Save to Files | the file keeps its exact name; it opens from Files | | | |
+| AC4 | **Share or save** → WhatsApp (if installed) | WhatsApp opens with the PDF attached and the person chooses where; **nothing is sent until they press send** | | | |
+| AC5 | **Share or save** → dismiss the sheet | back on the Daily closing, nothing changed, no error | | | |
+| AC6 | Yesterday / a closed day → Generate PDF | the PDF says *As closed at {time} by {name}*; a day changed after closing carries the warning | | | |
+| AC7 | Money → Results → **This month** → **Generate PDF** | `RetailERP_<Branch>_Monthly_<YYYY-MM>_<LANG>.pdf`; *in progress* until the month ends; salaries apart from rent and other fixed costs; commissions *not recorded* | | | |
+| AC8 | As a Manager | the same PDFs; as an Employee the Daily closing shows no *Generate PDF* row | | | |
+| AC9 | Airplane mode → **Generate PDF** | an error notice with **Retry**; nothing written; online again → **Retry** makes the PDF | | | |
+| AC10 | Tap **Generate PDF** twice quickly; switch branch while it is being made | one PDF only; a PDF of the branch you left is never shown | | | |
+| AC11 | Arabic | the PDF reads right to left; figures, dates and the file name left to right; the file name ends `_AR.pdf` | | | |
+
+## 53. The visual review's fixes (docs/66 §7) — UNVERIFIED ON ANY DEVICE
+
+Mobile `3055799` + `c7c6265` + `aec0d95` + `3e819d4` + `248288f` + `ec5eac6` + `220994b` + `e484b58`, backend `1a4bd6f`.
+Verified on the web export of `e484b58` in EN/FR/AR at 393 pt and in the 320 pt × 1.3× matrix (`docs/66` §6); not on a
+phone.
+
+| # | Check | Expected | EN | FR | AR |
+|---|---|---|---|---|---|
+| AD1 | Kill the app on a sale; reopen it from a notification or a link | the figures load the first time — never *Not available to you* first | | | |
+| AD2 | Business settings → Returns → **Custom** | the hours field opens and Custom stays chosen; nothing changes until hours are typed; **Save** stores those hours | | | |
+| AD3 | A return awaiting investigation (four buttons) → scroll to the end | the whole history readable above the buttons | | | |
+| AD4 | Request a return → scroll to the end | *The return cannot be approved until the phone is physically here* fully above **Raise the return** | | | |
+| AD5 | Sale details at the largest text | *Sold on* and *Sold by* on one line each, or the value on its own line below — never a narrow column; the payment state under the invoice, the product's name across the card | | | |
+| AD6 | A difference to decide | the four decisions as rows, each readable in full; *Cash drawer*; the date in words | | | |
+| AD7 | A debt this shop proposed | no **Agree** / **Propose another amount**; *Your offer is with {store}* | | | |
+| AD8 | Sales, Phone sales, Home on the 1st of a month | *1 item*, *1 phone*, *vs yesterday* | | | |
+| AD9 | Targets | *10 675 MRU a day over the 30 days left*; dates in words | | | |
+| AD10 | The Daily closing with one difference, one refund reported | singular sentences in all three languages | | | |
+| AD11 | As an Employee, open Analytics and Outstanding payments from a link | *Not your figures to see* — no *all look normal*, no *Try again* | | | |
+| AD12 | iPhone SE (or the smallest phone) at the largest text size: Transfers, a transfer, a debt, a consignment, a price approval, Returns, Sales, an import, Settings' identifier, Analytics, Notifications (after midnight) | every status chip inside the screen — its words wrap inside the chip, never cut or under the time; *Copy* and *View all alerts* below their text when they do not fit beside it | | | |
+| AD13 | As a Manager: More → Targets → *Set a target* | *Who it is for* offers *This shop* and *The whole business* only; as the Owner *One person* lists the team | | | |
+| AD14 | The platform administration at the largest text: Businesses, a pending business | *Create a business* below the count when it does not fit; a business's name never cut to a letter; *New Owner invitation* wraps inside its button | | | |
+| AD15 | A shop past its grace period: Home, Money, More | More shows *Your subscription has ended…*; Home and Money show no notice (record what *Sell* does — the server refuses; `docs/66` §8) | | | |

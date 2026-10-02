@@ -6388,3 +6388,72 @@ never cut (`docs/61` §13, mobile `8d101f6`), the user's call of §12 there.
 - The WhatsApp Business account, approved templates and token; `OTP_PEPPER`; the production host's TLS; the owner's
   D110 decision and the legal retention period; the phone (`docs/24` §51); the first CI run; the independent
   assessment (`docs/48` §12).
+
+## The daily and monthly report PDFs, and the complete visual review (2026-10-01)
+
+### ✅ DECIDED AND IMPLEMENTED (backend `86ef9a0`, `1a4bd6f`; mobile `420c83d`, `64595fe`, `3055799`, `c7c6265`, `aec0d95`, `3e819d4`, `248288f`, `ec5eac6`, `220994b`, `e484b58` — all on `reports-export`; no migration)
+
+- **Automatic WhatsApp report delivery is postponed (D111).** No WhatsApp button, destination, recipient list,
+  template, schedule, background job, Cloud API request or report API for WhatsApp is built in this phase; nothing
+  claims delivery. The *WhatsApp summaries* settings keep saying *sent once WhatsApp is connected*. A later
+  pre-production phase decides recipients, templates and timing, and reuses D113's document.
+- **The daily and monthly reports are PDFs made in the app (D112).** On the Daily closing (the business date shown, for
+  whoever holds `report.view` and may count) and on Results (the month shown on *This month*): *Generate PDF* →
+  *PDF ready* → **Open** (preview) and, on a phone, **Share or save** through the system's own sheet. WhatsApp is
+  reachable only as the person's own choice in that sheet. A dismissed or failed share changes nothing anywhere.
+- **One versioned report contract (D113).** `GET /reports/daily` and `GET /reports/monthly` return a version-1 report
+  document copied from the calculations the server already owns (the Daily closing's report or its closed snapshot;
+  the period summary and the dated figures; the refund summary; the open balances). The phone recomputes nothing and no
+  second reporting system exists. A newer version is refused whole by an older app. (`docs/66` §1)
+- **Who sees what (D114).** Daily: `report.view` + `closing.count`; monthly: `report.view`. Cost, margin and profit
+  only with `cost.view` — otherwise the result is *hidden* and said so, never printed as zero. Refunds only with
+  `return.view`. Names only, no ids, no notes, no contact details. Each document served writes one audit row naming
+  it, never its figures.
+- **A past month's PDF (D115 — OPEN).** The server serves any month; the app offers the month on Results' *This month*
+  only, marked *in progress* until it ends. Whether to offer the previous complete month, and where, is the owner's
+  call. External commissions are not recorded anywhere; the monthly PDF says so.
+
+### ✅ FIXED BY THE VISUAL REVIEW (`docs/66` §6–§8; each against a rule already decided)
+
+- A screen opened directly (a reload, a link) sent its first branch-scoped reads without the branch and was refused
+  once (403/400 on ~30 endpoints) — requests now wait for the stored branch.
+- *Custom* return window with no hours typed silently became **No returns** and would have been saved — it now opens
+  the field and changes nothing.
+- Pinned buttons covered the end of a return's history and the new-return warning — the page reserves their measured
+  height. Sale details squeezed short values into a quarter of the row — `docs/61` §8 applies.
+- The difference's four decisions were cut in every language — one row each; the server's `CASH` key and ISO dates
+  are worded. A debt offered *Agree* to the store whose offer it was, and a second dispute — both refused by the
+  server, now not offered (the loan carries `ownOffer`). An empty *What you can do* card. `{Accessories}` from a
+  double-braced placeholder. "1 items", "1 phones", "the 1 days before", "1 differences", "1 refunds" — singular
+  sentences. Retired roles shown as keys. The refusal screen telling an open shop its subscription had ended.
+- Pages opened by link without the right: Analytics claimed *all look normal* from refused reads; Outstanding offered
+  a retry that could never work; *Record a debt*, *Set a target* and *Import Excel or PDF* opened in full and failed at
+  the end — each now refuses as Results does.
+- On a 320-point phone with large text a status chip could not shrink and ran off the screen or over the time beside
+  it (12 page states in French): a chip is now never wider than its line and its words wrap inside it; rows holding a
+  chip wrap; a title beside a status or an action keeps half the row and the other moves below it (`docs/61` §8's
+  amount-row rule); a button whose label may wrap grows with it. The platform administration's rows likewise. The sale's
+  payment state sits under its invoice instead of squeezing the product's name to a word a line. A time beside chips
+  (notifications, returns, alerts) keeps its width, so a weekday never runs under a chip.
+- An expired shop is told only on More (Milestone N's placement) while its Home still offers *Sell* and *Open the
+  boutique*, which the server refuses — recorded for the owner, not changed (`docs/66` §8).
+- *Set a target* offered a Manager *One person* with no names to pick (the team list needs `user.manage`) — offered
+  only to a role that can list people. Whether a Manager should name a person is OPEN (below).
+
+### 📋 VERIFICATION
+
+See `docs/66` §3 (39 backend and 45 mobile report tests; the real-HTTP journey 43 of 43, re-run on the final backend;
+18 sample PDFs inspected page by page) and §6–§8 (the review's inventory, matrices and findings: Owner 121 images per
+language, every Manager and Employee difference, 51 states per language with the platform signed in, 645 of 645 page
+states at 320 pt × 1.3×, 246 of 246 permission checks). Gates at the end: backend 177 suites / 3 206 tests (3 skipped —
+the demo-file receiving tests, no demo file in the container), `tsc` clean, `prisma validate`, migrate status up to
+date (84), the permission catalogue 64 of 64; mobile 89 pure suites, `tsc` (the one known `global.css` error), lint 0
+errors / 29 known warnings, Expo Doctor 19 of 21 (the two checks that call the network blocked by the container's
+allowlist), web export of `e484b58` with all 78 routes, no hard-coded copy or colour, 3 410 keys × 3 in one order.
+
+### 🟡 OWED
+
+The phone: native print preview, file naming and the share sheet on an iPhone (`docs/24` §52) and the review's fixes
+on a device (§53). D115. **A Manager's personal targets (OPEN):** the server lets `goal.manage` set one, but the people
+to choose from are read from `GET /users` (`user.manage`); a names-only list for `goal.manage` is a new read on the
+permissions surface, for the owner to approve. The other findings left for the owner in `docs/66` §8.

@@ -7,6 +7,10 @@
 > refunds paid later and periods holding only a negative adjustment; document any metric whose meaning needs a product
 > decision.
 
+> The daily and monthly report PDFs (2026-10-01, [`docs/66`](66_REPORT_PDFS_AND_VISUAL_REVIEW.md)) print these rules'
+> figures as they are: the daily from the Daily closing's report (or its closed snapshot), the monthly from the period
+> summary and the dated figures — no figure of their own.
+
 ## 1. The rules (the Daily closing's, and Results')
 
 | # | Rule |
