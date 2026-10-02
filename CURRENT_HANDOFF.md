@@ -6,17 +6,31 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-B** (a claude.ai cloud session), `2026-10-01T20:04Z` → `2026-10-02T16:45Z`, taken from
-  `READY_FOR_HANDOFF` (the previous handoff was complete); its work is complete, verified and pushed.
-- **The phase just finished (the user's brief of 2026-10-01):** (A) the daily and monthly reports as **PDFs made in
-  the app** — generate, preview, optional manual native share — from one versioned server contract, EN/FR/AR with
-  right-to-left Arabic; (B) a **complete visual review** of every accessible page, tab and state of the web app, with
-  the permissions and 320 pt × 1.3× matrices, contact sheets, an index and sample PDFs, delivered to the user (not
-  committed). **Automatic WhatsApp report delivery, recipients, templates, jobs and report APIs for WhatsApp are
-  postponed (D111) — none was built.**
-- **The gate (`docs/48`) is still NOT PASS.** Its ten release blockers are unchanged (below).
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-B** (a claude.ai cloud session)
+- `started_at_utc: 2026-10-02T23:31Z` — taken from `READY_FOR_HANDOFF`, owner NONE (the previous handoff was complete).
+  Takeover HEADs, all clean and level with their remotes: docs `d8775d1` (`master`) · backend `1a4bd6f`
+  (`reports-export`) · mobile `e484b58` (`reports-export`). Migrations in the repository through **0085** (84
+  directories; there is no 0005); live is at 0083 — this phase rehearses 0084 and 0085 on a disposable copy only.
+- **Active phase and scope (the user's brief of 2026-10-02): release-candidate stabilization** — a trustworthy release
+  decision, not a feature wave. Classify every open finding (blocker / before wider testing / owner decision / defer);
+  fix only objectively demonstrable defects, with focused tests; decision papers for the expired shop, full IMEIs,
+  notifications in the reader's language, *Phone sales*, a Manager's personal targets and a past month's PDF;
+  reconcile the security gate and the account-deletion journey; assess Apple's guidelines; rehearse 0084 and 0085 on a
+  disposable restored copy and write the production runbook; an iPhone test script; GO / NO-GO for TestFlight and for
+  the App Store. **No publishing, no TestFlight submission, no live migration and no live data change without the
+  user's separate approval.**
+- **Discrepancies found at takeover** (reported to the user before any code change):
+  1. The 30 Sep audit's fixes are **not in the release branch** — backend D1 recognition learning, D2 dead stock, D3
+     malformed ids → 500, D5 the same-key sale race (draft PR #2) and mobile M1 Receive → *Choose product* loses the
+     scan (draft PR #2). `docs/48` controls 8 and 9.1 cite D5 as evidence.
+  2. **No native build can install**: `postinstall` runs `scripts/verify-native-patch.js`, which fails because
+     `expo-camera` is 57.0.5 and the patch was cut for 57.0.4 (`npm ci` exits 1).
+  3. `master` in backend and mobile is stale (10 and 8 Sep); the release candidate lives on `reports-export`.
+  4. The audit's D4 (`companies.is_discoverable` never set, so Partners is unreachable on a real install) is still open.
+- **Next intended action:** the release-gate inventory (every open finding with a scenario and a recommendation), then
+  the demonstrable fixes on `reports-export`, each verified before it is pushed.
+- **The gate (`docs/48`) is NOT PASS.**
 
 ## HEAD now
 
