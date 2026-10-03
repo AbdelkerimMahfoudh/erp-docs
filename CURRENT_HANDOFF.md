@@ -28,8 +28,19 @@
      `expo-camera` is 57.0.5 and the patch was cut for 57.0.4 (`npm ci` exits 1).
   3. `master` in backend and mobile is stale (10 and 8 Sep); the release candidate lives on `reports-export`.
   4. The audit's D4 (`companies.is_discoverable` never set, so Partners is unreachable on a real install) is still open.
-- **Next intended action:** the release-gate inventory (every open finding with a scenario and a recommendation), then
-  the demonstrable fixes on `reports-export`, each verified before it is pushed.
+- **Checkpoint 2026-10-03 00:35Z — code pushed, verified; docs being written.** Backend `reports-export`
+  `1a4bd6f` → **`0e5f189`**: `4370240` (a transaction reads the company's timezone through itself — concurrent sales no
+  longer exhaust the pool), `56bddbe` (deletion and number verification refused up front when no channel can send),
+  `867133e` (the identities script runs; the restore drill fails a restore that changed data), and the 30 Sep audit's
+  fixes cherry-picked with `-x`: `c4ad802` D1, `28c1bd6` D2, `ede48c0` D3, `0e5f189` D5. Mobile `e484b58` →
+  **`3023bd3`**: `1e4567e` (the expo-camera patch re-cut for 57.0.5 — a clean `npm ci` exits 0), `f200a52` M1
+  (cherry-picked), `3023bd3` (the patch tests follow the lockfile). Gates: backend 181 suites / 3 251 tests (3 skipped),
+  `tsc`, `prisma validate`, permission catalogue 64/64; mobile 89/89 suites, lint 0 errors, doctor 19/21 (network),
+  web export 88 pages, clean `npm ci` OK. The rehearsal of 0084 → 0085 ran on a live-like disposable MySQL (empty
+  `sql_mode`, `utf8mb4_unicode_ci`, no binary log) — passed, recorded next in `docs/67`. Draft PRs #2 (both repos) are
+  superseded by the cherry-picks, left open for the owner to close.
+- **Next intended action:** `docs/67` (the release gate, decision papers, the rehearsal, the runbook), `docs/24` §54
+  (the iPhone script), `docs/48`, `docs/22`, `docs/21`, `SESSION_LOG`, this file; then stop.
 - **The gate (`docs/48`) is NOT PASS.**
 
 ## HEAD now
@@ -37,8 +48,8 @@
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
 | `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`1a4bd6f`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`e484b58`** | level | 0 |
+| `erp-backend` | `reports-export` | **`0e5f189`** | level | 0 |
+| `erp-mobile` | `reports-export` | **`3023bd3`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — not in this container, not touched (as last recorded) | — | — |
 
 Backend this session: `86ef9a0` (the report documents: `GET /reports/daily`, `GET /reports/monthly`, version 1),
