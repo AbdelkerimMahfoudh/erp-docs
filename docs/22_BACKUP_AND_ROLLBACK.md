@@ -157,7 +157,7 @@ exactly as dumped, so the restored database is identical to the backup down to
 trigger ownership.
 
 ```bash
-mysql --defaults-extra-file="<dba option file>" phonestore < "$HOME/erp-backups/<file>.sql"
+mysql --defaults-extra-file="<dba option file>" --comments phonestore < "$HOME/erp-backups/<file>.sql"
 ```
 
 The account needs `SUPER` or `SET_ANY_DEFINER`, plus the ability to create the
@@ -182,8 +182,17 @@ refuses outright to process a dump with no `-- Dump completed` trailer.
 Then restore normally:
 
 ```bash
-mysql --defaults-extra-file="$HOME/.my.cnf" phonestore < "$HOME/erp-backups/<file>.no-definer.sql"
+mysql --defaults-extra-file="$HOME/.my.cnf" --comments phonestore < "$HOME/erp-backups/<file>.no-definer.sql"
 ```
+
+**`--comments` matters.** The `mysql` client strips comments from the statements it sends unless told not to, and
+several triggers carry comments inside their bodies (0042's identifier triggers; 0085's chain trigger). Without the
+flag the restored triggers behave identically but their bodies differ from the source, so the byte-comparison below
+reports differences that are not damage (measured 2026-10-03: 2 of 30 trigger bodies; 0 with the flag).
+
+**The copy takes the source's defaults.** Create a restore or drill database with the source database's character
+set and collation (read them from `information_schema.SCHEMATA`), not fixed ones: a trigger's or a routine's variables
+take the database's collation.
 
 Delete the sanitised copy afterwards. The original dump is the backup; a second
 near-identical file only creates doubt about which one is authoritative.
@@ -285,6 +294,36 @@ memory (`docs/48` §8):
 Credentials for both come from files; the passphrase must be kept **off the database host** (a backup on the same
 disk as its key is not a backup). The off-host copy of the encrypted files (`docs/48` §8.2) is a separate job.
 
+Since 2026-10-03 (`867133e`) the drill creates its copy with the source's character set and collation, strips
+`DEFINER` on schema lines only (a row whose text holds ``DEFINER=`x`@`y` `` is data), restores with `--comments`,
+compares every trigger body and every table's `CHECKSUM`, and passes the append-only probe only when the trigger refused
+it (SKIP when the application account has no grant on the copy — its grants name the live schema). Compare against a
+source that has not moved since the backup: run it in the quiet window right after the backup, as the runbook does
+(`docs/67` §7). On a server with the binary log on, creating the dump's triggers needs
+`log_bin_trust_function_creators=1` (ERROR 1419 otherwise).
+
+### Drill record — 2026-10-03 (E.3, the rehearsal of 0084 → 0085, `docs/67` §6)
+
+Run in a throwaway MySQL 8.0.46 configured like live (empty `sql_mode`, `utf8mb4_unicode_ci`, binary log off,
+`lower_case_table_names=1`) on synthetic QA data — **not live**. Identities created by the fixed
+`deploy/mysql-identities.sql` (passwords on standard input).
+
+| Check | Result |
+|---|---|
+| Source | `prisma_qa_rc` at 0083, filled through the pre-0084 API: 94 tables, 30 triggers, 1 195 audit rows |
+| Encrypted backup (backup identity) | 192 KB, 94 tables, trailer verified, `.sha256` written |
+| Canonical dump (migrator, the live path) | 1 500 586 bytes, 94 `CREATE TABLE`, 0 raw `_binary`, 20 957 hex keys, trailer |
+| Path 2 + `--comments` into a new database | **every table identical by row count and `CHECKSUM TABLE`**, 30 of 30 trigger bodies identical, `HEX(id)` checksums identical for `units`, `sales`, `audit_logs`, the product named ``DEFINER=`x`@`y` cable`` intact |
+| The fixed `restore-drill.sh` | PASSED: 94 tables, 30 triggers, rows, ids, trigger bodies, every table's CHECKSUM; append-only probe SKIP (no grant on the copy) |
+| The previous `restore-drill.sh` on the same backup | reported PASSED on a copy whose product name had become ` cable a`; its `products` CHECKSUM differs from the source — the new check fails that restore |
+| After 0084 and 0085 on the restored copy | `verify-mysql-identities.sh` **20 of 20**; `verify-audit-chain.ts` **10 of 10 companies OK** |
+| Cleanup | every rehearsal database dropped, the throwaway server stopped and its files removed |
+
+**Correction to E.2 (recorded 2026-10-03).** E.2 says the identities were "created by `deploy/mysql-identities.sql`";
+the committed script could not run then (`IDENTIFIED BY @var`), so they cannot have been created by it as committed,
+and the drill script of that day passed its append-only probe on a missing grant. E.3 is the first record made with
+the working scripts.
+
 ### Drill record — 2026-09-30 (E.2, encrypted, on a disposable copy)
 
 Run in the session's disposable MySQL 8.0.46 against `prisma_sec` (a fresh database built from all 85 migrations and
@@ -354,6 +393,7 @@ transaction that was rolled back.
 
 ## 4. Migration sequence
 
+0. Rehearse the migration on a restored copy first, the way `docs/67` §6 did, and follow the runbook (`docs/67` §7).
 1. Backup and **verify** the dump (§2).
 2. Confirm the backend working tree is committed — `git -C backend status`.
 3. Apply the migration.

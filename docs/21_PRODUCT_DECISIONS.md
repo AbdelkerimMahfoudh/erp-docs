@@ -6457,3 +6457,64 @@ The phone: native print preview, file naming and the share sheet on an iPhone (`
 on a device (§53). D115. **A Manager's personal targets (OPEN):** the server lets `goal.manage` set one, but the people
 to choose from are read from `GET /users` (`user.manage`); a names-only list for `goal.manage` is a new read on the
 permissions surface, for the owner to approve. The other findings left for the owner in `docs/66` §8.
+
+## The release-candidate stabilization (2026-10-03)
+
+The user's brief of 2026-10-02: a trustworthy release decision, not a feature wave. The record is `docs/67` (the gate,
+the decision papers, the rehearsal, the runbook, GO / NO-GO); the iPhone script is `docs/24` §54; the security gate's
+reconciliation is `docs/48` §13. **No publishing, no TestFlight submission, no live migration, no live data change.**
+
+### ✅ FIXED (each an existing rule enforced, with a focused test; backend `reports-export` `1a4bd6f` → `1434aa7`, mobile `e484b58` → `3023bd3`)
+
+- **Concurrent sales no longer exhaust the database pool** (`4370240`): the business date read the company's timezone
+  through a second pooled connection inside the sale's transaction; as many simultaneous sales as connections waited on
+  each other until all failed. The rule it serves: a sale is recorded once and promptly.
+- **Deletion and number verification are refused up front when no channel can send** (`56bddbe`) — before, a request
+  and a code challenge were created that could never be delivered, and a number was blamed for it. The deletion rule of
+  `docs/64` §1 is unchanged: only a WhatsApp code to a verified number confirms a deletion.
+- **The Daily closing works on any MySQL** (`084f738`): one query broke MySQL's default `ONLY_FULL_GROUP_BY`; live's
+  empty `sql_mode` had hidden it.
+- **A purchase's cost no longer reaches roles without `cost.view`** through the *Received N item(s)* notice (`c0a00a1`,
+  D11).
+- **The deploy scripts work** (`867133e`, `1434aa7`): the identities script runs and never leaves a placeholder
+  password; the restore drill fails a restore that changed data; both pass an append-only probe only on the trigger.
+- **The 30 Sep audit's verified fixes are in the release branch**: D1, D2, D3, D5 (`c4ad802`, `28c1bd6`, `ede48c0`,
+  `0e5f189`), M1 (`f200a52`).
+- **A clean install works** (`1e4567e`, `3023bd3`): the expo-camera patch re-cut for 57.0.5 (identical hunks).
+
+### 🔴 OPEN — the owner's decisions (`docs/67` §4; nothing below is built)
+
+- **D116 — deleting an account while WhatsApp is postponed** (revisits D110). Recommended: password-confirmed deletion
+  with a 7-day safety window and an in-app confirmation; alternatives an emailed code or WhatsApp. A release blocker for
+  the App Store whichever is chosen.
+- **D117 — registration in production**: recommended, hide self-registration in the iOS build; businesses created from
+  the platform administration.
+- **D118 — the subscription and Apple's payment rules** (`docs/67` §5.2): recommended, business accounts only for a
+  first submission, no purchase or purchase call to action in the app; in-app purchase if Apple insists.
+- **D119 — an expired shop**: Home and Money stop offering what the server refuses and show the existing notice;
+  everything readable; whether any write survives expiry (a debt payment arriving, an approved refund, the last close).
+- **D120 — full IMEIs**: last four wherever listed or previewed (and in logs); full where a task needs the number;
+  unit reads need a stock or sale permission.
+- **D121 — notifications in the reader's language**: no table change (`type` + `payload` exist); about 16–22 files;
+  fixes the cross-company and cross-branch notices on the way.
+- **D122 — *Phone sales* → *Sales*** (*Ventes*, *المبيعات*); the count stays *phones sold* or becomes items and phones.
+- **D123 — a Manager's personal targets**; **D115 — a past month's PDF** (recommended: *Last month*); **D124 — Partners
+  discoverability** (recommended: store-code lookup without the directory flag, plus an Owner switch for the directory).
+- **D125** the plural pass · **D126** merge or close mobile PR #1 · **D127** the iOS configuration (iPad, export
+  compliance, microphone string, translated purpose strings) · **D128** a verified contact before approval, one pending
+  registration per email.
+
+### 📋 VERIFICATION
+
+`docs/67` §3 and §6. Backend 181 suites / 3 254 tests (3 skipped — the demo-file receiving tests), `tsc`, `prisma
+validate`, permission catalogue 64 of 64; mobile 89 of 89 suites, `tsc` (the one known `global.css` error), lint 0 errors
+/ 29 known warnings, Expo Doctor 19 of 21 (two network checks blocked by the container), web export 88 pages, a clean
+`npm ci`. Real HTTP on disposable data: deletion in production mode 7 of 7; D5 6 of 6; D3 6 of 6; tenant isolation and
+permissions 20 of 20; every GET route under the default `sql_mode` 0 of 85 failing; concurrency 16 and 30 at once
+accepted; the rehearsal of 0084 → 0085 on a restored live-like copy (§6), with its failure recovery; the current app's
+web export on the migrated copy, 19 screens clean.
+
+### 🟡 OWED
+
+Everything in `docs/67` §2 not closed; the iPhone run (`docs/24` §54); 0084 and 0085 on live through the runbook
+(`docs/67` §7) after the owner's approval; the security gate's blockers (`docs/48` §12–§13).

@@ -212,6 +212,57 @@ for, and it is why scratch files must never be created inside a repository.
 
 ---
 
+## 13. Reconciliation on the release candidate (2026-10-03)
+
+The run of §11 was made on backend `ae64de8`→`da0d340`. Twelve backend commits have landed since (the report documents, loans, sales, account
+deletion, the business day, the deploy scripts, the closing, purchasing, the 30 Sep audit's D1–D5) — by this document's
+own rule that **invalidates the previous pass** (money and authentication changed). This section re-checks every
+control against the release candidate — backend **`1434aa7`**, mobile **`3023bd3`** — and says what kind of evidence
+stands behind it now. Record of the work: `docs/67`.
+
+Classes: **A** implemented and proven by automated tests in the repository · **B** implemented, proven by a manual or
+rehearsal run recorded in the docs, no automated test · **C** coded or configured, unproven where it matters
+(production) · **D** an external prerequisite (an account, a person, a service, a decision) · **E** not implemented or
+the evidence is missing.
+
+| # | Control | Class now | What changed or was found |
+|---|---|---|---|
+| 1 | Secrets out of client bundles | B | `scripts/verify-release-config.js` has no test of its own |
+| 2 | Full-history secret scan | B | CI has never run. §1.5's "`git log --all -- .env*` is empty" is literally false: example files (`.env*.example`) appear in 7 commits; no real `.env` was ever committed |
+| 3 | Database identities, least privilege | **B, re-proven** | The committed `deploy/mysql-identities.sql` **could not run** (`IDENTIFIED BY @var`) and left a `placeholder` password — so §11's "created by `deploy/mysql-identities.sql`" cannot have been the committed script. Fixed (`867133e`); the verifier's trigger probes passed on a missing grant — fixed (`1434aa7`). **Re-run 2026-10-03 on the rehearsal copy: 20 of 20**, the append-only triggers refusing the application account |
+| 4 | Tenant scoping | E (module suite) / A (extension) | Unchanged: the per-module adversarial suite does not exist. Real HTTP this phase: another shop's sale, customer, expense, unit and branch refused, nothing disclosed (`docs/67`) |
+| 5 | TLS, at rest, field encryption | C | Unchanged |
+| 6 | Authentication / authorisation | A | Unchanged. The CI drift step ends in `|| true` and never fails |
+| 7 | Default deny | A | The entitlement interceptor fails closed for writes only and has no spec |
+| 8 | Allow-lists, server-side money | A | **D5 was cited before it was on the branch**; it is now (`0e5f189`, 6 of 6 over HTTP). New this phase: the purchase cost left `cost.view` through a notification (`c0a00a1`) |
+| 9 | Cookies, secure storage, rotation | B | `sessions.service.spec.ts` does not exercise `rotate()`, which has no compare-and-swap; the web build keeps tokens in `localStorage` (web only) |
+| 10 | Hashing, recovery | A | Unchanged |
+| 11 | Rate limits | B | No automated test produces a 429 |
+| 12 | Bot protection | E | Unchanged (FAIL, medium) |
+| 13 | Raw SQL | B | One more tagged-template file (`business-day.service.ts`). **A raw query failed MySQL's default `ONLY_FULL_GROUP_BY`** (the Daily closing, Money's movements, the daily PDF) — fixed (`084f738`); every GET route clean under the default `sql_mode` |
+| 14 | Input limits | B | Imports accept 10 MB, not 8; D3 (malformed ids) on the branch since `ede48c0` |
+| 15 | Output escaping | A | The report PDFs' HTML escaping is tested in the app (`lib/report-pdf-html.test.ts`) |
+| 16 | Uploads | **E (overstated)** | Stock imports are still typed by file name (`src/imports/sheet-reader.ts`); expense receipt photos are stored and served — "never stored or served" is false |
+| 17 | Minimal DTOs | A | Unchanged |
+| 18 | Security headers | C | Unchanged |
+| 19 | HTTPS required | C | The `eas.json` production profile names no API origin; set it in EAS |
+| 20 | Dependency scan | E | Unchanged; the first CI run will fail on `npm audit` until triage |
+| 8.3 | Logs redact personal data | **B (overstated)** | Request paths and the error handler keep full IMEIs (`/units/<imei>`, `?search=<imei>`, the error's `identifier` field). `docs/64` accepts request paths; the error field goes beyond it — D120 (`docs/67` §4.5) |
+| — | Audit chain | B | Re-proven on the rehearsal: 1 195 rows sealed, 10 of 10 companies OK, rows written by the old and the new API chained |
+| — | Backups and restore drill | **B, re-proven** | The drill script passed a corrupted copy and a probe refused for want of a grant — fixed (`867133e`); re-run 2026-10-03: every table by CHECKSUM, trigger bodies identical (`docs/22` E.3) |
+| — | Account deletion | A (code) / **D (production)** | In production no code can be sent: refused honestly up front since `56bddbe`; completing a deletion needs D116 (`docs/67` §4.1) |
+
+**The ten blockers of §12, now** — still none clearable by a session: 1 WhatsApp (D) · 2 D110, superseded by D116 (D) ·
+3 hosting and secrets (D; the code side C) — add for a hosted MySQL: `log_bin_trust_function_creators=1` before any
+migration or restore that creates triggers, and an explicit `connection_limit` · 4 dependency triage (E) · 5 the module
+tenant suite (E) · 6 retention and incident response (D) · 7 Apple (D) — plus a **privacy policy URL and in-app link**,
+the **payment model** (D118) and **registration in production** (D117), `docs/67` RC-02, RC-03, RC-08, RC-09 · 8 the
+first CI run (C) · 9 bot protection (D) · 10 the independent assessment (D).
+
+**Verdict: NOT PASS.**
+
+---
+
 ## What "done" looks like
 
 - Every section above has evidence attached, produced on one release-candidate

@@ -10623,3 +10623,74 @@ share target) and §53 (the fixes on a device, the largest text on an iPhone SE)
 Manager's personal targets (a names-only people list for `goal.manage` — the owner's call). The findings of
 `docs/66` §8. Automatic WhatsApp report delivery stays postponed (D111). Everything the previous handoff carried
 (`docs/48` §12's release blockers, 0084/0085 on live) is unchanged.
+
+## 2026-10-02 23:31Z → 2026-10-03 00:50Z — CLAUDE-B (cloud) — the release-candidate stabilization: the gate, the fixes, the rehearsal of 0084 → 0085, the runbook, GO / NO-GO
+
+**Takeover.** From `READY_FOR_HANDOFF`, owner NONE (the previous handoff was complete), recorded in docs `a72a08d`
+before anything changed. HEADs at takeover, all clean and level: docs `d8775d1`, backend `1a4bd6f`, mobile `e484b58`
+(both `reports-export`). Live at 0083 (repository 0085), unreachable from this session and untouched. Discrepancies
+reported before any code change (`docs/67` §1): the 30 Sep audit's fixes outside the release branch while `docs/48`
+cited D5; `npm ci` failing on the expo-camera patch version; stale `master`; D4; mobile PR #1 unmerged; CLAUDE-A's
+uncommitted trace on the owner's PC.
+
+**The brief (2026-10-02).** A trustworthy release decision, not a feature wave: classify every open finding; fix only
+objectively demonstrable defects with focused tests; decision papers (expired shop, full IMEIs, notifications in the
+reader's language, *Phone sales*, a Manager's targets, a past month's PDF); reconcile the security gate and the
+deletion journey; Apple's guidelines; rehearse 0084 and 0085 on a disposable restored copy and write the runbook; an
+iPhone script; GO / NO-GO. No publishing, TestFlight, live migration or live data change without the user's approval.
+
+**Done — backend `reports-export` `1a4bd6f` → `1434aa7`.** `4370240` a transaction reads the company's timezone through
+itself (concurrent sales had exhausted the pool: 3 sales at once per shop on a 5-connection pool lost 5 or 6
+of 6 in every trial; 16 writes at once lost 12 to 16 of 16). `56bddbe` deletion and number verification refused up front when no channel can send (with
+WhatsApp disabled they had created undeliverable requests and challenges; the API answered 200). `867133e` the identity
+script runs (it could not, and left a `placeholder` password) and the restore drill fails a restore that changed data
+(it passed a corrupted copy). The audit's D1 `c4ad802`, D2 `28c1bd6`, D3 `ede48c0`, D5 `0e5f189`, cherry-picked with
+`-x`. `084f738` the money-per-channel query under MySQL's default `ONLY_FULL_GROUP_BY` (the Daily closing, Money's
+movements and the daily PDF failed on any server not running live's empty `sql_mode`). `c0a00a1` the purchase cost out
+of the *Received N item(s)* notice (it reached the Administrator role, denied `cost.view`). `1434aa7` the identity
+verifier's trigger probes pass only on the trigger.
+
+**Done — mobile `reports-export` `e484b58` → `3023bd3`.** `1e4567e` the expo-camera patch re-cut for 57.0.5 (byte-identical
+hunks; upstream changed no source file); `f200a52` the audit's M1; `3023bd3` the patch tests follow the verifier and
+the lockfile.
+
+**The rehearsal (`docs/67` §6).** A throwaway MySQL 8.0.46 configured like live (empty `sql_mode`,
+`utf8mb4_unicode_ci`, no binary log, `lower_case_table_names=1`); the 0083 source migrated and filled by the pre-0084
+code (10 QA boutiques, Arabic text, a ``DEFINER=`x`@`y` `` product: 94 tables, 30 triggers, 1 195 audit rows); backed up
+both ways; restored (every table by CHECKSUM); 0084 in 1.08 s (exactly its three changes), 0085 in 1.62 s (1 195 rows
+sealed, 10 of 10 chains OK); the schema identical to a fresh build; the new API and the old API both work on it; the
+new API on an unmigrated database stores an expense without its audit row (the abort condition); a failed 0085
+recovered by reversal + `migrate resolve` (the migration's *Reverse* note misses the seal procedure); identities 20 of
+20; the current app's web export clean on 19 screens.
+
+**Docs.** `docs/67` (new: the gate, the fixes, decisions D116–D128, App Review, the rehearsal, the runbook, GO /
+NO-GO), `docs/24` §54 (the iPhone script, 38 checks), `docs/48` §13 (the reconciliation), `docs/22` (`--comments`, the
+source's collation, E.3, the correction to E.2), `docs/21` (this phase), this entry, the handoff.
+
+**Verification.** Backend 181 suites / 3 254 tests (3 skipped — the demo-file receiving tests), `tsc`, `prisma
+validate`, permission catalogue 64 of 64. Mobile 89 of 89 suites, `tsc` (the known `global.css` error), lint 0 errors /
+29 warnings, Expo Doctor 19 of 21 (two network checks blocked), web export 88 pages, a clean `npm ci` (925 packages, the
+patch verified). Real HTTP on disposable data: deletion in production mode 7 of 7; D5 6 of 6; D3 6 of 6; tenant
+isolation and permissions 20 of 20; every GET route under the default `sql_mode` 0 of 85 failing (4 before), the
+audit's write journeys with no database error; 25 of 25 closing reads byte-identical before and after `084f738`;
+concurrency 16 and 30 at once accepted after `4370240`; a transaction against MySQL assigning a Tokyo company 3 Oct and
+a Nouakchott one 2 Oct. Nothing on an iPhone.
+
+**Mistakes of this session, recorded.** A schema comparison first ran with `GROUP_CONCAT`'s 1 024-byte default and so
+compared truncated text — redone at full length before any claim. A strict-mode probe first counted *400 Database
+request error* as a pass (it checked `< 500`) — redone requiring 200 or 403, which found the closing failure. During the
+timezone probe one QA company was reset to `UTC` instead of its `Africa/Nouakchott` — corrected at once (all 12 checked).
+The first concurrency comparisons ran while the pool still recovered from the previous burst — redone with a fresh API
+per trial. A comparison harness read the API address at load time and hit nothing — redone. One cherry-pick log went to
+`/tmp` rather than the scratch directory (removed). A probe printed the first characters of a synthetic session token
+to the terminal (signature cut off; its database dropped and its signing secret discarded) — never in a file.
+
+**Data and process safety.** Live: unreachable and untouched. Every write went to disposable databases on two throwaway
+MySQL servers in the session's scratch directory — `prisma_qa_rc`, `_restored`, `_fresh`, `_fail`, `_strict` and the
+drill copies — all dropped at the end, both servers shut down, the live-like server's files removed, the rehearsal
+worktrees removed. The database passwords, JWT and OTP secrets and the backup passphrase were random, generated into
+mode-600 scratch files, never printed, and deleted. No secret, dump or environment file in any commit.
+
+**Not done, owed.** The owner's decisions (`docs/67` §4, D116–D128, D115); 0084 and 0085 on live through the runbook
+(`docs/67` §7) after approval; the iPhone run (`docs/24` §54); the security gate's blockers. Draft PRs #2 (backend,
+mobile) are superseded by the cherry-picks — for the owner to close.

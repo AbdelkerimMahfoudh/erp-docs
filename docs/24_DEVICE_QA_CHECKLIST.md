@@ -3956,3 +3956,105 @@ phone.
 | AD13 | As a Manager: More → Targets → *Set a target* | *Who it is for* offers *This shop* and *The whole business* only; as the Owner *One person* lists the team | | | |
 | AD14 | The platform administration at the largest text: Businesses, a pending business | *Create a business* below the count when it does not fit; a business's name never cut to a letter; *New Owner invitation* wraps inside its button | | | |
 | AD15 | A shop past its grace period: Home, Money, More | More shows *Your subscription has ended…*; Home and Money show no notice (record what *Sell* does — the server refuses; `docs/66` §8) | | | |
+
+## 54. The release-candidate iPhone script (`docs/67`) — NOT VERIFIED ON ANY DEVICE
+
+One run through the release candidate on a real iPhone, in priority order: backend **`1434aa7`**, mobile **`3023bd3`**
+(both `reports-export`). It folds in §51–§53. **Status now** says what is known before the phone: **API VERIFIED**
+(real HTTP on a disposable database), **WEB VERIFIED** (a browser on the web export — it says nothing about the native
+camera, print preview, share sheet, keyboard, safe areas, system text size or the native right-to-left layout),
+**FAILED** (known to fail in the release configuration), **NOT VERIFIED**. **No check here is DEVICE VERIFIED until a
+real iPhone has run it** — write *DEVICE VERIFIED* with the date, the iPhone model, iOS version and build number in the
+three language columns as each passes, or *FAILED* with what happened.
+
+**Before the first check — prerequisites (none can be produced by a session):**
+
+| # | What | Why |
+|---|---|---|
+| P1 | **A build on the iPhone.** Either TestFlight with internal testers — the Apple Developer membership, the App Store Connect record for `mr.retailerp.app`, `eas build --platform ios --profile production` with `EXPO_PUBLIC_API_ORIGIN=https://<host>` set in EAS and `node scripts/verify-release-config.js` passing for it, the export-compliance answer, the tester's Apple ID — or an ad-hoc build (`eas device:create` for the iPhone, `eas build --profile preview`) with the same HTTPS origin | Only a signed build shows release behaviour: HTTPS only, the permission texts, the icon and splash, the release bundle. **Expo Go or a development build is acceptable for the JavaScript checks only** (marked *JS* below) and must be named as such in the result |
+| P2 | **An HTTPS API** at backend `1434aa7` with 0084 and 0085 applied — a staging host with synthetic data is recommended (`docs/67` §8) | The release check refuses an `http://` origin (`scripts/verify-release-config.js`); the shop's PC API is not reachable from outside its network |
+| P3 | **Test logins** in a test business with two branches: Owner, Manager, Employee, an Administrator role; a second business whose period has **expired** and one in **grace** (set from the platform administration) | Roles and states |
+| P4 | **Things to scan**: phone boxes with IMEI barcodes (one dual-SIM), a serial-number label, accessories with EAN-13 barcodes, a second phone showing `*#06#` | The camera checks |
+| P5 | An **iPhone SE** (or the smallest available) and a large iPhone; *Settings → Accessibility → Display & Text Size → Larger Text* at the maximum for the text checks; the phone switched to French and to Arabic for those runs | Size, text and right-to-left |
+| P6 | For deletion to **complete**: the WhatsApp Business channel, or D116's alternative built (`docs/67` §4.1) | Until then only the honest refusal can be checked |
+
+**Camera and scanning**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE1 | First scan in a fresh install | the camera permission prompt with *Retail ERP uses the camera to scan IMEIs, serial numbers and barcodes…*; *Don't allow* leaves typing available and says how to allow later | NOT VERIFIED | | | |
+| AE2 | Receive → scan a phone box | the IMEI read, the product recognised or proposed, the frame drawn is the frame that counts (on iOS the scan region is enforced natively) | NOT VERIFIED (web has no camera; its *No camera here* sheet is WEB VERIFIED) | | | |
+| AE3 | Receive → scan → **Choose product** from the picker → back | the scanned IMEI is still there (the audit's M1, `f200a52`) | NOT VERIFIED (unit tests) | | | |
+| AE4 | A dual-SIM box; a serial-number label; an EAN-13 accessory | both IMEIs on one unit; the serial recognised as serial; the accessory as a quantity line | NOT VERIFIED | | | |
+| AE5 | Two codes in the frame; a code half outside the frame; dim light | only a code inside the frame is taken; two inside → the app asks which | NOT VERIFIED | | | |
+| AE6 | Sell → scan a phone in stock / one already sold / another shop's phone | added to the cart / *already sold* / *not found* — never another shop's phone | API VERIFIED (sell-once; another shop's phone 404) | | | |
+
+**Sale and return flows**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE7 | Sell one phone for cash → the receipt | *PDF ready* → **Open** (the system preview) → **Share or save**; the receipt shows the full IMEI (warranty proof), no cost or margin | API VERIFIED (sale); NOT VERIFIED (native preview, share) | | | |
+| AE8 | Tap **Pay** twice quickly; or lose the network at the moment of paying and retry | one sale; both taps answer with the same sale — no *conflict* message (the audit's D5, `0e5f189`) | API VERIFIED (6 of 6 rounds) | | | |
+| AE9 | A split payment; a part-paid sale to a named customer | the sale, the debt in *Outstanding payments*, the money on its channels in Money | API VERIFIED; WEB VERIFIED | | | |
+| AE10 | Request a return with the phone in hand → approve → refund reported → refund confirmed | each stage in the return's history; the refund receipt masks the IMEI; the Daily closing shows the refund | API VERIFIED (earlier journeys); WEB VERIFIED (the stages, `docs/66`) | | | |
+| AE11 | Kill the app in the middle of a sale; reopen | the draft offered back with only what was typed; prices re-read from the server | NOT VERIFIED (JS) | | | |
+| AE12 | Two phones sell the same phone at the same moment | exactly one sale; the other is told the phone is sold | API VERIFIED | | | |
+
+**Report PDFs — the native preview and share sheet (§52)**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE13 | Daily closing → **Generate PDF** → **Open** | the A4 report in the system preview; the file named `RetailERP_<Branch>_Daily_<date>_<LANG>.pdf` | API VERIFIED (43 of 43); WEB VERIFIED (18 PDFs rendered in Chromium); NOT VERIFIED (native) | | | |
+| AE14 | **Share or save** → Save to Files; → WhatsApp; → dismiss | the exact file name in Files; WhatsApp opens with the PDF and **sends nothing until the person presses send**; a dismissed sheet changes nothing | NOT VERIFIED | | | |
+| AE15 | Results → *This month* → **Generate PDF** as Owner, as Manager; as Employee | the monthly PDF (*in progress*); an Employee sees no *Generate PDF* | API VERIFIED | | | |
+| AE16 | Arabic | the PDF reads right to left; figures, dates and the file name left to right; `_AR.pdf` | WEB VERIFIED (rendered); NOT VERIFIED (native) | | | |
+
+**Keyboard, safe areas and large text**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE17 | Add expense, a price, the deletion password, the sign-in form: focus the last field | the keyboard never covers the field being typed or the primary button; *Done*/*Next* move sensibly | NOT VERIFIED | | | |
+| AE18 | Screens with pinned buttons (a return, Request a return, the sale's payment) on a phone with a home indicator | the buttons above the home indicator; the end of the page readable above them (`docs/66` §7) | WEB VERIFIED (web layout); NOT VERIFIED (safe areas) | | | |
+| AE19 | iPhone SE, the **largest** text size: Transfers, a transfer, a debt, a consignment, a price approval, Returns, Sales, an import, Settings' identifier, Analytics, Notifications after midnight, the platform administration (§53 AD12, AD14) | every status chip inside the screen; no amount or status cut; titles wrap rather than overlap | WEB VERIFIED (645 of 645 at 320 pt × 1.3×); NOT VERIFIED (the system's own text sizes) | | | |
+| AE20 | Home's three figures, Money's card, the Daily closing at the largest size | figures whole; labels wrap; nothing under the tab bar | WEB VERIFIED; NOT VERIFIED | | | |
+
+**Arabic, right to left**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE21 | Switch the app to Arabic (the app asks for a restart where the layout flips) | the whole layout mirrored; the back arrow on the reading side; tab order mirrored | WEB VERIFIED (121 Owner images); NOT VERIFIED (native layout engine) | — | — | |
+| AE22 | IMEIs, phone numbers, amounts, dates and invoice numbers in Arabic screens and the receipt | left to right inside right-to-left text, never reversed | WEB VERIFIED; NOT VERIFIED | — | — | |
+| AE23 | Arabic customer names and notes (typed with the Arabic keyboard) through a sale and *Outstanding payments* | stored and shown as typed | API VERIFIED (rehearsal data); NOT VERIFIED (keyboard) | — | — | |
+
+**Your account and deletion (§51)**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE24 | More → *Your account* | name, personal ID, the WhatsApp number *Verified*/*Not verified* in words and colour, *Delete account* saying what it deletes (a login, or the business) | WEB VERIFIED | | | |
+| AE25 | **With WhatsApp postponed (the release configuration today)**: *Delete account* → password → *Send deletion code*; and *Verify a WhatsApp number* | *Codes cannot be sent right now. Nothing was changed* — for an email-only Owner, for a verified-number Owner, for a staff login; **no code field appears**; nothing is created (`56bddbe`) | API VERIFIED (7 of 7, production mode) | | | |
+| AE26 | Delete an account **to completion** in the release configuration | the account deleted in the app, with a confirmation | **FAILED** — cannot complete while no delivery channel exists (`docs/67` RC-01, D116) | | | |
+| AE27 | With the channel (or D116) in place: AB4–AB18 of §51 | as §51 | API VERIFIED with the development channel (117 of 117, earlier); NOT VERIFIED on a device | | | |
+| AE28 | A pending, refused or suspended shop: the refusal screen → *Delete my account* | the confirmation screen; back returns to the refusal screen | WEB VERIFIED | | | |
+
+**Expired and grace**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE29 | The expired business: Home and Money | per D119 once decided; **today Home and Money still offer *Sell*, *Receive*, *Add expense*, *Open the boutique*** | **FAILED** (WEB — `docs/66` §8; the server refuses each: API VERIFIED) | | | |
+| AE30 | The expired business: More, *Subscription*, a sale's detail, Results, a PDF | the red notice on More; everything readable and exportable; nothing deleted | WEB VERIFIED | | | |
+| AE31 | The grace business | everything works; More shows the hours left | WEB VERIFIED | | | |
+| AE32 | Extend the expired business from the platform administration while the app is open → *Check again* / reopen | the app opens normally, no reinstall or sign-out | NOT VERIFIED | | | |
+
+**Offline and error recovery**
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AE33 | Airplane mode on Home, Stock, Money | *Showing what this phone last knew…*; nothing claims to be current; no crash | NOT VERIFIED (JS) | | | |
+| AE34 | Airplane mode → try to sell, to add an expense | refused with a plain sentence and a way back; nothing half-saved | NOT VERIFIED (JS) | | | |
+| AE35 | Online again → retry the same sale | one sale (the same key) | API VERIFIED | | | |
+| AE36 | The server stopped while a screen is open; restarted | a plain error with **Try again**; it recovers without signing out | NOT VERIFIED | | | |
+| AE37 | Leave the app in the background for an hour; reopen | it signs in silently or asks for the password — never a blank screen | NOT VERIFIED | | | |
+| AE38 | Two phones of one shop busy at once (sales and expenses together) | every action saved; no *Database request error* | API VERIFIED (16 and 30 at once after `4370240`) | | | |
+
+Record anything that fails here with the screen, the language, the text size and the exact words shown, and move it into
+`docs/67` §2.
