@@ -6650,3 +6650,107 @@ operational.** Bankily and WhatsApp remain deferred.
 
 The owner's confirmation of D133; the website repository decision and the inputs of `docs/68` §7; the device run
 (`docs/24` §55); everything else unchanged from `docs/67` (0084/0085 on live, the gate's blockers, the iPhone script).
+
+---
+
+## The seat rule, team accounts, the website from scratch, and four app defects (2026-10-05, CLAUDE-B)
+
+> The brief of 2026-10-05 ~03:21Z is the newest set of product decisions. Where it supersedes an earlier rule, the
+> earlier rule is named here, so nobody has to guess which one holds.
+
+### ✅ APPROVED — D135: one included seat per store; each further seat 100 MRU per store per month
+
+Every store includes **one** employee seat; the Owner never takes a seat. Each additional seat at a store costs
+**100 MRU per month**, charged **in full** when it is added mid-month and never refunded this period. A person who
+works at two stores holds a seat at **each**; within one store a person is counted once, whatever their roles or
+devices. Stores stay at 500 MRU per month; the subscription stays **one per company** with one timeline (this also
+closes **D133**: per-store seats, company-level period).
+
+**Supersedes:** "two employees included per branch, pooled company-wide" (this file, the separation phase of
+2026-10-05; `docs/33` §economics; `docs/68` §1 table; `docs/04` H). Plan **version 2** carries the new figures
+(`0086`); periods already open keep the unit prices copied into them and their assessed high-water mark, so nothing
+already invoiced moves (backend `pricing-rules.ts`, `assessPeriod`).
+
+### ✅ IMPLEMENTED — D136: an employee account is created pending and activated only by the server
+
+The Owner creates an account from Team with an email, a WhatsApp number, or both. The account exists but **cannot
+sign in** (`is_active = 0`, `invited_at` set, `activated_at` null, an unguessable placeholder password) until the
+person proves **every** contact the Owner selected — the email if an email was given, the number if a number was
+given, both if both — and a seat is held for them at each of their stores. The two may complete in either order. The
+only code path that sets `activated_at` is `StaffActivationService.tryActivate`, run under a row lock on the
+company's subscription; sign-in considers only active accounts, and the Team `PATCH isActive=true` is refused with
+`activation_pending`. So an older client or a direct API call cannot skip the verification.
+
+When no channel can deliver, the account is still created, the response says `unavailable` for that channel, the
+Owner can resend later, and **no code is ever returned** outside local development (`codeMayBeReturned`, the same
+guard registration uses). Creating or inviting is never the same as verified or active. The Owner's own onboarding
+and the platform's approval of a business are untouched.
+
+### ✅ IMPLEMENTED — D137: seats and stores beyond the included ones are requests paid through the platform
+
+An Owner (from Team, when a store has no free seat; or from the website) asks for a seat at a store or for a new
+store. The **server** prices it from the plan in force and the request waits as `pending_payment`. Nothing is granted
+by asking: no seat is held, no store exists. A platform administrator confirms a **real** payment with a **reference**
+(refused without one: `reference_required`), behind the password step-up; the payment row and the status move in one
+transaction, guarded by the request's `version`, so a retry is a no-op (`applied: false`) and a stale colleague is
+told to refresh (409 `seat_request_changed`) — never a second payment. The audit log records the reference and
+`providerVerified: false`. A paid store opens at once and every Owner is assigned to it. A paid seat activates nobody
+by itself: the server re-checks the person's contacts and activates only when both halves hold. **A customer can
+never confirm their own payment**: the confirming routes exist only behind the platform guard, and no tenant route
+carries an amount, a status or a confirmation flag (tested).
+
+### ✅ APPROVED — D138: the transition for existing businesses — nobody deactivated, nothing charged retroactively
+
+`prisma/transition-seats.ts` (dry-run by default, `--apply` to write) carries every employee above a store's included
+seat on the day the rule takes effect as a **granted** seat (0 MRU, reason "transition"), and converts seats bought
+under the pooled rule (`subscriptions.additional_seats`) into paid seats at the stores that need them. Nobody loses
+access; the quote shows granted seats separately; a store over its seats is reported and blocks only *new*
+activations at that store. Rehearsed on the disposable database: idempotent, one granted seat where the matrix had put
+two people on one included seat.
+
+**🔴 OPEN — D138b:** the date from which granted seats become paid seats (or stay granted), to be set by the owner.
+Until then they cost nothing and are listed by the website and the console as "granted".
+
+### ✅ APPROVED — D139: the website is a new repository, built from scratch
+
+`erp-control-web` (Vite + React + TypeScript; `docs/38`, `docs/68`). The earlier `retail-erp-control-web` on the
+owner's broken PC is **abandoned**, not recovered. The repository is local only: creating a remote was refused twice
+by the session's GitHub integration (`403 Resource not accessible by integration`; the proxy serves repository-scoped
+endpoints only). The exact publishing step is in `CURRENT_HANDOFF.md`.
+
+### ✅ APPROVED — D140: the public price list and a stateless estimate are public routes
+
+`GET platform/plan` (the plan in force, prices and dates only) and `POST platform/quote` (a stateless estimate from
+"employees per store") exist for the website's public pages. They name no business and read no company; the quote
+**by company id** removed on 2026-10-05 stays gone (tested). The mobile app does not call either (bundle audit).
+
+### ✅ APPROVED — D141: Import stock is a Stock-tab action, not a More row
+
+`/imports` leaves More and the Stock hub; its entry point is the Stock tab header (Owner-only, `import.run`), back
+returns to the Stock tab, deep links keep a written reason, and the draft the preview holds is unaffected.
+
+### ✅ IMPLEMENTED — D142: the Arabic layout notice tells the truth about the layout
+
+The notice is computed from the direction the app **actually** runs against the language chosen, at every launch:
+nothing when they agree (and the earlier request is forgotten); "restart needed" the first time; in **Expo Go**, a
+notice that Expo Go cannot apply a direction change; after a restart that changed nothing, a notice that this build
+cannot switch direction. It never clears while the layout is wrong. `app.json` now sets `expo-localization`
+`supportsRTL: true`, which native builds need for the direction to apply at launch — a new native build is required,
+and the behaviour is **unverified on a device** in this session (`docs/24`).
+
+### ✅ IMPLEMENTED — D143: a list owns its scrolling; a toast is never blank
+
+Notifications (and the price history) render their `FlatList` without the page's own ScrollView around it, which is
+what the React Native warning named; nothing is suppressed through LogBox. A toast called without words shows the
+app's generic error sentence instead of an empty red box, and names its caller in development; the exact caller on
+the owner's device is **not identified** in this session (no device, no reproduction) — the guard and the development
+warning are what will name it.
+
+### ✅ IMPLEMENTED — D144: a product the file names and the catalogue lacks is created from the review
+
+The Match sheet offers **Create and link product** to somebody with `catalog.manage`: the product form opens filled
+in only from what the file said (brand, model, the exact variant, the tracking mode the identifiers imply), every
+field editable; saving links the product to exactly the rows waiting on it and returns to the same review; a product
+that already exists is used instead of duplicated; cancelling returns with nothing changed; the draft survives an
+interruption. Somebody without the permission is told whom to ask and that the review is kept. No unit exists until
+the delivery is confirmed.

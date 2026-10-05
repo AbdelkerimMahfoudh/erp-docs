@@ -4084,3 +4084,39 @@ with the exact words shown.
 
 Nothing here shows a price, a payment method, a way to buy or renew, or a website. If any screen does, that is a
 release blocker — record the exact words and the screen.
+
+## 56. Owed from the 2026-10-05 phase — seats, Team, intake, Arabic, Notifications (`docs/69`)
+
+Nothing below was run on a device in that session (no iPhone in the container). Each line is a check with the
+result it must produce; mark it with what was actually seen.
+
+**Arabic direction (D142)** — on a **new native build** (the `supportsRTL` option is new) and separately in Expo Go:
+- [ ] EN → AR in Appearance: text switches at once; the notice says *Restart needed*; the layout stays LTR until restart.
+- [ ] Force-quit and relaunch: the layout is RTL, the notice is **gone**, and stays gone across sign-out, termination and relaunch.
+- [ ] AR → EN: the same, the other way; FR and EN are both LTR.
+- [ ] In Expo Go: the notice says Expo Go cannot apply the direction (it must not promise a restart will).
+- [ ] If a native build restarts and the layout still runs the other way, the notice says the build cannot switch direction — it must **not** vanish while the layout is wrong.
+- [ ] Dark and light, cold launch, the native back arrow in AR.
+
+**Notifications (D143)** — list loads / empty / error / long list (40+); mark as read; open a destination; pull to refresh;
+rapid taps; an Employee's permissions; AR layout; **the console shows no `VirtualizedLists` warning**; **no blank toast** —
+if a blank one would have appeared, the development console now logs `[toast] … called without a message` with a stack:
+record it, that is the caller the session could not identify.
+
+**Team (D136)** — add a member with a number only, an email only, both; the account shows *Awaiting activation* with the
+contacts awaiting; the person's code arrives (WhatsApp when enabled; otherwise the outbox in development); confirm with the
+code and a password → the row turns *Active*; a second member at a full store shows *waits for the platform's confirmation*
+and **no amount anywhere**; resend; withdraw; the Team switch refuses a pending account.
+
+**File intake (D144)** — the Samsung file: Match → *Create and link product* → the form filled in from the file → Save →
+back on the same review with the rows ready and the product named in the item sheet; cancel the form → the review
+unchanged; save a product that already exists → *Use this product for the file rows*; a user without `catalog.manage`
+sees whom to ask and keeps the draft; mixed variants stay separate decisions; an invalid-IMEI row stays held; leave the
+app mid-review and come back → the draft restores with the link.
+
+**Import stock (D141)** — the Stock tab header shows the spreadsheet icon for the Owner only; More has no *Import stock*
+row; back from Import stock returns to Stock; the preview's back returns to Import stock.
+
+**Website (`docs/69` §4)** — on a phone browser: the home page, estimate, application (refused honestly where no
+provider delivers), sign-in, status page in AR; screenshots of this session: `scratchpad ph2/shots/*.png`
+(71 files, `<page>-<en|ar>-<phone|desktop>.png`, plus `apply-verify-fr-phone.png`).

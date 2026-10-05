@@ -1,97 +1,71 @@
-# ERP Current Handoff
+# CURRENT_HANDOFF
 
-> This file is a **snapshot**, not a history. Stale detail is replaced, not
-> appended. The narrative record lives in `SESSION_LOG.md` (append-only) and the
-> approved decisions in [`docs/21`](docs/21_PRODUCT_DECISIONS.md).
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE-B — 2026-10-05T03:22Z → 2026-10-05 (the seat rule, team accounts, the website from scratch, four app defects)
+previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-10-05T03:22Z)
 
-## Session control
+## HEAD of every repository — all working trees clean
 
-- Status: **IN_PROGRESS**
-- Owner: **CLAUDE-B** (a claude.ai cloud session)
-- started_at_utc: **2026-10-05T03:22Z**
-- Taken from `READY_FOR_HANDOFF`, owner NONE — the previous handoff (CLAUDE-B, 2026-10-05 02:40Z, the subscription
-  separation) was **complete**: all three working trees clean and level with their remotes at the HEADs below, verified
-  against `git fetch` before this line was written.
-- **Active phase and scope (the user's brief of 2026-10-05, 03:21Z):** (A) the external business and subscription
-  website built from scratch in its own repository (no website existed anywhere this session can reach); (B) employee
-  accounts created from Team in the app, contact verification of every selected channel enforced on the server, and the
-  new seat rule — one free employee seat per store, the Owner excluded, 100 MRU per additional seat per store, paid and
-  verified before activation; (C) the file-based stock intake creates and links a missing product in place, and Import
-  stock moves from More to the Stock tab; (D) the Arabic restart notice reflects the real direction; (E) Notifications'
-  nested list and its empty error toast; (F) every gate, browser screenshots of the website, docs, session log, handoff.
-  **Out of scope, by instruction:** live data or migrations, publishing the website to a production domain, an iOS
-  build, any claim that Bankily, WhatsApp or email delivery works without real configuration.
-- Next intended action: report the takeover discrepancies, then backend → mobile → website → docs, committing on the
-  release branches only after verification.
+| Repository | Branch | HEAD | Remote |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `d670401` | pushed (`7283844..d670401`) |
+| `erp-mobile` | `reports-export` | `81cb599` | pushed (`6f6ef47..81cb599`) |
+| `erp-control-web` (new) | `main` | `0417bfe` | **no remote** — see blocker 1 |
+| `erp-docs` | `master` | the commit carrying this file | pushed |
 
-## HEAD now
+The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged by this session.
 
-| Repository | Branch | HEAD | Upstream | Dirty |
-|---|---|---|---|---|
-| `erp-docs` | `master` | *this commit* | level | 0 |
-| `erp-backend` | `reports-export` | **`7283844`** | level | 0 |
-| `erp-mobile` | `reports-export` | **`6f6ef47`** | level | 0 |
-| `retail-erp-control-web` | `master` | `c764d63` — on the owner's PC only, **no remote**, not touched (as last recorded) | — | — |
+## What this session delivered (detail in `docs/69`; decisions in `docs/21` D135–D144)
 
-Backend this session: `7283844` (the quote route removed; payment instructions unavailable until a real code, the boot
-assertion wired; registration refused up front without a channel; device revocation allowed after expiry). Mobile:
-`7fdbd36` (`*.css` declared — `tsc` clean), `d761926` (the console and self-registration out), `6f6ef47` (business access
-screens, the read-only state, the boundary tests). Docs: `94e599e` (takeover), this commit. **No migration was written;
-live is still at 0083** (0084 and 0085 owed — runbook `docs/67` §7). Draft PRs unchanged: backend #2 and mobile #2
-**superseded** (close them); backend #1 (the QA seed) and mobile #1 (*Catalog leaves More*, D126) unchanged. In this
-cloud container only: `/home/user/erp-backend-seed` is a git worktree at `d88893a`; every database, server and secret of
-this phase is gone.
+1. **One included seat per store, 100 MRU per further seat per store** (backend `0086`, plan version 2), with the
+   transition that carries existing staff as granted seats and deactivates nobody (`prisma/transition-seats.ts`).
+2. **Employee accounts that wait to be activated** — created from Team with email, WhatsApp number or both; every
+   selected contact verified by the person; a seat held at each store; activated only by the server, under a lock;
+   no bypass by older clients, direct sign-in or the Team switch; no code ever returned outside local development.
+3. **Seat and store requests paid through the platform** — priced by the server, confirmed by an administrator with a
+   reference, version-guarded (one payment, 409 on a stale colleague), audited; the store opens on payment.
+4. **The website `erp-control-web`, from scratch** — public site with the server's price list and estimate, business
+   application, Owner account with status / quote per store / requests / payments / history, administrator console with
+   step-up, queue, every lifecycle decision; EN/FR/AR with RTL; tests and build; 71 screenshots
+   (`scratchpad ph2/shots/INDEX.md`).
+5. **The four app defects** — Create and link product from the file review (pure test of the screenshot scenario);
+   the Arabic direction verdict that never lies (needs a new native build; `supportsRTL` set); Notifications and the
+   price history own their scrolling; a toast is never blank; Import stock on the Stock tab.
 
-## What changed
+## Live state
 
-| Where | Now |
-|---|---|
-| **The customer app's boundary** | no platform console, no self-registration, no price, seat price, payment method or instruction, no purchase / renewal / extension action, no website or payment link, no plan, no billing control, no in-app purchase — pinned by `lib/access-boundary.test.ts` and the exported-bundle audit |
-| **Business access** | `/access` (status: state, date or grace deadline, *Managed by your organisation*, the mistake line) and `/access-closed` (pending / suspended / not approved / ended, with Check again, Sign out, Delete account); EN/FR/AR |
-| **Read-only shop** | one `AccessNotice` on Home, Partners, Money, Stock and More; Sell, Receive, Open store, Add expense, money positions, Lend, Consign and the Daily closing's writes withheld; 17 write-only screens redirected to `/access`; a slipped-through write named as ended access |
-| **Grace** | the app as usual, one restrained notice with the server's exact deadline |
-| **Sign-in** | *Accounts are set up by your organisation's administrator.* — no Create account, no console link |
-| **Backend** | `GET platform/quote/:id` removed; `platform/payment-instructions` → `available: false`, no provider, no code; production boot refuses a stand-in; `POST platform/register` → `503 registration_unavailable`, nothing saved, when no code can be delivered; `DELETE devices/*` allowed after expiry, `adopt` still blocked |
-| **Unchanged, by design** | every entitlement check on the server (`ENTITLEMENT_*`), the administrator realm, step-up, versioning and audit; `platform/my-subscription` and the portal handoff for the website; a shop's own Cash / Bankily / accounts |
+- The live database was **not touched** and is still at `0083`. Owed on live, in order and only with the owner's
+  approval and a verified backup: `0084`, `0085` (`docs/67` §7), then `0086` with the transition script (`docs/69` §2).
+- Nothing deployed, submitted or published; no message sent; no provider configured; no iOS build.
 
-## Verification
+## Blockers and owed decisions
 
-| Kind | Result |
-|---|---|
-| **Gates** | backend `tsc`, 181 suites / 3 264 tests (3 skipped), `prisma validate`, `migrate status` up to date (disposable, 84 migrations), permission catalogue complete; mobile `tsc` **clean (no known error)**, 87 / 87 suites, lint 0 errors / 29 pre-existing warnings, Expo Doctor 19 / 21 (two network checks blocked), parity 3 255 × 3, web export 79 pages / 71 routes all present, bundle audit 15 / 15 |
-| **Real HTTP (disposable, dev- and production-mode APIs)** | **87 / 87** — `docs/68` §10 (pending, approval, roles, grace, the ±20 s boundary, read-only, suspension, reinstatement, concurrent and contradictory decisions, refusal, isolation, realm separation, production refusals) |
-| **Not run** | any iPhone (`docs/24` §55), anything on live, the website |
+1. **The website has no remote.** Creating `erp-control-web` on GitHub from this session was refused twice
+   (`403 Resource not accessible by integration`; the proxy serves repository-scoped endpoints only). The owner creates
+   `AbdelkerimMahfoudh/erp-control-web` (private) and adds it to the session's repositories; then, in the website's
+   directory: `git remote add origin <url> && git push -u origin main`. Until then the repository lives only on the
+   machine where this session ran — the next session must **not** treat it as published.
+2. **D138b** — the date from which granted (transition) seats become paid seats; until then they cost nothing.
+3. **No email delivery provider exists in the backend** (`ContactDeliveryProvider` has WhatsApp and the development
+   outbox). Applications and invitations by email are refused honestly until one is written and configured.
+4. **Device checks** `docs/24` §56, on a NEW native build (Arabic direction, Team, intake, Notifications, website on a
+   phone browser). Nothing in this phase was run on an iPhone.
+5. The website is **not production-ready** until: an email provider, HTTPS with the cookie `secure`, a domain, the
+   support and privacy addresses, and the written and rehearsed payment procedure (`docs/69` §4).
 
-## 🔴 Release blockers (`docs/67` §2, §9)
+## Next exact action
 
-RC-01 deletion cannot complete in production (D116) · RC-04 no HTTPS host · RC-05 live at 0083 · RC-06 nothing on an
-iPhone · RC-07 the security gate · RC-08 no privacy policy · RC-09 demo business for review, export compliance, privacy
-manifest, iPad. **Closed this phase:** RC-02 (no registration in the app; refused on the server) · RC-03 (D118 decided).
+1. Owner: create the GitHub repository and tell the next session; push `erp-control-web` (blocker 1).
+2. Owner: decide D138b; confirm the website copy and the price list wording on the home page.
+3. Next session: run `docs/24` §56 on a device with a new native build; record the blank toast's caller from the
+   development warning if it reappears; then the live runbooks when approved.
 
-## 🟡 The owner's decisions
+## Verification of this session (summary; `docs/69` §6)
 
-**New:** **D133** — confirm the commercial reading: one subscription per company, priced per branch (every active branch
-500 MRU; two staff per branch pooled; 100 MRU per additional account, a whole month; no trial; 72 h grace). A separately
-dated subscription **per branch** would be a schema change to plan, not a wording fix. **Also owed:** the website
-repository (push `retail-erp-control-web` to a remote, or a fresh one) and the inputs of `docs/68` §7 (domain, DNS, TLS,
-hosting, an email provider, the Bankily agreement, MFA, legal texts). **Still open from before:** D116 (deletion without
-WhatsApp), D120–D128, D115. **Resolved this phase:** D117, D118; D119 implemented.
-
-## 📋 Known, not fixed
-
-`platform/my-subscription` answers any tenant session, a Manager's included — the website must show the account page to
-the Owner only (`docs/68` §2). Create a business, invite its Owner, approve, refuse and correct a period have **no UI**
-until the website carries them (`docs/68` §8 gives the API calls). Everything in `docs/67` §2 RC-10 … RC-27 and the
-older backlog is unchanged.
-
-## The next exact action
-
-1. **Take ownership** (`IN_PROGRESS`, the account, the UTC instant, the three HEADs above).
-2. **With the owner:** D133 (confirm the commercial reading), the website repository and `docs/68` §7's inputs, then
-   D116 and the other open decisions; close draft PRs #2 (superseded).
-3. **The website**, when its repository and inputs exist: implement `docs/68` v1.0 (approve / refuse / create / invite
-   first — they have no UI today), with the Owner-only account page and no client-side price.
-4. **Live, only with the owner's written approval and someone at the PC:** `docs/67` §7 — 0084 and 0085, then the API on
-   backend `7283844`; the phone reloads mobile `6f6ef47`.
-5. **A build and the device run:** `docs/24` §55 (business access) with §54 on an iPhone SE and a large iPhone, in EN, FR
-   and AR.
+- Backend: `tsc` clean; 184 suites / 3 309 tests; `0086` applied from empty on MySQL 8.0.46; no drift on the new
+  tables; real-HTTP matrix 76/76 (development and production mode).
+- Mobile: `tsc` clean; `expo lint` 0 errors / 29 warnings (baseline); 88 node suites; parity 3 301 per catalogue;
+  web export; bundle audit 15/15; the new copy carries no price, checkout, purchase or provider wording.
+- Website: `tsc` clean; 16 tests; production build; 71 screenshots at 375 px and 1 280 px, EN and AR.
+- Disposable data only; secrets generated and shredded; servers stopped; database files removed.

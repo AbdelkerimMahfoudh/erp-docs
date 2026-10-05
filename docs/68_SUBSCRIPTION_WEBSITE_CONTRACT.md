@@ -264,3 +264,61 @@ administrator realm refused on customer routes and vice versa, a phone clock sen
 customer response; in production mode: registration refused up front with nothing saved, payment instructions
 unavailable with no provider and no code, no public quote, no static-key provisioning, the administrator cookie
 admitted and a bearer refused.
+
+---
+
+## 9. Additions of 2026-10-05 — seats per store, requests, staff activation (v1.1)
+
+**§1 table superseded** (D135, `docs/21`): one included employee seat per store, 100 MRU per additional seat **per
+store**, no pooling; the subscription stays one per company. Plan version 2 carries it. The website shows the figures
+the server sends and never multiplies anything.
+
+### 9.1 Public
+
+| Route | Body | Answers |
+| --- | --- | --- |
+| `GET platform/plan` | — | `{version, branchMonthly, includedSeatsPerStore, extraSeatMonthly, currency, effectiveFrom, upcoming}` |
+| `POST platform/quote` | `{stores: number[]}` — non-Owner employees per store, 1–50 stores, 0–500 each | a `Quote`: `branchFee, staffFee, monthlyTotal, paidSeatCount, lines[{name, staffCount, includedSeats, paidSeats, seatFee}]` |
+
+### 9.2 Owner (tenant session; `settings.manage`)
+
+`GET platform/my-subscription` is unchanged in shape; `pricing.quote.lines` now itemises every store (`branchId,
+name, staffCount, includedSeats, paidSeats, grantedSeats, seatLimit, seatsAvailable, overLimit, seatFee`) and
+`entitlement.seatsByStore` carries the same census.
+
+| Route | Body | Answers |
+| --- | --- | --- |
+| `GET platform/my-subscription/seat-requests` | — | `SeatRequest[]` (below) |
+| `POST platform/my-subscription/seat-requests` | `{branchId}` | 201 `{allocation, created}` — priced by the server, `pending_payment` |
+| `POST platform/my-subscription/store-requests` | `{name}` | 201 `{allocation, created}`; 409 `store_name_in_use` |
+| `POST platform/my-subscription/seat-requests/:rid/withdraw` | — | `{allocation, applied}`; only while `pending_payment` |
+
+All three writes are allowed however the subscription stands (asking to pay is not a business write).
+
+`SeatRequest`: `{id, kind: seat|store, status: pending_payment|paid|granted|released|refused, store: {id,name}|null,
+person: {id,name}|null, label, monthlyAmount, currency, requestedBy, requestedAt, confirmedBy, confirmedAt, closedAt,
+closedBy, reason, payment: {id, amount, reference, paidAt, channel}|null, version, providerVerified: false}`.
+
+### 9.3 Administrators (cookie realm; `confirmPassword` on every mutation)
+
+| Route | Body | Answers |
+| --- | --- | --- |
+| `GET platform/seat-requests?status=` | — | the queue, oldest first when `pending_payment`; each row carries `business: {id, name, publicStoreId}` |
+| `GET platform/businesses/:id/seat-requests` | — | `SeatRequest[]` |
+| `POST platform/businesses/:id/seat-requests/:rid/confirm-payment` | `{amount, paidAt, channel?, reference, note?, expectedVersion?, confirmPassword}` | `{allocation, applied, paymentId, activation: {activated, pending[]}|null}`; 400 `reference_required`; 409 `seat_request_changed`; a repeat is `applied: false` |
+| `POST …/refuse` | `{reason, expectedVersion?, confirmPassword}` | `{allocation, applied}` |
+| `POST …/release` | `{reason, expectedVersion?, confirmPassword}` | a paid or granted **seat** given back; nobody deactivated |
+
+`GET platform/businesses/:id` now carries `pricing` (the same `SubscriptionPricing` the Owner sees),
+`entitlement.seatsByStore`, and each person's `status: active|pending|inactive`. `GET platform/dashboard` adds
+`pendingSeatRequests` and `pendingStaff`.
+
+### 9.4 Staff (not called by the website; recorded for completeness — `docs/69` §3)
+
+`POST /users`, `POST /users/:id/resend-verification`, `POST /users/:id/cancel-invitation` (Owner);
+`POST staff/verify/confirm`, `POST staff/verify/resend` (public, throttled).
+
+### 9.5 Audit actions added
+
+`seat.payment_confirm`, `store.payment_confirm`, `seat.refuse`, `seat.release`; timeline kinds `seat_requested`,
+`seat_paid`, `staff_activated`, `seat_closed`, `store_requested`.

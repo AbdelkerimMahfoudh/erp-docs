@@ -67,6 +67,8 @@ The non-negotiable logic of the phone business. These rules are what keep the da
 30. Recurring expenses (rent, salaries) auto-generate each period from templates.
 
 ## H. Branch & Access Rules
+
+> Seats, who may be activated and how a seat is paid for: section K (2026-10-05).
 31. Data is scoped by branch; users see only branches they're assigned to (owner sees all).
 32. Cost/profit visibility follows role (see roles doc), enforced on the **server**, never just hidden in the UI.
 
@@ -97,3 +99,19 @@ The system actively watches for and flags:
 - **Dead-stock threshold** default 60 days, **low-stock/days-left** thresholds owner-configurable. *(Confirm defaults.)*
 - **Returns window:** is there a max return period? *(Assumption: configurable, default none.)*
 - Can a sale be **fully deleted** by an owner, or only reversed? *(Recommendation: reverse only.)*
+
+## K. Seats and staff activation (2026-10-05, `docs/21` D135–D138, `docs/69`)
+
+1. **One included employee seat per store.** The Owner never takes a seat. Every further seat at a store costs 100 MRU
+   per month, charged in full when added, never refunded this period. A person at two stores holds a seat at each;
+   within one store a person is counted once.
+2. **An employee account is created pending and activated only by the server**, once every contact the Owner selected
+   is proven by the person who holds it and a seat is held at each of their stores. No client, old or new, can switch
+   it on: sign-in considers only active accounts, and the Team switch refuses a pending one.
+3. **Nothing is granted by asking.** A seat or a store beyond the included ones is a request the server prices and an
+   administrator confirms against a real payment with a reference. A customer never confirms their own payment.
+4. **Nobody is deactivated by arithmetic.** A store with more people than seats is reported, blocks new activations at
+   that store, and leaves every working employee working. Existing staff on the day the rule took effect hold granted
+   seats at no charge.
+5. **Nothing is faked.** When no code can be delivered the account is still created and the fact is said; no code is
+   shown; no payment is marked confirmed by a provider that does not exist.

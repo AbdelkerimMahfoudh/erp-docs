@@ -8,6 +8,17 @@
 > needed, and the interim API operations until it has approve / refuse / create / invite — is the contract
 > [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md). The repository still has **no remote** and was not touched.
 
+## 2026-10-05 — rebuilt from scratch as `erp-control-web` (`docs/69` §4, §7)
+
+The website described below as `retail-erp-control-web` on the owner's PC is **abandoned**: it was never pushed and the
+PC is broken. The replacement is **`erp-control-web`**, built from scratch in the 2026-10-05 phase beside `backend/`
+and `mobile/` (excluded from this repository's tree like them), Vite + React + TypeScript with the same rules this
+page sets out — nothing in storage but two preference keys, no price computed, no provider named, labelled cards
+below 720 px, three languages with tested parity. Run it with `VITE_API_BASE=<api>/api/v1 npm run dev`; verify with
+`npm run typecheck && npm test && npm run build`. It has **no remote yet**: creating one was refused by the session's
+GitHub integration; `docs/69` §7 is the publishing step. The sections below describe the old site and are kept as
+history and as the rules the new one was built to.
+
 ## Where it lives
 
 ```

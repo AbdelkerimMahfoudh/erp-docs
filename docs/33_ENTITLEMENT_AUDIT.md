@@ -11,6 +11,11 @@
 > (`DELETE devices/:id`, and a member's as the Owner) now **survives** expiry like `logout-all` — adopting one still
 > does not; and the mobile app no longer shows seats or branches at all — it shows the server's state and dates as
 > *Business access*, with no figure of any kind. Prices live on the website and in the platform's tools only.
+>
+> **2026-10-05, later (`docs/21` D135–D138; `docs/69`).** The economics table and the seats section below are
+> superseded: every store includes **one** seat, further seats are **per store** (100 MRU each, paid and confirmed by
+> an administrator, or granted by the transition), nothing pools, and an employee account is created pending and
+> activated by the server once its contacts are verified and a seat is held. `POST /users` now exists.
 
 ---
 

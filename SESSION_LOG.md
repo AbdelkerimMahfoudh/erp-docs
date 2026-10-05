@@ -10781,3 +10781,65 @@ deployed, submitted or published; no website repository created.
 **Not done, owed.** The owner's confirmation of D133 (one subscription per company priced per branch); the website
 repository decision and the inputs of `docs/68` §7; the device run (`docs/24` §55); everything owed before this phase
 (D116, the owner's other decisions, 0084/0085 on live through the runbook, the gate's blockers, the iPhone script).
+
+---
+
+## 2026-10-05T05:09Z — CLAUDE-B — the seat rule, team accounts, the website from scratch, four app defects
+
+**Brief (2026-10-05 ~03:21Z):** build the external business and subscription website from scratch in its own
+repository; make employee accounts verified before use with one included seat per store and 100 MRU per further seat
+per store, paid and confirmed by the platform; fix file intake (create the missing product from the review), the Arabic
+restart notice, the Notifications nested list and the blank toast; move Import stock to the Stock tab. Takeover at
+03:22Z from `READY_FOR_HANDOFF` (docs `b118aef`, backend `7283844`, mobile `6f6ef47`; all level with their
+remotes, four draft PRs unchanged, live at `0083`, no website repository reachable). Decisions: `docs/21` D135–D144;
+the detail: `docs/69`; the contract additions: `docs/68` §9.
+
+**Backend `d670401` (pushed).** Migration `0086_staff_seats` (two nullable columns with a backfill, `seat_allocations`,
+five timeline kinds, plan version 2 in force from the migration); per-store seat maths with paid and granted seats and a
+shared census; `POST /users` creating a PENDING account; the public `staff/verify/*` routes; the activation gate that
+is the only path to `activated_at`, under a row lock; seat and store requests priced by the server and confirmed by an
+administrator with a reference (version-guarded, one payment row, audited, `providerVerified: false`); the public plan
+and estimate; the administrator queue; the transition script. 184 suites / 3 309 tests; a real-HTTP matrix of 76 checks
+on a disposable MySQL in development and production mode (`docs/69` §6).
+
+**Mobile `81cb599` (pushed).** Team: Add to the team, the pending panel (resend, withdraw), the server's own states and
+never a code or an amount; file intake: Create and link product with its pure scenario test; Import stock on the Stock
+tab; the Arabic direction verdict (`restart / expo_go / unsupported_build`), `supportsRTL` in `app.json`; Notifications
+and the price history own their scrolling; a toast is never blank. `tsc` clean; `expo lint` 0 errors / 29 warnings
+(the baseline); 88 node suites; parity 3 301; web export; bundle audit 15/15.
+
+**Website `erp-control-web` `0417bfe` (local, NO remote).** Vite + React + TypeScript; EN/FR/AR with tested parity and
+document RTL; public pages with the server's price list and estimate; application with honest refusal; Owner account
+with status, per-store quote, requests, payments, history; the administrator console with step-up on every decision,
+the seat-request queue and the lifecycle decisions with `expectedVersion`. 16 tests; production build; 71 screenshots
+at 375 px and 1 280 px in English and Arabic (`scratchpad ph2/shots/INDEX.md`). Creating the GitHub repository was
+refused twice (`403 Resource not accessible by integration`; the proxy serves repository-scoped endpoints only) —
+the publishing step is in `CURRENT_HANDOFF.md`.
+
+**Docs (this commit).** `docs/21` (D135–D144, supersessions named, D138b open), `docs/69` (new), `docs/68` §9,
+`docs/04` K, `docs/24` §56, `docs/38` and `docs/33` notes, this log, the handoff.
+
+**Mistakes of this session, recorded.** (1) Parallel shells share one working directory again: a backend `git status`
+ran in the mobile tree and a cleanup `pkill -f` matched its own shell — every git command is now `git -C`, every path
+absolute, every pattern self-safe. (2) `prettier` was run on new backend files without a project config and turned them
+double-quoted; re-formatted with the project's conventions before committing. (3) Generated staff logins used the first
+eight characters of a UUIDv7, which are the clock: the second account in the same hour collided — found by the HTTP
+matrix, fixed by using the random half. (4) A cancelled invitation kept its phone number, so the same person could not
+be invited again — found by the matrix, the contact is released with the account. (5) The activation gate let a legacy
+deactivated account through its "nothing pending" path — found by its own spec, fixed with an explicit eligibility.
+(6) The first screenshot run clicked a text locator that matched several buttons — role locators. (7) `Create account`
+as the Team button tripped the bundle audit's registration phrase — renamed *Add to the team*, which is also the better
+label.
+
+**Data and process safety.** Live: unreachable and untouched, still at `0083`. Every write went to a throwaway MySQL
+in the scratch directory (`prisma_ph2`, `prisma_ph2_shadow`), stopped and its files removed; the two APIs and the
+preview server stopped. The JWT secret, the OTP pepper and the administrator password were random, generated into
+mode-600 scratch files, never printed, and shredded; the one log that could carry a token was shredded. No secret, dump
+or environment file in any commit; no message sent; nothing deployed, submitted or published; no provider configured;
+no live migration; no iOS build.
+
+**Not done, owed.** The website remote (the owner creates it; `docs/69` §7); D138b (when granted seats become paid);
+an email delivery provider in the backend (none exists; applications and invitations by email are refused honestly until
+then); the device run of `docs/24` §56 on a NEW native build (the Arabic direction cannot be verified without one; the
+blank toast's caller is identified only by the new development warning on a reproduction); the live runbooks
+`docs/67` §7 then `docs/69` §2 when approved; everything owed before this phase.
