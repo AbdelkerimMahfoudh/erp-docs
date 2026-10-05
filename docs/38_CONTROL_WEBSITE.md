@@ -6,7 +6,8 @@
 > **2026-10-05.** This website is now the designated commercial and Super Admin surface of the product; the customer
 > app carries neither (`docs/21`, D129–D134). What it must become — pages, actions, schemas, security, the inputs
 > needed, and the interim API operations until it has approve / refuse / create / invite — is the contract
-> [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md). The repository still has **no remote** and was not touched.
+> [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md). *(Written of the old `retail-erp-control-web`, which had no remote
+> and was not touched; superseded the same day by the section below.)*
 
 ## 2026-10-05 — rebuilt from scratch as `erp-control-web` (`docs/69` §4, §7)
 
@@ -15,9 +16,11 @@ PC is broken. The replacement is **`erp-control-web`**, built from scratch in th
 and `mobile/` (excluded from this repository's tree like them), Vite + React + TypeScript with the same rules this
 page sets out — nothing in storage but two preference keys, no price computed, no provider named, labelled cards
 below 720 px, three languages with tested parity. Run it with `VITE_API_BASE=<api>/api/v1 npm run dev`; verify with
-`npm run typecheck && npm test && npm run build`. It has **no remote yet**: creating one was refused by the session's
-GitHub integration; `docs/69` §7 is the publishing step. The sections below describe the old site and are kept as
-history and as the rules the new one was built to.
+`npm run typecheck && npm test && npm run build`. Its remote is `https://github.com/AbdelkerimMahfoudh/erp-control-web`
+(`main`, published 2026-10-05T06:05Z after the owner created the repository and installed the Claude GitHub App on it;
+`docs/69` §7 records the refusal before that). Clone it beside `backend/` and `mobile/` as `erp-control-web/`; this
+repository's `.gitignore` excludes it. The sections below describe the old site and are kept as history and as the
+rules the new one was built to.
 
 ## Where it lives
 

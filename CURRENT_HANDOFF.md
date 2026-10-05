@@ -2,7 +2,7 @@
 
 Status: READY_FOR_HANDOFF
 Owner: NONE
-last_session: CLAUDE-B — 2026-10-05T03:22Z → 2026-10-05 (the seat rule, team accounts, the website from scratch, four app defects)
+last_session: CLAUDE-B — 2026-10-05T03:22Z → 2026-10-05T06:10Z (the seat rule, team accounts, the website from scratch, four app defects; the website published at 06:05Z)
 previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-10-05T03:22Z)
 
 ## HEAD of every repository — all working trees clean
@@ -11,7 +11,7 @@ previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-
 | --- | --- | --- | --- |
 | `erp-backend` | `reports-export` | `d670401` | pushed (`7283844..d670401`) |
 | `erp-mobile` | `reports-export` | `81cb599` | pushed (`6f6ef47..81cb599`) |
-| `erp-control-web` (new) | `main` | `0417bfe` | **no remote** — see blocker 1 |
+| `erp-control-web` (new) | `main` | `0417bfe` | pushed — `https://github.com/AbdelkerimMahfoudh/erp-control-web`, `main` tracks `origin/main` (06:05Z) |
 | `erp-docs` | `master` | the commit carrying this file | pushed |
 
 The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged by this session.
@@ -37,15 +37,16 @@ The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged by this session.
 
 - The live database was **not touched** and is still at `0083`. Owed on live, in order and only with the owner's
   approval and a verified backup: `0084`, `0085` (`docs/67` §7), then `0086` with the transition script (`docs/69` §2).
-- Nothing deployed, submitted or published; no message sent; no provider configured; no iOS build.
+- Nothing deployed or submitted; no message sent; no provider configured; no iOS build. The website's source is
+  published on GitHub (06:05Z) — a repository, not a deployment.
 
 ## Blockers and owed decisions
 
-1. **The website has no remote.** Creating `erp-control-web` on GitHub from this session was refused twice
-   (`403 Resource not accessible by integration`; the proxy serves repository-scoped endpoints only). The owner creates
-   `AbdelkerimMahfoudh/erp-control-web` (private) and adds it to the session's repositories; then, in the website's
-   directory: `git remote add origin <url> && git push -u origin main`. Until then the repository lives only on the
-   machine where this session ran — the next session must **not** treat it as published.
+1. **Resolved 2026-10-05T06:05Z — the website has a remote.** Creating the repository from the session was refused
+   (`403 Resource not accessible by integration`; the proxy serves repository-scoped endpoints only). The owner created
+   `AbdelkerimMahfoudh/erp-control-web` and installed the Claude GitHub App on it (the first push after creation was
+   still refused until the App had the repository); `main` = `0417bfe` is pushed and tracks `origin/main`:
+   `https://github.com/AbdelkerimMahfoudh/erp-control-web`. Published source is **not** a deployment — blocker 5 stands.
 2. **D138b** — the date from which granted (transition) seats become paid seats; until then they cost nothing.
 3. **No email delivery provider exists in the backend** (`ContactDeliveryProvider` has WhatsApp and the development
    outbox). Applications and invitations by email are refused honestly until one is written and configured.
@@ -56,8 +57,8 @@ The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged by this session.
 
 ## Next exact action
 
-1. Owner: create the GitHub repository and tell the next session; push `erp-control-web` (blocker 1).
-2. Owner: decide D138b; confirm the website copy and the price list wording on the home page.
+1. Owner: decide D138b; confirm the website copy and the price list wording on the home page.
+2. Next session: clone `erp-control-web` beside `backend/` and `mobile/` when the website is in scope (`docs/38`).
 3. Next session: run `docs/24` §56 on a device with a new native build; record the blank toast's caller from the
    development warning if it reappears; then the live runbooks when approved.
 

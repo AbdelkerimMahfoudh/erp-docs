@@ -6714,9 +6714,10 @@ Until then they cost nothing and are listed by the website and the console as "g
 ### ✅ APPROVED — D139: the website is a new repository, built from scratch
 
 `erp-control-web` (Vite + React + TypeScript; `docs/38`, `docs/68`). The earlier `retail-erp-control-web` on the
-owner's broken PC is **abandoned**, not recovered. The repository is local only: creating a remote was refused twice
-by the session's GitHub integration (`403 Resource not accessible by integration`; the proxy serves repository-scoped
-endpoints only). The exact publishing step is in `CURRENT_HANDOFF.md`.
+owner's broken PC is **abandoned**, not recovered. Creating a remote from the session was refused twice by its GitHub
+integration (`403 Resource not accessible by integration`; the proxy serves repository-scoped endpoints only); the owner
+created `AbdelkerimMahfoudh/erp-control-web` and installed the Claude GitHub App on it the same day, and `main`
+(`0417bfe`) was pushed at 2026-10-05T06:05Z: `https://github.com/AbdelkerimMahfoudh/erp-control-web`. Published is not deployed (`docs/69` §4, §7).
 
 ### ✅ APPROVED — D140: the public price list and a stateless estimate are public routes
 

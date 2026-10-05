@@ -10843,3 +10843,23 @@ an email delivery provider in the backend (none exists; applications and invitat
 then); the device run of `docs/24` §56 on a NEW native build (the Arabic direction cannot be verified without one; the
 blank toast's caller is identified only by the new development warning on a reproduction); the live runbooks
 `docs/67` §7 then `docs/69` §2 when approved; everything owed before this phase.
+
+## 2026-10-05T06:05Z — CLAUDE-B — the website published to GitHub
+
+**Scope.** The one owed step of the 05:09Z handoff that the owner could unblock immediately: publishing
+`erp-control-web`. No code changed in any repository.
+
+**What happened, in order.** (1) The owner created `AbdelkerimMahfoudh/erp-control-web` (empty). (2) The repository was
+attached to the session with push access; the fetch confirmed it empty. (3) The first `git push -u origin main` was
+refused: `remote: Claude doesn't have GitHub access to AbdelkerimMahfoudh/erp-control-web` — the proxy signs pushes only
+for repositories the Claude GitHub App is installed on, and a new repository is not in the App's selection until the
+owner adds it. (4) The owner added it; the push succeeded: `main` → `origin/main` at `0417bfe`, the single commit,
+unchanged and carrying its trailers. `git ls-remote` confirms `0417bfe0e3af…` on `refs/heads/main`.
+
+**Recorded.** `CURRENT_HANDOFF.md` (HEAD table, blocker 1 resolved, next actions), `docs/69` §4 and §7, `docs/21` D139,
+`docs/38` header — all now name the remote `https://github.com/AbdelkerimMahfoudh/erp-control-web`. Blocker 5 (not production-ready: email provider, HTTPS, domain,
+support and privacy addresses, payment procedure) is untouched by this; a published repository is not a deployment.
+
+**Commits:** `erp-backend` unchanged at `d670401` · `erp-mobile` unchanged at `81cb599` · `erp-control-web` `0417bfe`,
+now on GitHub · `erp-docs` the commit carrying this entry. All four working trees clean. Status stays
+`READY_FOR_HANDOFF`, owner `NONE`.

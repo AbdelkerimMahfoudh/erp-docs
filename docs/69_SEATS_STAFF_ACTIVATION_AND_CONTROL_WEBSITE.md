@@ -94,7 +94,8 @@ write); an administrator confirms (`platform/businesses/:id/seat-requests/:rid/c
 
 ## 4. The website
 
-Repository `erp-control-web` (local only — see §7). Built from scratch; `docs/38` says how to run it.
+Repository `erp-control-web` (`https://github.com/AbdelkerimMahfoudh/erp-control-web`, published 2026-10-05 — see §7). Built from scratch;
+`docs/38` says how to run it.
 
 **Genuinely works, against the backend of this phase:** the public pages with the price list and the server
 estimate; the application form with the honest refusal when no code can be sent (and the full verification flow when
@@ -151,10 +152,16 @@ updated and the legacy deep-link audit still passing.
   catalogue; web export; the bundle audit (no subscription price, checkout, purchase link or provider instruction in
   the bundle; shop payment methods present). **Nothing on an iPhone**: `docs/24` §56.
 
-## 7. Publishing the website — the blocker
+## 7. Publishing the website — the blocker and its resolution
 
 Creating a GitHub repository from this session was refused twice: the GitHub App integration answered
 `403 Resource not accessible by integration` to `POST /user/repos`, and the session's GitHub proxy serves only
 repository-scoped endpoints. The repository is complete and committed locally (`erp-control-web`, one commit,
 trailers included). To publish: create `AbdelkerimMahfoudh/erp-control-web` on GitHub (private), add it to the
 session's allowed repositories, then `git -C erp-control-web remote add origin <url> && git push -u origin main`.
+
+**Resolved the same day, 06:05Z.** The owner created `AbdelkerimMahfoudh/erp-control-web`; attaching it to the session
+worked at once, but the first push was still refused with `403` — the proxy signs pushes only for repositories the
+Claude GitHub App is installed on, and a new repository is not in the App's selection until the owner adds it. Once
+added, `git push -u origin main` published `0417bfe`, the single commit, unchanged; `main` tracks `origin/main`:
+`https://github.com/AbdelkerimMahfoudh/erp-control-web`. A published repository is not a deployment: nothing in §4's production-readiness list is met by it.
