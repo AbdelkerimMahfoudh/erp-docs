@@ -6,28 +6,30 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-B** (a claude.ai cloud session), `2026-10-02T23:31Z` → `2026-10-03T00:55Z`, taken from
-  `READY_FOR_HANDOFF` (the previous handoff was complete); its work is complete, verified and pushed.
-- **The phase just finished (the user's brief of 2026-10-02): the release-candidate stabilization** — every open
-  finding classified, the demonstrable defects fixed with focused tests, decision papers for the owner, the security
-  gate reconciled, the deletion journey audited, Apple's guidelines assessed, migrations 0084 → 0085 rehearsed on a
-  disposable restored copy, the production runbook, the iPhone script, GO / NO-GO. Record: **`docs/67`**. **Nothing was
-  published, submitted, migrated on live or changed in live data.**
-- **GO / NO-GO (`docs/67` §8):** TestFlight — **NO-GO today**, GO for internal testers once the owner provides an Apple
-  Developer account + EAS credentials, an HTTPS API host (staging with synthetic data recommended) with 0084/0085
-  applied, and the export-compliance answer; nothing in the code blocks it. External TestFlight and the **public App
-  Store — NO-GO** (deletion cannot complete in production, registration cannot finish, the payment model is undecided,
-  no production host, nothing verified on an iPhone, the security gate NOT PASS, no privacy policy, review
-  prerequisites).
-- **The gate (`docs/48` §13) is NOT PASS.**
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-B** (a claude.ai cloud session)
+- started_at_utc: **2026-10-05T01:39Z**
+- Taken from `READY_FOR_HANDOFF`, owner NONE — the previous handoff (CLAUDE-B, 2026-10-03, the release-candidate
+  stabilization, `docs/67`) was **complete**: all three working trees clean and level with their remotes at the HEADs
+  recorded below, which were verified against `git fetch` before this line was written.
+- **Active phase and scope (the user's brief of 2026-10-05): the external subscription management separation.**
+  Restore the approved model — subscriptions are acquired, paid, renewed and administered on a separate website; the
+  mobile app only consumes the server-controlled entitlement state and shows neutral access status. In scope: the
+  takeover audit; the mobile boundary (no price, seat price, purchase/renew action, payment form, Bankily
+  instruction, external purchase link, plan selection, billing control or in-app purchase); a coherent read-only
+  client in the expired state; the Super Admin console out of the customer app; the backend as the sole entitlement
+  authority (verified, no enforcement removed); hiding self-registration that cannot complete; a versioned API/UX
+  contract for the future website (no website is built); the App Store boundary audit; every gate; docs, session
+  log, handoff. **Out of scope, by instruction:** deploying, live migrations, TestFlight, an App Store build, the
+  production website, Bankily, WhatsApp, any other feature.
+- Next intended action: report the takeover discrepancies, then implement backend → mobile → docs, committing on the
+  release branches (`reports-export`) only after verification.
 
 ## HEAD now
 
 | Repository | Branch | HEAD | Upstream | Dirty |
 |---|---|---|---|---|
-| `erp-docs` | `master` | *this commit* | level | 0 |
+| `erp-docs` | `master` | `d3694ad` (takeover; this commit follows it) | level | 0 |
 | `erp-backend` | `reports-export` | **`1434aa7`** | level | 0 |
 | `erp-mobile` | `reports-export` | **`3023bd3`** | level | 0 |
 | `retail-erp-control-web` | `master` | `c764d63` — not in this container, not touched (as last recorded) | — | — |
