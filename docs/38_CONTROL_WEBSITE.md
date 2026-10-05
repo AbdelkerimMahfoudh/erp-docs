@@ -2,6 +2,11 @@
 
 > The companion to [`docs/37`](37_PLATFORM_CONTROL.md), which describes the
 > backend contract. This one is about the website that sits on it.
+>
+> **2026-10-05.** This website is now the designated commercial and Super Admin surface of the product; the customer
+> app carries neither (`docs/21`, D129–D134). What it must become — pages, actions, schemas, security, the inputs
+> needed, and the interim API operations until it has approve / refuse / create / invite — is the contract
+> [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md). The repository still has **no remote** and was not touched.
 
 ## Where it lives
 

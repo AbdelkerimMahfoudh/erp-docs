@@ -6,6 +6,11 @@
 > The classification in this document is not the authority.
 > `backend/src/entitlement/route-classification.ts` is, and a drift test fails
 > the build when a mutation exists that nobody has classified.
+>
+> **2026-10-05 (`docs/21`, D130–D132; `docs/68`).** Two statements below are superseded: revoking a device
+> (`DELETE devices/:id`, and a member's as the Owner) now **survives** expiry like `logout-all` — adopting one still
+> does not; and the mobile app no longer shows seats or branches at all — it shows the server's state and dates as
+> *Business access*, with no figure of any kind. Prices live on the website and in the platform's tools only.
 
 ---
 

@@ -1,0 +1,266 @@
+# 68 — The subscription website: API and UX contract (v1.0, 2026-10-05)
+
+> **Status: a contract, not a product.** No website is built in this phase, no repository was created, nothing is
+> deployed. The website described here is where a business acquires, pays for, renews and administers its access to
+> the ERP, and where the platform's own people (the Super Admin) approve, extend, suspend, refuse and audit. The
+> customer mobile app only **reads** the server's business-access state and shows it in neutral words — see §9 and
+> [`docs/21`](21_PRODUCT_DECISIONS.md) (2026-10-05). The backend is the single source of truth for every figure and
+> every decision; the website computes nothing and decides nothing.
+>
+> **Supersedes** the commercial behaviour of the Phase-2 website described in [`docs/37`](37_PLATFORM_CONTROL.md) and
+> [`docs/38`](38_CONTROL_WEBSITE.md) where the two differ; those documents stay as the record of why the backend is
+> shaped as it is. The schemas below are those of backend `reports-export` at the commit recorded in
+> `CURRENT_HANDOFF.md`; the DTOs in `src/platform/platform.controller.ts` are authoritative if this page ever drifts.
+
+## 0. The decision this contract serves
+
+The ERP is a business-to-business service for shops. The mobile app must not contain a price, an employee-seat price, a
+purchase or renewal action, a payment form, a Bankily instruction, an external payment link, a website link whose
+purpose is purchasing or renewing, a call to action such as *Subscribe*, *Buy* or *Pay now*, a plan selection, branch
+billing controls, paid-seat management or an App Store in-app purchase. Subscription acquisition, payment, renewal and
+billing management happen on the website; the app consumes the resulting server-controlled entitlement.
+
+## 1. The commercial rules the website implements (approved; unchanged)
+
+| Rule | Value | Where it lives today |
+|---|---|---|
+| Scope | One subscription **per company**, priced **per subscribed branch** — every active branch is a subscribed branch. (The brief of 2026-10-05 says "one subscription per branch"; the approved record of Phase 2 says "one subscription per company, 500 MRU per active branch". They describe the same thing from two sides: the company holds one subscription row carrying the branch count. **The owner is asked to confirm this reading — `docs/21`, 2026-10-05.**) | `subscriptions` (one row per company, `subscribed_branch_count`) |
+| Base price | **500 MRU per branch per month** | `plan_versions` (Standard v1), `src/billing/pricing-rules.ts` |
+| Included staff | **2 non-Owner accounts per branch, pooled company-wide**; the Owner is never counted | `entitlement-rules.ts` (`SEATS_PER_BRANCH`), `pricing-rules.ts` |
+| Additional staff | **100 MRU per month each** | `plan_versions`, `pricing-rules.ts` |
+| Mid-month changes | An account or a branch added during the month is charged for the **whole month**; a removal reduces only the next renewal (no prorating, high-water mark per component) | `billing_periods`, `assessPeriod()` |
+| Free trial | **None** | registration creates `pending_activation`; nothing is granted |
+| Grace | **72 hours** after the period end, derived from the period, never stored | `entitlement-rules.ts` (`GRACE_HOURS`) |
+| Approval | **Every new business is approved by the Super Admin**, who assigns the initial access period and may extend, correct, suspend, reinstate, refuse or end it | `SubscriptionLifecycleService` |
+| Bankily | May later be integrated **on the website**; **not operational** in this phase — no provider is called, no instruction is served | `payment-instructions.ts` (`available: false`) |
+| WhatsApp | May later deliver codes and notices; **not operational** in this phase | `WHATSAPP_CHANNEL=disabled` |
+| Prices | Belong to the website, the backend's commercial contract and the Super Admin tools — **never** to customer-facing mobile responses or UI | `GET /entitlement` carries no figure; the mobile app never calls a commercial route |
+
+Integer MRU throughout; no float touches an amount. A period's unit prices are **copied** into `billing_periods` when it
+opens, so a price scheduled later never rewrites what a shop was told.
+
+## 2. Actors, realms, sessions
+
+| Actor | Credential | Realm | What it may touch |
+|---|---|---|---|
+| Anybody | none | public | the product explanation, sign-in, the business-request flow (§3.2), the invitation acceptance |
+| A business's **Owner** | the tenant sign-in they already have (email or WhatsApp number + password); on the website either a bearer token held in memory for the visit, or the `portal_session` HttpOnly cookie minted from the app's one-time ticket (`docs/38`) | tenant (`/api/v1/...` with the tenant JWT) | **their own** business only: status, period, grace, quote, history; later payment initiation and status |
+| A **Manager** or **Employee** | the same kind of sign-in | tenant | nothing on the website: the account surface is the Owner's (`portal-handoff` is gated on `settings.manage`; the website's `/account` should refuse non-Owner sessions rather than show them a price) — **a tightening the website must apply; `my-subscription` itself answers any tenant session today** |
+| The **Super Admin** (platform administrator) | `platform_admins` row, created only by CLI (`prisma/create-platform-admin.ts`); an **HttpOnly, SameSite=Lax, Secure-in-production** cookie session; every high-impact action re-asks the password | platform (`/api/v1/platform/admin/*`, `/platform/businesses/*`, `/platform/plans`, `/platform/audit`) | every business, never a shop's takings (the queries cannot return sales, IMEIs, costs or margins) |
+
+The two authenticated realms are structural: a tenant JWT is refused by every administrator route (401) and the
+administrator cookie is refused by every tenant route (401) — proven over HTTP on 2026-10-05 (the matrix, §10).
+
+## 3. The public and business side
+
+### 3.1 Pages
+
+| Page | Purpose | Reads | Writes |
+|---|---|---|---|
+| Product explanation | what the ERP does, who it is for, that access is arranged with us; **no self-serve purchase** until §3.2 is live | static | — |
+| Sign in (`/account`) | an Owner signs in with their existing login | `POST /api/v1/auth/login` | — |
+| Business access status (`/account`) | state in a word, the period end or the grace deadline, branches and staff counted, the **server-calculated monthly quote**, the decision history | `GET /api/v1/platform/my-subscription` | — |
+| Request access (`/request`) — **future** | a new business asks to be approved: legal/display name, city, Owner identity, **a verified contact**, branch count and staff count (for the quote), terms and privacy acknowledgement, submission for Super Admin review | `POST /api/v1/platform/quote` (stateless, **proposed**, §3.3) | `POST /api/v1/platform/register` + `register/verify/*` |
+| Application status (`/request/status`) — future | pending / approved / refused, as the server says | `GET /api/v1/platform/my-subscription` (after sign-in) | — |
+| Payment (`/account/pay`) — **future, Bankily** | initiate a payment for the current quote; see its status | `GET /api/v1/platform/payment-instructions` (answers `available: false` today) | a signed, idempotent provider callback (§5) |
+| Renewal history (`/account/history`) — future | billing periods and recorded payments, read-only | `my-subscription` (`periods`, `payments`) | — |
+| Owner invitation (`/invite/:token`) | the Owner of a business created by the Super Admin sets a password | — | `POST /api/v1/platform/owner-invitation/accept` |
+
+### 3.2 The business-request flow, and why it is not live yet
+
+`POST /api/v1/platform/register` creates the company, its first branch, the Owner and a `pending_activation`
+subscription in one transaction, then expects the contact to be proved by a code (`register/verify/start` →
+`register/verify/confirm`, which issues the first session). **Since 2026-10-05 it refuses up front — `503
+registration_unavailable`, "nothing was saved" — whenever no verification code can leave the server** (no WhatsApp
+channel, no email provider). So the website's request flow needs a contact-delivery provider first (`docs/45` D7).
+Until then a business is created by the Super Admin (§4.2) and its Owner invited.
+
+### 3.3 Request/response schemas (business side)
+
+`POST /api/v1/platform/register` — public, throttled (10/min)
+
+```json
+{ "idempotencyKey": "client-uuid", "ownerName": "…", "businessName": "…", "branchName": "…", "city": "…",
+  "email": "owner@example.com", "phone": "+2224…", "password": "≥ 8 chars", "language": "en|fr|ar" }
+```
+→ `201 { status: "pending_activation", created, publicStoreId, verification: { destination, channel } | null,
+continuation: { token, expiresAt, expiresInSeconds } | null, next: "verify_contact" | "sign_in" }`
+→ `503 { code: "registration_unavailable" }` when no code can be delivered (nothing is created)
+→ `400` validation.
+
+`POST /api/v1/platform/register/verify/start { continuation, language }` → `{ delivery: "sent" | "outbox" }`;
+`POST …/verify/confirm { continuation, code }` → `{ accessToken, refreshToken, expiresIn }`.
+
+`POST /api/v1/platform/owner-invitation/accept { token, password }` → `200 { …, next: "sign_in" }` (no session).
+
+`GET /api/v1/platform/my-subscription` — tenant JWT; reachable in **every** state
+
+```json
+{ "business": { "name", "city", "createdAt", "branches": [{ "name", "type" }] },
+  "owner": { "name", "email", "phone", "emailVerified", "phoneVerified" } | null,
+  "entitlement": { "state", "periodEnd", "graceEnd", "daysRemaining", "graceHoursRemaining", "subscribedBranchCount",
+                   "activeBranchCount", "includedSeats", "additionalSeats", "seatLimit", "seatsUsed", "overLimit",
+                   "canRead", "canWrite", "isComplimentary", "status", "calculatedAt" },
+  "pricing": { "plan": { "id", "planKey", "version", "branchMonthly", "includedStaffPerBranch", "extraStaffMonthly", "effectiveFrom" },
+               "upcoming": … | null, "current": { "available", … assessed period … }, "nextRenewal": { quote } },
+  "events": [ … ], "payments": [ … ], "periods": [ … ] }
+```
+
+`GET /api/v1/platform/payment-instructions` — tenant JWT → `{ available: false, providers: [], defaultProvider: null,
+placeholder: false, amount: { …pricing } }` until a provider is offered with a real code. A provider, when offered:
+`{ key: "bankily"|"masrivi"|"sedad"|"bimbank"|"click", label, order, enabled: true, code, placeholder: false }`.
+
+**Proposed, not built:** `POST /api/v1/platform/quote { branches: n, staff: n }` → the Standard quote for a size, public
+and throttled, with no company id — the replacement for the removed `GET platform/quote/:id`, which returned a
+company's size and price to anyone holding its id.
+
+### 3.4 Error states the business side must render
+
+| Status | Code | Shown as |
+|---|---|---|
+| 401 | — | sign in again |
+| 403 | `ENTITLEMENT_PENDING` / `ENTITLEMENT_SUSPENDED` / `ENTITLEMENT_REJECTED` | the state screen; the account page itself never answers these |
+| 403 | `ENTITLEMENT_WRITE_BLOCKED` | not applicable to the website's reads |
+| 429 | — | "try again in a minute" |
+| 503 | `registration_unavailable`, `delivery_unavailable` | "requests cannot be completed right now" — honest, no retry loop |
+
+## 4. The Super Admin side
+
+### 4.1 Pages
+
+| Page | Reads | Writes |
+|---|---|---|
+| Sign in | — | `POST platform/admin/sign-in { email, password }` → cookie + `{ admin, expiresAt }` |
+| Dashboard | `GET platform/dashboard` (counts by state, businesses, branches, active users; `revenue: null` by design) | — |
+| Pending approvals | `GET platform/pending` | approve / refuse (§4.2) |
+| Businesses | `GET platform/businesses?q=&state=&page=` | create (§4.2) |
+| One business | `GET platform/businesses/:id` — identity, branches (names and types), the Owner's contact and verification state, the subscription and its version, the computed price breakdown, events, recorded payments | every lifecycle action below |
+| Pricing | `GET platform/plans` | `POST platform/plans` (schedule a version; never in the past) |
+| Audit | `GET platform/audit?page=` | — |
+
+### 4.2 Actions, request bodies and answers
+
+Every mutation carries `confirmPassword` (the acting administrator's own password; `403 password_confirmation_required`
+without it), may carry `expectedVersion` (the subscription's version as last read; `409 subscription_changed` if it
+moved), is **idempotent for a same-state retry** (`applied: false`, nothing written twice), writes a subscription event
+**and** an immutable audit row with before/after, and deletes nothing.
+
+| Action | Route | Body | Answer |
+|---|---|---|---|
+| Create a business | `POST platform/businesses` | `{ idempotencyKey, ownerName, businessName, branchName?, city?, email?, phone?, language, reason, confirmPassword }` | `201 { companyId, publicStoreId, branchId, ownerUserId, status: "pending_activation", created, invitation: { token, expiresAt, delivery: "manual", owner } }` — the invitation is shown **once**; delivery is manual until a provider exists |
+| Re-issue the Owner invitation | `POST platform/businesses/:id/owner-invitation` | `{ reason?, confirmPassword }` | the new token; every unspent one revoked |
+| Approve | `POST platform/businesses/:id/approve` | `{ months (1–60) | periodEnd (ISO), reason?, expectedVersion?, confirmPassword }` | `{ applied, version, status: "activated", periodEnd }`; opens the billing period |
+| Refuse | `POST platform/businesses/:id/reject` | `{ reason, expectedVersion?, confirmPassword }` | `{ applied, version, status: "rejected" }` |
+| Set / correct the period end | `POST platform/businesses/:id/period` | `{ periodEnd, reason (required when shortening), expectedVersion?, confirmPassword }` | `{ applied, version, status, periodEnd }` |
+| Extend | `POST platform/businesses/:id/extend` | `{ months, reason?, expectedVersion?, confirmPassword }` | `{ applied, version, status, periodEnd }` |
+| Administrative grant | `POST platform/businesses/:id/activate-grant` | `{ days, reason, expectedVersion?, confirmPassword }` | a complimentary period; **never** a payment row |
+| Suspend / reinstate / end | `POST platform/businesses/:id/suspend` · `reinstate` · `cancel` | `{ reason, expectedVersion?, confirmPassword }` | `{ applied, version, status }` |
+| Record a payment | `POST platform/businesses/:id/payments` | `{ amount (decimal string), paidAt, channel?: "manual"|"bank_transfer"|"mobile_money", reference?, note?, confirm?, confirmPassword }` | the row, `providerVerified: false` — recording a payment **never** extends anything |
+| Schedule a price | `POST platform/plans` | `{ branchMonthly, includedStaffPerBranch, extraStaffMonthly, effectiveFrom (never past), reason, confirmPassword }` | the version |
+
+### 4.3 Audit events (immutable, `platform_audit_events`)
+
+`admin.sign_in` · `business.create` · `owner_invitation.issue` · `owner_invitation.accept` · `subscription.approve` ·
+`subscription.reject` · `subscription.set_period` · `subscription.extend` · `subscription.activate_grant` ·
+`subscription.suspend` · `subscription.reinstate` · `subscription.cancel` · `payment.record` ·
+`payment.record_and_confirm` · `plan.schedule`. Each row: actor (text, so it reads after the admin row is gone),
+action, target, label, reason, before/after state, IP, instant. Subscription events (`subscription_events`):
+`registered`, `approved`, `rejected`, `extended`, `period_corrected`, `administrative_grant`, `suspended`,
+`reinstated`, `cancelled`, `branches_changed`, `seats_changed`, `complimentary_granted`, `complimentary_revoked`.
+
+### 4.4 Concurrency and idempotency, as proven
+
+Two approvals at once: exactly one applies; the other is a `409 subscription_changed` or a truthful no-op (`applied:
+false`), and **one** billing period exists. Approve against refuse at once: exactly one wins, the loser is `409`, the
+timeline holds one decision (the 2026-10-05 matrix). A retry of the same decision is a no-op.
+
+## 5. Security requirements
+
+- **No subscription mutation from a public, unauthenticated request.** The only public writes are the business request,
+  its code verification, the invitation acceptance and the administrator sign-in — all throttled (10/min), all
+  non-enumerating.
+- **CSRF**: cookie-authenticated mutations carry `x-requested-with`; cookies are `SameSite=Lax`; the API's CORS grant
+  names only the website's HTTPS origin, with credentials.
+- **Strict rate limiting** on sign-in, request, verification and invitation routes (server-side; a 429 is rendered, not
+  retried in a loop).
+- **Recent re-authentication for sensitive actions**: every administrator mutation re-asks the password
+  (`confirmPassword`); the website must not cache it.
+- **No secrets in the browser**: no token in `localStorage`/`sessionStorage` (the Phase-2 website enforces exactly two
+  preference keys); the administrator session is an HttpOnly cookie; the Owner's bearer token lives in memory for the
+  visit.
+- **Payment callbacks (future)**: signed by the provider, verified server-side, **idempotent** on the provider's
+  reference, recorded as `subscription_payments` rows that never move a period by themselves — a person (or a later,
+  explicitly approved rule) extends.
+- **Tenant isolation**: the website reads a business only through the Owner's own session; administrator reads never
+  return operational data.
+- **Immutable audit**: every decision is a `platform_audit_events` row and a `subscription_events` row; nothing is
+  deleted (append-only triggers).
+- **No trust in client-calculated totals**: every figure shown is the server's (`pricing`), and the website never
+  multiplies a unit price (the Phase-2 site has a test for exactly this).
+- **Administrator MFA** is still owed (`docs/45` D8); until it exists the website must say so plainly rather than show a
+  toggle.
+
+## 6. Versioning
+
+The API is `/api/v1`; this contract is **v1.0**. Compatibility rules: fields are only added, never renamed or
+re-typed within v1; codes (`ENTITLEMENT_*`, `subscription_changed`, `registration_unavailable`, …) are stable and
+machine-matched; a removed route (the public quote) is a v1 change recorded in `docs/21` and here. A website build
+names the contract version it was tested against.
+
+## 7. Inputs needed before the website is implemented (none can be produced by a session)
+
+| # | Input | Why |
+|---|---|---|
+| 1 | **The repository.** `retail-erp-control-web` exists on the owner's PC at `c764d63` with **no remote** (`docs/38`): push it to a repository of the owner's choosing (for example `erp-website`) or decide on a fresh one. No unreviewed production repository was created here | the Phase-2 site already has the three guarded areas, the Owner account page and the administrator portal (without approve/refuse/create/invite) |
+| 2 | **Domain, DNS, TLS** (`docs/45` D1–D3) | cookies are `Secure` in production; CORS names the origin |
+| 3 | **Hosting** for the API and the website (`docs/45` D4–D6) | nothing runs outside the owner's PC today |
+| 4 | **An email provider** (and/or the WhatsApp Business account) (`docs/45` D7) | the request flow and the Owner invitation cannot deliver a code or a link today |
+| 5 | **The Bankily merchant agreement** and its API terms (`docs/45` D9; `docs/21`: "no confirmed public API — do not implement a guessed integration") | payment initiation and callbacks |
+| 6 | **Administrator MFA** decision (`docs/45` D8) | before `/admin` is reachable from the internet |
+| 7 | **Legal texts**: terms of service and the privacy policy (`docs/64` §6) | the request flow's acknowledgement; the App Store privacy URL |
+| 8 | **The owner's confirmation** of the commercial reading in §1 (one subscription per company, priced per branch) | the quote's wording on the website |
+
+## 8. Interim operations, until the website carries the new actions
+
+The customer app no longer carries the platform console (`docs/21`, 2026-10-05). The Phase-2 website's administrator
+portal covers grant, extend, suspend, reinstate, cancel and payment; **create a business, invite its Owner, approve,
+refuse and correct the period** are API-only until the website gains them. With shell access to the API host:
+
+```bash
+API=https://<api-host>/api/v1
+# sign in once; the cookie file is a working credential — keep it in a mode-600 scratch file and delete it after
+curl -sS -c /tmp/admin.cookie -H 'Content-Type: application/json' -X POST "$API/platform/admin/sign-in" \
+  -d '{"email":"<admin email>","password":"<prompted, never in a script>"}'
+# create a business; the response carries the Owner's one-time invitation token — hand it over by a channel you trust
+curl -sS -b /tmp/admin.cookie -H 'Content-Type: application/json' -H 'x-requested-with: ops' -X POST "$API/platform/businesses" \
+  -d '{"idempotencyKey":"<uuid>","ownerName":"…","businessName":"…","branchName":"…","city":"…","email":"…","language":"fr","reason":"…","confirmPassword":"<prompted>"}'
+# approve for N months (read the version first from GET /platform/businesses/:id)
+curl -sS -b /tmp/admin.cookie -H 'Content-Type: application/json' -H 'x-requested-with: ops' -X POST "$API/platform/businesses/<id>/approve" \
+  -d '{"months":1,"expectedVersion":<v>,"reason":"…","confirmPassword":"<prompted>"}'
+# refuse · correct the period · extend · suspend · reinstate · end: the routes and bodies of §4.2
+```
+
+The Owner then signs in to the app: a pending business sees *Pending approval*; an approved one enters.
+
+## 9. What the mobile app does — and never does (reference)
+
+Reads `GET /entitlement` only and renders the server's `state`, `canRead`, `canWrite`, `periodEnd` and `graceEnd`:
+*Pending approval*, *Active* (until a date), *Grace period* (changes accepted until the server's deadline, one
+restrained notice), *Access ended* (reading and exports only; nothing new is offered), *Suspended*, *Not approved* —
+always "Managed by your organisation" and "Contact your organisation administrator if you believe this is a mistake".
+It never calls `my-subscription`, `payment-instructions`, a quote or a platform route; it carries no price, no
+payment method, no purchase, renewal or website call to action, no plan, no billing control and no in-app purchase
+(pinned by `lib/access-boundary.test.ts` and the exported-bundle audit). Account deletion, device security and sign-out
+stay reachable in every state. A shop's own customer-payment channels (Cash, Bankily, the accounts it configures) are
+untouched: they are the shop's money, not ours.
+
+## 10. Verified on 2026-10-05 (the real-HTTP matrix, disposable MySQL, development- and production-mode APIs)
+
+87 of 87: pending, approval, active (Owner, Manager, Employee), grace (70–72 h), the exact grace boundary (±20 s),
+read-only (writes refused with `ENTITLEMENT_WRITE_BLOCKED`, every read and the monthly report answer, deletion and
+device revocation pass the gate, `logout-all` accepted), suspension and reinstatement (idempotent; the password
+step-up enforced), two concurrent approvals and approve-against-refuse, refusal, cross-business isolation, the
+administrator realm refused on customer routes and vice versa, a phone clock sent in headers ignored, no price in any
+customer response; in production mode: registration refused up front with nothing saved, payment instructions
+unavailable with no provider and no code, no public quote, no static-key provisioning, the administrator cookie
+admitted and a bearer refused.

@@ -7,6 +7,12 @@
 > [`docs/38`](38_CONTROL_WEBSITE.md). Where the two disagree, Phase 2 is
 > current; the Phase 1 text is kept because it records WHY each decision was
 > taken.
+>
+> **2026-10-05 — the separation (`docs/21`, D117–D134; the website contract is [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md)).**
+> The customer app no longer bundles the platform console or self-registration; `GET platform/quote/:id` is removed;
+> `platform/payment-instructions` answers `available: false` until a provider is offered with a real code, and
+> production boot refuses a stand-in; `POST platform/register` refuses up front when no verification code can be
+> delivered. Every administrator route, the realm, the step-up, the versioning and the audit are unchanged.
 
 ## The shape of it
 

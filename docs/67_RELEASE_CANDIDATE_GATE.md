@@ -305,3 +305,21 @@ because Beta App Review applies the guidelines.
 finish), RC-03 (the payment model is undecided), RC-04 (no production host), RC-06 (nothing verified on an iPhone),
 RC-07 (the security gate is NOT PASS), RC-08 (no privacy policy) and RC-09 (demo account, export compliance, privacy
 manifest, iPad) each block it on their own.
+
+---
+
+## 9. Update of 2026-10-05 — the external subscription management separation (`docs/21`; `docs/68`)
+
+Backend `reports-export` **`7283844`**, mobile `reports-export` **`6f6ef47`**.
+
+| Item | Was | Now |
+|---|---|---|
+| **RC-02** registration cannot finish in production | a reviewer registering a shop was stuck at *Check your contact*; the unfinished Owner could sign in to *Waiting for activation* | **No registration in the app** (D117): the sign-in screen says accounts are set up by the organisation; the server refuses `POST platform/register` up front with nothing saved. What remains for review is **RC-09's demo business** and Review Notes that say accounts are provisioned under a business contract |
+| **RC-03** the subscription model against 3.1.1 | undecided | **Decided — D118, option 1 (business accounts only)**: no price, payment, purchase, renewal or external-purchase call to action anywhere in the app or its bundle; the platform console is out of the app (D129); access is shown as neutral *Business access* status (D130). Residual uncertainty: 3.1.3(c) for a one-person shop — Review decides |
+| **D119** an expired shop | proposed | **Implemented** on the client (read-only consistency on every tab, write-only screens redirected); server policy unchanged |
+| **The App Store boundary** | — | source, catalogues and the exported bundle audited: no price of our own, no purchase/renewal wording, no Bankily instruction for us, no checkout or purchase URL, no website call to action; a shop's own Cash/Bankily/accounts untouched |
+
+**GO / NO-GO: unchanged.** Internal TestFlight stays GO once the owner's three inputs exist (§8); external TestFlight
+and the public App Store stay **NO-GO** on RC-01 (deletion needs D116), RC-04, RC-06, RC-07, RC-08 and RC-09. **The
+website is not operational**: it is a contract (`docs/68`), and the Super Admin's approve / refuse / create / invite
+have no UI until it is built (`docs/68` §8).

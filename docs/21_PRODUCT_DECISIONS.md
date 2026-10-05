@@ -6518,3 +6518,135 @@ web export on the migrated copy, 19 screens clean.
 
 Everything in `docs/67` §2 not closed; the iPhone run (`docs/24` §54); 0084 and 0085 on live through the runbook
 (`docs/67` §7) after the owner's approval; the security gate's blockers (`docs/48` §12–§13).
+
+## The external subscription management separation (2026-10-05)
+
+Brief of 2026-10-05: restore the approved business model — subscriptions are acquired, paid, renewed and administered on
+a **separate website**; the mobile app only consumes the server-controlled entitlement and shows neutral access status.
+Record of the work: [`docs/68`](68_SUBSCRIPTION_WEBSITE_CONTRACT.md) (the website contract), `docs/48` §14, `docs/67`
+§9, `docs/24` §55. Backend `reports-export` `1434aa7` → **`7283844`**; mobile `reports-export` `3023bd3` → **`6f6ef47`**.
+Nothing was deployed, migrated on live, submitted or published; no website was built; Bankily and WhatsApp stay
+non-operational.
+
+### Discrepancies found at takeover (reported before any change)
+
+- The handoff, the three repositories and their remotes agreed (docs `d3694ad`, backend `1434aa7`, mobile `3023bd3`,
+  clean and level); live stays at 0083 (0084/0085 owed) and was not reached.
+- **The dedicated website repository exists only on the owner's PC** (`retail-erp-control-web` at `c764d63`, no
+  remote — `docs/38`); it is not in this container nor in the GitHub repositories this session can reach. No website
+  code was written anywhere; the contract is `docs/68`.
+- **The platform console (Super Admin) lived inside the customer Expo app** (`app/platform/*`, 109 copy keys per
+  language, a *Platform administration* link on the sign-in screen), and **in-app self-registration** created a pending
+  business before checking that a verification code could ever be sent (`docs/67` RC-02).
+- **Prices reached customer-facing surfaces**: `GET platform/quote/:id` was **public** and returned a business's size and
+  monthly price to anyone holding its id; the app's subscription screen showed the seat and branch composition
+  ("{n} paid for"); `register.done.body` said "open the subscription page to see what to pay".
+- **Payment instructions carried five placeholder `00000` codes** (Bankily, Masrivi, Sedad, Bimbank, Click) and the
+  production assertion meant to refuse them was **never called** at boot.
+- The server already refused every business write of an expired shop, but **Home, Money, Stock, Partners and the Daily
+  closing offered them anyway** (D119's finding); the copy said "until you renew" and "contact your administrator to
+  extend it".
+- **The server blocked `DELETE devices/:id` when expired** while the brief lists device and session security among what
+  an expired business keeps — a conflict between the brief's allow-list and `docs/33`'s classification, resolved below
+  (D131) and recorded rather than silently applied.
+- The wording "one subscription per branch" (the brief) and "one subscription per company, 500 MRU per active branch"
+  (the Phase-2 record) describe one model from two sides — **the owner is asked to confirm** (D133).
+
+### ✅ RESOLVED — D117: no self-registration in the customer app
+
+The sign-in screen offers no *Create account*; it says *Accounts are set up by your organisation's administrator.* The
+register and verify screens, the registration helper and the continuation store are gone; `POST platform/register`
+**refuses up front** — `503 registration_unavailable`, "Nothing was saved" — whenever no verification code can leave the
+server (the rule deletion already follows, `56bddbe`), so no pending business whose Owner waits for a code that never
+comes is created. The route stays for the website (`docs/68` §3.2) once a delivery provider exists. Employee accounts
+and the Owner invitation do not depend on the channel (the invitation is handed over manually); there is no
+account-recovery flow in this release to depend on it either.
+
+### ✅ RESOLVED — D118: business accounts only; nothing is bought in the app (option 1 of `docs/67` §5.2)
+
+The app carries no price, no staff price, no payment method or instruction, no purchase, renewal or extension action,
+no website link whose purpose is purchasing, no *Subscribe* / *Buy* / *Pay now*, no plan, no billing control, no
+in-app purchase. Pinned by `lib/access-boundary.test.ts` (source and all three catalogues) and the exported-bundle
+audit (15 of 15). The remaining App Review uncertainty — 3.1.3(c) for a one-person shop — is recorded in `docs/67` §9.
+
+### ✅ IMPLEMENTED — D119: the client agrees with the server (mobile `6f6ef47`)
+
+One pure decision, `lib/access.ts`, reads the server's `canRead`/`canWrite` (never a date): **closed** (pending,
+suspended, cancelled, refused) → the access screen instead of the app; **read-only** (the period and its grace are
+over) → every read, every export and the person's own account stay, and no business write is offered — Home's Sell,
+Receive and *Open store*, Money's *Add expense* and money positions, Stock's Receive, Partners' Lend and Consign, the
+Daily closing's open, close, reopen and corrections; a screen whose only purpose is a write (`WRITE_ONLY_ROUTES`,
+seventeen) is sent to the access screen by the sign-in guard; **grace** → the app as usual with one restrained notice
+carrying the server's exact deadline; **open** → nothing said. One `AccessNotice` on the five tabs, so they never
+disagree. A refused write that slips through is named as ended access (`access.blocked.*`), never a missing role. The
+business questions of D119 (a debt payment arriving, an approved refund, the last close while expired) **stay refused
+— server policy unchanged.**
+
+### ✅ APPROVED — D129: the platform console leaves the customer app
+
+`app/platform/*`, `lib/platform-admin.ts`, `lib/platform-state.ts` and the sign-in link are deleted; `retailerp://platform`
+lands on sign-in. The website is the Super Admin's surface (`docs/68` §4); its backend API is unchanged, with the same
+realm, cookie session, password step-up, versioning and audit. **Consequence, reported:** create a business, invite
+its Owner, approve, refuse and correct a period have **no UI** until the website carries them (the Phase-2 site has
+grant, extend, suspend, reinstate, cancel and payment) — `docs/68` §8 gives the interim API calls.
+
+### ✅ APPROVED — D130: neutral access wording, and only what explains access
+
+*Business access* (not *Subscription*): the state in a word — *Pending approval*, *Active*, *Grace period*, *Access
+ended*, *Suspended*, *Not approved* — the date it runs to or the grace deadline, *Managed by your organisation*, *Contact
+your organisation administrator if you believe this is a mistake*. Gone: the seat and branch composition ("paid for"),
+the "ends in N days — contact your administrator to extend it" countdown and its seven-day notice, "until you renew".
+Kept, operational: the Owner's over-allowance notice (*more staff are active than your business access allows* — nobody
+is switched off). EN/FR/AR in their own words, exact parity (3 255 keys).
+
+### ✅ APPROVED — D131: a device may be revoked after expiry; adopting one may not (backend `7283844`)
+
+`DELETE devices/:deviceId` and `DELETE devices/users/:userId/:deviceId` join the entitlement allow-list beside
+`logout-all`: revoking removes authority, and a lapsed subscription is no reason to leave a stolen phone signed in.
+`POST devices/adopt` stays blocked (it grants authority). `docs/33`'s "device trust: both blocked" is superseded for
+revocation only; pinned in `entitlement-rules.spec.ts`.
+
+### ✅ APPROVED — D132: prices and payment stay off the customer surface (backend `7283844`)
+
+`GET platform/quote/:id` is **removed** (a public price leak); the Owner's own figure stays on the website's tenant route
+`platform/my-subscription`. `GET platform/payment-instructions` answers **`available: false`, no provider, no code**
+until a provider is enabled with a real code; every placeholder provider is disabled; **production boot refuses** to
+offer a stand-in (`assertPaymentInstructionsSafeForProduction`, now called from `main.ts`). The mobile app never calls a
+commercial or platform route. `my-subscription` still answers any tenant session (a Manager's too) — the website must
+show the account page to the Owner only (`docs/68` §2); tightening the route is left to the website phase.
+
+### 🔴 OPEN — D133: the commercial reading, for the owner to confirm
+
+"One subscription per branch" (the brief) and "one subscription per company, priced per active branch" (Phase 2) are
+treated as the same rule: the company holds one subscription row with its branch count; every active branch is a
+subscribed branch at 500 MRU; two staff per branch pooled company-wide; 100 MRU per additional staff account, a whole
+month at a time; no trial; 72-hour grace; Super Admin approval and timeline. No code was changed for this. If the
+owner means a separately dated subscription **per branch**, that is a schema change (`docs/07`) to be planned, not a
+wording fix.
+
+### ✅ APPROVED — D134: the website is the commercial and administration surface; the contract is `docs/68`
+
+Versioned v1.0: public/business pages and actions, the Super Admin pages and actions, request/response schemas, error
+states, audit events, security requirements, the inputs needed (repository, domain, DNS, TLS, hosting, an email
+provider, the Bankily agreement, MFA, legal texts) and the interim operations. **Not built, not deployed, not claimed
+operational.** Bankily and WhatsApp remain deferred.
+
+### 📋 VERIFICATION
+
+- **Backend:** `tsc` clean · **181 suites / 3 264 tests passed, 3 skipped** (the demo-file receiving tests) ·
+  `prisma validate` · `migrate status` up to date on a fresh disposable database (84 migrations) · permission catalogue
+  complete.
+- **Mobile:** `tsc` **genuinely clean** (the one "known `global.css` error" is fixed by `css-modules.d.ts`, `7fdbd36`) ·
+  **87 of 87 pure suites** · `expo lint` 0 errors / 29 pre-existing warnings · Expo Doctor 19 of 21 (the same two
+  network checks the container blocks) · parity EN/FR/AR **3 255 / 3 255 / 3 255**, identical order · web export **79
+  pages, every one of the 71 routes present, no page for the console, registration or the old subscription screens** ·
+  the exported-bundle audit **15 of 15** (no console or registration copy, no renewal or purchase wording, no price of
+  our own, no commercial route, no stand-in payment code, no address of ours; a shop's Cash and Bankily channels intact;
+  the EN/FR/AR access copy present) · 0 raw colours and 0 hardcoded copy on every changed screen.
+- **Real HTTP on a disposable MySQL (development- and production-mode APIs): 87 of 87** — `docs/68` §10.
+- **Not run:** any iPhone (`docs/24` §55), anything on live, the website.
+
+### 🟡 OWED
+
+The owner's confirmation of D133; the website repository decision and the inputs of `docs/68` §7; the device run
+(`docs/24` §55); everything else unchanged from `docs/67` (0084/0085 on live, the gate's blockers, the iPhone script).

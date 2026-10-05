@@ -4058,3 +4058,29 @@ three language columns as each passes, or *FAILED* with what happened.
 
 Record anything that fails here with the screen, the language, the text size and the exact words shown, and move it into
 `docs/67` §2.
+
+## 55. Business access on a device (`docs/21`, 2026-10-05) — NOT VERIFIED ON ANY DEVICE
+
+Backend **`7283844`**, mobile **`6f6ef47`** (both `reports-export`). The states are set from the website's administrator
+portal or the API (`docs/68` §8); the app is never told a date by the phone. *JS* marks checks a development build can
+show; everything else needs a signed build. Record *DEVICE VERIFIED* with the date, model, iOS and build, or *FAILED*
+with the exact words shown.
+
+| # | Check | Expected | Status now | EN | FR | AR |
+|---|---|---|---|---|---|---|
+| AF1 | The sign-in screen | *Sign In*, the language control, and one line: *Accounts are set up by your organisation's administrator.* No *Create account*, no *Platform administration*, no link | WEB VERIFIED (export); test-pinned | | | |
+| AF2 | Sign in as the Owner of a **pending** business | the access screen: *Pending approval*, its body, *Managed by your organisation*, the mistake line; **Check again**, **Sign out**, **Delete account**; nothing else reachable | API VERIFIED (pending: shop reads 403 `ENTITLEMENT_PENDING`, account routes 200) | | | |
+| AF3 | Approve it from the website or the API, then **Check again** | straight into the branch choice and the app — no reinstall, no sign-out | API VERIFIED (approve → active) | | | |
+| AF4 | More → **Business access** while active | the state *Active*, *Your business access is active until {date}*, *Managed by your organisation*; **no figure, no button, no link** | WEB VERIFIED; test-pinned | | | |
+| AF5 | Move the period end to one hour ago (API) | one notice on Home, Partners, Money, Stock and More: *Grace period — changes are accepted until {deadline}* with the server's deadline; Sell and Receive still offered; a sale goes through | API VERIFIED (grace, 71 h, writes accepted) | | | |
+| AF6 | Move it past 72 hours | the notice reads *Business access has ended — reading and exports only* on all five tabs; Home shows no Sell, Receive or *Open store*; Money no *Add expense*; Stock no Receive; Partners no Lend / Consign; the Daily closing no open / close / reopen / corrections; every list, detail, Results and PDF still open | API VERIFIED (writes 403 `ENTITLEMENT_WRITE_BLOCKED`; reads and the monthly report 200) | | | |
+| AF7 | While ended: open `retailerp://quick-sell`, `retailerp://expenses/new`, `retailerp://receive` | each lands on **Business access**, not on a form | test-pinned (`entry.test.ts`) | | | |
+| AF8 | While ended: Your account → verify a number / delete the account; Devices → remove a device; Sign out | reachable; refused only for want of a channel (*codes cannot be sent right now*), never as ended access | API VERIFIED (503 `deletion_unavailable`; device revoke passes the gate; `logout-all` 200) | | | |
+| AF9 | Suspend from the API, then pull to refresh anywhere | the access screen: *Access suspended*; reinstate → the app returns | API VERIFIED | | | |
+| AF10 | Refuse a pending business; sign in as its Owner | *Not approved* — never *expired* or *ended* | API VERIFIED (`ENTITLEMENT_REJECTED`) | | | |
+| AF11 | Open `retailerp://platform` and `retailerp://register` | sign-in; no console, no form | test-pinned; WEB VERIFIED (no page exported) | | | |
+| AF12 | Arabic and French, 320 pt, largest text | the access screens and the notice read naturally and mirror; nothing clipped | NOT VERIFIED (web export only) | | | |
+| AF13 | A write that slips through (an action started before the refresh) | the toast *Access ended — This could not be saved. Your business access has ended, so nothing new can be recorded — everything you already have is still here.* | test-pinned (`lib/errors.ts`) | | | |
+
+Nothing here shows a price, a payment method, a way to buy or renew, or a website. If any screen does, that is a
+release blocker — record the exact words and the screen.

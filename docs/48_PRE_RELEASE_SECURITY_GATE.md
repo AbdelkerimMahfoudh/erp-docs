@@ -272,3 +272,24 @@ first CI run (C) · 9 bot protection (D) · 10 the independent assessment (D).
   `CURRENT_HANDOFF.md`.
 - The gate is re-run after any change to authentication, authorisation, money
   handling or public exposure — those four invalidate a previous pass.
+
+---
+
+## 14. Reconciliation after the subscription separation (2026-10-05)
+
+Backend **`7283844`**, mobile **`6f6ef47`** (`docs/21`, 2026-10-05; `docs/68`). Authentication and public exposure
+changed, so by this document's own rule the previous pass is invalidated for the controls below; the rest of §13 stands.
+
+| # | Control | Class now | What changed |
+|---|---|---|---|
+| 6 / 7 | Authorisation, default deny | A | The entitlement allow-list gains `DELETE devices/:deviceId` and `DELETE devices/users/:userId/:deviceId` (revoking removes authority, like `logout-all`); `POST devices/adopt` stays blocked. Pinned by name in `entitlement-rules.spec.ts`; proven over HTTP (read-only shop: revoke passes the gate, adopt refused with `ENTITLEMENT_WRITE_BLOCKED`) |
+| 11 | Rate limits, enumeration | B | `POST platform/register` refuses with `503 registration_unavailable` **before any row is written** when no code can leave the server (production mode: 3 companies → 3) |
+| 17 | Minimal DTOs / exposure | A, **narrowed** | `GET platform/quote/:id` (public; a business's size and price for anyone holding its id) is removed; the boundary spec asserts no public handler reaches billing |
+| — | Platform realm | A, re-proven | Over HTTP in production mode: the administrator cookie admitted, a bearer refused (401); the tenant JWT refused on every administrator route; the administrator session refused on every customer route (`account/*`, `entitlement`) |
+| — | Payment instructions | **A (new)** | No stand-in is ever served (`available: false`, no provider, no code); `assertPaymentInstructionsSafeForProduction()` runs at boot and refuses to offer a placeholder; tested |
+| — | Client bundle | B | The customer bundle carries no console, registration, price, purchase or renewal wording, commercial route or address of ours (the exported-bundle audit, 15 of 15; `lib/access-boundary.test.ts`) |
+
+**The ten blockers of §12, now:** 7 (Apple) — the payment model is **decided** (D118: business accounts only) and
+self-registration is **hidden and refused** (D117); the privacy policy URL, the demo business for review, export
+compliance and the device run remain. Everything else unchanged. **Verdict: NOT PASS** (unchanged — the external
+prerequisites and the independent assessment stand).

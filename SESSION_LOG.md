@@ -10694,3 +10694,90 @@ mode-600 scratch files, never printed, and deleted. No secret, dump or environme
 **Not done, owed.** The owner's decisions (`docs/67` §4, D116–D128, D115); 0084 and 0085 on live through the runbook
 (`docs/67` §7) after approval; the iPhone run (`docs/24` §54); the security gate's blockers. Draft PRs #2 (backend,
 mobile) are superseded by the cherry-picks — for the owner to close.
+
+## 2026-10-05 01:39Z → 02:40Z — CLAUDE-B (cloud) — the external subscription management separation: the console and self-registration out of the customer app, neutral business access, one read-only state, the backend price/payment boundary, the website contract
+
+**Takeover.** From `READY_FOR_HANDOFF`, owner NONE (the previous handoff was complete), recorded in docs `94e599e` before
+anything changed. HEADs at takeover, all clean and level after a fetch: docs `d3694ad`, backend `1434aa7`, mobile
+`3023bd3` (both `reports-export`). Live at 0083 (repository 0085), unreachable from this session and untouched. Draft PRs
+unchanged (backend #1/#2, mobile #1/#2). Discrepancies reported before any code change (`docs/21`, 2026-10-05): the
+dedicated website repository exists only on the owner's PC with no remote; the Super Admin console and in-app
+self-registration lived inside the customer app; `GET platform/quote/:id` was public and priced any business by id; the
+payment instructions carried five `00000` codes and the production assertion meant to refuse them was never called; the
+client offered every write the server refuses to an expired shop; the server blocked device revocation after expiry
+while the brief keeps device security; "one subscription per branch" versus "one per company, priced per branch".
+
+**The brief (2026-10-05).** Restore the approved model: subscriptions acquired, paid, renewed and administered on a
+separate website; the app shows only neutral access status and never a price, seat price, purchase or renewal action,
+payment form, Bankily instruction, external payment or purchase link, plan, billing control or in-app purchase; one
+coherent read-only client in the expired state; the console out of the customer app; the backend verified as the sole
+authority with no enforcement removed; incomplete self-registration hidden and refused honestly; a versioned API/UX
+contract for the website (none built); the App Store boundary audit; every gate; docs; READY_FOR_HANDOFF. No deploy,
+live migration, TestFlight, App Store build, production website, Bankily or WhatsApp.
+
+**Done — backend `reports-export` `1434aa7` → `7283844`** (one commit). `GET platform/quote/:id` removed; payment
+instructions serve no stand-in (`available: false`, no provider, no code; every placeholder provider disabled;
+`assertPaymentInstructionsSafeForProduction()` called at boot, by either production label); `POST platform/register`
+refuses up front with `503 registration_unavailable` and nothing saved when no verification code can leave the server
+(`ContactDeliveryProvider.canDeliver(channel)`: outbox yes, unconfigured no, WhatsApp for a number while the channel is
+on); `DELETE devices/:deviceId` and `DELETE devices/users/:userId/:deviceId` join the entitlement allow-list, `adopt`
+stays blocked. Pinned in `platform-boundary.spec.ts` (the quote gone, no public handler reaches billing, registration
+refused before the database, the channel asked is the Owner record's, payment instructions unavailable, boot asks),
+`entitlement-rules.spec.ts` (the allow-list by name) and `contact-delivery.spec.ts`.
+
+**Done — mobile `reports-export` `3023bd3` → `6f6ef47`** (three commits). `7fdbd36` `css-modules.d.ts`: `tsc` is clean
+with no "known error". `d761926` `app/platform/*`, `lib/platform-admin.ts`, `lib/platform-state.ts`, the register and
+verify screens, `lib/registration*.ts`, their tests and 153 keys per language removed; the sign-in screen says *Accounts
+are set up by your organisation's administrator*; the registry, back map, entry decision and `headerBackFor` lose their
+special cases. `6f6ef47` `/subscription` → `/access` and `/subscription-blocked` → `/access-closed` with neutral copy;
+`lib/access.ts` (pure: unknown / open / grace / read_only / closed from the server's flags, the notice decision, the
+closed reason) and `useBusinessAccess()`; `AccessNotice` on the five tabs; Sell, Receive, *Open store*, *Add expense*,
+money positions, Lend, Consign and the Daily closing's open / close / reopen / corrections withheld while read-only;
+`WRITE_ONLY_ROUTES` (17) redirected to `/access` by the sign-in guard (`entryRoute` gains `readOnly` and `pathname`);
+`toFriendlyError` names `ENTITLEMENT_WRITE_BLOCKED` as ended access; 36 subscription keys out, 33 access keys in;
+`lib/access-boundary.test.ts` pins the boundary across source and catalogues; `lib/access.test.ts` the decision table.
+
+**Docs.** `docs/68` (new: the website contract v1.0 — pages, actions, schemas, errors, audit events, security,
+versioning, the inputs needed, the interim API operations, the matrix), `docs/21` (the discrepancies; D117 and D118
+resolved; D119 implemented; D129–D134), `docs/33`, `docs/37`, `docs/38` (dated notes), `docs/48` §14, `docs/67` §9,
+`docs/24` §55 (13 device checks), this entry, the handoff.
+
+**Verification.** Backend `tsc`, **181 suites / 3 264 tests, 3 skipped**, `prisma validate`, `migrate status` up to date on
+a fresh disposable database (84 migrations), the permission catalogue complete. Mobile `tsc` clean, **87 of 87 suites**,
+`expo lint` 0 errors / 29 pre-existing warnings, Expo Doctor 19 of 21 (the two network checks the container blocks),
+parity 3 255 / 3 255 / 3 255 in identical order, web export 79 pages with all 71 routes present and no page for the
+console, registration or the old subscription screens, the exported-bundle audit 15 of 15, 0 raw colours and 0 hardcoded
+copy on every changed screen. **Real HTTP on a disposable MySQL 8.0.46, a development-mode API (3042) and a
+production-mode API (3043) on the built `dist`: 87 of 87** — pending (closed; account routes open; deletion refused
+honestly with `deletion_unavailable`), approval, active for Owner / Manager / Employee, no self-activation (401 on every
+platform route, 403 on provisioning, no PATCH/POST entitlement, no quote), a phone clock in headers ignored, grace (71 h,
+writes accepted), the grace boundary at ±20 s, read-only (`ENTITLEMENT_WRITE_BLOCKED` on customers, products, settings,
+device adoption; reads and the monthly report 200; deletion, device revocation, a notification read and the website
+handoff pass the gate), suspension (`ENTITLEMENT_SUSPENDED`, idempotent, the password step-up enforced), reinstatement,
+two concurrent approvals (one applies, one billing period), approve against refuse at once (one wins, the loser 409),
+refusal (`ENTITLEMENT_REJECTED`), cross-business isolation, the administrator realm refused on `account/*` and
+`entitlement`, no price in any customer response, `logout-all` while expired; production mode: registration refused with
+nothing saved (3 companies → 3), payment instructions unavailable, no public quote, no static-key provisioning, the
+administrator cookie admitted and a bearer refused. Nothing on an iPhone.
+
+**Mistakes of this session, recorded.** (1) The catalogue sweep that removed the subscription keys also popped the
+freshly inserted access block, because it followed the comment the sweep was told to drop — caught by parity (3 222
+against the expected 3 255) and re-inserted. (2) The Partners notice was first inserted inside the header's `actions`
+prop — caught by `tsc`. (3) The first write-only route matcher escaped brackets wrongly and matched nothing — caught by
+the tests; replaced by segment matching. (4) The first matrix run had four false failures of its own making (empty
+deletion bodies that failed validation, a one-letter actor, a zero UUID read as a payment code, a daily report asked of
+a day that had not begun) — the harness was corrected and rerun; the API was right each time. (5) The bundle audit's
+first run flagged colour-padding zeros, `\u`/`\x`-escaped French and Arabic strings, library-documentation hosts and a
+shop's own Sedad channel — the audit was corrected, not the bundle. (6) Parallel shell calls shared one working
+directory, and six documentation edits went nowhere while reporting success — redone by absolute path and verified by
+grep before committing.
+
+**Data and process safety.** Live: unreachable and untouched. Every write went to a throwaway MySQL in the scratch
+directory (`prisma_sep`, `prisma_sep_shadow`), both dropped; the server stopped and its files removed; the two APIs
+stopped. The JWT secrets, the OTP pepper and the administrator password were random, generated into mode-600 scratch
+files, never printed, and shredded. No secret, dump or environment file in any commit; no message sent; nothing
+deployed, submitted or published; no website repository created.
+
+**Not done, owed.** The owner's confirmation of D133 (one subscription per company priced per branch); the website
+repository decision and the inputs of `docs/68` §7; the device run (`docs/24` §55); everything owed before this phase
+(D116, the owner's other decisions, 0084/0085 on live through the runbook, the gate's blockers, the iPhone script).
