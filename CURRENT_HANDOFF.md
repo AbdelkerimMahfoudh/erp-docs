@@ -6,21 +6,23 @@
 
 ## Session control
 
-- Status: **READY_FOR_HANDOFF**
-- Owner: **NONE**
-- Last session: **CLAUDE-B** (a claude.ai cloud session), `2026-10-05T01:39Z` → `2026-10-05T02:40Z`, taken from
-  `READY_FOR_HANDOFF` (the previous handoff was complete); its work is complete, verified and pushed.
-- **The phase just finished (the user's brief of 2026-10-05): the external subscription management separation** —
-  subscriptions are acquired, paid, renewed and administered on a separate website; the customer app only reads the
-  server's business-access state and shows it in neutral words. The Super Admin console and self-registration are out of
-  the app; the server refuses a registration it cannot finish; the public price route is gone; payment instructions
-  serve no stand-in; an expired shop sees one coherent read-only app; the website is a **contract** (`docs/68`), not a
-  product. Record: `docs/21` (2026-10-05), `docs/68`, `docs/48` §14, `docs/67` §9, `docs/24` §55. **Nothing was
-  deployed, migrated on live, submitted or published; no website was built; Bankily and WhatsApp stay non-operational.**
-- **GO / NO-GO (`docs/67` §8–§9): unchanged** — internal TestFlight GO once the owner's three inputs exist; external
-  TestFlight and the public App Store NO-GO (RC-01 deletion needs D116; RC-04, RC-06, RC-07, RC-08, RC-09). RC-02 and
-  RC-03 are closed by D117 and D118.
-- **The gate (`docs/48` §14) is NOT PASS** (external prerequisites and the independent assessment).
+- Status: **IN_PROGRESS**
+- Owner: **CLAUDE-B** (a claude.ai cloud session)
+- started_at_utc: **2026-10-05T03:22Z**
+- Taken from `READY_FOR_HANDOFF`, owner NONE — the previous handoff (CLAUDE-B, 2026-10-05 02:40Z, the subscription
+  separation) was **complete**: all three working trees clean and level with their remotes at the HEADs below, verified
+  against `git fetch` before this line was written.
+- **Active phase and scope (the user's brief of 2026-10-05, 03:21Z):** (A) the external business and subscription
+  website built from scratch in its own repository (no website existed anywhere this session can reach); (B) employee
+  accounts created from Team in the app, contact verification of every selected channel enforced on the server, and the
+  new seat rule — one free employee seat per store, the Owner excluded, 100 MRU per additional seat per store, paid and
+  verified before activation; (C) the file-based stock intake creates and links a missing product in place, and Import
+  stock moves from More to the Stock tab; (D) the Arabic restart notice reflects the real direction; (E) Notifications'
+  nested list and its empty error toast; (F) every gate, browser screenshots of the website, docs, session log, handoff.
+  **Out of scope, by instruction:** live data or migrations, publishing the website to a production domain, an iOS
+  build, any claim that Bankily, WhatsApp or email delivery works without real configuration.
+- Next intended action: report the takeover discrepancies, then backend → mobile → website → docs, committing on the
+  release branches only after verification.
 
 ## HEAD now
 
