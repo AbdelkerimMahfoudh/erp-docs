@@ -1,9 +1,32 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE-B — 2026-10-05T03:22Z → 2026-10-05T06:10Z (the seat rule, team accounts, the website from scratch, four app defects; the website published at 06:05Z)
-previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-10-05T03:22Z)
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-06T01:16Z
+previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B's own, 2026-10-05T06:10Z); takeover authorised by the user's brief of 2026-10-06 ("Continue as CLAUDE-B with a focused device-build reconciliation and visible-regression correction")
+
+## Active phase (2026-10-06) — device-build reconciliation and visible-regression correction
+
+HEAD of every repository at takeover, all working trees clean and level with their remotes: `erp-backend`
+`reports-export` `d670401` · `erp-mobile` `reports-export` `81cb599` · `erp-control-web` `main` `0417bfe` ·
+`erp-docs` `master` `44f745f`.
+
+**Scope (the user's brief, seven parts):** (1) establish which commit the iPhone actually runs before rewriting any
+fix — the LogBox screenshot names the Windows checkout `C:\wamp64\www\ERP\erp-mobile`; a development-only build
+identifier in the app; safe synchronisation steps for the PC; (2) Notifications: prove the rendered ancestry holds no
+same-direction ScrollView, a structural regression test, the blank toast's real caller; (3) the Arabic direction
+notice against the real runtime state; (4) the Money card and the opening-cash invariant (keep is not allowed when
+the previous cash is unknown; the Owner sets an amount, 0 explicit); (5) Import stock out of More for real, with a
+rendered-navigation test; (6) Home's header card at full content width; (7) the verification standard — device items
+marked NOT DEVICE VERIFIED with exact steps where no device is available.
+
+**Established before any change:** the remote mobile HEAD is `81cb599`; the LogBox line numbers (67–72) match
+`app/notifications.tsx` from `e484b58` through `81cb599` and not `master`; More cannot render *Import stock* at
+`81cb599` (the registry has no such row), so the phone's bundle predates `81cb599` — the PC checkout or the Metro
+bundle it serves is stale. The Money "unknown cash" state and the Home header's short tint are real at HEAD.
+
+**Next intended action:** the build identifier (`app.config.js` + diagnostics), then the Home header, the opening
+invariant (backend first), the rendered tests (Jest tooling added to the mobile repository), then docs.
 
 ## HEAD of every repository — all working trees clean
 
