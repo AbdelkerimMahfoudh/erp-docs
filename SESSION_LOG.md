@@ -10863,3 +10863,63 @@ support and privacy addresses, payment procedure) is untouched by this; a publis
 **Commits:** `erp-backend` unchanged at `d670401` · `erp-mobile` unchanged at `81cb599` · `erp-control-web` `0417bfe`,
 now on GitHub · `erp-docs` the commit carrying this entry. All four working trees clean. Status stays
 `READY_FOR_HANDOFF`, owner `NONE`.
+
+## 2026-10-06T01:16Z → 2026-10-06T02:01Z — CLAUDE-B — the iPhone ran an older bundle: reconciliation, the build identifier, the opening-cash invariant, RTL that follows the app, the Home header, rendered tests (`docs/70`)
+
+**Brief.** The user's message of 2026-10-06 with four iPhone screenshots contradicting the 5 October report. "Do not
+immediately rewrite the same fixes. First establish whether the iPhone is running the code that was actually pushed."
+
+**Established first, from the screenshots alone (`docs/70` §1).** The remote mobile HEAD was `81cb599`. The LogBox
+frame's line numbers (`<FlatList` on 69 with `data`/`keyExtractor`/`contentContainerStyle` on 70–72) match
+`app/notifications.tsx` from `e484b58` through `81cb599` and not `master` (62); *Import stock* in More is impossible at
+`81cb599` (no such registry row, and More renders the registry alone). So the phone's JavaScript predated the pushed
+commit: the Windows checkout `C:\wamp64\www\ERP\erp-mobile` had not been pulled, or Metro served a bundle built before
+the pull. The blue gear is expo-dev-menu's floating Tools button (Expo Go or a development build — it does not say
+which). Three of the five reports were therefore not reproducible at the pushed commit and were re-proved rather than
+rewritten; two were genuine at `81cb599` (the Money card's unknown drawer; the Home header's short tint); the Arabic
+audit found a configuration that made RTL impossible on iOS.
+
+**Backend `1bf65b5` (pushed).** Keep needs a known drawer: `withDrawerKnown` refuses `keep` on an unknown drawer (400
+`opening_cash_unknown`) on the opening, the reopen and the Owner's review; `reviewableOpening` widens the review to an
+opening that left the drawer unknown and to an open day with no decision (the review then stands alone); the QA seed
+sets 0. No migration — nothing in the schema changed. `tsc` clean; 184 suites / 3 318 tests (3 skipped, as before).
+
+**Mobile `2347523` (pushed).** `app.config.js` stamps `extra.build` (commit, branch, dirty, readAt); Devices shows it
+under *This device* in development only, with Expo Go / bare / standalone. The opening sheet offers no Keep while the
+drawer is unknown and asks for the amount (0 explicit); the Money card says the opening amount was not set and offers
+*Set today's opening cash* to the Owner while the day is open; one explanation line. `app.json`: `expo-localization`
+without `supportsRTL` — its iOS module forced the device locale's direction at every launch, before React loads,
+discarding the app's `forceRTL`; `allowRTL`/`forceRTL` now follow the app's language; a relaunch is recognised by
+`Constants.sessionId`; Expo Go reads "cannot" only after a restart that changed nothing; the words say to swipe the
+app away. The Home header: the tint's parent carries no padding (React Native resolves an absolute child's 100 %
+against the content box — the 32 pt the screenshot was short). The blank toast's real callers: three catalogue screens
+toasting `ApiError.message` raw, and the API client building that message from an empty array — fixed at the source.
+Rendered tests under jest-expo (`npm run test:render`): Notifications with React Native's own nesting check (a control
+proves it fires here), More/Stock/`/imports` for the Owner, the Store Manager and the Store Employee with the server's
+permission sets, the header's structure. Gates: `tsc` clean; `expo lint` 0 errors / 29 warnings (baseline); 91 node
+suites; parity; 15 rendered tests; web export; `expo-doctor` 19/21 (the schema and React Native Directory checks are
+refused by the container's proxy).
+
+**Browser evidence (not a device).** Playwright on the committed web export (`expo serve`, :8090) against the built
+API on a disposable MySQL (`prisma_qa_ph3`, the QA boutiques, 0001 → 0086 from empty): **93 passed, 0 failed** — the Home header at
+320 and 393 px, 1× and 1.3× text, EN/FR/AR (12 px from both screen edges, the bell inside with a 48 px target, no
+overlap, the document direction following the language); More without *Import stock* and Stock with it for the Owner
+alone, `/imports` refused in words for the Manager and the Employee; `/notifications` with no nesting error in the
+console and no blank toast; the opening journey — a manager opens the annex carried, the Owner's keep is refused
+`opening_cash_unknown`, the card offers the action, the sheet has no Keep, *Set to 0*, the review reads `set` / 0 /
+`reviewed`; the release web export shows no build line. 23 screenshots: scratchpad `ph3/shots/`.
+
+**Not done, owed — the runtime state.** Nothing above ran on an iPhone. `docs/24` §57 is the device run, on the pushed
+commit from a restarted Metro (`docs/70` §3: fetch, inspect, `pull --ff-only`, `npm install`, `expo start -c`, then the
+Devices build line as proof) and, for the Arabic direction, on a **new native build** (the `app.json` change is native
+configuration; Expo Go cannot apply it and a reload never does). The Expo Go question (does it keep a project's
+direction request?) is answered honestly by the notice after one restart, not predicted. Everything owed before this
+phase stands (D138b, the website's providers, the live runbooks).
+
+**Data and process safety.** Live: untouched, still at `0083` — no migration in this phase. The disposable MySQL on
+:3310 (the preserved data directory, a new database `prisma_qa_ph3`) and the two API processes (:3060, :3010) were
+stopped and the database dropped at the end; the env files written for them were shredded. No secret in any commit;
+nothing deployed, submitted or published; no message sent.
+
+**Commits:** `erp-backend` `1bf65b5` · `erp-mobile` `2347523` · `erp-control-web` unchanged at `0417bfe` · `erp-docs`
+the commit carrying this entry. All four working trees clean, level with their remotes.

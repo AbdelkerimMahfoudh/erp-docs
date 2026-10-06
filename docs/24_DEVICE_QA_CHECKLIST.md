@@ -4120,3 +4120,48 @@ row; back from Import stock returns to Stock; the preview's back returns to Impo
 **Website (`docs/69` §4)** — on a phone browser: the home page, estimate, application (refused honestly where no
 provider delivers), sign-in, status page in AR; screenshots of this session: `scratchpad ph2/shots/*.png`
 (71 files, `<page>-<en|ar>-<phone|desktop>.png`, plus `apply-verify-fr-phone.png`).
+
+## 57. The 2026-10-06 reconciliation — on the pushed commit, from a restarted Metro, and on a NEW native build (`docs/70`)
+
+Nothing below was run on a device in that session. **Do A first**: every other line is meaningless on an older bundle.
+Mark each line with what was actually seen.
+
+**A. The build the phone runs — NOT DEVICE VERIFIED**
+- [ ] On the PC: `docs/70` §3 in order (`git status` read, `git fetch`, `git pull --ff-only origin reports-export`, `npm install`, every Metro window closed, `npx expo start -c`).
+- [ ] On the phone, opened from THAT Metro: **More → Devices → This device** shows *Development build…* with the commit equal to the PC's `git rev-parse --short HEAD` (the handoff names the pushed one), no `+`, and a *Configuration read* time after the Metro start. Screenshot it: this is the proof.
+- [ ] The line names where the app runs: *Expo Go*, *bare* or *standalone*. Write it down — C depends on it.
+- [ ] (Later, the installed release build) Devices shows **no** build line.
+
+**B. Notifications — NOT DEVICE VERIFIED**
+- [ ] Open Notifications from the bell: **no LogBox** (red "Console Error" sheet) and no yellow box.
+- [ ] The list scrolls on the first gesture (no first swipe lost); a long list (40+) keeps scrolling smoothly.
+- [ ] Tapping a row marks it read and lands where it points; an unread dot disappears.
+- [ ] Empty: *Nothing new* with its sentence; airplane mode then open: the translated error with Retry — never a raw key or `[object Object]`.
+- [ ] **No blank toast** on this screen or on arriving at it from Home; if one appears anywhere, the development console shows `[toast] … called without a message` with the caller — record it.
+
+**C. Arabic direction — NOT DEVICE VERIFIED; impossible without a NEW native build (`app.json` changed)**
+- [ ] In **Expo Go**: EN → AR in Appearance: text switches at once; the notice says *Restart needed* with the swipe-away words; swipe Expo Go away in the app switcher and reopen the project. Either the layout is right-to-left and the notice is gone, or it is still left-to-right and the notice now says *Expo Go did not switch the layout… restarting again will not help*. Both are honest; the second must not change on a further restart.
+- [ ] On the **new development or standalone build** (`npx expo run:ios` / EAS, installed after this commit): EN → AR, swipe the app away, reopen → the layout is **right-to-left** (chevrons at the start edge, lists right-aligned, the native back arrow mirrored) and the notice is **gone**; sign out, force-quit, relaunch → still Arabic, still RTL, no notice.
+- [ ] AR → EN or FR: the same, the other way; EN and FR are both LTR.
+- [ ] A JavaScript reload (shake → Reload) while the request is pending leaves the notice at *Restart needed* — it must NOT say *this build cannot switch direction* after a mere reload.
+- [ ] If the new build restarts and the layout still runs the other way, the notice says the build cannot switch direction and stays; report the build.
+- [ ] Dark and light, cold launch.
+
+**D. Money and the opening cash — NOT DEVICE VERIFIED**
+- [ ] A boutique whose drawer is unknown (never counted, nothing set): Home → *Open the boutique* as the Owner: the sheet shows the previous amounts with *Unknown* for cash, **no Keep choice**, the notice *No previous amount to keep*, the cash field empty, *Set to 0*; confirm is disabled until an amount is typed or *Set to 0* is tapped.
+- [ ] Set 0 → *Confirm amounts and open the boutique* → Money's card shows the figure (0 plus the day's cash movement), the explanation line, and no *not set* line; the Daily closing's expected cash is the same figure.
+- [ ] A drawer that IS known: both choices (Keep, Set) as before; Keep opens on the amount shown.
+- [ ] Airplane mode at confirm: the sheet stays open with the typed value and the error; the store stays closed (Sell still refused); reconnect, tap again → opened once (one opening in Closing & history).
+- [ ] Reopen after a close with a counted drawer: Keep keeps the count; Set replaces it from now.
+- [ ] A day already open on an unknown drawer (opened before this commit, or by a staff member): Money says *The drawer's opening amount has not been set for today* and offers **Set today's opening cash** to the Owner; the sheet has no Keep; 0 is accepted; afterwards the card reads known and *Reviewed* in Closing & history.
+- [ ] A Store Manager opens a never-counted boutique: allowed, *The Owner will review today's opening amounts*; the Owner's Money then shows the line above with the action.
+
+**E. Import stock — NOT DEVICE VERIFIED**
+- [ ] More, as the Owner, the Manager and the Employee: **no** *Import stock* row, no empty section.
+- [ ] Stock tab header: the spreadsheet icon for the Owner only; it opens Import stock; back returns to Stock; the preview's back returns to Import stock; a draft preview survives leaving and returning.
+- [ ] Open a stale `/imports` link as an Employee: *Not available to you*.
+
+**F. Home header — NOT DEVICE VERIFIED**
+- [ ] The tinted card's right edge aligns with the right edge of the Receive/Sell row (12 pt from the screen edge on both sides); the bell sits inside the card, tappable across its whole target.
+- [ ] At the largest accessibility text size, and on a 320 pt-wide phone if available: greeting, date and bell do not collide; the date stays on one line or wraps under the bell, never over it.
+- [ ] EN, FR and AR (AR on the new build, mirrored: bell and date at the left end).

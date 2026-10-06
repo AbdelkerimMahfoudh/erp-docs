@@ -6745,7 +6745,10 @@ Notifications (and the price history) render their `FlatList` without the page's
 what the React Native warning named; nothing is suppressed through LogBox. A toast called without words shows the
 app's generic error sentence instead of an empty red box, and names its caller in development; the exact caller on
 the owner's device is **not identified** in this session (no device, no reproduction) — the guard and the development
-warning are what will name it.
+warning are what will name it. *Amended 2026-10-06 (`docs/70` §4.1):* the Notifications screen has no toast of its
+own; the callers that could pass an empty string were the three catalogue screens toasting an `ApiError`'s raw message
+and the API client building that message from an empty array — both fixed at the source; the guard stays as the
+backstop.
 
 ### ✅ IMPLEMENTED — D144: a product the file names and the catalogue lacks is created from the review
 
@@ -6755,3 +6758,72 @@ field editable; saving links the product to exactly the rows waiting on it and r
 that already exists is used instead of duplicated; cancelling returns with nothing changed; the draft survives an
 interruption. Somebody without the permission is told whom to ask and that the review is kept. No unit exists until
 the delivery is confirmed.
+
+## 2026-10-06 — the iPhone ran an older bundle; the build identifier; the opening-cash invariant; RTL follows the app alone (`docs/70`)
+
+The user's brief of 2026-10-06, taken as the newest product decisions. The screenshots of 6 October were of a bundle
+older than the pushed `81cb599` (`docs/70` §1); two of the five reports were nonetheless genuine at that commit (the
+Money card's unknown drawer, the Home header's short tint) and one audit found a configuration that made the Arabic
+direction impossible on iOS. Nothing here ran on a device; `docs/24` §57 is the device run.
+
+### ✅ IMPLEMENTED — D145: the app says which source it runs, in development only
+
+`app.config.js` stamps `extra.build` — the commit, its branch, whether files were changed, and when Expo read the
+configuration — from the checkout Metro bundles. The Devices screen shows it under *This device* only in development,
+with where the app runs (Expo Go, bare, standalone). A release build shows nothing: repository details are not for a
+shop's employees. It exists so a screenshot can prove which code a phone shows; `readAt` exposes a Metro not restarted
+after a pull. The safe synchronisation steps for the Windows checkout are `docs/70` §3 — fetch, inspect, fast-forward
+only, never reset, clean or discard.
+
+### ✅ IMPLEMENTED — D146: keep needs something to keep; an open day's unknown drawer is the Owner's to set now
+
+Supersedes the sentence of D100 "Keep preserves unknown amounts as unknown" (the user's correction of 28 September):
+**keep is refused while the drawer's amount is unknown** — 400 `opening_cash_unknown` on the opening, the reopen and
+the Owner's review, nothing written — and the Owner **sets** the cash, 0 explicitly when the drawer is empty; the sheet
+offers no Keep then and says why. A staff member still opens with the carried amounts (an unknown drawer included) and
+the day reads *awaiting the Owner's review*, where the same rule applies. **The Owner's review is widened** to an
+opening that left the drawer unknown and to an open day with no decision recorded, so the Money card offers *Set
+today's opening cash* while the day is open; the amount is true from that instant, nothing backdated (D102 unchanged).
+Opening still finishes only on the server's answer, in one transaction; a refusal keeps what was entered and the
+store stays closed. Money and the Daily closing read one server figure. The card gained one explanation line; the
+*Money recorded today* card does not return. Existing days opened on an unknown drawer are not rewritten: the Owner
+sets them from Money. The QA seed sets 0 at its openings.
+
+### ✅ IMPLEMENTED — D147: the layout direction follows the app's language, and nothing native overrides it at launch
+
+Supersedes the `supportsRTL: true` part of D142. On iOS that `expo-localization` option makes the native module force
+the **device locale's** direction at every launch, before React loads, discarding the direction the app persisted when
+Arabic was chosen — a native build with it could never switch to Arabic from the in-app setting. The option is removed;
+Android's manifest already allows RTL. The app sets `allowRTL` and `forceRTL` together, both following its language
+(so an Arabic-locale Android phone does not lay English out right-to-left). The notice is computed from the actual
+layout: nothing when it matches; *restart* while the request is pending — close the app completely, swipe it away in
+the app switcher, reloading is not enough; after a genuine relaunch that changed nothing, *Expo Go did not switch the
+layout… restarting again will not help* in Expo Go, or *this build cannot switch direction; a newer build is needed* in
+our own build. A relaunch is recognised by Expo's per-process session id, so a JavaScript reload in development is
+not mistaken for a restart. **A new native build is required** before any of this can be seen on an iPhone, and it is
+unverified on a device (`docs/24` §57 C). Web right-to-left is not native RTL.
+
+### ✅ IMPLEMENTED — D148: Home's header card spans the content width on a phone
+
+The header's tint is an absolutely positioned view at 100 %; React Native's default layout conformance resolves that
+against the parent's content box, so with the padding on the same view the tint ended 32 pt before the card's end
+edge (the 6 October screenshot). The card is now an unpadded outer view carrying the shape and the tint and an inner
+view carrying the padding and the content, symmetrically; the bell keeps its 48 pt target inside. Pinned by a rendered
+test and measured in the browser at 320 and 393 px, 1× and 1.3× text, EN/FR/AR (`docs/70` §4.5, §6).
+
+### ✅ IMPLEMENTED — D149: rendered tests are part of the mobile gates
+
+`jest`, `jest-expo`, `react-test-renderer` and `@testing-library/react-native` join the development dependencies;
+`npm run test:render` runs `__tests__/*.test.tsx` under jest-expo, where React Native's own checks run against the real
+screens. They prove what source-string tests could not: that React Native raises no nesting warning for Notifications
+(with a control that shows the warning is detectable), that More lists no *Import stock* for the Owner, the Store
+Manager or the Store Employee and the Stock tab offers it to the Owner alone, that `/imports` opened directly is refused
+in words, and the Home header's structure. The pure node suites are unchanged and still run under node directly.
+
+### 📋 VERIFICATION AND 🟡 OWED
+
+In this container (`docs/70` §6 and the handoff): backend `tsc` and 184 suites / 3 318 tests; mobile `tsc`, `expo lint`
+(0 errors), every node suite, parity, 15 rendered tests, the web export, the browser matrix and journeys. **Owed:** the
+device run `docs/24` §57 on the new Metro **and** a new native build; the Windows checkout brought level per `docs/70`
+§3; everything owed before this phase.
+

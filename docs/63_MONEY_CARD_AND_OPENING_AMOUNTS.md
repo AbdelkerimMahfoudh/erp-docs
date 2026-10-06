@@ -6,6 +6,14 @@ opening the boutique includes the money it opens with. Decisions **D98–D102** 
 `docs/04`; the phone's checks are `docs/24` §50. Migration **0083** (additive), on live since 2026-09-28 21:50Z.
 Backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`, `9d54803`, `812ba09`.
 
+> **Amended 2026-10-06 (`docs/70` §4.3, D146):** *keep needs something to keep.* While the drawer's amount is unknown,
+> `keep` is refused — 400 `opening_cash_unknown` — on the opening, the reopen and the Owner's review, and the Owner
+> **sets** the cash (0 explicitly when the drawer is empty); the sheet offers no Keep then and says why. A staff
+> member's carried opening still carries an unknown drawer and awaits the Owner. The review is widened to an opening
+> that left the drawer unknown and to an open day with no decision recorded, so Money offers *Set today's opening
+> cash* while the day is open. The sentence "Keep preserves unknown amounts as unknown" below is superseded for the
+> Owner; everything else on this page stands.
+
 The user's corrections, verbatim in substance:
 
 - *At a shop opening, the Owner may set that shop's cash. Company-wide Bankily and other shared accounts carry forward;
@@ -94,7 +102,7 @@ whoever counts.
 
 | Who | Sends | Recorded |
 |---|---|---|
-| The Owner (`money.anchor.record`) | `decision: 'keep'` | the drawer as Money shows it; unknown stays unknown |
+| The Owner (`money.anchor.record`) | `decision: 'keep'` | the drawer as Money shows it — **only while it is known**; an unknown drawer is refused with 400 `opening_cash_unknown` (2026-10-06, D146) |
 | The Owner | `decision: 'set', cashAmount ≥ 0` (≤ 2 decimals) | that amount, true from this instant |
 | Anybody else who may open (`closing.count` for an opening; `closing.perform` or a closing delegate for a reopen) | `clientUuid` only | `carried` — the drawer as tracked; **awaiting the Owner's review** |
 
@@ -118,7 +126,10 @@ updated. Their sales on an unopened day are refused like any other.
 ### 4.3 The Owner's review
 
 `POST /closings/opening/review` (`money.anchor.record`): `{ clientUuid, decision: 'keep' | 'set', cashAmount? }` on
-today's opening when it is `carried` and not yet reviewed (else 409 `no_opening_to_review`). The review is **its own
+today's opening when it is `carried` and not yet reviewed, **or when it left the drawer unknown** (an Owner's keep from
+before D146), **or — with no decision recorded at all — while the day is open and the drawer unknown** (2026-10-06; the
+review then stands on its own, `review_of_id` null); else 409 `no_opening_to_review`. Keeping an unknown drawer is
+refused here too (`opening_cash_unknown`). The review is **its own
 row** — the opening is never rewritten (append-only) — true from **its own instant**: a sale made between the opening
 and the review is never added twice. Until then the day and Money say *awaiting the Owner's review*, never "checked".
 
