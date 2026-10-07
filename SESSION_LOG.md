@@ -10923,3 +10923,57 @@ nothing deployed, submitted or published; no message sent.
 
 **Commits:** `erp-backend` `1bf65b5` · `erp-mobile` `2347523` · `erp-control-web` unchanged at `0417bfe` · `erp-docs`
 the commit carrying this entry. All four working trees clean, level with their remotes.
+
+## 2026-10-07T01:45Z → 2026-10-07T05:55Z — CLAUDE-B (local, the owner's Windows PC) — the runtime proven on the iPhone; Arabic in Expo Go; the payer number (`docs/71`)
+
+**Brief.** The owner's message of 2026-10-07: first determine why the latest pushed changes were not appearing on the
+iPhone and make it load the correct code — "do not assume another source-code change will solve it; prove the entire
+runtime chain first" — then add an optional payer number to non-cash sale payments. Takeover from
+`READY_FOR_HANDOFF` / `NONE` (the previous handoff complete); `fcf54ca`.
+
+**Phase A — proven, then cured (`docs/71` §1–§3).** The PC checkout `C:\wamp64\www\ERP\erp-mobile` was clean at
+`3023bd3`, 0 ahead / 5 behind (`2347523`), without `app.config.js`; one Metro (8081) served it and one API ran
+`1434aa7`; the manifest carried no `extra.build`, the bundle no build line, `EXPO_PUBLIC_API_HOST` `192.168.100.7`; the
+phone — Expo Go, by its user agent and Metro's debugger target — loaded that Metro and logged the nested-list error
+itself. Cure: `pull --ff-only` (backend `1bf65b5`, mobile `2347523`); `npm ci` refused by npm 10.9.9 and 11.21.0 (the
+D149 tooling's packages missing from the lockfile) → lockfile regenerated with npm 11 `--package-lock-only` and committed
+(`728a0d8`); local database backed up and taken to `0086` (transition: nothing to do); API rebuilt; Metro from the
+verified checkout with `-c` on port 8082 and a new QR. **The phone showed `728a0d8 · reports-export · Expo Go`.** On
+that bundle the owner confirmed: no Import stock in More (Stock has it), Notifications without LogBox, no blank toast,
+equal header margins, the unknown-drawer flow without Keep (set 1 000). **Arabic** was still wrong: measured with a
+temporary log — Expo Go relaunched with a new `Constants.sessionId` and `isRTL` stayed false, and every re-selection
+re-armed *Restart needed* — fixed by D150 (`c756030`: in Expo Go, *Expo Go can't switch the layout* at once), verified
+on the phone. Native RTL still needs a new build. Windows test robustness: `fa5c6a5` (mobile), `be024dd` (backend).
+
+**Phase B — the payer number (D151; owner's approval of 2026-10-07).** Backend `df1f2b4`: migration `0087`
+(`payments.payer_number` VARCHAR(40) NULL + `ck_payments_cash_no_payer`); `sales/payer-number.ts`; the DTOs; each
+sale part and each later payment stores its own number (cash refused, malformed refused without echoing it); the
+`POST /sales` replay binds method/amount/account/payer per part; a later payment's fingerprint binds it only when
+present; `POST /sales/:id/payments/:paymentId/payer-number` (`financial.correction.request`, moves no money, audited);
+read under `sale.view` only; money corrections record it; account deletion clears it; an allow-list spec keeps it out of
+reports, exports, notifications and messaging. Mobile `0b525b3`: `lib/payer-number.ts`, `PayerNumberField`, the
+payment sheet (one method, split parts by key, the review), Sell/Quick Sell requests, Record payment, sale detail with
+*Correct payer number*, EN/FR/AR (3 309 → 3 321 × 3).
+
+**Verification.** Backend: `tsc`; Prisma valid; 185 suites / 3 351 tests / 3 skipped on Windows (the two Argon2 suites
+need `--testTimeout=30000` under full load; they pass alone). Mobile: `tsc`; `expo lint` 0 errors / 29 warnings
+(baseline); 92 pure files / 247 tests; 5 rendered suites / 28 tests; parity; Expo Doctor 20/21 (eight Expo patch
+versions behind — owed). **Web export and route audit: not run** — Windows Smart App Control blocks the unsigned
+`lightningcss` 1.33.0 binary of Expo's web CSS pipeline; the security setting was not changed. **Real-HTTP lifecycle**
+on the disposable `prisma_qa_payer` (the PC database at `0086` + `0087`): 17/17 (`docs/71` §4), the audit chain intact
+for 11 companies; dropped and its grants revoked. **Device** (owner's iPhone, Expo Go, `0b525b3`): `docs/24` §58 —
+cash `00005` (no number), Sedad with a number `00002`, a two-number split `00003`, a correction `32648261 → 32648262`,
+the keyboard, Airplane-mode retention with one sale, the saved detail; seen once: the amount typed into the payer field
+(`00004`), recorded as typed.
+
+**Data and process safety.** Live untouched (still `0083`). The PC's local development database (`127.0.0.1:3308`
+`phonestore`, not live): `0086` after backup `phonestore-local-20261007-015025.sql`; **`0087` after backup
+`phonestore-local-20261007-054448.sql`, with the owner's approval**. The disposable database dropped; temporary dumps
+and probes deleted; scratch scripts only in the OS temporary directory. My verification logins used single-session
+logout (an earlier `logout-all` had signed the owner's phone out — recorded and stopped). No secret in any commit (the
+mobile scanner's one finding is the known `public/cp45-session.json` of `7049ea4256`, revoked). Nothing deployed,
+published or submitted; no message sent.
+
+**Commits:** `erp-backend` `df1f2b4`, `be024dd` · `erp-mobile` `728a0d8`, `c756030`, `fa5c6a5`, `0b525b3` ·
+`erp-control-web` unchanged at `0417bfe` · `erp-docs` `fcf54ca`, `f087781` and the commit carrying this entry. All
+pushed; all trees clean.

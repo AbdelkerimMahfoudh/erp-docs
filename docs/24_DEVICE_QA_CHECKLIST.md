@@ -4165,3 +4165,47 @@ Mark each line with what was actually seen.
 - [ ] The tinted card's right edge aligns with the right edge of the Receive/Sell row (12 pt from the screen edge on both sides); the bell sits inside the card, tappable across its whole target.
 - [ ] At the largest accessibility text size, and on a 320 pt-wide phone if available: greeting, date and bell do not collide; the date stays on one line or wraps under the bell, never over it.
 - [ ] EN, FR and AR (AR on the new build, mirrored: bell and date at the left end).
+
+**§57 — what was seen on the owner's iPhone, 2026-10-07 (Expo Go; `docs/71` §1–§3).** Only these lines; every other
+line above stays open.
+- **A ✅** After `docs/70` §3 on the PC (fetch, inspect, `pull --ff-only`, a clean `npm ci` once the lockfile was
+  repaired, `npx expo start -c` on a new port 8082 and a new QR): Devices → *This device* read **`728a0d8 ·
+  reports-export · Expo Go`**, no `+`. The *Configuration read* time was not read back (the manifest's was 01:58Z).
+  Where it runs: **Expo Go**.
+- **B ✅ (partly)** Notifications from the bell: no LogBox, no yellow box (owner; 0 errors or warnings reached Metro from
+  the phone); no blank toast anywhere; tapping rows marked them read. Not run: long-list scrolling, the empty and
+  airplane-mode states.
+- **C ✅ in Expo Go only — superseded by D150.** In Expo Go the notice now says *Expo Go can't switch the layout* at
+  once and keeps saying it after FR → AR (on `fa5c6a5`); before D150 it returned to *Restart needed* on every
+  re-selection. The layout direction on a **new native build: NOT DONE** — no Mac or EAS build here.
+- **D ✅ (one case)** Boutique 2's open day, opened on an unknown drawer by the older API: Money offered *Set today's
+  opening cash*, the sheet had no Keep, 1 000 set, the card then showed the amount. The other D lines were not run.
+- **E ✅ (Owner only)** More has no *Import stock*; the Stock header icon opens it. Manager, Employee and the stale
+  `/imports` link: not run.
+- **F ✅ (one size)** The header card's edges sit equally inside both screen margins. Largest text, 320 pt and AR: not
+  run.
+
+## 58. The payer number (D151) — on the pushed commit, in Expo Go (`docs/71` §4)
+
+Runs on `0b525b3` (mobile) and `be024dd` (backend, `0087` applied to the database the API uses). Sign in as an Owner of
+a shop with at least two receiving accounts. **Results of 2026-10-07** (owner's iPhone, Expo Go; the API on a disposable
+copy; each sale also read back from the database):
+
+- [x] Devices → *This device*: `0b525b3 · reports-export · Expo Go`, no `+`.
+- [x] **Cash:** the sheet shows no *Payer number* field; the sale completes; stored with no number (invoice `00005`).
+- [x] **One account:** choosing an account shows *Payer number (optional)* under it, with the hint; the phone pad has
+  `+`; a typed number is saved normalised (Sedad, `00002`). Moving to another account keeps it; choosing Cash removes it.
+- [x] **A split:** each account part has its own field, Cash none; two numbers typed; each saved on its own part
+  (Sedad + Bankily, `00003`). Removing or switching a part never moves a number to another part.
+- [ ] A malformed number (a letter, a dot): the field and the footer say why; Complete waits.
+- [x] **The keyboard** open on the field: the field and Complete stay reachable; scrolling works (the owner's iPhone;
+  a 320 pt phone not tried).
+- [x] **A network failure:** Airplane mode on, Complete → an error, the sheet keeps everything typed; Airplane mode off,
+  Complete → exactly one sale.
+- [x] **The saved sale:** *Payer number: …* under each non-cash payment, apart from *Ref. …*; none under cash.
+- [x] **Correct payer number** (Owner): changes only the number (`32648261 → 32648262`, audited); amount, account and
+  day unchanged. As a Store Employee the action is absent (rendered test; not run on the device).
+- [ ] Record payment on a sale with a balance: the field appears for an account; the number is saved with the payment.
+- [ ] FR and AR wording on the device; the largest accessibility text size; Arabic **RTL** on a new native build.
+- Observed once: a cashier typed the sale's **amount** (`10000`) into the payer field of an account payment (`00004`) —
+  recorded exactly as typed. Watch for it in training; no format is imposed by design.

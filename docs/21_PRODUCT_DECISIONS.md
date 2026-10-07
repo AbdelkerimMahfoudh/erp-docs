@@ -6827,3 +6827,74 @@ In this container (`docs/70` §6 and the handoff): backend `tsc` and 184 suites 
 device run `docs/24` §57 on the new Metro **and** a new native build; the Windows checkout brought level per `docs/70`
 §3; everything owed before this phase.
 
+
+---
+
+## The runtime proven, Arabic in Expo Go, and the payer number (2026-10-07)
+
+The owner's brief of 2026-10-07: prove what the iPhone runs before touching any code, then record the number a
+non-cash payment came from. The record is [`docs/71`](71_RUNTIME_PROOF_AND_PAYER_NUMBER.md); the device run is
+`docs/24` §57 (results) and §58. **Why the earlier fixes did not appear:** the Windows checkout had not been pulled
+(`3023bd3`, five commits behind) and the only Metro on the PC served it — proven from the running Metro, the API's
+request log and the phone's own console, then cured by a fast-forward, a clean install and a Metro on a new port; the
+phone's Devices line then read `728a0d8 · reports-export · Expo Go`. The five reports of 6 October were re-checked on
+that bundle: four confirmed fixed, Arabic still wrong (D150).
+
+### ✅ IMPLEMENTED — D150: in Expo Go, the direction notice says at once that Expo Go cannot switch the layout
+
+Supersedes the try-once rule of D147 **for Expo Go only**. Measured on the owner's iPhone (Expo Go 1017880, SDK 57,
+on the correct bundle): Arabic chosen, the request persisted, Expo Go swiped away and reopened — a new process, a new
+`Constants.sessionId` — and `I18nManager.isRTL` still false. Expo Go does not apply a project's direction, so the first
+*Restart needed* promised what Expo Go cannot do, and every re-selection of the language (a new request in the same
+process) brought *Restart needed* back — the warning the owner kept seeing. Inside Expo Go a mismatched direction now
+reads *Expo Go can't switch the layout* at once, in words that claim no restart happened and promise none; the text
+still switches language. Our own builds keep `restart` → `unsupported_build` unchanged. If a future Expo Go applies the
+request, the next launch agrees with the language and nothing is said. Device-verified in Expo Go (`fa5c6a5`). The
+Arabic **layout direction** remains unverifiable without a new native build (`docs/24` §57 C).
+
+### ✅ APPROVED AND IMPLEMENTED — D151: the payer number of a non-cash payment (migration `0087`)
+
+Approved by the owner on 2026-10-07. A sale payment that is not cash may carry an **optional payer number**: the phone
+or account number the customer paid FROM (*Payer number* / *Numéro du payeur* / *رقم الدافع*; *The phone or account
+number the payment came from.*). It is **not** the customer's saved phone (nothing copies it in), **not** the
+transfer's reference, **not** the receiving account, and no provider verified it.
+
+- **Storage.** `payments.payer_number` VARCHAR(40) NULL (`0087`, not backfilled), with `ck_payments_cash_no_payer`
+  beside `ck_payments_cash_no_account`: cash never carries one, at the database as at the service.
+- **The rule, one on each side** (`erp-backend/src/sales/payer-number.ts`, `erp-mobile/lib/payer-number.ts`, the
+  same cases tested on both): an optional leading `+`, then digits, with spaces and hyphens as people group them;
+  Arabic-Indic digits read as the same digits; spaces, dashes and invisible direction marks dropped as presentation;
+  **nothing guessed** — no digit added, removed or changed, `00` stays `00`, no country code assumed; at most 30
+  digits (40 characters typed). No eight-digit rule: providers' formats differ. Blank is none.
+- **Where it is typed.** The payment sheet (one method and every split part — at most four places, unchanged), Record
+  payment (a later non-cash payment), and *Correct payer number* on the saved sale. Choosing Cash drops it; moving
+  between accounts keeps it; each split part keeps its own by the part's key, so adding, removing or switching parts
+  never hands one part's number to another. A malformed number holds Complete with the reason on screen. A sale
+  with a balance names it in its review (*Bankily from 36123456*).
+- **The server decides.** Each part is checked before anything is written (`payer_number_invalid`,
+  `payer_number_cash`); refusals never echo the number, because messages reach the log. One key, one sale: the
+  replay of `POST /sales` binds method, amount, account and payer number per part — a changed or swapped number under
+  the same key is `idempotency_conflict`, a body from before `0087` still replays; a later payment's fingerprint
+  includes it only when present, so older hashes are unchanged.
+- **Correcting it** (`POST /sales/:id/payments/:paymentId/payer-number`, `financial.correction.request` — Owner and
+  Store Manager): the one payment fact fixed in place, because it moves no money — amount, method, account and day
+  stay as recorded; the same value writes nothing; a change is audited before → after with an optional reason. Money
+  corrections (reverse, reclassify, cancel) never touch it and record it in their summary.
+- **Who sees it.** Wherever the reference is read: `GET /sales/:id` under `sale.view`, beside — never inside — the
+  reference. **Never** on the customer's invoice or PDF (19e), in WhatsApp text, notifications, reports, CSV exports,
+  the sale list, closing figures or the server log; a backend spec allow-lists every file that names it.
+- **Audit and privacy.** The sale's creation entry and a collection's entry carry it; a correction records before and
+  after. `audit_logs` is append-only and hash-chained, so a payer number written there stays; closing the business
+  (account deletion) clears it from `payments` with the other contact details, and the money stays.
+- **Figures.** No total, balance, profit, expected cash, provider balance or reconciliation figure reads it — proven
+  on a disposable database: the correction left the day's overview and the sale's figures identical.
+
+### 📋 VERIFICATION AND 🟡 OWED
+
+Backend 185 suites / 3 351 tests (3 skipped) on Windows, `tsc`, Prisma valid; mobile `tsc`, `expo lint` 0 errors / 29
+warnings (baseline), 92 pure files / 247 tests, 5 rendered suites / 28 tests, parity 3 321 × 3; a real-HTTP lifecycle
+of 17 checks on a disposable copy, then dropped; the device run on the owner's iPhone in Expo Go (`docs/24` §58).
+**Not run on this PC:** the web export — Windows Smart App Control blocks the unsigned `lightningcss` 1.33 binary that
+Expo's web CSS pipeline loads (not bypassed: it is a security setting). **Owed:** `0087` on live, after `0084`–`0086`,
+with a verified backup and the owner's approval (`docs/71` §6); a new native build for Arabic (§57 C); the eight Expo
+patch updates Doctor reports (with `expo-camera`'s native patch re-cut); everything owed before.
