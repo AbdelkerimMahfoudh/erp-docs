@@ -11,7 +11,7 @@ previous_handoff: complete — CLAUDE-B (cloud), 2026-10-06T01:16Z → 02:01Z (`
 | Repository | Branch | Remote HEAD | PC checkout before this session | PC tree |
 | --- | --- | --- | --- | --- |
 | `erp-backend` | `reports-export` | `1bf65b5` | `1434aa7` — 0 ahead / **3 behind** | clean |
-| `erp-mobile` | `reports-export` | `2347523` | `3023bd3` — 0 ahead / **5 behind** (older than `81cb599`) | clean |
+| `erp-mobile` | `reports-export` | `2347523` → now `fa5c6a5` (this session) | `3023bd3` — 0 ahead / **5 behind** (older than `81cb599`) | clean |
 | `erp-control-web` | `main` | `0417bfe` | not checked out on this PC | — |
 | `erp-docs` | `master` | `8e9dffb` | `d3694ad` — fast-forwarded to `8e9dffb` to read this file | clean |
 
@@ -36,11 +36,28 @@ No local commits, stashes or extra worktrees in any repository.
   and ten local test boutiques (`boutiques1..10@test.com`, created 2026-10-05 through the API). WAMP's own MySQL 8.4
   service stays stopped (port 3306 belongs to a separate MySQL 8.0 service).
 
+## Checkpoint — Phase A complete (2026-10-07T02:40Z)
+
+- **Why the phone ran old code:** the only Metro on the PC served the checkout at `3023bd3` (5 behind); its manifest had
+  no `extra.build`, its bundle no build line; the phone (Expo Go, UA `Expo/1017880`, debugger target
+  `host.exp.Exponent`) loaded it and logged the nested-VirtualizedList error itself. Clearing the cache could not help.
+- **Brought level:** both checkouts `pull --ff-only`; mobile `npm ci` was refused by npm 10.9.9 and 11.21.0 (lockfile
+  missing nine packages of the D149 tooling) → lockfile repaired with npm 11 `--package-lock-only` (`728a0d8`, pushed);
+  backend deps unchanged. Local DB backup `~/erp-backups/phonestore-local-20261007-015025.sql` (verified: trailer, 96
+  tables, 31 triggers) → `0086` applied → seat transition dry-run/apply: 0 granted / 0 converted. API rebuilt from
+  `1bf65b5` (port 3010); Metro on **port 8082** from the verified checkout, cache cleared.
+- **Device proof:** Devices → *This device* showed `728a0d8 · reports-export · Expo Go`, later `fa5c6a5`. §57 B, D, E, F
+  confirmed by the owner on that bundle (no Import stock in More, the Stock action, Notifications without LogBox, no
+  blank toast, equal header margins, the opening-cash flow without Keep → set 1 000).
+- **Arabic (still broken on the correct bundle, fixed):** measured on the phone — Expo Go relaunched (new
+  `Constants.sessionId`) and `isRTL` stayed false; re-selecting the language re-armed "Restart needed". `c756030`:
+  Expo Go says at once that it cannot switch (D150); device-verified on `fa5c6a5`. Native RTL needs a new build — owed.
+- **Tests on Windows:** `fa5c6a5` makes three source-reading suites independent of folder layout and CRLF.
+
 ## Next intended action
 
-A1/A2: record the mobile checkout and every running ERP server; then stop only the old ERP Metro and API,
-fast-forward both checkouts, install, back up the local database, bring it to the backend's migrations, start a fresh
-runtime (Metro on a new port, new QR) and ask the owner for the Devices build line.
+Phase B — the payer number: audit the payment schema/API/correction/idempotency, propose the plan for approval,
+then implement backend → mobile → disposable-DB lifecycle → device checks.
 
 ## Live state (unchanged)
 
