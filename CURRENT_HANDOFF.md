@@ -1,78 +1,54 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE-B — 2026-10-06T01:16Z → 2026-10-06T02:01Z (the iPhone ran an older bundle: reconciliation, the build identifier, the opening-cash invariant, RTL that follows the app, the Home header, rendered tests)
-previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-10-06T01:16Z)
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-07T01:45Z
+session: CLAUDE-B on the owner's Windows PC (Claude Code, local) — user-authorised takeover from `READY_FOR_HANDOFF` / `NONE`
+previous_handoff: complete — CLAUDE-B (cloud), 2026-10-06T01:16Z → 02:01Z (`docs/70`)
 
-## HEAD of every repository — all working trees clean, level with their remotes
+## HEAD of every repository at takeover (fetched 2026-10-07T01:45Z)
 
-| Repository | Branch | HEAD | Remote |
-| --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `1bf65b5` | pushed (`d670401..1bf65b5`) |
-| `erp-mobile` | `reports-export` | `2347523` | pushed (`81cb599..2347523`) |
-| `erp-control-web` | `main` | `0417bfe` | unchanged — `https://github.com/AbdelkerimMahfoudh/erp-control-web` |
-| `erp-docs` | `master` | the commit carrying this file | pushed |
+| Repository | Branch | Remote HEAD | PC checkout before this session | PC tree |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `1bf65b5` | `1434aa7` — 0 ahead / **3 behind** | clean |
+| `erp-mobile` | `reports-export` | `2347523` | `3023bd3` — 0 ahead / **5 behind** (older than `81cb599`) | clean |
+| `erp-control-web` | `main` | `0417bfe` | not checked out on this PC | — |
+| `erp-docs` | `master` | `8e9dffb` | `d3694ad` — fast-forwarded to `8e9dffb` to read this file | clean |
 
-The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged by this session.
+No local commits, stashes or extra worktrees in any repository.
 
-## Repository state versus runtime state — read this first
+## Active phase and scope (the owner's brief of 2026-10-07)
 
-**Repository state (verified here):** the commits above pass every gate — backend `tsc` and 184 suites / 3 318 tests;
-mobile `tsc`, `expo lint` (0 errors), 91 node suites, parity, 15 rendered tests under jest-expo, the web export; a real
-browser against the real API proved the header layout, the navigation by role, Notifications' console and the
-opening-cash journey (93 passed, 0 failed; `docs/70` §6).
+1. **Phase A — prove what the iPhone runs.** The PC checkout, every running ERP server, a fresh runtime from the
+   verified checkout, the Devices build line (D145) as the proof; then `docs/24` §57 B/D/E/F on the correct bundle;
+   Arabic classified honestly (§57 C needs a new native build — `docs/70` §3).
+2. **Phase B — an optional payer number on non-cash sale payments**: single and split (≤ 4) payments, the correction
+   flow, review and sale detail; an additive nullable backend field, migration verified on a disposable database only;
+   focused tests and a real-HTTP lifecycle.
 
-**Runtime state (NOT verified here):** the iPhone screenshots of 6 October were of a bundle **older than `81cb599`**
-(`docs/70` §1 — the LogBox line numbers and the *Import stock* row prove it). Nothing in this phase ran on a device.
-Until the Devices screen on the phone shows the build line with the commit `2347523` (or later) and a *Configuration
-read* time after a fresh `npx expo start -c`, no claim about the phone can be made. The Arabic direction additionally
-needs a **new native build** (`app.json` changed): neither Expo Go nor a reload applies it.
+## Discrepancy found at takeover
 
-## What this session delivered (detail in `docs/70`; decisions in `docs/21` D145–D149)
+- The PC checkouts had not been pulled since 2026-10-04: the Metro on this PC (port 8081, started 2026-10-07 00:40Z
+  with `--clear`) served `erp-mobile` at `3023bd3`, and the API (port 3010) ran `erp-backend` `1434aa7`. To be proven
+  in Phase A, not assumed.
+- **The PC's local development database** (not live, not shared): WAMP's MySQL 8.4 data directory served by a
+  hand-started `mysqld` on `127.0.0.1:3308`, database `phonestore`, migrated through `0085`; it holds the demo company
+  and ten local test boutiques (`boutiques1..10@test.com`, created 2026-10-05 through the API). WAMP's own MySQL 8.4
+  service stays stopped (port 3306 belongs to a separate MySQL 8.0 service).
 
-1. **The reconciliation** — what the screenshots prove, what cannot be read from here and how the owner reads it on
-   the PC, the exact safe synchronisation steps (`docs/70` §1–§3). No destructive git command anywhere in them.
-2. **The build identifier (D145)** — `app.config.js` → `extra.build`; Devices → *This device*, development only.
-3. **The opening-cash invariant (D146)** — keep refused while the drawer is unknown (`opening_cash_unknown`), 0 set
-   explicitly; the Owner sets an open day's unknown drawer from Money; carried openings unchanged; no migration.
-4. **RTL follows the app (D147)** — `supportsRTL` removed (it forced the device locale's direction at every launch on
-   iOS); `allowRTL`/`forceRTL` follow the language; relaunch recognised by the session id; honest Expo Go verdict.
-5. **The Home header (D148)** — the tint's parent unpadded; measured symmetrical at 320/393, 1×/1.3×, EN/FR/AR.
-6. **Rendered tests (D149)** — `npm run test:render`; React Native's own nesting warning (with a control), More/Stock/
-   `/imports` for the three roles, the header's structure. The blank toast's real callers fixed at the source.
+## Next intended action
 
-## Live state
+A1/A2: record the mobile checkout and every running ERP server; then stop only the old ERP Metro and API,
+fast-forward both checkouts, install, back up the local database, bring it to the backend's migrations, start a fresh
+runtime (Metro on a new port, new QR) and ask the owner for the Devices build line.
 
-- The live database was **not touched** and is still at `0083`; **no migration in this phase**. Owed on live, in order
-  and only with the owner's approval and a verified backup: `0084`, `0085` (`docs/67` §7), then `0086` with the
-  transition script (`docs/69` §2). The opening rule needs no data change: days already open on an unknown drawer stay
-  as they are, and the Owner sets them from Money.
+## Live state (unchanged)
+
+- The live database was not touched and is still at `0083`. Owed on live, in order and only with the owner's approval
+  and a verified backup: `0084`, `0085` (`docs/67` §7), then `0086` with the transition script (`docs/69` §2).
 - Nothing deployed or submitted; no message sent; no provider configured; no iOS build.
 
-## Blockers and owed decisions
+## Owed from earlier phases (unchanged)
 
-1. **The device run — `docs/24` §57**, on the pushed commit from a restarted Metro (A first: the Devices build line
-   as proof), then B, D, E, F; **C (Arabic) only on a new native build.** The result decides whether the five
-   reports are closed; nothing here closes them.
-2. **The Windows checkout** must be brought level per `docs/70` §3 (`git pull --ff-only`; stop on anything unexpected).
-3. **D138b** — the date from which granted (transition) seats become paid seats (unchanged).
-4. **No email delivery provider exists in the backend**; the website is **not production-ready** (`docs/69` §4) —
-   unchanged.
-5. `expo-doctor`'s schema and React Native Directory checks cannot run from this container (proxy); run them on the PC.
-
-## Next exact action
-
-1. Owner: `docs/70` §3 on the PC, then `docs/24` §57 A — send the Devices screenshot with the build line.
-2. Owner: a new native build (`npx expo run:ios` on a Mac, or EAS) for §57 C; the rest of §57 on Expo Go or the build.
-3. Next session: act on what §57 reports; otherwise the owed items of earlier phases (D138b, the live runbooks when
-   approved, the website's providers).
-
-## Verification of this session (summary; `docs/70` §6)
-
-- Backend: `tsc` clean; 184 suites / 3 318 tests (3 skipped, as before); the closing suites extended (keep refused,
-  set 0, carried unknown, the widened review, a decision-less open day).
-- Mobile: `tsc` clean; `expo lint` 0 errors / 29 warnings (baseline); 91 node suites; catalogue parity; 15 rendered
-  tests; `expo export --platform web`; `expo config` carries `extra.build`.
-- Browser: 93 passed, 0 failed — 23 screenshots in scratchpad `ph3/shots/` with `RESULTS.txt`.
-- Disposable MySQL `prisma_qa_ph3` migrated `0001 → 0086` from empty and seeded through the API; dropped at the end.
+D138b (when transition seats become paid); no email delivery provider in the backend; the website is not
+production-ready (`docs/69` §4); `docs/24` §57 on a device.
