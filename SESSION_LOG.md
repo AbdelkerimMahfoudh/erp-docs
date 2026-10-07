@@ -10977,3 +10977,49 @@ published or submitted; no message sent.
 **Commits:** `erp-backend` `df1f2b4`, `be024dd` · `erp-mobile` `728a0d8`, `c756030`, `fa5c6a5`, `0b525b3` ·
 `erp-control-web` unchanged at `0417bfe` · `erp-docs` `fcf54ca`, `f087781` and the commit carrying this entry. All
 pushed; all trees clean.
+
+## 2026-10-07T18:55Z → 2026-10-07T20:00Z — CLAUDE-B (cloud) — the Money card's configured accounts: an unknown balance says what moved through it (`docs/72`, D152)
+
+**Takeover.** `READY_FOR_HANDOFF` / owner NONE from the PC session; authorised by the owner's brief of 2026-10-07
+(Boutique 2's Money card: cash 1 000, Bankily and Sedad *Unknown*, a 20 000 sale paid through Sedad, the Today report
+right). All three repositories were behind their remotes (the PC session had pushed): fast-forwarded before anything
+else (`be024dd` · `0b525b3` · `a0299fa`); ownership recorded in `0821041`.
+
+**Diagnosis first, read-only (`docs/72` §1).** Live and the PC database are not reachable from this container, so the
+code was read and the scenario reproduced on a disposable copy (`prisma_qa_ph4`, `0001`–`0087`, the QA boutiques) on
+the **unchanged** build: Bankily and Sedad created, the day open, one sale paid in full through Sedad — the payment row
+attached to Sedad once, the Today report right, `moneyToday` naming Sedad, and `trackedMoney` answering
+`known:false, position:null, unknownReason:'no_anchor', anchor:null, sinceAnchorNet:null`, `total:null` — the
+screenshot line for line. Cause: **never set** (no `money_anchors` row), and the position API surfaced an unanchored
+account's movement nowhere (`movementsSince` ran for anchored accounts only). Not a failed sale, not a date error, not
+a scope error; the read-only SQL and the HTTP read for the owner's PC are in `docs/72` §1.4.
+
+**The change (D152).** Backend `55a5119`: every `trackedMoney` method carries `movement {businessDate, inflows,
+outflows, net}` — the drawer from this branch's closing channel row (`cashDayRows`), an account company-wide for the
+branch's business day (`accountDayMovements`: the closing's seven sources, confirmed/approved filters, no
+`branch_id`); a movement never becomes a position; no migration, no new ledger. Mobile `b79d74c`: under an unknown
+method that moved, *Starting amount unknown · +20 000 MRU recorded today* (FR/AR; the amount isolated LTR under RTL;
+a minus for money out); **Set account amounts** for the Owner → the existing company-wide sheet; the opening workflow
+untouched; `TrackedMethod.movement` optional for an older server.
+
+**Verification.** Backend `tsc`; 185 suites / 3 364 passed / 3 skipped; `money-positions.spec.ts` 42 (6 new),
+`money-anchors.service.spec.ts` 39 (7 new, the day query pinned). Real HTTP on the disposable copy, rebuilt API: the
+**27-check matrix** (`docs/72` §5 — unknown Sedad + 20 000; 5 000 + 20 000 = 25 000 counted once; explicit 0; Bankily
+unknown while Sedad known; a custom account; two accounts; a cash/Sedad split; a duplicate retry; a payer-number-only
+correction; an account reclassify approved; a refund reported then confirmed; annex, other company and Manager
+isolation; the serialized response) and the **7-check business-day boundary** (three API instances on one database,
+two with a shifted clock: a 03:00 sale lands on the running day; the next day starts with a 0 movement while the
+position carries; a sale after the opening is that day's alone) — all passed. Mobile `tsc`; `expo lint` 0 errors / 29
+warnings (baseline, none in the changed files); 92 node suites; parity 3 323 × 3 (identical key sets); 6 rendered
+suites / 35 tests (`__tests__/money-card.test.tsx` 7, EN/FR/AR with RTL isolates). **Device: NOT DEVICE VERIFIED** —
+`docs/24` §59.
+
+**Seen in passing (not changed):** opening the next business day with **Keep** while the tracked drawer is negative
+answers 500 (`ck_opening_decisions_amount`) instead of a clear refusal; **Set** works (`docs/72` §5).
+
+**Data and process safety.** Live untouched (still `0083`); the PC database untouched. The disposable copy was dropped
+and the throwaway MySQL stopped; the scratch env file shredded; scripts only in the OS temporary directory. No secret
+in any commit; nothing deployed, published or submitted; no message sent.
+
+**Commits:** `erp-backend` `55a5119` · `erp-mobile` `b79d74c` · `erp-control-web` unchanged at `0417bfe` · `erp-docs`
+`0821041` and the commit carrying this entry. All pushed; all trees clean.

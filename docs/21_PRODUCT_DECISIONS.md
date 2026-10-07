@@ -6898,3 +6898,39 @@ of 17 checks on a disposable copy, then dropped; the device run on the owner's i
 Expo's web CSS pipeline loads (not bypassed: it is a security setting). **Owed:** `0087` on live, after `0084`–`0086`,
 with a verified backup and the owner's approval (`docs/71` §6); a new native build for Arabic (§57 C); the eight Expo
 patch updates Doctor reports (with `expo-camera`'s native patch re-cut); everything owed before.
+
+### ✅ IMPLEMENTED — D152: an unknown account balance stays unknown, and says what moved through it today
+
+The owner's brief of 2026-10-07 (Boutique 2's Money card: cash set at 1 000, Bankily and Sedad *Unknown*, a 20 000
+sale paid in full through Sedad, the Today report right). Diagnosis (`docs/72` §1 — read-only, reproduced on a
+disposable copy on the unchanged build): Sedad had **never been set** — no `money_anchors` row — and the position API
+surfaced an unanchored account's movement nowhere (`movementsSince` ran for anchored accounts only), so the card could
+only say *Unknown*. Not a failed sale, not a date error, not a scope error; the accounts stay company-wide.
+
+- **The rule.** Unknown + 20 000 = unknown: a movement never establishes a balance; the position reads *Unknown* until
+  the Owner records the amount, and then counts from that instant (D89, D102 unchanged). Known 5 000 + 20 000 =
+  25 000, counted once. An explicit 0 is known. No total while any included balance is unknown; the card names them.
+- **But the records are not hidden.** Every `trackedMoney` method now carries `movement {businessDate, inflows,
+  outflows, net}` — the business day's inflows (received, corrections in) and **confirmed** outflows (refunds,
+  supplier payments and settlements, expenses, corrections out) with the Daily closing's own components and filters:
+  the drawer from this branch's closing channel row; an account company-wide, for the requesting branch's business
+  day. A refund reported but not confirmed moves nothing; a retry under the same key and a payer-number-only
+  correction move nothing; an approved account correction moves the money once, out of one account and into the
+  other. Two figures by two documented rules, never added to each other. No migration, no table, no second ledger; an
+  older server simply has no field.
+- **The card.** Under an unknown method that moved on the day: *Starting amount unknown · +20 000 MRU recorded today*
+  · « Montant de départ inconnu · +20 000 MRU enregistré aujourd’hui » · «المبلغ الابتدائي غير معروف · +20 000 MRU
+  مسجَّل اليوم» — the signed amount isolated left-to-right under an RTL layout, a minus for money out; nothing under a
+  known method or one that did not move. **Set account amounts** (the Owner, while an account is unknown) opens the
+  existing company-wide sheet with its *Shared by every shop* warning — never the shop's cash-opening workflow.
+
+### 📋 VERIFICATION AND 🟡 OWED (2026-10-07, cloud)
+
+Backend `tsc`; 185 suites / 3 364 passed / 3 skipped; `money-positions.spec.ts` 42, `money-anchors.service.spec.ts`
+39. Real HTTP on the disposable `prisma_qa_ph4` (`0001`–`0087`, the QA boutiques): the 27-check matrix of `docs/72`
+§5 and the 7-check business-day boundary, all passed; the copy dropped. Mobile `tsc`; `expo lint` 0 errors / 29
+warnings (baseline); 92 node suites; parity 3 323 × 3; 6 rendered suites / 35 tests. **Device: NOT DEVICE VERIFIED** —
+`docs/24` §59 has the steps. **Owed:** everything owed before (the live runbook `0084`–`0087`, the native build for
+Arabic, the web export where `lightningcss` loads, the Expo patch updates). **Seen in passing, outside this brief:**
+opening the next business day with **Keep** while the tracked drawer is negative answers **500**
+(`ck_opening_decisions_amount` at the database) instead of a clear refusal; **Set** works (`docs/72` §5).

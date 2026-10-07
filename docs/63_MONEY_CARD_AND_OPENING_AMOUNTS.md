@@ -42,6 +42,11 @@ The user's corrections, verbatim in substance:
 | **Removed from the top** | The anchor explanations under each line, the per-account **Set amount** buttons, and the separate *Money recorded today* card. The period reports and every other Money function stay below, unchanged. |
 | **The company action** | The Owner's accounts are set from their own row further down, **Company account amounts** (*Shared by every shop*): a sheet listing each account, and the existing amount sheet (`POST /money/anchors`), which now says before saving that *the amount you set is the one every shop sees*. |
 
+> **Amended 2026-10-07 (`docs/72`, D152):** an account whose amount nobody recorded still reads **Unknown** — and
+> beneath it the card now says what moved through it on the business day, from the server's own `movement` field
+> (*Starting amount unknown · +20 000 MRU recorded today*); for the Owner, **Set account amounts** on the card opens
+> the company action below. Nothing else on this page changes.
+
 The phone adds nothing up: the figures are the server's (`GET /closings/overview`), the same ones Home and the Daily
 closing read.
 

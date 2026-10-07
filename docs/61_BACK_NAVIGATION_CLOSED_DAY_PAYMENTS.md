@@ -183,7 +183,8 @@ clock, real logins with throwaway credentials — dropped afterwards.
 exactly the fields of the phone's `TrackedMoney` (`lib/money-overview.ts`) — `accountsVisible, asOf, basis,
 branchCount, businessDate, methods, total, unknownKeys` — and every method exactly `TrackedMethod`'s, with their
 types and allowed values (`channel`, `scope`, `unknownReason`, `anchor.source`), a known method always with a figure and
-an unknown one never. Nothing is compensated in the app.
+an unknown one never. Nothing is compensated in the app. Since 2026-10-07 (D152, `docs/72`) every method also carries
+`movement {businessDate, inflows, outflows, net}`, the business day's figure, for known and unknown methods alike.
 
 ### 4.3 The append-only rule, as the app's database user
 

@@ -4209,3 +4209,23 @@ copy; each sale also read back from the database):
 - [ ] FR and AR wording on the device; the largest accessibility text size; Arabic **RTL** on a new native build.
 - Observed once: a cashier typed the sale's **amount** (`10000`) into the payer field of an account payment (`00004`) —
   recorded exactly as typed. Watch for it in training; no format is imposed by design.
+
+## 59. An unknown account's day movement on the Money card (D152, `docs/72`) — NOT DEVICE VERIFIED
+
+Runs on `b79d74c` (mobile) and `55a5119` or later (backend; no migration). Sign in as the Owner of a shop with a
+configured account nobody has set (Boutique 2's Sedad, as reported). Each line was verified over HTTP on a disposable
+copy and in rendered tests only; **nothing here was seen on a phone**.
+
+- [ ] Devices → *This device* reads `b79d74c · reports-export · Expo Go` (or later) after `git pull --ff-only` and
+      `npx expo start -c` (`docs/70` §3).
+- [ ] A sale paid in full through the unset account (Sedad): Money's top card still reads **Unknown** for it — no
+      figure, no total — and beneath it *Starting amount unknown · +20 000 MRU recorded today*; the Today report agrees.
+- [ ] The other unset account that did not move (Bankily) reads *Unknown* with nothing beneath.
+- [ ] **Set account amounts** appears under the lines for the Owner and opens *Company account amounts* with its
+      *Shared by every shop* warning; a Manager sees no account lines and no button.
+- [ ] Sedad set at 5 000, then a 20 000 sale: **25 000** on its line, the movement line gone; the total appears once
+      every account is set; an account set at 0 reads 0.
+- [ ] A refund through Sedad reported but not confirmed: nothing changes; confirmed: its line drops by the refund once.
+- [ ] FR *Montant de départ inconnu · +20 000 MRU enregistré aujourd’hui* and AR *المبلغ الابتدائي غير معروف · +20 000 MRU
+      مسجَّل اليوم*; in Arabic on a native RTL build the signed amount reads left-to-right as one piece.
+- [ ] 320 pt and the largest text: the line wraps under its row without pushing the figures.
