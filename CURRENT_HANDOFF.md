@@ -1,9 +1,21 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE-B (local, on the owner's Windows PC) — 2026-10-07T01:45Z → 2026-10-07T05:55Z (the runtime proven on the iPhone; Arabic in Expo Go; the payer number — `docs/71`)
-previous_handoff: complete (this file replaces the IN_PROGRESS snapshot of 2026-10-07T01:45Z)
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-07T18:55Z
+previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B local on the owner's PC, 2026-10-07T05:55Z); takeover authorised by the user's brief of 2026-10-07 ("investigate the Money card's configured-account calculations")
+
+## Active phase (2026-10-07, cloud) — the Money card's configured accounts: an unknown balance must show its recorded movement
+
+HEAD at takeover, all trees clean and level: `erp-backend` `be024dd` · `erp-mobile` `0b525b3` · `erp-control-web`
+`0417bfe` · `erp-docs` `a0299fa`. Scope: diagnose why Sedad reads *Unknown* after a 20 000 MRU sale paid through it
+(read-only; live and the PC database are not reachable from this container — the queries for the PC are recorded),
+extend the Money-position response with each method's server-calculated day movement (inflows, confirmed outflows,
+net, the business day), keep an unknown opening unknown, show the movement on the phone in EN/FR/AR, give the Owner a
+clear path from the card to set a company account, tests (pure, service, real HTTP on disposable data, rendered),
+decisions, session log, handoff. No live data touched; no migration expected.
+
+Next intended action: the pure rule and the service query on the backend, then the phone, then the HTTP matrix.
 
 ## HEAD of every repository — all working trees clean, level with their remotes
 
