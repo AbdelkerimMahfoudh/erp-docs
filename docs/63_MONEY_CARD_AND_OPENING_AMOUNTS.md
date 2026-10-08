@@ -14,6 +14,11 @@ Backend `b0f9bd0`, `90ef14a`, `55c1a3b`; mobile `c3eb47e`, `9d54803`, `812ba09`.
 > cash* while the day is open. The sentence "Keep preserves unknown amounts as unknown" below is superseded for the
 > Owner; everything else on this page stands.
 
+> **Amended 2026-10-08 (D153):** *keep needs something that can be kept.* A drawer the app tracks **below zero** is
+> refused the same way — 400 `opening_cash_negative`, with the tracked amount — on the opening, the reopen and the
+> review; a carried opening records no cash amount for it; the Owner sets what the drawer holds. Never a 500, never
+> read as zero.
+
 The user's corrections, verbatim in substance:
 
 - *At a shop opening, the Owner may set that shop's cash. Company-wide Bankily and other shared accounts carry forward;

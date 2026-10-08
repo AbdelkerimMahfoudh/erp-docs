@@ -6934,3 +6934,80 @@ warnings (baseline); 92 node suites; parity 3 323 × 3; 6 rendered suites / 35 t
 Arabic, the web export where `lightningcss` loads, the Expo patch updates). **Seen in passing, outside this brief:**
 opening the next business day with **Keep** while the tracked drawer is negative answers **500**
 (`ck_opening_decisions_amount` at the database) instead of a clear refusal; **Set** works (`docs/72` §5).
+
+### ✅ IMPLEMENTED — D153: a drawer tracked below zero cannot be kept into a day — refused by name, never a 500
+
+Found on 2026-10-07 (`docs/72` §5) and fixed first in the Money Services Agent session of 2026-10-08, as the owner's
+brief asked. **Keep needs something that can be kept** (extends D146): while the app tracks a drawer **below zero** —
+more cash recorded out than in since its last known amount — there is no amount a day can open on, and a decision
+cannot record a negative one (`ck_opening_decisions_amount`); the database used to answer that as a 500. Now the
+server refuses **before anything is written**, on the opening, the reopen and the Owner's review alike: 400
+`opening_cash_negative`, with the tracked amount (`trackedCash`) — *The app tracks this drawer below zero, so there
+is no amount to keep. Enter the cash in the drawer now — 0 if it is empty — and correct the earlier records.* Unknown
+is still refused first, as unknown (`opening_cash_unknown`). A **carried** opening by somebody else records **no cash
+amount** for such a drawer (`carriableCash`), so the day awaits the Owner, who sets what the drawer holds. **The
+negative figure is never read as zero**: Money keeps tracking it, the opening simply has no amount to keep. The phone
+hides Keep for such a drawer with its own notice (*The drawer is tracked below zero …* / « La caisse est suivie en
+dessous de zéro » / «الصندوق متتبَّع تحت الصفر»), starts the Set field empty rather than from the negative figure, shows
+no total until it is set, and reads the server's refusal by name. Backend `258b04d`, mobile `bf30299`; regression
+specs on the pure rule, the open, the reopen and the review, and on the phone's rule and sheet.
+
+### ✅ APPROVED (the owner's brief of 2026-10-08) — D154: the Money Services Agent activity, chosen and priced per branch
+
+The binding decisions of the brief, recorded in `docs/73` §1.1 (A1–A11): activity per branch — electronics 500,
+money agent 300, both **700** (never 500 + 300) MRU per month; one Owner and one subscription timeline; an upgrade
+during a paid month charges **the difference at once** (agent → both 400, electronics → both 200); a downgrade takes
+effect **at the next renewal**; the seat rules of 2026-10-05 untouched; an itemized, server-calculated quote and the
+established payment-confirmation/activation flow; no ERP price, purchase prompt or payment instruction inside the
+customer app. The app records exchanges and never initiates or verifies a provider transfer; version 1 has history
+and reports, no customer receipt. Commission on the whole amount at the provider's configured rate (per direction
+when a real schedule says so), earned at completion, with the exact rate/version and the calculated commission kept
+on every transaction; **the commission destination and any provider deduction are explicit configuration — no zero,
+sample or typed commission as a fallback, and a provider with an incomplete configuration cannot post** (the blanks of
+`docs/73` §1.2). Two unmistakable directions; the customer number mandatory and apart from the provider reference;
+the actor derived from the session, never a form field; Employees record and report mistakes, the Owner or a Manager
+reverses once with audit; a distinct rebalancing operation outside count, volume and commission; per-branch cash and
+per-provider float, one physical drawer and one daily closing for a combined branch; unknown stays unknown.
+
+**Decisions taken to implement it, for the owner's confirmation (reversible):** (a) **"renewal"** = the Super Admin's
+extension or approval that moves the period end forward: it closes the current billing period, applies scheduled
+downgrades (`branches.activity_next`) and opens the next period at the new size — today `extend` only moved the date;
+(b) a change priced lower is a downgrade, one priced higher an upgrade, including the sideways electronics ↔ agent
+changes (500 → 300 waits for the renewal; 300 → 500 is 200 now); (c) a **warehouse** keeps `electronics` (billed 500
+as today) and cannot be an agent branch; (d) a scheduled downgrade is cancelled by a later upgrade request; (e) the
+Administrator role holds no agent key by default. Plan **version 3** (500 / 300 / 700 / 1 / 100) from migration
+`0088`; the quote's `branchFee = Σ activityFee(branch)`; `docs/73` §3 has the equations and eleven worked examples.
+
+### ✅ APPROVED (the brief) — D155: one queueable money record — the agent exchange — supersedes Milestone J for that kind alone
+
+Milestone J allowed the offline queue only operations that settle no money. The brief makes offline recording part of
+the agent activity, with its safeguards verbatim in `docs/73` §5.3: a persistent client UUID per draft; the queue
+file scoped by company, branch and user as today, **with the customer number kept out of the file** (in SecureStore
+under the draft's UUID, joined only when sending); *Pending synchronization* on every queued exchange and
+*Provisional* on every figure that includes one; the same UUID answered with the same record; a changed payload,
+a stale configuration version, an entitlement change or a closed day answered by name and shown as *needs attention*,
+never re-sent silently; **the business day of an exchange is the server's posting instant** (the existing rule for
+money), the phone's own time kept as a claim; reversals, rebalancings and position settings are online only; the
+phone refuses to start the closing while its queue holds exchanges for the branch, and the closing report names how
+many exchanges were posted after the count started — a warning, because the server cannot see another device's
+queue. Device behaviour (Airplane mode, kill and relaunch, repeated taps, uncertain answers) stays **NOT DEVICE
+VERIFIED** until a phone runs `docs/24` §61.
+
+### ✅ APPROVED (the brief) — D156: a branch's activity gates its money routes — supersedes Milestone K's "no per-feature tiers" for activity
+
+A branch records agent exchanges only when its activity is `money_agent` or `both`, and sells or receives stock only
+when it is `electronics` or `both`: 403 `activity_not_subscribed`, enforced on the server beside the company-level
+entitlement, and learnt by the app from `GET /entitlement` (`seatsByStore[].activity`) — a flag, never a price. An
+expired company stays read-only for both activities exactly as today.
+
+### ✅ APPROVED (the brief) — D157: the agent screens — tabs per activity, one counter flow, the blanks visible
+
+Agent-only branch: **Home · Transactions · Money · Reports · More**, with Stock, Sell, Receive, Returns, Catalog and
+Import hidden; electronics-only branches unchanged; a combined branch **Home · Exchanges · Money · Stock · More**,
+Partners under More and the agent reports under Money beside Results (`docs/73` §5.1; rendered per activity and role
+before it ships). The counter flow: direction as two large cards in words with the money arrows, provider, amount,
+customer number, reference per the provider's rule, one review naming both movements, the commission and where it
+goes. A provider whose configuration is incomplete is listed as *Not set up yet* and cannot be chosen. An independent
+agent is never called a bank employee. Reports: daily, weekly, monthly and yearly by month — count, volume, cash
+received/paid, credit sent/received, commission, by provider and by employee, reversals and rebalancings on their own
+lines, expected vs counted and discrepancies — on the ERP's business-day and time-zone rules.
