@@ -17,8 +17,21 @@ with accounting examples and the explicit configuration blanks) **before the fir
 and additive migrations rehearsed on a disposable copy; the website; the mobile app; full verification. No live
 deployment, no real agent transactions; providers stay gated while their rate and settlement configuration is blank.
 
-Next intended action: the read-only map of the existing subscription, roles, Money/closing, mobile, website and
-backend conventions; then the Keep fix.
+Progress (2026-10-08T17:50Z): the Keep fix is done (D153: backend `258b04d`, mobile `bf30299`); checkpoint 1 is
+written (`docs/73`, D154–D157, docs `f94b82f`); **checkpoint 2a is committed and pushed — backend `229caaf`**:
+migrations `0088_branch_activity_pricing`, `0089_agent_ledger`, `0090_agent_permissions` (additive), the catalogue
+64 → 73. **Rehearsal record (disposable only, `docs/22` §2–§3):** throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the
+OS temp directory; database `prisma_qa_ma` at `0001`–`0087` with the QA boutiques (10 companies, 12 branches, 16
+users, 800 units); verified dump before any new migration `prisma_qa_ma-before-0088-20261008-173135.sql`
+(1 657 866 bytes, trailer present, sha256 `ccb838f39abf6b46…`); `prisma migrate diff` silent on the new objects;
+`migrate deploy` applied 0088–0090 (89 migrations, status clean; plan version 3 = 500/300/700; 12 branches
+`electronics`; 9 agent keys granted 90/70/30 rows); restore drill: the pre-dump sanitized (31 definers stripped) and
+restored into `prisma_qa_ma_restore` — identical counts, 97 tables and no `activity` column (0087 state) — then
+dropped; dump after `prisma_qa_ma-after-0090-20261008-174132.sql` (sha256 `636e4c452c425e79…`). Temporary databases
+in use: `prisma_qa_ma`, `prisma_qa_ma_shadow` (to drop at the end of the session). **Live untouched (`0083`).**
+
+Next intended action: checkpoints 2b (activity pricing and requests) and 2c (the agent ledger) on the backend, the
+website and the mobile app, each on its own branch, then the real-HTTP matrix and the gates.
 
 ## HEAD of every repository — all working trees clean, level with their remotes
 
