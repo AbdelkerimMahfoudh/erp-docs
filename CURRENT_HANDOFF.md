@@ -1,9 +1,24 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE-B (cloud), 2026-10-07T18:55Z → 2026-10-07T20:00Z — complete (`SESSION_LOG.md`, last entry; `docs/72`)
-previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B local on the owner's PC, 2026-10-07T05:55Z)
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-08T00:10Z
+previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B cloud, 2026-10-07T20:00Z, `docs/72`); takeover authorised by the owner's brief of 2026-10-08 ("Build the Money Services Agent activity")
+
+## Active phase (2026-10-08, cloud) — the Money Services Agent activity, in verified checkpoints
+
+HEAD at takeover, all four trees clean and level with their remotes: `erp-backend` `55a5119` · `erp-mobile` `b79d74c`
+· `erp-control-web` `0417bfe` (a remote exists: `origin/main`, pushed) · `erp-docs` `2f0f6a3`. Schema at `0087`
+(87 migrations); live still at `0083` (unreachable from here); no in-progress work found in any tree.
+
+Scope (the owner's brief): first the Keep-on-a-negative-drawer 500 with a regression test; then checkpoint 1 (contract
+and model: branch activity and pricing, the agent ledger, positions, closing integration, offline, permissions —
+with accounting examples and the explicit configuration blanks) **before the first schema edit**; then the backend
+and additive migrations rehearsed on a disposable copy; the website; the mobile app; full verification. No live
+deployment, no real agent transactions; providers stay gated while their rate and settlement configuration is blank.
+
+Next intended action: the read-only map of the existing subscription, roles, Money/closing, mobile, website and
+backend conventions; then the Keep fix.
 
 ## HEAD of every repository — all working trees clean, level with their remotes
 
