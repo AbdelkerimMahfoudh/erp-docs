@@ -302,6 +302,22 @@ source that has not moved since the backup: run it in the quiet window right aft
 (`docs/67` §7). On a server with the binary log on, creating the dump's triggers needs
 `log_bin_trust_function_creators=1` (ERROR 1419 otherwise).
 
+### Drill record — 2026-10-08 (E.4, the rehearsal of 0088 → 0090, `docs/73` §8)
+
+Run in a throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the OS temporary directory, on synthetic QA data
+(`prisma_qa_ma`: the ten QA boutiques at `0001`–`0087`) — **not live, not the PC's database**.
+
+| Check | Result |
+|---|---|
+| Source | `prisma_qa_ma` at 0087: 97 tables, 10 companies, 12 branches, 16 users, 800 units |
+| Dump before (migrator, the live path, `--hex-blob`) | `prisma_qa_ma-before-0088-20261008-173135.sql`, 1 657 866 bytes, trailer present, sha256 `ccb838f39abf6b46…` |
+| `prisma migrate diff` | silent on every object of 0088–0090 (only the pre-existing drift of older hand-written migrations) |
+| `prisma migrate deploy` | 0088, 0089, 0090 applied in order; 89 migrations applied in all; status clean |
+| After the three | 105 tables (8 `agent_*`), 12 `agent_*` triggers, plan version 3 = 500/300/700, every branch `electronics`, 9 agent permissions, grants 90/70/30 rows for Owner/Store Manager/Store Employee, Administrator 0 |
+| Path 2 (sanitised, 31 definers stripped) into `prisma_qa_ma_restore` | every table identical by row count, 97 tables, no `activity` column — the 0087 state exactly; then dropped |
+| Dump after | `prisma_qa_ma-after-0090-20261008-174132.sql`, sha256 `636e4c452c425e79…` |
+| Cleanup | the rehearsal databases dropped and the throwaway server stopped at the end of the session (`CURRENT_HANDOFF.md` records it) |
+
 ### Drill record — 2026-10-03 (E.3, the rehearsal of 0084 → 0085, `docs/67` §6)
 
 Run in a throwaway MySQL 8.0.46 configured like live (empty `sql_mode`, `utf8mb4_unicode_ci`, binary log off,

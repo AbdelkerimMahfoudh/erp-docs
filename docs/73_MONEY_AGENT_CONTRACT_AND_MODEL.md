@@ -99,6 +99,18 @@ the difference; the next renewal prices the branch at its new activity in full. 
 period; at the renewal the branch takes `activity_next`, the new period is opened at the new size. A sideways change
 (`electronics → money_agent`, 500 → 300) is a downgrade; (`money_agent → electronics`, 300 → 500) an upgrade of 200.
 
+**The renewal, precisely (D154 a, refined 2026-10-09 after review):** a renewal is the moment the next paid period
+begins — the later of the current period's end and the Super Admin's action. An approval, an extension or a lengthening
+period-end change on a company whose latest billing period has already ended rolls at once (scheduled changes applied,
+the ended period kept as it was, the next period opened at the new size). The same actions on a company whose period
+is **still running** (the Owner prepaid) only move the end: the roll is **due at the old period's end** and is applied
+the first time the company is evaluated after that instant (every authenticated request passes through the
+entitlement check, which applies a due roll once, race-safe, with no scheduler and no new column: "due" ⇔ the latest
+billing period ended and the subscription's end lies beyond it). Shortening never renews. The upgrade difference is
+charged only against a **running paid month** and priced with that period's own copied prices (a plan version scheduled
+mid-period changes nothing for it); with no paid period running — pending, lapsed, suspended — an upgrade is scheduled
+like a downgrade and the next renewal prices the branch in full.
+
 ### 3.3 Worked examples (integer MRU)
 
 | Business | Monthly | Why |
@@ -112,7 +124,9 @@ period; at the renewal the branch takes `activity_next`, the new period is opene
 | agent → both on the 12th of a paid month | **+400 now**, 700 from the renewal | the difference, immediately; the period's assessed branch fee rises 300 → 700 |
 | electronics → both on the 12th | **+200 now**, 700 from the renewal | |
 | both → agent on the 20th | **0 now**; 300 from the renewal | the downgrade waits; 700 stays assessed this period |
-| both → agent on the 5th, then agent → both on the 25th | 0, then **+400** | the scheduled downgrade is cancelled by the later upgrade request; nothing is refunded |
+| both → agent on the 5th, then "keep both" on the 25th | 0, then **0** | the branch never stopped being `both` (700 is assessed this period): the request withdraws the scheduled downgrade; nothing is charged, nothing is refunded (corrected 2026-10-09 — an earlier draft said +400, which would have charged for a change that did not happen) |
+| agent → both on the 25th of a lapsed month (no paid period running) | **0 now**; 700 from the renewal | the difference is only ever charged against a running paid month; otherwise the change is scheduled and the next renewal prices the branch in full |
+| both → agent scheduled, the Owner pays the next month early on the 20th | 0 now; `both` kept until the paid month ends; 300 from the day the old month ends | a renewal is the moment the next paid period begins — the later of the old period's end and the payment — never earlier |
 | a warehouse | **500** | `electronics` by default, as billed today; a warehouse cannot be an agent branch |
 
 ---
@@ -305,10 +319,59 @@ Counting floats at the closing reuses `closing.count`; locking stays `closing.pe
 ## 8. Migrations and the rehearsal
 
 `0088_branch_activity_pricing` (branches, plan versions v3, periods, seat allocation kind), `0089_agent_ledger` (the
-seven tables, the two cash components on `closing_channel_counts` and `daily_rollups`, the discrepancy link),
+eight tables, the two cash components on `closing_channel_counts` and `daily_rollups`, the discrepancy link),
 `0090_agent_permissions` (the nine keys and their grants). All additive; the reverse SQL in each header. Rehearsed on
-a disposable copy per `docs/22`: dump with `--hex-blob`, verify the trailer, `migrate deploy`, `prisma migrate diff`
-drift check, the restore drill, the identifiers in the handoff. **No live migration.**
+a disposable copy per `docs/22` (drill record E.4 there): dump with `--hex-blob`, verify the trailer, `migrate deploy`,
+`prisma migrate diff` drift check, the restore drill, the identifiers in the handoff. **No live migration.**
+
+### 8.1 Rehearsal record (2026-10-08, disposable only)
+
+Throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the OS temporary directory; database `prisma_qa_ma` at `0001`–`0087`
+with the QA boutiques (10 companies, 12 branches, 16 users, 800 units) — **not live, not the PC's database**.
+
+| Step | Result |
+|---|---|
+| Dump before any new migration | `prisma_qa_ma-before-0088-20261008-173135.sql`, 1 657 866 bytes, `-- Dump completed` trailer present, sha256 `ccb838f39abf6b46…` |
+| `prisma migrate diff` (schema vs. migrations) | silent on every new object (the pre-existing drift of hand-written migrations unchanged) |
+| `prisma migrate deploy` | `0088`, `0089`, `0090` applied in order — 89 migrations applied in all, status clean |
+| After `0088` | plan version 3 = 500 / 300 / 700 / 1 included seat / 100 per extra seat; all 12 branches `electronics`, `activity_next` NULL |
+| After `0089` | 8 tables, 12 triggers (`*_block_update` / `*_block_delete` for the application identity), `closing_discrepancies.agent_float_count_id` with its FK and index, the four cash-component columns |
+| After `0090` | 9 permission rows; grants 90 (Owner) / 70 (Store Manager) / 30 (Store Employee) rows across the 10 companies; the Administrator 0 |
+| Restore drill | the pre-dump sanitised (31 definers stripped, `docs/22` path 2) and restored into `prisma_qa_ma_restore`: identical row counts, 97 tables, **no** `activity` column (the `0087` state) — then dropped |
+| Dump after | `prisma_qa_ma-after-0090-20261008-174132.sql`, sha256 `636e4c452c425e79…` |
+| Cleanup | `prisma_qa_ma` and `prisma_qa_ma_shadow` dropped and the throwaway server stopped at the end of the session (the handoff says when) |
+
+### 8.2 `0088`–`0090` on live — the runbook, for the owner's approval (NOT applied)
+
+Live is at `0083`. **Order is fixed:** `0084`, `0085` (`docs/67` §7), `0086` with its transition (`docs/69` §2),
+`0087` (`docs/71` §6), then `0088`, `0089`, `0090` in one `migrate deploy`. All three are additive: every existing row
+satisfies the new defaults (`electronics`, prices 300/700 on existing plan and period rows, NULL links), the old API
+ignores every new column and table, and the **new API reads them**, so the migrations must precede the new API; the
+**new app must not reach phones before the new API** (it asks for `GET entitlement` activities and the agent routes,
+which the old API does not serve).
+
+1. **Backup** per `docs/22` §2 (`--single-transaction --routines --triggers --events --no-tablespaces --hex-blob`);
+   verify size, the `-- Dump completed` trailer, the table count and the trigger count; record the dump in the handoff.
+2. **Apply** with the migrator identity: `npx prisma migrate deploy` (takes every pending migration, in order).
+3. **Verify the schema:** `SHOW COLUMNS FROM branches LIKE 'activity%'` → `enum('electronics','money_agent','both')`
+   default `electronics`, `activity_next` NULL, `activity_changed_at` NULL; `SELECT version, branch_monthly,
+   agent_monthly, both_monthly FROM plan_versions ORDER BY version` → the third row 500 / 300 / 700; `SHOW TABLES LIKE
+   'agent\_%'` → 8; `SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name LIKE 'agent\_%'` → 16;
+   `SELECT COUNT(*) FROM permissions WHERE \`key\` LIKE 'agent.%'` → 9; every company's Owner role holds 9 agent
+   grants, the Administrator 0; `prisma migrate status` up to date; **every branch still `electronics`** (nothing is
+   enabled by the migration — a branch becomes an agent only through the website's request and the Super Admin's
+   confirmation).
+4. **Deploy the API** at the checkpoint-2 commit or later. Smoke, on an electronics branch: `GET entitlement`
+   `seatsByStore[].activity` = `electronics`; `GET agent/providers` → 403 `activity_not_subscribed`; a cash sale
+   and the Daily closing report unchanged (no float lines, no agent lines); `GET platform/plan` carries 500/300/700;
+   `npx ts-node scripts/verify-audit-chain.ts` reports no broken chain.
+5. **Then the website** (its activity choice and quotes read the new API), **then the app**.
+6. **Enabling a real agent branch** is a separate, owner-approved step: the website request, the Super Admin's
+   payment confirmation, the Owner's providers configured with the **real** rates and settlement rules (§1.2) — until
+   then every provider refuses with `provider_not_configured`.
+7. **Rollback:** stop the API; restore the dump (`docs/22` §3) — or, for a database you would rather not restore,
+   the reverse SQL in each migration header, in the order `0090`, `0089`, `0088` — and redeploy the previous API, website
+   and app. A Git rollback does not roll back the database.
 
 ---
 

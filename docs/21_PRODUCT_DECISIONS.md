@@ -6978,6 +6978,39 @@ as today) and cannot be an agent branch; (d) a scheduled downgrade is cancelled 
 Administrator role holds no agent key by default. Plan **version 3** (500 / 300 / 700 / 1 / 100) from migration
 `0088`; the quote's `branchFee = Σ activityFee(branch)`; `docs/73` §3 has the equations and eleven worked examples.
 
+**As implemented (backend `5c27d8a`, `ab5ba3c`, `6414c55`; verified over real HTTP on the disposable copy, 2026-10-09).**
+Plan version 3 is the current plan; versions 1 and 2 keep their seat terms, with 300/700 backfilled so an old period
+re-prices with its own copied numbers. The quote itemises `lines[].activity` and `activityFee`; `branchFee` is their
+sum; the seat terms are untouched. An **upgrade** is a `kind: 'activity'` request in `pending_payment` for the
+difference, applied by the Super Admin's payment confirmation (the branch flips at once, the period is re-assessed by
+the difference, events `activity_requested` → `activity_changed` + `seat_paid`); a **downgrade** is `granted` at once
+with `activityEffective: 'renewal'` and `branches.activity_next` set (event `activity_scheduled`), applied by the
+next renewal — **the moment the next paid period begins**: the Super Admin's approval, extension or lengthening
+period-end change rolls at once when the latest billing period has already ended, and only moves the end when the
+period is still running (the roll is then due at the old end and applied by the first evaluation after it; a
+shortening never renews; `docs/73` §3.2). The upgrade difference is charged only against a running paid month, at
+that period's own copied prices; with no paid period running the upgrade is scheduled and the next period is priced
+in full. Refusals by name:
+`activity_unchanged`, `activity_not_for_warehouse`, `activity_request_pending`; the same target again returns the
+open row with `created: false`; a later upgrade releases a scheduled downgrade; a request to **keep** the current
+activity while a downgrade is scheduled withdraws that downgrade (nothing charged — `docs/73` §3.3); the Owner
+withdraws either through the existing withdraw action; requests are serialised per branch inside one transaction.
+Two readings taken by the implementation, **for the owner's confirmation**: (f) keeping `both` after scheduling a
+downgrade costs nothing (the brief's "agent → both on the 25th is +400" applies to a branch that *is* an agent);
+(g) the period now remembers each branch's own fee (`assessed_activity_fee_by_branch`),
+so a store that replaces an archived store mid-period costs its whole month, where the old company-wide maximum
+charged nothing for it — the literal no-prorating rule; a period opened before `0088` behaves as before until its
+first renewal. The D156 gate is an interceptor after the entitlement one: 403 `activity_not_subscribed` with the
+branch's `activity` and the `required` one on every write under `agent/` (needs `money_agent`|`both`) and on
+**acquiring and selling** only — `POST sales` (a new sale), every write under `purchases` and `imports`, `POST
+consignments` (a new placement) need `electronics`|`both`. Everything else stays open to a branch whatever its
+activity, because money owed on existing records and stock already held must always be recordable: later payments
+on a sale, payer-number corrections, the return and refund workflow, unit edits, transfers (a downgraded branch
+empties itself), consignment follow-ups, prices, closings (float counts included), expenses, money anchors,
+corrections, the account routes and every read. A transfer **into** a branch whose activity does not allow
+electronics is refused at creation (403 `activity_not_subscribed` naming the destination), so no stock is ever
+stranded; a gated write without a branch header is refused (400), never let through (reviewed 2026-10-09).
+
 ### ✅ APPROVED (the brief) — D155: one queueable money record — the agent exchange — supersedes Milestone J for that kind alone
 
 Milestone J allowed the offline queue only operations that settle no money. The brief makes offline recording part of
@@ -6998,7 +7031,11 @@ VERIFIED** until a phone runs `docs/24` §61.
 A branch records agent exchanges only when its activity is `money_agent` or `both`, and sells or receives stock only
 when it is `electronics` or `both`: 403 `activity_not_subscribed`, enforced on the server beside the company-level
 entitlement, and learnt by the app from `GET /entitlement` (`seatsByStore[].activity`) — a flag, never a price. An
-expired company stays read-only for both activities exactly as today.
+expired company stays read-only for both activities exactly as today. *Refined 2026-10-09 (review):* the gate covers
+**acquiring and selling** — a new sale, receiving stock (purchases, imports), a new consignment placement — and every
+write under `agent/`; money owed on existing records, stock already held, transfers out, returns and refunds stay
+recordable at any branch; a transfer into a non-electronics branch is refused at creation; a gated write without a
+branch header is refused, never let through (the list and its reasons live in `activity-gate.ts`, pinned by its spec).
 
 ### ✅ APPROVED (the brief) — D157: the agent screens — tabs per activity, one counter flow, the blanks visible
 

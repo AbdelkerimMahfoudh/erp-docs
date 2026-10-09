@@ -17,21 +17,26 @@ with accounting examples and the explicit configuration blanks) **before the fir
 and additive migrations rehearsed on a disposable copy; the website; the mobile app; full verification. No live
 deployment, no real agent transactions; providers stay gated while their rate and settlement configuration is blank.
 
-Progress (2026-10-08T17:50Z): the Keep fix is done (D153: backend `258b04d`, mobile `bf30299`); checkpoint 1 is
-written (`docs/73`, D154–D157, docs `f94b82f`); **checkpoint 2a is committed and pushed — backend `229caaf`**:
-migrations `0088_branch_activity_pricing`, `0089_agent_ledger`, `0090_agent_permissions` (additive), the catalogue
-64 → 73. **Rehearsal record (disposable only, `docs/22` §2–§3):** throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the
-OS temp directory; database `prisma_qa_ma` at `0001`–`0087` with the QA boutiques (10 companies, 12 branches, 16
-users, 800 units); verified dump before any new migration `prisma_qa_ma-before-0088-20261008-173135.sql`
-(1 657 866 bytes, trailer present, sha256 `ccb838f39abf6b46…`); `prisma migrate diff` silent on the new objects;
-`migrate deploy` applied 0088–0090 (89 migrations, status clean; plan version 3 = 500/300/700; 12 branches
-`electronics`; 9 agent keys granted 90/70/30 rows); restore drill: the pre-dump sanitized (31 definers stripped) and
-restored into `prisma_qa_ma_restore` — identical counts, 97 tables and no `activity` column (0087 state) — then
-dropped; dump after `prisma_qa_ma-after-0090-20261008-174132.sql` (sha256 `636e4c452c425e79…`). Temporary databases
-in use: `prisma_qa_ma`, `prisma_qa_ma_shadow` (to drop at the end of the session). **Live untouched (`0083`).**
+Progress (2026-10-09T04:20Z, after a container restart at 03:49Z): the Keep fix is done (D153: backend `258b04d`,
+mobile `bf30299`); checkpoint 1 is written (`docs/73`, D154–D157, docs `f94b82f`); **checkpoint 2a committed and
+pushed — backend `229caaf`** (migrations `0088`–`0090`, rehearsal record in `docs/73` §8.1 and `docs/22` E.4);
+**checkpoint 2b built and merged locally (not pushed yet)** — backend `5c27d8a`, `ab5ba3c`, `6414c55` on
+`reports-export` (activity pricing, requests, the renewal, the D156 gate; 187 suites / 3 444 tests green; the
+pricing and gate sections of the real-HTTP matrix pass on the disposable copy). An adversarial review of 2b found
+real defects (the renewal firing on an early extension, an upgrade charged against a lapsed period, prices from two
+plan versions, a gate that failed open without a branch header and stranded transfers into an agent branch, request
+atomicity, audit names) — **a fix is being built on worktree `money-agent-2bfix`** and will be merged after an
+adversarial verification; `docs/73` §3.2–§3.3 and D154/D156 already carry the corrected definitions. Checkpoint 2c
+(the agent ledger module and the closing integration) is being built on worktree `money-agent-2c` (`a3b18d1` pure
+rules committed; the module written; the closing integration in progress); the website (`erp-control-web`, branch
+`money-agent-3`) and the mobile app (`erp-mobile`, branch `money-agent-4`) are being built in parallel. **Live
+untouched (`0083`).** Disposable: throwaway MySQL on `127.0.0.1:3310`, database `prisma_qa_ma` (+ `_shadow`), API on
+`:3080`; both restarted after the container restart; the matrix mutated Boutique 2 (both / agent annex), 3 (agent)
+and 4 and created one extra business — the after-`0090` dump is restored before the full matrix run.
 
-Next intended action: checkpoints 2b (activity pricing and requests) and 2c (the agent ledger) on the backend, the
-website and the mobile app, each on its own branch, then the real-HTTP matrix and the gates.
+Next intended action: merge the 2b fixes and the 2c ledger into `reports-export`, run the backend gates and the full
+real-HTTP matrix (`docs/73` §9) on a restored copy; merge and gate the website and the app; the review workflow over
+every diff; docs, session log, handoff; push backend → mobile → website → docs.
 
 ## HEAD of every repository — all working trees clean, level with their remotes
 

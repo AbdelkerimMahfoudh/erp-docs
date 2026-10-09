@@ -4229,3 +4229,23 @@ copy and in rendered tests only; **nothing here was seen on a phone**.
 - [ ] FR *Montant de départ inconnu · +20 000 MRU enregistré aujourd’hui* and AR *المبلغ الابتدائي غير معروف · +20 000 MRU
       مسجَّل اليوم*; in Arabic on a native RTL build the signed amount reads left-to-right as one piece.
 - [ ] 320 pt and the largest text: the line wraps under its row without pushing the figures.
+
+## 60. Keep on a drawer tracked below zero (D153, `docs/73` §2) — NOT DEVICE VERIFIED
+
+Runs on `bf30299` (mobile) and `258b04d` or later (backend; no migration). Needs a shop whose **tracked** drawer is
+below zero — e.g. a day opened with cash **Set** at 1 000, then a cash expense of 3 000 recorded and confirmed (the
+expense module takes the amount; the drawer is then tracked at −2 000). Verified over real HTTP on a disposable copy
+and in rendered tests only; **nothing here was seen on a phone**.
+
+- [ ] Devices → *This device* reads `bf30299 · reports-export · Expo Go` (or later).
+- [ ] The next business day (after 06:00, or the Owner's early start): the opening sheet offers **no Keep**. Where it
+      stood, the notice *The drawer is tracked below zero — More cash was recorded out of this drawer than into it, so
+      there is no amount to keep. Enter the cash in it now — 0 if it is empty — and correct the earlier records.* The
+      cash field is empty (nothing pre-filled); the total line shows no figure until an amount is typed.
+- [ ] **Set** at 0 opens the day; the Money card then reads 0 for cash, not −2 000.
+- [ ] Reopening a closed day, and *Review the opening* with Keep, are refused the same way (the server's
+      `opening_cash_negative`, shown with the same sentence), never a blank error or a spinner that never ends.
+- [ ] An older app build that still offers Keep gets the sentence from the server (400 `opening_cash_negative`),
+      never a *Database request error*.
+- [ ] FR *La caisse est suivie en dessous de zéro* / AR *الصندوق متتبَّع تحت الصفر*, with their bodies; the sheet
+      stays readable at 320 pt and the largest text.
