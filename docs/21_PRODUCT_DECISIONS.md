@@ -7033,6 +7033,19 @@ phone refuses to start the closing while its queue holds exchanges for the branc
 many exchanges were posted after the count started — a warning, because the server cannot see another device's
 queue. Device behaviour (Airplane mode, kill and relaunch, repeated taps, uncertain answers) stays **NOT DEVICE
 VERIFIED** until a phone runs `docs/24` §61.
+*As built (mobile `9d74cf7`…`45b0e2a`, reviewed 2026-10-09):* the number lives in SecureStore under
+`agent.exchange.number.<uuid>`, sealed to company, branch and person, joined only when sending and deleted once
+recorded, cancelled, removed, or when a restored draft is discarded; the queue file and drafts refuse any
+customer-number field. **An exchange that may be recorded is never "cancelled — nothing is sent":** after a lost
+answer (a timeout, a 5xx) or a key that already holds a record, it is *Not confirmed yet* — checked again under the
+same key, or removed from the phone by a person who looked at the exchanges list; a refusal from the ledger itself
+(read after the key) proves nothing is recorded and allows a cancel again. The phone's claim of when
+(`deviceRecordedAt`, part of the server's fingerprint) is stamped once per key, so a second Confirm after a lost
+answer is the same request. Sign-out and every new session clear the whole query cache; the full number shows only
+for `agent.customer.reveal`. A browser has no queue: it sends at once under the same key, or refuses offline in
+words. **Not built:** the closing report's warning naming exchanges posted after the count started (the server sends
+no such count yet — the phone's own refusal to close while it holds exchanges is built); a replay that meets the
+entitlement or activity check after a change stays queued under its key (safe) but cannot learn it was recorded.
 
 ### ✅ APPROVED (the brief) — D156: a branch's activity gates its money routes — supersedes Milestone K's "no per-feature tiers" for activity
 
@@ -7056,3 +7069,13 @@ goes. A provider whose configuration is incomplete is listed as *Not set up yet*
 agent is never called a bank employee. Reports: daily, weekly, monthly and yearly by month — count, volume, cash
 received/paid, credit sent/received, commission, by provider and by employee, reversals and rebalancings on their own
 lines, expected vs counted and discrepancies — on the ERP's business-day and time-zone rules.
+*As built and visually checked (2026-10-09, the app's web export in Chromium against the real API, EN/FR/AR at 393
+and 320):* the bars above, exactly — an agent Employee has no Reports tab; tabs are `/agent-transactions` and
+`/agent-reports`, stack routes `/agent/new`, `/agent/[id]`, `/agent/positions`, `/agent/reports`,
+`/agent/rebalance`, `/agent/providers`, `/agent/providers/[id]`. A deep link to a write the branch's activity does
+not allow (a new sale, receiving, a consignment placement at an agent counter; an exchange or a rebalancing at a
+shop) lands on Home; reads and returns stay reachable, as on the server. An unread entitlement shows an error with a
+retry, never the shop's bar. A closed day says what waits in the branch's own work. **Reports book a reversal on the
+day it was made** (`docs/73` §4.3 as built): a period that is over never changes; a later period carries the reversal
+and gives its commission back there. A rebalancing that takes a known position below zero is refused until the Owner
+confirms it. No receipt and no PDF (v1).

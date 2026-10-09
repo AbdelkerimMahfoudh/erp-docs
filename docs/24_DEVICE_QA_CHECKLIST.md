@@ -4249,3 +4249,73 @@ and in rendered tests only; **nothing here was seen on a phone**.
       never a *Database request error*.
 - [ ] FR *La caisse est suivie en dessous de zéro* / AR *الصندوق متتبَّع تحت الصفر*, with their bodies; the sheet
       stays readable at 320 pt and the largest text.
+
+## 61. The Money Services Agent counter (D154–D157, `docs/73`) — NOT DEVICE VERIFIED
+
+Runs on mobile `45b0e2a` (`money-agent-4`) or later, against an API at backend `35b5836` (`reports-export`) or later
+on a database at `0090` — **never live**, which is at `0083`. Verified on the disposable copy only: real HTTP (the
+agent matrix 141, the business day 8, the due renewal 8, the review fixes 14), rendered tests (jest 12 suites / 130),
+the pure suites (101 files), and the app's **web export in Chromium** against the real API — the tab bars per activity
+and role in EN/FR/AR at 393 and 320, and one exchange recorded end to end (7/7). **Nothing here was seen on a phone**,
+and the offline behaviour cannot be: a browser has no queue (D155). The rates are the fixture's (**invented**,
+§1.2 of `docs/73`); a real provider stays *Not set up yet* until the Owner enters its real schedule.
+
+Setup (on the PC, against the local development database — not live): `prisma migrate deploy` to `0090` with a
+verified backup first (`docs/22`); on the website, ask for an activity change for one store and confirm it as the
+Super Admin (or set `branches.activity` on a development copy only); as the Owner, add a provider and enter
+**clearly invented** test rates. Restart Metro with `-c` and check Devices → *This device* reads `45b0e2a` or later.
+
+**Navigation (D157).**
+- [ ] An agent-only branch: **Home · Transactions · Money · Reports · More**; an Employee sees no Reports tab. No Sell,
+      Receive, Stock, Returns, Catalog or Import anywhere on it.
+- [ ] A combined branch: **Home · Exchanges · Money · Stock · More**; Partners on More; the exchange reports on Money
+      beside Results; Home shows Receive and Sell side by side and **New exchange** on its own row.
+- [ ] A shop: unchanged — Home · Partners · Money · Stock · More, nothing of the counter.
+- [ ] Every tab name fits at 320 pt and at the largest text in EN, FR and AR (*Transactions* shrinks at 320 pt); AR
+      reads right to left, Home at the right edge.
+- [ ] A deep link to `retailerp://sell` or `retailerp://receive` at an agent-only branch lands on Home; a deep link to
+      a return, the stock list or a unit still opens (D156: reads and returns stay open at any branch).
+- [ ] A closed or unopened day says what waits in the branch's own work: *Open the store to record exchanges* at an
+      agent counter, *to sell, receive or record exchanges* at a combined branch.
+
+**The counter flow (D157).**
+- [ ] Direction first, as two large cards in words with the money arrows; then the provider (one with a blank rate
+      or settlement is *Not set up yet* and cannot be chosen); the amount; the customer's number on the phone pad;
+      the reference only when the provider gives one.
+- [ ] One review: both movements (cash into / out of the drawer; credit sent from / received into the float), the
+      commission and where it goes, the number; *Confirm exchange*. Online: *Recorded by the server at …, business day
+      …, by …* and *Commission recorded: …* — the server's time and name, never the phone's.
+- [ ] The Exchanges list shows the number masked (`•••• 4321`); the detail shows it whole only to the Owner and
+      Managers (`agent.customer.reveal`); an Employee never sees it, even right after a Manager opened the same
+      exchange on the same phone and signed out.
+- [ ] Reverse (Owner, Manager): once, with a reason; refused while the store is closed; the day's report then shows
+      the reversal on its own line. A report for the day the exchange was recorded does not change.
+
+**Offline and the queue (D155) — the part only a phone can show.**
+- [ ] Airplane mode, record an exchange: *Pending synchronization*, the figures on Home and Money marked
+      *Provisional*; kill the app, relaunch: still there, same summary, the number not shown anywhere in a list.
+- [ ] Back online: it is sent once, then *Recorded* with the server's time. Tap Confirm several times quickly while
+      online: one exchange on the server.
+- [ ] A slow network that times out after the server recorded it: the counter says *Not confirmed yet* — offers
+      **Check again** and **Remove from this phone**, never *Cancel — nothing is sent*; Check again finds the one record.
+- [ ] Sign out and sign in as another person on the same phone: the first person's queued exchanges and numbers are
+      not shown.
+- [ ] While the phone holds an exchange for the branch, the Daily closing is not started and no float is counted;
+      the screen says why and leads to the exchanges.
+- [ ] A rate changed by the Owner while an exchange was waiting: the counter says the rate changed; *Prepare again*
+      shows the rate in force (never the old one) before it is confirmed again.
+
+**Money, closing, rebalancing, providers, reports.**
+- [ ] Money: the drawer once; each float and each held commission on its own line; *Unknown* stays Unknown with the
+      day's movement; a negative float in words and colour.
+- [ ] The Daily closing lists each float beside the drawer: expected (or Unknown), counted, the difference in words;
+      the close waits until every float is counted or skipped with a reason.
+- [ ] Rebalancing (online only): buying more float than the drawer holds is refused, naming the drawer and what it
+      would read; only the Owner is offered *Record it anyway*, and then the drawer shows below zero.
+- [ ] Providers (Owner): a blank shows as *Not set — ask the provider's schedule*, never a default; a new version is
+      in force from now; earlier versions are listed.
+- [ ] Reports: day, week, month, year by month — count, volume, cash received/paid, credit sent/received,
+      commission, by provider and by employee, reversals and rebalancings apart; an exchange reversed on a later day
+      shows on that later day, with its commission taken off there.
+- [ ] Nothing in the app shows a subscription price, a purchase prompt or a payment instruction; an independent agent
+      is never called a bank employee.

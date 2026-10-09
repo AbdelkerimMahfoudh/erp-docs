@@ -11023,3 +11023,83 @@ in any commit; nothing deployed, published or submitted; no message sent.
 
 **Commits:** `erp-backend` `55a5119` · `erp-mobile` `b79d74c` · `erp-control-web` unchanged at `0417bfe` · `erp-docs`
 `0821041` and the commit carrying this entry. All pushed; all trees clean.
+
+## 2026-10-08T00:10Z → 2026-10-09T14:20Z — CLAUDE-B (cloud) — the Money Services Agent activity, in verified checkpoints (`docs/73`, D153–D157)
+
+**Takeover.** `READY_FOR_HANDOFF` / owner NONE (`docs/72`, 2026-10-07T20:00Z); authorised by the owner's brief of
+2026-10-08 ("Build the Money Services Agent activity in our ERP … do not deploy to live or enable real agent
+transactions without my explicit approval"). HEADs at takeover: backend `55a5119`, mobile `b79d74c`, website `0417bfe`,
+docs `2f0f6a3`; ownership recorded in `bd360a4`. Live at `0083`, untouched throughout.
+
+**First, the Keep 500 (D153).** Keep on a drawer tracked below zero answered 500 (`ck_opening_decisions_amount`): now a
+named 400 `opening_cash_negative`, the carried opening records no amount, and the phone offers no Keep and says why
+(backend `258b04d`, mobile `bf30299`).
+
+**Checkpoint 1 — contract and model** (`docs/73`, D154–D157, docs `f94b82f`): branch activity and its pricing
+(500/300/700, never 500+300; the upgrade difference now, the downgrade at the renewal), the agent ledger (append-only
+legs over cash, floats and held commission; reversal once; rebalancing never a transaction), positions (anchor + legs
+after its instant; unknown never zero), one drawer and one closing with the floats beside it, offline rules, nine
+permission keys, worked examples, and the seven configuration blanks — never guessed.
+
+**Checkpoint 2 — backend** (`reports-export` `229caaf`…`35b5836`). Migrations `0088`–`0090` (additive), rehearsed on a
+disposable copy with a verified backup and restore (`docs/73` §8.1, `docs/22` E.4; live runbook §8.2, **not
+applied**). Activity pricing and requests, the renewal, the D156 activity gate; the agent module (providers with
+versioned configuration gated while blank, exchanges with actor-derived attribution and idempotent posting, mistakes,
+reversals, rebalancings, positions, reports); the closing integration (agentIn/agentOut, float counts, the lock rule,
+counted-close anchors). Two adversarial reviews: the first (2b) found the renewal firing on an early extension, an
+upgrade charged against a lapsed period, prices from two plan versions, a gate that failed open, stock stranded by a
+transfer, request atomicity — all fixed (`f5ee5fb`, `f10b640`, `0841684`); the real-HTTP matrix found agent reads
+refused on an electronics branch and a dismissal answering 201 (`3b26e95`). The second (2026-10-09, three read-only
+reviewers, each finding proven) found a reversal or rebalancing posting cash onto a locked day (blocker), a past
+day's float count anchored at the wrong instant, reports rewriting a closed period on a later reversal, a rebalancing
+below zero without the Owner, inconsistent half-cent rounding, and the website's own price arithmetic — all fixed
+(`df34c73`, `95e3a79`, `292991c`, `af1512c`, `35b5836` with `GET my-subscription/activity-options`).
+
+**Checkpoint 3 — website** (`erp-control-web` branch `money-agent-3`, `e950840`…`2c49795`; `main` deliberately not
+moved): activity at application and for later stores, the Owner's change panel reading the server's answer, the
+Super Admin's activity requests and three plan prices; a confirmation's result kept on screen after its row leaves
+the queue (found by the real-HTTP journey, `4cd70a7`).
+
+**Checkpoint 4 — mobile** (`erp-mobile` branch `money-agent-4`, `9d74cf7`…`45b0e2a`, two implementing agents then
+review fixes): tab bars per activity and role; the counter flow with one review; the offline queue with the number in
+SecureStore only; Home, the exchanges list and detail; Money's floats, the Owner's float amount, rebalancing, the
+providers; reports; the floats in the Daily closing and no closing while the phone holds exchanges. A read-only review
+of the first half proved three blockers — a revealed customer number surviving into the next sign-in on a shared
+phone, "Cancel — nothing is sent" offered after a timed-out send the server may have recorded, a retry fingerprinted
+differently (a fresh `deviceRecordedAt` each Confirm) and told to record anew — and five more; all fixed with tests
+(`182b26c`, `7ab283f`). The visual check of the tab bars (the web export in Chromium against the real API) found the
+agent counter told to "open the store to sell or receive" (`d1bc1bf`); the end-to-end counter journey found the
+browser path omitting the server's commission (`45b0e2a`).
+
+**Verification (exact totals).** Backend at `35b5836`: `tsc` clean; **200 suites / 3 630 passed / 3 skipped**.
+Real HTTP on the disposable copy (restored after-`0090` dump, rebuilt API): agent matrix **141/141**, business-day
+rollover **8/8**, due renewal **8/8** (one roll across two concurrent instances), review fixes **14/14**. Website at
+`2c49795`: **7 files / 36 tests**, `tsc`, build; Chromium journey against the real API **15/15** (EN, AR at 360,
+RTL, no sideways scroll). Mobile at `45b0e2a`: `tsc` clean; **101 node suite files**; `expo lint` 0 errors / 29
+warnings (baseline); parity **3 723 × 3**, identical order; jest **12 suites / 130 tests**; web export clean;
+expo-doctor 19/21 (both failures are network checks from this container). The app's web export against the real API:
+tab bars for shop, combined, agent Owner and agent Employee in EN/FR/AR at 393 and 320, all as designed, no overflow;
+one exchange recorded end to end **7/7** (review = server commission, masked list, no actor in the body). Backend
+lint: **not run** — the repository has no ESLint 9 configuration. **NOT DEVICE VERIFIED** — `docs/24` §61; offline
+behaviour can only be shown on a phone.
+
+**Not built / known gaps (recorded, not hidden).** The closing report's warning naming exchanges posted after the
+count started (`docs/73` §5.3) — the server sends no such count; the phone's own refusal to close is built. Provider
+and configuration writes take no idempotency key (a lost answer retried gives `provider_label_in_use` or an identical
+second version — harmless, append-only). A queued replay that meets the entitlement or activity check after a change
+stays queued under its key but cannot learn it was recorded. Seen in passing on the website (not changed): a
+complimentary account reads "granted until {period start}" because the entitlement view carries no
+`complimentaryUntil`. Operational: an Expo web export inlines `EXPO_PUBLIC_*` only with `--clear` after the variable
+changes.
+
+**Data and process safety.** Live untouched (`0083`); the owner's PC database untouched. Disposable only: MySQL on
+`127.0.0.1:3310`, `prisma_qa_ma` (+ `_shadow`), APIs on `:3080`–`:3086`, previews on `:4173` and `:4180` — all
+stopped, both databases dropped, the scratch env files shredded, the dumps deleted; scratch scripts only in the OS
+temporary directory. Worktrees `money-agent-2b`, `-2bfix`, `-2c` removed (merged). Fixtures used invented rates and
+invented numbers (`00004321`); no real provider, credential or customer number; nothing deployed, published or
+submitted; no message sent; no provider enabled. Commits carry the CLAUDE-B identity with the session's trailers,
+which the stop hook reports as unverified signatures (kept, per this project's convention).
+
+**Commits:** `erp-backend` `258b04d`, `229caaf`, `a3b18d1`…`35b5836` (18 in all) · `erp-mobile` `bf30299`,
+`9d74cf7`…`45b0e2a` (15) · `erp-control-web` `e950840`…`2c49795` (7, branch `money-agent-3`) · `erp-docs` `bd360a4`,
+`f94b82f`, `d204104`, `c743146`, `4252682`, `87ce55f` and the commit carrying this entry. All pushed; all trees clean.
