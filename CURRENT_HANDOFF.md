@@ -17,34 +17,39 @@ with accounting examples and the explicit configuration blanks) **before the fir
 and additive migrations rehearsed on a disposable copy; the website; the mobile app; full verification. No live
 deployment, no real agent transactions; providers stay gated while their rate and settlement configuration is blank.
 
-Progress (2026-10-09T04:20Z, after a container restart at 03:49Z): the Keep fix is done (D153: backend `258b04d`,
-mobile `bf30299`); checkpoint 1 is written (`docs/73`, D154–D157, docs `f94b82f`); **checkpoint 2a committed and
-pushed — backend `229caaf`** (migrations `0088`–`0090`, rehearsal record in `docs/73` §8.1 and `docs/22` E.4);
-**checkpoint 2b built and merged locally (not pushed yet)** — backend `5c27d8a`, `ab5ba3c`, `6414c55` on
-`reports-export` (activity pricing, requests, the renewal, the D156 gate; 187 suites / 3 444 tests green; the
-pricing and gate sections of the real-HTTP matrix pass on the disposable copy). An adversarial review of 2b found
-real defects (the renewal firing on an early extension, an upgrade charged against a lapsed period, prices from two
-plan versions, a gate that failed open without a branch header and stranded transfers into an agent branch, request
-atomicity, audit names) — **a fix is being built on worktree `money-agent-2bfix`** and will be merged after an
-adversarial verification; `docs/73` §3.2–§3.3 and D154/D156 already carry the corrected definitions. Checkpoint 2c
-(the agent ledger module and the closing integration) is being built on worktree `money-agent-2c` (`a3b18d1` pure
-rules committed; the module written; the closing integration in progress); the website (`erp-control-web`, branch
-`money-agent-3`) and the mobile app (`erp-mobile`, branch `money-agent-4`) are being built in parallel. **Live
-untouched (`0083`).** Disposable: throwaway MySQL on `127.0.0.1:3310`, database `prisma_qa_ma` (+ `_shadow`), API on
-`:3080`; both restarted after the container restart; the matrix mutated Boutique 2 (both / agent annex), 3 (agent)
-and 4 and created one extra business — the after-`0090` dump is restored before the full matrix run.
+Progress (2026-10-09T11:55Z — checkpoint refresh):
 
-Next intended action: merge the 2b fixes and the 2c ledger into `reports-export`, run the backend gates and the full
-real-HTTP matrix (`docs/73` §9) on a restored copy; merge and gate the website and the app; the review workflow over
-every diff; docs, session log, handoff; push backend → mobile → website → docs.
+- **Checkpoint 2 (backend) complete, verified and pushed — `erp-backend` `reports-export` `229caaf..0841684`**
+  (`a3b18d1` … `0841684`: activity pricing and requests, the renewal, the agent ledger, the closing integration, the
+  D156 gate, and every fix from the adversarial review of 2b). Gates: `tsc` clean; **200 suites / 3 609 tests**
+  passed. Real HTTP on the disposable copy (restored after-`0090` dump): the agent matrix **141/141**, the business-day
+  rollover **8/8**, the due renewal **8/8** (one roll across two concurrent API instances). The matrix found two real
+  defects, both fixed in `3b26e95` (agent reads refused on an electronics branch; a dismissal answering 201).
+  Backend lint is **not run**: the repository has no ESLint 9 configuration (recorded, not invented).
+- **Checkpoint 3 (website) complete, verified and pushed — `erp-control-web` branch `money-agent-3`**
+  (`e950840` … `4cd70a7`; **`main` deliberately not moved** — no hosting config is in the repository, but a host
+  could watch `main`, and nothing is deployed without the owner's approval). Gates: 7 files / **36 tests**, `tsc`,
+  build. Real HTTP (Chromium against the disposable API): the activity journey **15/15** — schedule a downgrade,
+  keep the current activity, request the upgrade (200 now, then 700), the Super Admin confirms with step-up, the
+  store reads *Both*; Arabic at 360 is right-to-left with no sideways scroll. The journey found one real defect,
+  fixed in `4cd70a7` with a test (the confirmation's result vanished with the paid row).
+- **Checkpoint 4 (mobile) in progress** on `erp-mobile` branch `money-agent-4` (off `bf30299`), **uncommitted** —
+  the implementing agent is running its gates. Not to be touched by anybody else until it reports.
+- **Live untouched (`0083`).** Schema in the code: `0090` (`0088`–`0090` rehearsed only). Disposable: MySQL
+  `127.0.0.1:3310`, `prisma_qa_ma` (+ `_shadow`), APIs on `:3080` and `:3085` (CORS for the site preview on `:4173`).
 
-## HEAD of every repository — all working trees clean, level with their remotes
+Next intended action: review and gate the mobile checkpoint (tsc, node suites, lint, parity, jest, web export, route
+audit, doctor; the combined navigation checked visually), push `money-agent-4`; the adversarial review over the
+ledger, website and mobile diffs; then docs (decisions, `docs/24` §61, session log) and this file; then clean up
+the disposable infrastructure.
+
+## HEAD of every repository (11:55Z) — clean and pushed except `erp-mobile` (checkpoint 4 in progress)
 
 | Repository | Branch | HEAD | This session |
 | --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `55a5119` | `55a5119` (D152: `movement` on every tracked method) — pushed `be024dd..55a5119` |
-| `erp-mobile` | `reports-export` | `b79d74c` | `b79d74c` (D152: the movement line, *Set account amounts*) — pushed `0b525b3..b79d74c` |
-| `erp-control-web` | `main` | `0417bfe` | unchanged |
+| `erp-backend` | `reports-export` | `0841684` | `258b04d` (D153), `229caaf` (2a), `a3b18d1`…`0841684` (2b, 2c, review fixes) — pushed |
+| `erp-mobile` | `money-agent-4` (off `bf30299`) | `bf30299` + **uncommitted checkpoint 4** | `bf30299` (D153) pushed on `reports-export`; checkpoint 4 in progress |
+| `erp-control-web` | `money-agent-3` (off `main` `0417bfe`) | `4cd70a7` | `e950840`…`4cd70a7` — pushed as a branch; `main` unchanged |
 | `erp-docs` | `master` | the commit carrying this file | `0821041` (takeover), this commit — pushed |
 
 The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged. No migration this session: the schema is still `0087`.
