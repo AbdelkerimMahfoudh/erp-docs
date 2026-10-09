@@ -7010,6 +7010,14 @@ empties itself), consignment follow-ups, prices, closings (float counts included
 corrections, the account routes and every read. A transfer **into** a branch whose activity does not allow
 electronics is refused at creation (403 `activity_not_subscribed` naming the destination), so no stock is ever
 stranded; a gated write without a branch header is refused (400), never let through (reviewed 2026-10-09).
+*The Owner's website asks the server before it asks for a change (second review, 2026-10-09):* `GET
+platform/my-subscription/activity-options` answers, for every store but a warehouse, what asking for each other
+activity would do now — `now` (the difference due, at the running period's own prices), `renewal`, `keep`,
+`requested`, or `refused` with the request in its way — and what the store pays per month once the next paid period
+opens, at the plan in force then; and what a new store of each activity is charged. The request and the read share one
+pure decision (`activity-decision.ts`); a spec asks every offered option in every starting state and checks the
+request does exactly that. The page computes no charge (its one former subtraction priced from today's list where the
+server charges the period's own prices, and announced "due now" when no paid month ran).
 
 ### ✅ APPROVED (the brief) — D155: one queueable money record — the agent exchange — supersedes Milestone J for that kind alone
 

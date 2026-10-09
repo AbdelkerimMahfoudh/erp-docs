@@ -17,7 +17,7 @@ with accounting examples and the explicit configuration blanks) **before the fir
 and additive migrations rehearsed on a disposable copy; the website; the mobile app; full verification. No live
 deployment, no real agent transactions; providers stay gated while their rate and settlement configuration is blank.
 
-Progress (2026-10-09T11:55Z — checkpoint refresh):
+Progress (2026-10-09T12:45Z — checkpoint refresh after the adversarial review):
 
 - **Checkpoint 2 (backend) complete, verified and pushed — `erp-backend` `reports-export` `229caaf..0841684`**
   (`a3b18d1` … `0841684`: activity pricing and requests, the renewal, the agent ledger, the closing integration, the
@@ -33,8 +33,19 @@ Progress (2026-10-09T11:55Z — checkpoint refresh):
   keep the current activity, request the upgrade (200 now, then 700), the Super Admin confirms with step-up, the
   store reads *Both*; Arabic at 360 is right-to-left with no sideways scroll. The journey found one real defect,
   fixed in `4cd70a7` with a test (the confirmation's result vanished with the paid row).
-- **Checkpoint 4 (mobile) in progress** on `erp-mobile` branch `money-agent-4` (off `bf30299`), **uncommitted** —
-  the implementing agent is running its gates. Not to be touched by anybody else until it reports.
+- **Adversarial review of the ledger, its security and the website (2026-10-09, three read-only reviewers, each
+  finding proven):** one blocker and four majors, all fixed and pushed — backend `0841684..35b5836` (`df34c73` a
+  reversal and a rebalancing open first, a rebalancing below zero waits for the Owner; `95e3a79` a past day's float
+  count anchored at the day's end; `292991c` exact half-cent rounding; `af1512c` a report books a reversal on the day
+  it was made; `35b5836` `GET my-subscription/activity-options`, the request's own decision) and website
+  `4cd70a7..2c49795` (the change panel reads the server's answer; no client arithmetic left). Re-verified on the new
+  build: 200 suites / 3 630 passed / 3 skipped; real HTTP 141 + 8 (day) + 8 (renewal) + 14 (review fixes), all passed;
+  website 36 tests, journey 15/15. `docs/73` and D154 carry the as-built rules.
+- **Checkpoint 4 (mobile) in progress** on `erp-mobile` branch `money-agent-4` (off `bf30299`): seven commits
+  `9d74cf7`…`a87476e` (navigation per activity, the counter flow with the offline queue, Home, the exchanges list;
+  tsc, 97 node suites, lint 0 errors / 29 warnings, parity 3 504 × 3, jest 103 — the agent's own run), **not pushed
+  yet**; the second implementing agent (reports, rebalancing, providers, positions) is working in that tree — not to
+  be touched by anybody else until it reports.
 - **Live untouched (`0083`).** Schema in the code: `0090` (`0088`–`0090` rehearsed only). Disposable: MySQL
   `127.0.0.1:3310`, `prisma_qa_ma` (+ `_shadow`), APIs on `:3080` and `:3085` (CORS for the site preview on `:4173`).
 
@@ -43,13 +54,13 @@ audit, doctor; the combined navigation checked visually), push `money-agent-4`; 
 ledger, website and mobile diffs; then docs (decisions, `docs/24` §61, session log) and this file; then clean up
 the disposable infrastructure.
 
-## HEAD of every repository (11:55Z) — clean and pushed except `erp-mobile` (checkpoint 4 in progress)
+## HEAD of every repository (12:45Z) — clean and pushed except `erp-mobile` (checkpoint 4 in progress, local commits)
 
 | Repository | Branch | HEAD | This session |
 | --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `0841684` | `258b04d` (D153), `229caaf` (2a), `a3b18d1`…`0841684` (2b, 2c, review fixes) — pushed |
-| `erp-mobile` | `money-agent-4` (off `bf30299`) | `bf30299` + **uncommitted checkpoint 4** | `bf30299` (D153) pushed on `reports-export`; checkpoint 4 in progress |
-| `erp-control-web` | `money-agent-3` (off `main` `0417bfe`) | `4cd70a7` | `e950840`…`4cd70a7` — pushed as a branch; `main` unchanged |
+| `erp-backend` | `reports-export` | `35b5836` | `258b04d` (D153), `229caaf` (2a), `a3b18d1`…`0841684` (2b, 2c, review fixes), `df34c73`…`35b5836` (second review) — pushed |
+| `erp-mobile` | `money-agent-4` (off `bf30299`) | `a87476e` (local, not pushed) | `bf30299` (D153) pushed on `reports-export`; checkpoint 4 in progress |
+| `erp-control-web` | `money-agent-3` (off `main` `0417bfe`) | `2c49795` | `e950840`…`2c49795` — pushed as a branch; `main` unchanged |
 | `erp-docs` | `master` | the commit carrying this file | `0821041` (takeover), this commit — pushed |
 
 The four draft PRs (backend #1/#2, mobile #1/#2) are unchanged. No migration this session: the schema is still `0087`.

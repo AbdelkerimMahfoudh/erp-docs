@@ -148,7 +148,7 @@ like a downgrade and the next renewal prices the branch in full.
 
 ### 4.2 Commission and settlement — the configured matrix
 
-With `A` the amount, `r` the rate for the direction, `C = round2(A × r)`:
+With `A` the amount, `r` the rate for the direction, `C = round2(A × r)` — counted exactly in whole cents and basis points, a half cent up (837 MRU at 0.50 % is 4.19; reviewed 2026-10-09, backend `292991c`):
 
 | `principal_fee_mode` | `commission_destination` | Legs posted at completion |
 |---|---|---|
@@ -177,6 +177,15 @@ Give cash / Receive digital credit (cash_out_credit_in), amount A:
 `reversal`, on the day of the reversal; the transaction's `status` becomes `reversed`, with who, when and why; the
 original rows stay; one audit entry. A reversed transaction cannot be reversed again (409 `already_reversed`); its
 mistake report, if any, closes as `reversed`.
+
+*As built (review of 2026-10-09):* a reversal and a rebalancing follow the exchange's **open-first** rule — refused
+while the branch's current business day is closed or not opened (409 `store_closed`, "Nothing was reversed" /
+"Nothing was moved"), before the write and again under the day's lock — because a cash leg posted on a locked day would
+never reach the next opening (backend `df34c73`). **Reports book a reversal on the day it was made**, as its legs:
+an exchange stands in its own period's figures unless it was reversed within that same period; a later reversal
+appears on the later period's reversals line and its commission comes off that period's commission (which can then be
+negative); a period that is over never changes (backend `af1512c`). A retry of the same reversal under the same key
+answers with it, even when it raced its twin.
 
 **Rebalancing** (A8): legs over the branch's internal accounts only — e.g. *buy Bankily float with cash*: cash `out`
 100 000, `provider:bankily` `in` 100 000; *move credit Bankily → Sedad through cash*: two rebalancings, or one with
@@ -215,6 +224,10 @@ beyond the drawer; a combined branch counts the drawer, the receiving-account ch
 closing. Locking is refused while a float of an active provider is uncounted (409 `float_count_required`, the same
 shape as the drawer's), unless the provider is explicitly skipped with a reason, like a channel.
 
+*As built:* a float counted for a day still behind the boundary is compared with the float at that day's end, and the
+`counted_close` anchor its lock writes carries that same instant (the count instant on the day itself), so the next
+morning's legs stay after it (backend `95e3a79`).
+
 ### 4.6 Customer numbers and references
 
 - The number is **normalized** with the existing payer-number rule (`payer-number.ts`: digits, an optional leading
@@ -233,7 +246,7 @@ shape as the drawer's), unless the provider is explicitly skipped with a reason,
 | 1 | Receive cash 20 000 / send Bankily credit | 30 000 | 50 000 − 20 000 + 200 = **30 200** | Unknown | 200 | 1 / 20 000 |
 | 2 | Give cash 15 000 / receive Sedad credit | 15 000 | 30 200 | Unknown (+15 000 +150 moved today) | 350 | 2 / 35 000 |
 | 3 | Reversal of #1 (wrong direction) | 35 000 | 30 200 + 20 000 − 200 = **50 000** | Unknown | 150 | 1 completed, 1 reversed / 15 000 |
-| 4 | Rebalancing: buy 100 000 Bankily float with cash — refused: cash would go to −65 000 → recorded only if the Owner confirms the negative, shown as negative | 35 000 | 50 000 | | 150 | unchanged |
+| 4 | Rebalancing: buy 100 000 Bankily float with cash — refused: cash would go to −65 000 → recorded only if the Owner confirms the negative, shown as negative (*as built:* 409 `rebalancing_negative` naming each account and what it would read; `confirmNegative` is honoured only for `agent.position.set`, the Owner's; an unknown position refuses nothing) | 35 000 | 50 000 | | 150 | unchanged |
 | 4' | Rebalancing: Owner brings 100 000 cash (`owner_capital`), then buys 100 000 float | 35 000 | 150 000 | | 150 | unchanged |
 | 5 | Sedad set at 40 000 by the Owner at 14:00 | | | **40 000** + later movements | | |
 | 6 | Closing: drawer counted 35 000 (0), Bankily counted 149 900 (−100 → discrepancy), Sedad counted 40 000 (0) | | | | | |
@@ -292,6 +305,11 @@ provider requires it; then **one review**: both movements in words and figures, 
   shown from `GET platform/plan` (v3 carries the three); the estimate (`POST platform/quote`) takes `activities[]`.
 - **Account**: *Request another store* asks for its activity; *Change this branch's activity* shows the itemized
   difference (upgrade) or the renewal date (downgrade) from the server, then the established pending-payment state.
+  *As built (review of 2026-10-09):* both read `GET platform/my-subscription/activity-options` — for every store but a
+  warehouse, each other activity with the request's own decision (`now` / `renewal` / `keep` / `requested` /
+  `refused` with its code), `dueNow` at the chargeable prices and `monthlyAfter` at the plan the next paid period opens
+  at, and what a new store of each activity is charged — one pure function decides for the read and the request
+  (`activity-decision.ts`), and a spec asks every offered option in every starting state. The page computes no charge.
 - **Super Admin**: the seat-request queue shows `activity` requests with their components; a business page shows each
   branch's activity and the scheduled change; `platform/plans` edits the three prices; every decision is an audit event.
 
@@ -362,9 +380,12 @@ which the old API does not serve).
    enabled by the migration — a branch becomes an agent only through the website's request and the Super Admin's
    confirmation).
 4. **Deploy the API** at the checkpoint-2 commit or later. Smoke, on an electronics branch: `GET entitlement`
-   `seatsByStore[].activity` = `electronics`; `GET agent/providers` → 403 `activity_not_subscribed`; a cash sale
-   and the Daily closing report unchanged (no float lines, no agent lines); `GET platform/plan` carries 500/300/700;
-   `npx ts-node scripts/verify-audit-chain.ts` reports no broken chain.
+   `seatsByStore[].activity` = `electronics`; `GET agent/providers` → **200 with no provider** (a read is never gated,
+   D156 as refined) and `POST agent/transactions` → 403 `activity_not_subscribed` (a write is); a cash sale and the
+   Daily closing report unchanged (no float lines, no agent lines); `GET platform/plan` carries 500/300/700;
+   `GET platform/my-subscription/activity-options` (an Owner) names each other activity with the server's figures;
+   `npx ts-node scripts/verify-audit-chain.ts` reports no broken chain. *(Corrected 2026-10-09: the step first expected
+   the provider list to be refused, which a correct deploy never does since `3b26e95`.)*
 5. **Then the website** (its activity choice and quotes read the new API), **then the app**.
 6. **Enabling a real agent branch** is a separate, owner-approved step: the website request, the Super Admin's
    payment confirmation, the Owner's providers configured with the **real** rates and settlement rules (§1.2) — until
