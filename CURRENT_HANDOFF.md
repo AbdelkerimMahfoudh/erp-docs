@@ -1,10 +1,42 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_owner: CLAUDE-B (cloud) — 2026-10-08T00:10Z → 2026-10-09T14:20Z, the Money Services Agent activity (`docs/73`,
-D153–D157); handoff complete, nothing in progress
-previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B cloud, 2026-10-07T20:00Z, `docs/72`)
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-10T00:30Z
+previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (CLAUDE-B cloud, 2026-10-09T14:20Z, docs `01e6d2a`);
+takeover authorised by the owner's brief of 2026-10-10 ("stabilize, merge and prepare the Money Services Agent
+feature for physical-device testing")
+
+## Active phase (2026-10-10, cloud) — money-agent stabilization, branch integration, device-test preparation
+
+HEAD at takeover, all four trees clean and level with their remotes (fetched 2026-10-10): `erp-backend`
+`reports-export` `35b5836` · `erp-mobile` `money-agent-4` `45b0e2a` (`reports-export` `bf30299`) ·
+`erp-control-web` `money-agent-3` `2c49795` (`main` `0417bfe`) · `erp-docs` `master` `01e6d2a`. Schema in the code
+`0090`; live `0083` and the PC `0087` are unreachable from this cloud container and are not touched.
+
+**The merge contradiction, resolved with Git (2026-10-10):** the previous report's "merged" applied to the
+**backend worktrees only** — the reflog shows `merge money-agent-2b: Fast-forward` (`6414c55`), the merge commit
+`c35384d` (money-agent-2c) and `merge money-agent-2c: Fast-forward` (`3b26e95`), all on `erp-backend`
+`reports-export`, which contains every backend agent commit (`git branch -a --contains` `258b04d` … `35b5836` →
+`reports-export` only; `origin/master` ⊂ `reports-export`). **Mobile and website were not merged:** `erp-mobile`
+`merge-base(money-agent-4, reports-export)` = `bf30299`, `reports-export..money-agent-4` = 14 commits
+(`9d74cf7`…`45b0e2a`), the reverse 0; `9d74cf7` and `45b0e2a` are contained in `money-agent-4` only, and
+`reports-export` has no `app/agent/`. `erp-control-web` `merge-base(main, money-agent-3)` = `0417bfe`,
+`main..money-agent-3` = 7 commits (`e950840`…`2c49795`), the reverse 0. **The PC's mobile checkout
+(`reports-export`) therefore does not carry the agent feature**, and the website's `main` does not either.
+
+Scope (the brief): record the binding billing decisions (downgrade keeps the activity to the period end; an archived
+branch's replacement in the same paid period free when same or cheaper, the activity difference when dearer, a
+simultaneous extra branch at full price; an immutable link; race- and retry-safe) and implement them with tests; the
+closing refuses a stale confirmation when money moved after the count was loaded; provider creation and financial
+settings idempotent; a clear outcome for a refused offline exchange (server codes, a status lookup, the queue's six
+states); the website's complimentary date; then merge mobile `money-agent-4` → `reports-export` and website
+`money-agent-3` → `main` (stopping before any push that would deploy); full gates, real HTTP/MySQL journeys on
+disposable data, a backup/restore rehearsal of the migrations; docs and this file. No live, no PC database, no deploy,
+no real provider, rate or customer number.
+
+Next intended action: discovery of the billing, closing, provider, offline-queue and complimentary code; the design
+recorded in `docs/73`; then the backend.
 
 ## HEAD of every repository — all four trees clean and level with their remotes
 
