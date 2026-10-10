@@ -5,7 +5,8 @@ Owner: CLAUDE-B
 started_at_utc: 2026-10-10T04:30Z
 session: CLAUDE-B (local, the owner's Windows PC) — takeover from READY_FOR_HANDOFF / NONE (previous handoff complete)
 scope: the owner's brief of 2026-10-10 on the PC — fix the access screen's grant date (Known gaps); back up and restore-check phonestore; apply 0088–0091 to the PC database; restart API and Metro (-c); prove 2fc01a1 or a descendant on the phone; run docs/24 §62 then §59–§61 with invented rates and fake numbers. PC checkouts at takeover: backend be024dd (32 behind bea454c), mobile 0b525b3 (21 behind 2fc01a1), clean.
-next: fast-forward both checkouts, install, then the access-screen fix.
+checkpoint (2026-10-10T04:55Z): checkouts fast-forwarded (backend bea454c, mobile 2fc01a1), deps unchanged. Access-screen grant date fixed — mobile `3984bdf` (pushed; descendant of 2fc01a1). PC backup `~/erp-backups/phonestore-before-0088-20261010-043816.sql` (1 235 914 bytes, trailer, 97 tables, 31 triggers, 0 raw `_binary`, sha256 `5f4e3a850b703cbc…`); path-2 restore into the temporary `phonestore_restore` identical to the fingerprint (97 checksums, 97 row counts, 31 trigger bodies, HEX(id) MD5 of units/audit_logs/products); the audit trigger fires as `phonestore_app` on the copy and the source; temp DB dropped, sanitised copy deleted, temporary grant revoked. **0088–0091 APPLIED to the PC `phonestore` (127.0.0.1:3308)** — status up to date (90); §8.2/§8.3 checks as expected (107 tables, 47 triggers, agent tables 9, agent triggers 14, branch_replacements 2, 9 agent permissions, every Owner 9 grants, Administrator 0, every branch electronics, new tables empty); every pre-existing row unchanged (original columns of the five widened tables identical by MD5). Live untouched at 0083.
+next: prisma generate, clean build, restart API on 3010; Metro -c on 8082; phone build line; docs/24 §62 then §59–§61.
 last_session: CLAUDE-B (cloud), 2026-10-10T00:30Z → 2026-10-10T04:20Z — complete
 previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (docs `01e6d2a`); taken over on the owner's brief of
 2026-10-10 ("stabilize, merge and prepare the Money Services Agent feature for physical-device testing")
@@ -56,7 +57,7 @@ The merges were fast-forwards (the destinations had nothing newer). The four ear
 
 ## Migrations and data
 
-- Code schema: **`0091`**. **Live untouched at `0083`.** **The PC database (`127.0.0.1:3308` `phonestore`) untouched at
+- Code schema: **`0091`**. **Live untouched at `0083`.** **The PC database (`127.0.0.1:3308` `phonestore`) at `0091` since 2026-10-10T04:50Z (see checkpoint) — was
   `0087`.** `0088`–`0091` are rehearsed only, never applied anywhere shared.
 - Owed on live, in order, each only with the owner's approval and a fresh verified backup: `0084`, `0085`
   (`docs/67` §7), `0086` + transition (`docs/69` §2), `0087` (`docs/71` §6), then `0088`–`0091` in one deploy
