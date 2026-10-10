@@ -1,7 +1,11 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-10T04:30Z
+session: CLAUDE-B (local, the owner's Windows PC) — takeover from READY_FOR_HANDOFF / NONE (previous handoff complete)
+scope: the owner's brief of 2026-10-10 on the PC — fix the access screen's grant date (Known gaps); back up and restore-check phonestore; apply 0088–0091 to the PC database; restart API and Metro (-c); prove 2fc01a1 or a descendant on the phone; run docs/24 §62 then §59–§61 with invented rates and fake numbers. PC checkouts at takeover: backend be024dd (32 behind bea454c), mobile 0b525b3 (21 behind 2fc01a1), clean.
+next: fast-forward both checkouts, install, then the access-screen fix.
 last_session: CLAUDE-B (cloud), 2026-10-10T00:30Z → 2026-10-10T04:20Z — complete
 previous_handoff: complete — READY_FOR_HANDOFF / owner NONE (docs `01e6d2a`); taken over on the owner's brief of
 2026-10-10 ("stabilize, merge and prepare the Money Services Agent feature for physical-device testing")
