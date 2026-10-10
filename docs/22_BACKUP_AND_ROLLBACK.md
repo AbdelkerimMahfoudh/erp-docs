@@ -302,6 +302,25 @@ source that has not moved since the backup: run it in the quiet window right aft
 (`docs/67` §7). On a server with the binary log on, creating the dump's triggers needs
 `log_bin_trust_function_creators=1` (ERROR 1419 otherwise).
 
+### Drill record — 2026-10-10 (E.5, the rehearsal of 0088 → 0091, `docs/73` §8.3)
+
+Run in a throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the OS temporary directory, on synthetic QA data (`prisma_qa_st`:
+the ten QA boutiques, two annex stores and their staff, built through the `0087` API) — **not live, not the PC's
+database**.
+
+| Check | Result |
+|---|---|
+| Source | `prisma_qa_st` at 0087: 97 tables, 31 triggers, 10 companies, 12 branches, 16 users, 800 units, 320 products, 1 240 audit rows |
+| Dump before (migrator, `--hex-blob`) | `prisma_qa_st-before-0088-20261010-023255.sql`, 1 663 086 bytes, trailer present, 97 `CREATE TABLE`, 31 triggers, 0 raw `_binary`, sha256 `91f2932ec88c94d5…` |
+| Fingerprint before | every table's row count and `CHECKSUM TABLE`, every trigger body's MD5 |
+| `prisma migrate deploy` | 0088, 0089, 0090, 0091 applied in order; status up to date (90 migrations) |
+| After | 107 tables (`agent_*` 9, `branch_replacements`), 47 triggers (+16, every new one append-only for the application identity), plan v3 500/300/700, 9 agent permissions (Owner 9 grants in each company), all 12 branches `electronics`, `daily_closings.money_version`, `seat_allocations.replaces_branch_id`/`replacement_credit`/`replacement_period_id`, request-key operations `provider_create`/`provider_update`/`provider_config` |
+| `prisma migrate diff` (migrations → schema) | the only new lines re-create the nine 0091 foreign keys with Prisma's default referential actions — the pattern every hand-written migration already shows (0089's agent keys included); no table, column or index differs |
+| Demo data, before → after | every pre-existing table identical by row count except the catalogue rows the migrations add (`_prisma_migrations` 86 → 90, `permissions` 64 → 73, `plan_versions` 2 → 3, `role_permissions` 1 260 → 1 450); every `CHECKSUM` identical except `branches` and `billing_periods`, which gained columns — their original columns are identical (MD5 over every original column, 12 and 10 rows); no trigger body changed |
+| Path 2 (31 definers stripped, `--comments`) into `prisma_qa_st_restore` | **every table's row count and CHECKSUM and every trigger body identical to the pre-0088 fingerprint**; `HEX(id)` MD5 identical for `units`, `audit_logs`, `products`; then dropped, the sanitised copy deleted |
+| Dump after | `prisma_qa_st-after-0091-20261010-031026.sql`, 1 729 146 bytes, trailer, 107 tables, 47 triggers, sha256 `c0a5d41dac7c1e9e…` — restored before each real-HTTP run |
+| Cleanup | the rehearsal databases dropped and the throwaway server stopped at the end of the session (`CURRENT_HANDOFF.md` records it) |
+
 ### Drill record — 2026-10-08 (E.4, the rehearsal of 0088 → 0090, `docs/73` §8)
 
 Run in a throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the OS temporary directory, on synthetic QA data

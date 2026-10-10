@@ -374,7 +374,8 @@ which the old API does not serve).
 3. **Verify the schema:** `SHOW COLUMNS FROM branches LIKE 'activity%'` → `enum('electronics','money_agent','both')`
    default `electronics`, `activity_next` NULL, `activity_changed_at` NULL; `SELECT version, branch_monthly,
    agent_monthly, both_monthly FROM plan_versions ORDER BY version` → the third row 500 / 300 / 700; `SHOW TABLES LIKE
-   'agent\_%'` → 8; `SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name LIKE 'agent\_%'` → 16;
+   'agent\_%'` → 8; `SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name LIKE 'agent\_%'` → 12
+   *(corrected 2026-10-10: this read 16; `0089` creates 12, as §8.1 recorded — with `0091`, see §8.3)*;
    `SELECT COUNT(*) FROM permissions WHERE \`key\` LIKE 'agent.%'` → 9; every company's Owner role holds 9 agent
    grants, the Administrator 0; `prisma migrate status` up to date; **every branch still `electronics`** (nothing is
    enabled by the migration — a branch becomes an agent only through the website's request and the Super Admin's
@@ -393,6 +394,25 @@ which the old API does not serve).
 7. **Rollback:** stop the API; restore the dump (`docs/22` §3) — or, for a database you would rather not restore,
    the reverse SQL in each migration header, in the order `0090`, `0089`, `0088` — and redeploy the previous API, website
    and app. A Git rollback does not roll back the database.
+
+### 8.3 `0091_stabilization` — rehearsed, and the runbook's additions (NOT applied)
+
+`0091` is additive: `daily_closings.money_version` (`INT UNSIGNED NOT NULL DEFAULT 0`); on `seat_allocations` the
+nullable `replaces_branch_id` (FK, index), `replacement_credit` and `replacement_period_id`; the append-only
+`branch_replacements` (one row per slot and per replacement branch) and `agent_request_keys` (one per company and
+request id), each with its `*_block_update` / `*_block_delete` triggers for the application identity. The reverse SQL is
+in its header. **Rehearsed** with `0088`–`0090` on the disposable `prisma_qa_st` (`docs/22` drill E.5, 2026-10-10):
+dump before, `migrate deploy` 0088 → 0091, every pre-existing row and trigger body unchanged, the path-2 restore
+identical to the pre-0088 fingerprint, the dump after verified. **Not applied** to live (`0083`) or to the PC (`0087`).
+
+On live it runs in the same `migrate deploy` as `0088`–`0090`, after them, in the §8.2 order. Its checks, added to step 3:
+`SHOW COLUMNS FROM daily_closings LIKE 'money_version'` → `int unsigned`, default 0; `SHOW COLUMNS FROM
+seat_allocations LIKE 'replace%'` → the three columns, all NULL; `SHOW TABLES LIKE 'agent\_%'` → **9**; triggers named
+`agent\_%` → **14**, on `branch_replacements` → **2** (the database's trigger total grows by **16** over `0087`); both new
+tables empty. The API at backend `bea454c` or later **needs `0091`** (it reads `money_version` and writes the request keys
+and replacement links), and the app at `2fc01a1` or later needs that API (provider writes carry `clientRequestId`): so the
+order stays migrations → API → website → app. Rollback: the reverse SQL in `0091`'s header first (drop the triggers and
+the two tables, then the columns), then §8.2 step 7 — or restore the dump.
 
 ---
 
@@ -422,3 +442,165 @@ which the old API does not serve).
   `electronics`; reversal authority on the Owner and the Store Manager directly (the brief's words) rather than through
   the sale-correction workflow; the one queueable kind; the business day of an offline exchange from its posting
   instant; the Administrator role holds no agent key by default.
+
+---
+
+## 11. Stabilization (2026-10-10) — billing decisions, closing staleness, idempotent provider settings, refused offline exchanges, the grant's own dates
+
+The owner's brief of 2026-10-10 (D158–D161). Everything here is enforced by the server; the phone and the website
+display its answer. One additive migration, `0091_stabilization` (§8.3). Built on backend `reports-export` (`2a8151e` …
+`bea454c`), mobile `money-agent-4` = `reports-export` (`a90a0b8` … `2fc01a1`), website `money-agent-3` (`8161014`,
+`36f04b2`).
+
+### 11.1 The billing decisions (D158)
+
+| # | Decision (the owner's words) | As built |
+|---|---|---|
+| B1 | A downgrade keeps the current activity until the paid period ends; no refund; the lower price starts at renewal. | Unchanged from D154: `activity_next`, applied by the renewal; the period stays assessed at the higher fee. |
+| B2 | Replacing an archived branch in the same paid period costs no additional base charge when the previous one is archived, never active at the same time, and the replacement's activity is the same or cheaper. | A store request takes a **replacement slot**; priced `max(0, fee(new) − slot)`. Zero → the store opens at once (`granted`). |
+| B3 | A dearer replacement pays only the activity-price difference. | `pending_payment` for exactly the difference; the store opens at the Super Admin's payment confirmation. |
+| B4 | A simultaneous additional active branch pays the full monthly price. | No slot → full fee. The assessment never goes below a plain quote of the active branches, so an archived store brought back beside its replacement is charged in full. |
+| B5 | An immutable trail links the archived branch, the replacement, the decision and the billing result. | `branch_replacements` (append-only) + the tenant or platform audit + a timeline row. |
+| B6 | Concurrent requests and retries never grant two free replacements or charge twice. | Requests serialised on the subscription row; a slot reserved by an open request is invisible to the next; `UNIQUE (billing_period_id, archived_branch_id)` and `UNIQUE (replacement_branch_id)`; the same name again answers with the open request; a confirmed request confirmed again is a no-op. |
+
+**Replacement slot.** Only while the subscription is **activated** and a paid period `P` runs (a suspended, cancelled
+or lapsed business is offered none). A branch `A` offers a slot when it is no longer active, `P` billed it (it is in
+`P`'s per-branch map), no `branch_replacements` row of `P` names it and no open store request reserves it. Its value is
+`max(assessedFee(A), credit(A))` — what this period already paid for that location, carried along a chain. With several,
+the smallest that covers the new fee in full, else the largest. The assessment charges each branch
+`max(0, highWater(b) − credit(b))`. An upgrade of a replacement in the same period is priced against its credit:
+fully covered → applied at once (`granted`, nothing to pay); otherwise `pending_payment` for what is left.
+
+**Staleness.** A difference is the running period's figure alone. A store request carries its reserved slot (archived
+branch, credit, period); an activity upgrade priced against a credit carries the credit and the period. The Super
+Admin's confirmation re-reads them under the subscription lock and refuses with **409 `replacement_no_longer_applies`**,
+nothing written, when the period has renewed, the archived store is active again or another store took its place;
+asked again, the request is priced afresh. The status that lets a credit apply a change at once is read under the same
+lock.
+
+| Case (plan v3, one paid month running) | Due now |
+|---|---|
+| Electronics A (500) archived; a new electronics store | **0**, opens at once |
+| Both A (700) archived; a new money-agent store | **0** (nothing refunded) |
+| Money-agent A (300) archived; a new electronics store | **200** |
+| Money-agent A (300) archived; a new both store | **400** |
+| Electronics A still active; a new electronics store | **500** (B4) |
+| A (700) archived; R electronics at 0; R upgraded to both | **0**, applied at once |
+| A (300) archived; R electronics (200 paid); R upgraded to both | **200** |
+| A (300) archived; R electronics (200 paid); R archived; R2 both | **200** (slot(R) = max(500, 300)) |
+| A (500) archived; R money-agent at 0; R → both priced 200; confirmed after the renewal | **409 `replacement_no_longer_applies`**; asked again: 400 |
+| Two store requests at once for one 500 slot | one at 0, the other 500 |
+
+### 11.2 The closing refuses a confirmation made on money that moved (D159)
+
+1. **`daily_closings.money_version`**: every money write bumps the row of the business day it lands on, in its own
+   transaction, under the day row's `FOR UPDATE` — sales, payments, receipts, exchanges, reversals and rebalancings
+   through `assertCounterOpenTx`; expense and refund confirmation, return approval, a back-dated payment, the opening
+   review, a float set and a correction's approval through `lockDayForMoneyTx`. A back-dated write bumps every later
+   unlocked day too.
+2. **`reportVersion`** includes `money_version` when it is not zero. The close compares it before and again under the
+   lock: a version the phone loaded before money moved → **409 `report_changed`** with the current report.
+3. **Money moved after a count.** A counted (not skipped) drawer, account or float whose expected figure has moved since
+   its count is stale: the report marks it (`movedSinceCount`, `expectedAtCount`) and warns `money_moved_after_count`
+   with how many exchanges, reversals and rebalancings came after; a close on the current version is refused with
+   **409 `money_moved_after_count`** naming each channel and float to count again, with the report. Counting again
+   clears it. On every branch: an electronics cash sale after the drawer was counted is stale money too.
+4. **A reopened day's own close.** The close anchors each counted float at what the provider's app showed, with the
+   figure the count was held against (`tracked_before`). On a day reopened since, the count, the report and the live
+   view all read that anchor the same way: the float runs on from `tracked_before` plus what moved after, so a
+   difference the close recorded survives the recount and its question stays open (a review finding, fixed before
+   merge: the recount had read the counted amount as the base and closed the question as *no difference remains*).
+5. **Counts cannot race a close.** A count runs behind the day's lock and refuses a locked day (**409
+   `already_closed`**); a float count takes the provider row shared before the day row (the order an exchange takes),
+   and a float set is retried on a lock conflict. The Owner's opening review is refused on a closed day (**409
+   `day_already_closed`**); the phone offers it only while the day is open.
+6. **The close retried.** Its key is bound to its meaning (date, attestation, acknowledgement, reason): the same key and
+   meaning replays the close; another meaning under it is **409 `idempotency_conflict`**. A day changed under a close is
+   **409 `refresh_required`**. One closing, one event, one set of frozen rows.
+
+The phone: on either refusal it shows the refusal's report at once, says **Money changed after counting began**, names
+what to count again and what was recorded since (*Count again: Cash drawer. Recorded since the count: 1 exchange.*),
+opens the count step for those, and sends the confirmation again only with a new version. A report it already knows
+is stale holds the close button until the recount.
+
+### 11.3 Provider settings are idempotent (D160)
+
+`POST agent/providers`, `PATCH agent/providers/:id` and `POST agent/providers/:id/configs` require a `clientRequestId`
+(UUID). `agent_request_keys` (append-only, one per company and key) keeps the operation, the target, a SHA-256 of the
+canonical request and the response. Same key and payload → the first answer replayed (`replayed: true`, HTTP 200);
+another payload or operation under the key → **409 `idempotency_conflict`**; two identical requests at once → one
+write. Configuration versions stay append-only, every write keeps its audit row, and a provider with a blank rate,
+settlement or reference rule still answers **409 `provider_not_configured`**.
+
+### 11.4 A refused offline exchange has a clear outcome (D161)
+
+**The status lookup.** `GET agent/transactions/client/:clientUuid` — company-scoped (no branch header), readable in
+every subscription state, never gated by activity; to the person who recorded it or a holder of
+`agent.transaction.view` at its branch (403 `permission_denied` otherwise); 400 `client_uuid_invalid` for a malformed
+key. It answers `{ recorded: false }` or `{ recorded: true, transaction: { id, branchId, status, direction, providerId,
+providerLabel, amount, commission, customerNumberMasked, businessDate, recordedAt, recordedByName, configVersionId,
+deviceRecordedAt } }` — exactly those fields: never the number, the reference, the legs, a note or a reversal's reason.
+
+**Stable refusal codes.** 403 `permission_denied` with `missing`; 403 `branch_access_denied`; 403 `branch_inactive`; 403
+`ENTITLEMENT_WRITE_BLOCKED` with its `state` (`expired`, `suspended`, `cancelled`, `pending`, `rejected` — a suspended
+business is never told it ended); a malformed path id is 400, never 500.
+
+| Refusal of `POST agent/transactions` | Code | Queue outcome |
+|---|---|---|
+| expired / cancelled / suspended | 403 `ENTITLEMENT_WRITE_BLOCKED`, `state` | resubmit — *Send again* once access returns |
+| activity removed | 403 `activity_not_subscribed` | re-enter |
+| permission removed | 403 `permission_denied` | re-enter — someone allowed records it |
+| branch not assigned / closed | 403 `branch_access_denied` / `branch_inactive` | re-enter |
+| provider switched off | 400 `provider_inactive` | resubmit — *Send again* |
+| provider not configured; configuration changed | 409 `provider_not_configured`; 409 `stale_configuration` | resubmit — *Review and send* |
+| day closed or not opened | 409 `store_closed` | resubmit — *Send again* once open |
+| a field refused | 400 | resubmit — *Edit and send* |
+| the key already holds a different exchange | 409 `idempotency_conflict` | re-enter — a Manager reverses the wrong one |
+| timeout, 5xx, an answer lost | — | uncertain → the lookup |
+| session expired | 401 | stays waiting; sent after sign-in |
+
+A refusal raised before the key is read (entitlement, activity, permission, branch) on an item that may already be
+recorded runs the lookup first.
+
+**The phone's six states** (`lib/offline/exchange-rules.ts`): pending (`waiting_for_connection`), synchronizing
+(`sending`), confirmed (`synced` — the server's time, business day, recorder and commission), `uncertain` (*Checking
+whether it was recorded* — resolved only by the lookup: recorded and matching → confirmed; recorded and different →
+re-enter; not recorded → sent again under the same key; unreachable → stays uncertain with **Check again**),
+`rejected_resubmit` and `rejected_reenter`. Nothing rejected is retried on its own or shown as waiting; every state
+counts as held for the closing until confirmed or removed. The customer's number lives in SecureStore under
+`agent.exchange.number.<company>.<branch>.<user>.<uuid>` (an older unscoped key is moved on first read), removed when
+the item ends; signing out resets the in-memory queue.
+
+### 11.5 The grant's own dates (website)
+
+The account page once said "granted until {the latest billing period's start}". The server now returns
+`complimentary: { status, until, paidUntil }` (`entitlement-rules.ts` `complimentaryOf`), read from the subscription's
+grant fields: `active` (a grant running to `until`), `ended` (it ran out on `until`; access follows the paid period),
+`superseded` (it ran out and a paid period runs past it, to `paidUntil`), `indefinite` (defensive only — the database
+refuses a grant with no end), `none`. A newer grant replaces the older one's end (`complimentaryUntil` is overwritten;
+the older end survives in the timeline). The website shows exactly that: the lead and the period card say the grant's
+own end; an expired business with no paid period is told when its grant ended (or that no paid period has started),
+never "ended on —"; with no grant view (an older API) it makes no claim about a date; the console's list shows, for a
+business on a grant, the later of the grant's end and the paid end. *(The design said `grantedAt` and a
+grant-by-grant `superseded`; as built, `paidUntil`, and a newer grant is simply `active` with its own end.)*
+
+### 11.6 What this phase does not do
+
+- **No in-product branch archive action exists** (no endpoint, screen or column; only account deletion deactivates
+  branches). The replacement rule is built and tested with a branch deactivated directly in the disposable database;
+  offering *Archive this store* — what becomes of its stock, drawer, floats, staff and debts — is the owner's decision.
+- The phone's access screen still reads the paid period's end while a grant runs (`app/access.tsx`; pre-existing,
+  outside §11.5's website scope): a follow-up should show the later of the grant's and the paid end.
+- No live or PC migration, no deployment, no real provider, rate or customer number.
+
+### 11.7 Verification (2026-10-10, cloud session, disposable data only)
+
+| Gate | Result |
+|---|---|
+| Backend `bea454c` | `tsc` clean; jest **207 suites / 3 803 passed / 3 skipped** (from 200 / 3 630 at `35b5836`); `prisma validate` clean; permission drift and tenant specs inside the suite |
+| Real HTTP + real MySQL (`prisma_qa_st` at 0091) | **66/66** — A billing 19, B closing 14, C provider keys 8, D refusals and the lookup 18, E the grant 5, F electronics 2 |
+| Website `36f04b2` | `tsc`, **8 files / 48 tests**, production build; Chromium against the real API **12/12** (EN/FR/AR at 360, RTL, no sideways scroll, the console list) |
+| Mobile `2fc01a1` | `tsc` clean; **103/103** pure suites; jest **14 suites / 150 tests**; `expo lint` 0 errors / 29 warnings (baseline); parity **3 754 × 3**, identical order; web export clean, all 64 static routes exported (16 dynamic); expo-doctor 19/21 (two network checks); the web export against the real API **7/7** |
+| Adversarial review | 17 agents: 12 findings confirmed (2 major — the credit-priced upgrade after a renewal, the reopened day's recount — both fixed with tests that fail without the fix), 1 refuted; every confirmed finding fixed except the phone's access-screen date (§11.6, pre-existing) |
+| Migration rehearsal | `docs/22` E.5: 0088 → 0091 on the disposable copy, demo data unchanged, path-2 restore identical |
+| Phone | **NOT DEVICE VERIFIED** — `docs/24` §62 |

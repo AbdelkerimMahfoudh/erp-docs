@@ -322,3 +322,23 @@ closedBy, reason, payment: {id, amount, reference, paidAt, channel}|null, versio
 
 `seat.payment_confirm`, `store.payment_confirm`, `seat.refuse`, `seat.release`; timeline kinds `seat_requested`,
 `seat_paid`, `staff_activated`, `seat_closed`, `store_requested`.
+
+## 10. Additions of 2026-10-10 — the grant's own dates, a store that replaces one closed this month (v1.2)
+
+The contract for both lives in `docs/73` §11.1 and §11.5; what the website reads:
+
+- **`entitlement.complimentary`** on `GET platform/my-subscription` and `GET entitlement`, and **`complimentary`** on
+  each row of `GET platform/businesses` and on the console's business page: `{ status, until, paidUntil }` —
+  `active` (a grant running to `until`), `ended` (it ran out on `until`; access follows the paid period), `superseded`
+  (it ran out and a paid period runs past it, to `paidUntil`), `indefinite` (defensive: the database refuses a grant
+  with no end), `none`. The page says the grant with its own dates, never a paid-period date in its place; with no
+  grant view (an older API) it makes no claim about a date. The console's list shows, for a business on a grant, the
+  later of the grant's end and the paid end.
+- **`activity-options.newStore[]`** carries `dueNow` and `replaces: { branchId, name, credit } | null` for each activity:
+  the form says *replaces X, closed during this paid month: no additional charge this month* (it opens at once) or
+  *… {dueNow} now, the difference*. A **store request** row carries the same `replaces`; its `monthlyAmount` is then
+  this period's difference (0 when nothing is due), shown as *{amount} now, replacing X; the full monthly price from
+  the renewal* — never *per month*.
+- A confirmation of a request priced against a replacement slot or credit that no longer holds (the period renewed,
+  the archived store is active again, another store took its place) is **409 `replacement_no_longer_applies`**,
+  nothing written: the Super Admin refuses it, or the Owner withdraws it and asks again.

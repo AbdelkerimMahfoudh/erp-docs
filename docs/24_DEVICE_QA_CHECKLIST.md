@@ -4319,3 +4319,43 @@ Super Admin (or set `branches.activity` on a development copy only); as the Owne
       shows on that later day, with its commission taken off there.
 - [ ] Nothing in the app shows a subscription price, a purchase prompt or a payment instruction; an independent agent
       is never called a bank employee.
+
+## 62. The money-agent stabilization (D158–D161, `docs/73` §11) — NOT DEVICE VERIFIED
+
+Runs on mobile `2fc01a1` (`reports-export` and `money-agent-4`) or later, against an API at backend `bea454c`
+(`reports-export`) or later on a database at `0091` — **never live**, which is at `0083`, and not the PC's database
+until `0088`–`0091` are applied there with a verified backup (`docs/73` §8.3). Verified in this cloud session on a
+disposable copy only: real HTTP 66/66, rendered tests (jest 14 suites / 150), the pure suites (103 files), and the app's
+web export in Chromium against the real API (7/7: one exchange end to end, the status lookup, a provider added with its
+request key, the closing refused after money moved and saying so). **Nothing here was seen on a phone**; the offline
+states cannot be seen in a browser at all. Use **invented** rates and obviously fake numbers (`0000xxxx`) only.
+
+**A queued exchange's six states (D161) — only a phone can show these.**
+- [ ] Airplane mode, record an exchange: *Pending synchronization*; kill and relaunch: still there, the number shown
+      nowhere in a list.
+- [ ] Back online: *Synchronizing*, then the server's record (time, business day, recorder, commission). Never sent
+      twice.
+- [ ] Make the answer get lost (stop the API right after it records, or a slow network that times out): *Checking
+      whether it was recorded* — never a resend on its own; **Check again** finds the one record and shows it as
+      recorded; with the API still down it stays *Checking* and says so.
+- [ ] Refusals while it waited, each in words with the action that fixes it, never *waiting*:
+      the Owner switches the provider off → *Send again* once it is on; the Owner changes the rate → *Review and send*
+      shows the new commission; the day closed → *Send again* once it is open; the person's permission or branch
+      removed → *Not recorded here*, the details to hand to a Manager, **Remove from this phone**; the subscription
+      suspended (on a development copy) → the phone says suspended, never "ended".
+- [ ] Sign out and sign in as another person: the first person's queued exchanges and numbers are gone from view.
+
+**The closing after money moved (D159).**
+- [ ] Count the drawer and the floats; on a second phone record an exchange; confirm the close on the first: refused,
+      *Money changed after counting began*, naming the drawer (and the float) to count again and *1 exchange* recorded
+      since; the count step opens for exactly those. Count again: the close goes through.
+- [ ] Open the closing again after the other phone recorded: the close button is held until the stale count is
+      redone; nothing is sent.
+- [ ] Reopen a closed day whose float was counted short, record an exchange, recount the float short by the same
+      amount: the difference stays (not *no difference remains*), and the day closes again.
+- [ ] A day opened with carried amounts and closed with the drawer attested (not counted): Money says the opening
+      awaits review and offers no *Review* button; it says the review is possible again if the day is reopened.
+
+**Provider settings retried (D160).**
+- [ ] As the Owner, add a provider and save a configuration with the network flapping (or tap Save twice): one provider,
+      one version, the history intact.

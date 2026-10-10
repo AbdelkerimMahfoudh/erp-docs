@@ -11103,3 +11103,79 @@ which the stop hook reports as unverified signatures (kept, per this project's c
 **Commits:** `erp-backend` `258b04d`, `229caaf`, `a3b18d1`…`35b5836` (18 in all) · `erp-mobile` `bf30299`,
 `9d74cf7`…`45b0e2a` (15) · `erp-control-web` `e950840`…`2c49795` (7, branch `money-agent-3`) · `erp-docs` `bd360a4`,
 `f94b82f`, `d204104`, `c743146`, `4252682`, `87ce55f` and the commit carrying this entry. All pushed; all trees clean.
+
+## 2026-10-10T00:30Z → 2026-10-10T04:20Z — CLAUDE-B (cloud) — the money-agent stabilization: billing decisions, closing staleness, retry-safe provider settings, refused offline exchanges, the grant's own dates; branches integrated (`docs/73` §11, D158–D161)
+
+**Takeover.** From a complete READY_FOR_HANDOFF (docs `01e6d2a`), on the owner's brief of 2026-10-10. The
+contradiction in the previous report was resolved with Git before any edit (handoff `1c97f27`): "merged" applied to the
+backend worktrees only (`reports-export` contained every backend agent commit); mobile `money-agent-4` was 14 commits
+ahead of `reports-export` (`bf30299`) and website `money-agent-3` 7 ahead of `main` (`0417bfe`), the reverse 0 in both
+— so the PC's mobile checkout did not carry the feature.
+
+**Billing (D158, backend `2a8151e`, `e8f254b`, `800860b`, `e688d26`; migration `0091`).** The owner's six decisions,
+recorded verbatim in `docs/21` and built: a replacement slot per store archived in the running paid period (only while
+the subscription is activated), worth what that period already paid for the location; free when the replacement is
+the same or cheaper (the store opens at once), the difference when dearer, full price beside a store still running;
+`branch_replacements` append-only, one per slot and per replacement; requests serialised on the subscription row; the
+confirmation re-checks the slot under the lock (`replacement_no_longer_applies`). D154 (g) superseded, (f) confirmed.
+
+**Closing (D159, backend `4f9a63d`, `0636b78`; mobile `aeecf71`, `2fc01a1`).** `daily_closings.money_version` bumped
+under the day row's lock by every money writer; the report version carries it; a stale version is 409
+`report_changed`, a count money moved past is 409 `money_moved_after_count` naming what to count again, both with the
+current report; counts behind the day's lock; the close's key bound to its meaning. The phone says *Money changed
+after counting began*, names what to count again and what was recorded since, and holds the close until the recount.
+
+**Provider settings (D160, backend `897dda6`, `e3571b8`; mobile `bbffdd4`).** `clientRequestId` on creation, changes
+and configuration versions; `agent_request_keys` append-only; a replay answers the first response, a changed payload
+conflicts, concurrent identical requests write once.
+
+**Refused offline exchanges (D161, backend `86a492e`, `1bcf250`, `69e39ca`; mobile `a90a0b8`, `2ef9ecd`).** Stable
+refusal codes (`permission_denied` with `missing`, `branch_access_denied`, `branch_inactive`, the entitlement's
+`state`); the status lookup `GET agent/transactions/client/:clientUuid`, readable in every state; the phone's six
+states, an uncertain item resolved only by the lookup, the customer number under a key scoped by company, branch,
+person and exchange, the queue reset on sign-out.
+
+**The grant's own dates (backend `93ae8ac`, `bea454c`; website `8161014`, `36f04b2`).** `complimentary: { status,
+until, paidUntil }` on the entitlement and the console's list; the Owner's page and the console say the grant with its
+own end, never a paid-period date in its place.
+
+**Adversarial review (17 agents, find then refute).** 12 findings confirmed, 1 refuted. Two major, both reproduced
+first and fixed with tests that fail without the fix: an activity upgrade priced against a replacement's credit,
+confirmed after the renewal, collected the reduced figure while the new period was assessed the full difference
+(`e688d26`); a reopened day's recount read its own close's anchor as the float's base, so a real shortfall vanished
+and its question closed as "no difference remains" (`0636b78`, one rule for the count, the report and the live view).
+Minor, fixed: the credit's `activated` read before the lock; a provider-row / day-row lock order that could deadlock a
+first float count (provider shared first; the float set retried); the status lookup returning notes and a reversal's
+reason (`69e39ca`); the opening review offered on a closed day the server refuses (`2fc01a1`); a replacement listed
+"per month", the console list's paid-end date, a false "no end date recorded" and "ended on —" (`36f04b2`, `bea454c`);
+the contract text of §11.5 written as built. Not fixed (pre-existing, outside the website scope): the phone's access
+screen still reads the paid end while a grant runs (`docs/73` §11.6).
+
+**Verification (exact totals).** Backend `bea454c`: `tsc` clean; jest **207 suites / 3 803 passed / 3 skipped**;
+`prisma validate`. Real HTTP + real MySQL on the disposable `prisma_qa_st` at `0091`: **66/66** (billing 19, closing
+14, provider keys 8, refusals and lookup 18, the grant 5, electronics 2). Website `36f04b2`: `tsc`, **8 files / 48
+tests**, build; Chromium against the real API **12/12** (EN/FR/AR at 360, RTL, no sideways scroll). Mobile `2fc01a1`:
+`tsc` clean; **103/103** pure suites; jest **14 suites / 150 tests**; `expo lint` 0 errors / 29 warnings (baseline);
+parity **3 754 × 3**; web export clean, all 64 static routes exported; expo-doctor 19/21 (two network checks); the web
+export against the real API **7/7**. Backup/restore rehearsal of `0088`–`0091` (`docs/22` E.5): demo data unchanged,
+path-2 restore identical to the pre-0088 fingerprint. Backend lint: not run (no ESLint 9 configuration).
+**NOT DEVICE VERIFIED** — `docs/24` §62 (and §59–§61); this is a cloud session, no phone was reachable.
+
+**Branches.** Mobile: `money-agent-4` and `reports-export` fast-forwarded to `2fc01a1` and pushed (every feature commit
+proven contained). Website: `money-agent-3` pushed at `36f04b2`; the fast-forward of `main` to it is verified, but the
+push of `main` was **refused by this session's permission check as a possible production deploy** — not attempted
+again. Evidence gathered first: no GitHub deployments, no commit statuses or check runs on any `main` commit, no
+Actions workflows, Pages off, no hosting configuration in the repository, and `docs/68` §7 / this log (2026-10-05)
+record that nothing is hosted; repository webhooks are not readable from this container. Local `main` left at
+`origin/main` (`0417bfe`).
+
+**Data and process safety.** Live (`0083`) and the PC database (`0087`) untouched. Disposable only: MySQL on
+`127.0.0.1:3310`, `prisma_qa_st` (+ `_shadow`), an API on `:3080`, previews on `:4173`/`:4180` — all stopped, both
+databases dropped, the MySQL data directory removed, the scratch env files, password file and dumps shredded, the
+scratch worktree removed. Invented rates and fake numbers (`0000xxxx`) only; no provider configured or enabled;
+nothing deployed, published or submitted; no message sent.
+
+**Commits:** `erp-backend` `2a8151e`, `93ae8ac`, `897dda6`, `86a492e`, `e3571b8`, `1bcf250`, `e8f254b`, `800860b`,
+`4f9a63d`, `e688d26`, `0636b78`, `69e39ca`, `bea454c` (13, `reports-export`) · `erp-mobile` `a90a0b8`, `2ef9ecd`,
+`aeecf71`, `bbffdd4`, `2fc01a1` (5, `money-agent-4` = `reports-export`) · `erp-control-web` `8161014`, `36f04b2` (2,
+`money-agent-3`) · `erp-docs` `1c97f27` and the commit carrying this entry. All pushed; all four trees clean.

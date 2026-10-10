@@ -7000,7 +7000,8 @@ downgrade costs nothing (the brief's "agent → both on the 25th is +400" applie
 (g) the period now remembers each branch's own fee (`assessed_activity_fee_by_branch`),
 so a store that replaces an archived store mid-period costs its whole month, where the old company-wide maximum
 charged nothing for it — the literal no-prorating rule; a period opened before `0088` behaves as before until its
-first renewal. The D156 gate is an interceptor after the entitlement one: 403 `activity_not_subscribed` with the
+first renewal. *(2026-10-10: the owner confirmed (f) and replaced (g) — D158: a store taking the place of one archived
+in the same paid period pays only the activity difference, if any.)* The D156 gate is an interceptor after the entitlement one: 403 `activity_not_subscribed` with the
 branch's `activity` and the `required` one on every write under `agent/` (needs `money_agent`|`both`) and on
 **acquiring and selling** only — `POST sales` (a new sale), every write under `purchases` and `imports`, `POST
 consignments` (a new placement) need `electronics`|`both`. Everything else stays open to a branch whatever its
@@ -7079,3 +7080,69 @@ retry, never the shop's bar. A closed day says what waits in the branch's own wo
 day it was made** (`docs/73` §4.3 as built): a period that is over never changes; a later period carries the reversal
 and gives its commission back there. A rebalancing that takes a known position below zero is refused until the Owner
 confirms it. No receipt and no PDF (v1).
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's brief of 2026-10-10) — D158: the billing decisions — downgrade, replacement, simultaneous stores
+
+The owner's binding decisions, recorded as given:
+
+1. A branch that schedules a downgrade keeps its current activity until the paid period ends. There is no refund. The
+   lower price starts at renewal. *(Confirms D154 (f): keeping `both` after scheduling a downgrade costs nothing.)*
+2. Replacing an archived branch during the same paid period creates no additional base charge when the previous branch
+   is archived, there is no period of simultaneous active use, and the replacement uses the same or a cheaper activity.
+3. If the replacement uses a more expensive activity, only the activity-price difference is charged.
+4. A simultaneous additional active branch pays the full monthly branch price.
+5. An immutable audit trail links the archived branch, the replacement branch, the decision and the billing result.
+6. Concurrent requests and retries never grant two free replacements or charge twice.
+
+*(Supersedes D154 (g), under which a store replacing an archived one cost its whole month.)*
+
+*As built (backend `e8f254b`, `800860b`; migration `0091`; `docs/73` §11.1):* a store request finds a **replacement
+slot** — a branch billed in the running paid period (in its per-branch map) that is no longer active, not yet replaced
+this period and not reserved by an open request — only while the subscription is **activated** and a paid month runs.
+Its value is what the period already charged for that location (`max(assessed fee, credit)`, so a chain of replacements
+carries it). With several, the smallest slot that covers the new store in full, else the largest. Nothing due → the
+store opens at once (`granted`); a difference due → `pending_payment` for exactly that, the slot reserved on the
+request, the store opened at the Super Admin's payment confirmation, which re-checks the slot under the subscription
+lock and refuses with 409 `replacement_no_longer_applies` when it is gone (the period rolled, the archived store active
+again, another replacement took it). Every replacement writes one `branch_replacements` row (append-only; one per slot,
+one per replacement branch) with both stores, the request, the period, the slot and the new fee, the amount charged and
+the decision (`no_additional_charge` / `difference_charged`), plus the tenant or platform audit and the timeline. The
+period's assessment charges each branch `max(0, its high-water fee − its credit)`, never below a plain quote of the
+active branches — so an archived store brought back beside its replacement is charged in full (4). A replacement later
+upgraded in the same period pays only what its credit does not cover; fully covered, the upgrade applies at once. Store
+requests are serialised on the subscription row; the same name again answers with the open request.
+*Review fixes (`e688d26`):* a difference priced against a replacement's credit is that period's figure alone — the
+request carries the credit and the period, and a confirmation after the renewal is refused (409
+`replacement_no_longer_applies`, nothing written; asked again, it is priced in full); the subscription status that lets a
+credit apply an upgrade at once is read under the subscription lock.
+*Verified:* the B1–B6 end-to-end harness over the real request, confirmation, renewal and assessment (27 tests), the pure
+pricing (+13) and the decision function (+4); real HTTP **19/19** (`docs/73` §11.7). **No in-product archive action
+exists** — the rule triggers today only for a branch deactivated outside the app (§11.6): offering *Archive this store*
+is the owner's product decision.
+
+### ✅ APPROVED AND IMPLEMENTED (the brief) — D159: a closing refuses a confirmation made on money that moved
+
+The server detects exchanges, reversals, rebalancings and every other money movement recorded after the closing's count
+or report version was loaded, and refuses a stale confirmation with a stable conflict and the current server state; the
+phone refreshes and says that money changed after counting began. *As built:* `docs/73` §11.2 (backend `4f9a63d`,
+`0636b78`; mobile `aeecf71`, `2fc01a1`). Recorded with it: the Owner's **opening review is refused on a closed day** (409
+`day_already_closed` — it moves the drawer the close froze), and the phone offers it only while the day is open; a
+**reopened day's recount** is held against the figure its close's count was held against plus what moved since, so the
+difference the close recorded survives the recount (a review finding, fixed before merge).
+
+### ✅ APPROVED AND IMPLEMENTED (the brief) — D160: the Owner's provider settings are idempotent
+
+Provider creation, a provider's changes and every configuration version carry the client's request UUID: the same key
+and payload replay the first answer, a changed payload under it conflicts, concurrent identical requests write once.
+Configuration versions and the audit history are preserved; a provider whose commission or settlement is incomplete
+still records no exchange. *As built:* `docs/73` §11.3 (backend `897dda6`, `e3571b8`; mobile `bbffdd4`).
+
+### ✅ APPROVED AND IMPLEMENTED (the brief) — D161: a refused offline exchange has a clear outcome
+
+The server answers every refusal a replay can meet with a stable code and offers a status lookup by the exchange's key,
+readable in every subscription state; the phone keeps each queued exchange in one of six states — pending,
+synchronizing, confirmed by the server, rejected and safe to resubmit, rejected and to be re-entered or reversed,
+uncertain until the lookup answers — never retries blindly after an uncertain answer, never leaves a rejected item
+waiting, and keeps the customer's number in SecureStore scoped by company, branch, person and exchange. *As built:*
+`docs/73` §11.4 (backend `86a492e`, `1bcf250`, `69e39ca`; mobile `a90a0b8`, `2ef9ecd`). The lookup answers what became
+of the exchange and nothing written about it since (no reference, legs, notes or reversal reason).
