@@ -11209,3 +11209,30 @@ the PC kept `192.168.100.7`) did not change any state.
   unrelated suites; both pass alone and the whole suite passes with two workers.)
 - **Not done:** the docs were not updated before the session ended (done at the start of the next session, 2026-10-12);
   the fixed FAILED rows and every NOT VERIFIED row are owed on the phone against mobile `0c814be` or later.
+
+## 2026-10-12T06:00Z → 2026-10-12T09:30Z — CLAUDE-B (local, the owner's Windows PC) — the TSX-MR public website and the Dukan ERP product site (`docs/74`, D163)
+
+Owner's brief of 2026-10-12. Takeover: the handoff was this account's own interrupted `IN_PROGRESS` of 2026-10-10 — its
+record was written first (docs `7addccd`: `docs/24` §63, D162, `docs/73` §11.8). `erp-control-web` was not on the PC:
+cloned (`money-agent-3` `36f04b2`, `main` `0417bfe`). Discrepancies reported before editing (handoff `d39925f`). The
+website cannot build on the PC (Smart App Control blocks Rolldown; WASM fallback fails on Windows paths; no WSL) — the
+owner chose GitHub Actions; the owner confirmed no hosting watches the repository. The owner approved the architecture
+(language-prefixed URLs, prerendering, `VITE_*` inputs with a production refusal, `mailto:` contact, pricing on the
+product page, Playwright + axe as dev-only tools).
+
+- Website branch `tsx-public-site`: `372acc5` … `98c9107` (CI workflow with an evidence branch; the public site; the
+  content structure with parity checks; legal drafts from a code audit with blockers; the release guard; prerender,
+  head, robots, sitemap, `_headers`/`_redirects`, security.txt, manifest; brand text treatments; browser checks).
+- Two device-class defects found by the browser checks and fixed: sideways scroll on every page at 375/320 px (the
+  header); the estimate row at 200% text.
+- Final CI run 38216501116 on `98c9107`: typecheck; vitest 12 files / **115** (baseline 8 / 48); production build
+  refused (11 inputs + 7 legal blockers named); preview 36 pages; links 1 659 / 0 broken; bundle audit PASS; npm audit 0;
+  gitleaks history (28 commits) + dist clean; Playwright **58/58** (every page × EN/FR/AR at 375 and 320 px, axe WCAG 2.1
+  AA no serious/critical, desktop + 200% text, keyboard, no-JS, anchors, host headers, protected pages with fixtures);
+  68 screenshots, 8 contact sheets. Visual review on the PC of the CI-built preview served locally (Arabic home and menu,
+  French privacy, English desktop).
+- Code audit findings recorded for the backend (`docs/74` §6, §11): deletion keeps contact data in audit JSON, agent
+  customer numbers, verification rows, receipt photos, branch addresses; unkeyed SHA-256 for contact-verification codes;
+  no purge of expired rows; no email provider; the brief's "manually entered commission" differs from the code.
+- Nothing deployed, purchased, created or published; no DNS, no live data, no App Store step. Backend and mobile
+  unchanged this session (`c7034c8`, `0c814be`).

@@ -7157,3 +7157,19 @@ no + and no country code* — in EN, FR and AR. **The sale's payer number keeps 
 earlier instruction not to force eight digits there stands. Stored exchanges are unaffected (every one on the PC
 database already had eight digits). *As built:* backend `b75b637`, mobile `10369b6`; verified over real HTTP (7 and 9
 digits → 400, 8 → 201) and in the bundle Metro served the phone; NOT DEVICE VERIFIED by sight.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's brief, 2026-10-12) — D163: TSX-MR's official website, Dukan ERP its product
+
+The control website is also the official website of **TSX-MR**, with **Dukan ERP** presented as a product developed and
+operated by TSX-MR (`docs/74`). Public pages in English, French and Arabic with the language in the address, prerendered;
+the business account and the console unchanged, never indexed, the console no longer linked from public pages. No legal
+or contact fact is invented: they are production inputs, and a production build refuses to start while one is blank or a
+test value, while no tested deletion channel is declared, or while any legal decision is still pending in the published
+texts (privacy, terms, deletion — drafts written from the code). Prices on the public site stay server-derived (D140),
+now on the Dukan ERP page. The money-services commission is described as the code computes it (from the rate the Owner
+configures per provider), not as typed per exchange. Contact is `mailto:` only. The initial hosting arrangement to prepare
+(not deployed): Cloudflare Pages + Cloudflare DNS/TLS for the website, Railway for the API and MySQL, Resend for email and
+Meta WhatsApp Cloud API later, Cloudflare R2 for encrypted off-site backups (`docs/74` §8, estimated ≈ $10–15/month plus
+domain and Apple fees). *As built:* website `tsx-public-site` `98c9107` (from `money-agent-3` `36f04b2`), verified in CI
+only (the owner's PC cannot run Vite 8). Open: `docs/74` §7 B-1…B-13 — notably the app's own name ("Retail ERP") must
+become Dukan ERP before the App Store.
