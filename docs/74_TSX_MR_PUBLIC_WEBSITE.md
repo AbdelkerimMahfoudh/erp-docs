@@ -370,3 +370,16 @@ WhatsApp pricing (rate card not shown publicly per country in the fetched pages)
 - No device, no Safari/iOS, no Firefox, no screen reader was used.
 - Nothing was deployed: the production headers, TLS, the custom domain, Cloudflare Access, Railway and every provider are
   documented, not exercised.
+
+## Correction phase (2026-10-12)
+
+- Dukan ERP page: the money-services commission is typed per exchange and paid by the customer; the provider neither
+  pays nor checks it; the employee comes from the sign-in (D164; `83d2e1a`, parity guard against rate wording).
+- Deletion and privacy pages state what is removed and that the sealed audit history and backups are not edited; blocker
+  `deidentification_gaps` replaced by `sealed_history` (legal approval of the disclosure) and `backup_retention`
+  (TSX-MR to supply) — `9b079c2`.
+- Console: the second factor at sign-in, enrolment with the server's token, step-up with password and code (D167;
+  `e2384c0`, `e892a27`) — **B-10 is built**; QR rendering is not.
+- Package description names Dukan ERP (`fa3c3fe`).
+- CI: run 38249387941 on `e892a27` green — Vitest 119/119, Playwright 58/58, gitleaks clean. `tsx-public-site` stays
+  **unmerged**.

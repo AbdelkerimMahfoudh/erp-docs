@@ -33,6 +33,8 @@ asked to fix first is D153 (backend `258b04d`, mobile `bf30299`).
 
 ### 1.2 The blanks — configuration, never guessed
 
+> **Superseded 2026-10-12 by D164** (`docs/75`, §12 below): there is no rate, destination or deduction; the employee types the commission the customer pays, for every exchange. Kept as the record of exchanges marked `legacy_rate`.
+
 Each is a **field of the provider configuration** (§4.2) that the Owner fills in from the real schedule. While any
 required one is blank for a provider, that provider's `readyForTransactions` is false: the counter screen lists it as
 *Not set up yet*, `POST /agent/transactions` answers 409 `provider_not_configured`, and nothing is ever posted with a
@@ -148,6 +150,8 @@ like a downgrade and the next renewal prices the branch in full.
 
 ### 4.2 Commission and settlement — the configured matrix
 
+> **Superseded 2026-10-12 by D164** (`docs/75`, §12 below): there is no rate, destination or deduction; the employee types the commission the customer pays, for every exchange. Kept as the record of exchanges marked `legacy_rate`.
+
 With `A` the amount, `r` the rate for the direction, `C = round2(A × r)` — counted exactly in whole cents and basis points, a half cent up (837 MRU at 0.50 % is 4.19; reviewed 2026-10-09, backend `292991c`):
 
 | `principal_fee_mode` | `commission_destination` | Legs posted at completion |
@@ -239,6 +243,8 @@ morning's legs stay after it (backend `95e3a79`).
   number; a reference-only correction is a separate audited fact that moves nothing (the D151 pattern).
 
 ### 4.7 Worked examples (fixture rates: 1.00 % both directions, settled separately, credited to the float; **invented**)
+
+> **Superseded 2026-10-12 by D164** (`docs/75`, §12 below): there is no rate, destination or deduction; the employee types the commission the customer pays, for every exchange. Kept as the record of exchanges marked `legacy_rate`.
 
 | # | Event | Cash (drawer) | Bankily float | Sedad float | Commission (revenue) | Count / volume |
 |---|---|---|---|---|---|---|
@@ -622,3 +628,24 @@ grant-by-grant `superseded`; as built, `paidUntil`, and a newer grant is simply 
   the movements (one read on `ix_agent_movements_account_at`) and is counted again; a known float is unchanged.
   Backend `c7034c8`.
 - **D162** — the customer number is exactly eight digits (backend `b75b637`, mobile `10369b6`).
+
+## 12. The typed commission (D164, 2026-10-12)
+
+The contract now (backend `9c9005a`, migration `0092`; mobile `8bb9201`; detail in `docs/75` §2–§5):
+
+- `POST agent/transactions` takes `commissionAmount` — **required**, whole MRU, ≥ 0, and ≤ `amount` when cash is
+  handed over. Refusals (400): `commission_required` (absent, null or empty — never zero), `commission_invalid`,
+  `commission_exceeds_amount`; each ends "Nothing was recorded." `configVersionId` is accepted from older phones and
+  ignored except to replay an exchange recorded under a rate. `provider_not_configured` and `stale_configuration`
+  no longer exist.
+- The recorder, company, branch and business day come from the session; a body naming a recorder is refused.
+- Legs: receive cash = cash in A, provider out A, cash in C (commission); give cash = cash out A, provider in A, cash in C.
+- The view: `commission: { amount, source: 'manual' | 'legacy_rate', legacy: { rateBp, destination, principalFeeMode,
+  configVersionId } | null }`; the status lookup adds `commissionSource`.
+- Fingerprint (idempotency): `v:2` including the commission; a legacy row keeps its own.
+- Provider configuration: `POST agent/providers/:id/configs { clientRequestId, referenceRule, reason }` only; a version
+  view carries `referenceRule` and `legacy` (the rates of a version written before D164). A provider has no readiness:
+  any provider switched on is usable.
+- Reports (`GET agent/reports`): cash and credit from each exchange's stored principal and commission legs, plus
+  `routes` per direction (count, volume, commission).
+- The update trigger: commission, source and money columns immutable; only the D165 redactions are allowed.

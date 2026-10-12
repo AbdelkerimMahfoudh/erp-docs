@@ -293,3 +293,17 @@ changed, so by this document's own rule the previous pass is invalidated for the
 self-registration is **hidden and refused** (D117); the privacy policy URL, the demo business for review, export
 compliance and the device run remain. Everything else unchanged. **Verdict: NOT PASS** (unchanged — the external
 prerequisites and the independent assessment stand).
+
+## Correction phase (2026-10-12) — controls added
+
+| Control | State | Where |
+| --- | --- | --- |
+| Platform administrator MFA (TOTP, enrolment by server token, sealed secret, recovery codes, step-up password + code) | **built, tested** (unit + real HTTP); production refuses to start without `PLATFORM_MFA_KEY` | D167, `docs/75` §9 |
+| No WhatsApp delivery claimed before a signed per-language proof on the deployment | built | D166, `docs/75` §8 |
+| Email boundary (no provider connected; dev log refused in production; https; pepper) | built | D166 |
+| Contact-verification codes keyed (HMAC under the pepper), compared in constant time | built (new rows; old rows version 1) | 0093 |
+| No contact in new audit events; search terms out of request logs; MFA material never logged | built | D165, D167 |
+| Backend full-history secret scan | clean after `aad5862` | `docs/75` §10 |
+
+Still open for release: the per-environment `PLATFORM_MFA_KEY` and its custody; the WhatsApp proof; the email provider;
+the backup retention period; Cloudflare Access in front of `/admin` remains optional.

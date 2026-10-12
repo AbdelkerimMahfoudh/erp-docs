@@ -462,3 +462,11 @@ The values that `.env` and `.env.example` shared were development defaults
 secret) on a local MySQL, never production credentials. **No exposure
 occurred, so no rotation was performed.** They must still be replaced with
 real, distinct secrets before any deployment.
+
+## Rehearsal record — 0084 → 0094 (2026-10-12, disposable only)
+
+Backups by `mysqldump --single-transaction --routines --triggers` and restores proven before applying: 0083 (built from
+the migrations; structure and 30 triggers identical after restore) and the PC data at 0091 (all 106 tables identical
+after restore). Applied with `prisma migrate deploy`: 0084–0094 in 8.5 s on the empty base; 0092–0094 in 4.1 s on the
+PC data; drift none beyond the known baseline. Rollback = restore the pre-migration backup (proven). Details: `docs/75`
+§3.1. Nothing applied to `phonestore` or any live database.

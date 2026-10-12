@@ -164,3 +164,21 @@ operator task with the same code sent by hand. Until decided, **this is a releas
 3. The owner's **legal advice on retention periods** (§6), recorded in this document.
 4. The owner's decision on **D110** (§7).
 5. A real send to a real number, in each language, recorded in `docs/24` §51.
+
+## Correction phase (2026-10-12) — what deletion removes now, what it cannot, and delivery
+
+- **Removed** (D165, backend `4cc2533`, mobile `02f2e4e`): the full list is in `docs/75` §7 — sign-in identifier,
+  session and device details, code destinations, verification intents and rows naming the person's contacts, sync queue,
+  names on the counter's records; for a closed business also customers', suppliers' and lent-to people's contacts, payer
+  and counter numbers, notes, receipt photos (files deleted after the commit), branch addresses, the city. The phone
+  forgets the deleted login's device credential.
+- **Not removed, and said so** (app, website, `notRemoved` in every summary): the hash-chained audit trail, subscription
+  and platform audit events, append-only agent snapshots, and backups until they expire. **Backup retention: not set —
+  TSX-MR must supply it; production stays blocked.** Active-storage deletion is immediate.
+- **New audit events hold no contact**; request logs drop search terms.
+- **WhatsApp** (D166): production sends nothing until `npm run whatsapp:prove` has a signed "delivered" report per
+  language (en, fr, ar) — a new approved template `delivery.check` (WHATSAPP_TEMPLATE_DELIVERY_CHECK). Until then no
+  deletion code goes out, so no deletion can complete. The template texts in this document still say "Retail ERP": they
+  must be resubmitted to Meta as **Dukan ERP** (D168).
+- **Email** (D166): a provider boundary exists (Resend, inert); SPF, DKIM and DMARC on the sending domain are required
+  before `EMAIL_CHANNEL=resend`; deletion codes stay WhatsApp-only.

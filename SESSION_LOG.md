@@ -11236,3 +11236,40 @@ product page, Playwright + axe as dev-only tools).
   no purge of expired rows; no email provider; the brief's "manually entered commission" differs from the code.
 - Nothing deployed, purchased, created or published; no DNS, no live data, no App Store step. Backend and mobile
   unchanged this session (`c7034c8`, `0c814be`).
+
+## 2026-10-12T10:00Z → 2026-10-12T15:30Z — CLAUDE-B (local, the owner's Windows PC) — correction phase: typed commission, Dukan ERP, deletion, delivery, administrator MFA (`docs/75`, D164–D168)
+
+Owner's correction brief of 2026-10-12. Takeover from READY_FOR_HANDOFF / NONE (complete); claim `6502a65`, checkpoint
+`f614926`. Discrepancies reported at the claim: the rate matrix went further than "a rate" (float credit, deduction,
+held commission); no pre-0084 database existed; MySQL 3308 was down and was started.
+
+- **Commission (D164)** — backend `9c9005a` (migration 0092), mobile `8bb9201`, website `83d2e1a`: typed per exchange,
+  paid by the customer, employee from the session, immutable, credit moves by the principal only; providers without
+  rate; legacy exchanges marked `legacy_rate` and kept as recorded; reports from stored legs with a per-route split.
+- **Naming (D168)** — mobile `db67298`, backend `2bb5130`, website `fa3c3fe`; technical identifiers unchanged and
+  recorded as publication inputs.
+- **Deletion (D165)** — backend `4cc2533`, mobile `02f2e4e`, website `9b079c2`: identity removed wherever copied; no
+  contact in new audit events; search terms out of logs; what cannot be removed (sealed history, backups) said plainly.
+- **Delivery (D166)** — backend `e345680` (migration 0093): email boundary (no provider connected); WhatsApp closed in
+  production until a signed per-language delivery proof; keyed contact-verification hashes.
+- **Administrator MFA (D167)** — backend `1d8321b` (migration 0094), website `e2384c0`, `e892a27` (test fixtures after a
+  red CI run: the console was reachable before the second step in my new test, and the dashboard stub was empty).
+- **Secret scan** — backend `aad5862`: this phase's guard fixtures allowlisted; the scanner skips its own allowlist (its
+  JWT pattern line was a finding before this phase). Full history clean.
+- **Rehearsal (disposable only)**: 0083 built from migrations → 0094 in 8.5 s; PC data 0091 → 0094 in 4.1 s;
+  pre-existing columns identical; restores identical; no drift beyond the baseline; the previous API's exchange insert is
+  refused by the 0092 CHECK (deploy API and migrations together). Two script bugs on the first attempt (npx resolving a
+  foreign package from the wrong folder; CR in `mysql.exe` output) — fixed, rerun clean.
+- **Real HTTP** (API on 3011, disposable copy at 0094): final run 50/51 — the failure cumulative across runs (two
+  reversals, one audit each, verified by SQL). Fixtures on the copy: Boutique 5's day opened through the API; Boutique 6
+  given a test WhatsApp number, address and city. Git Bash rewrites environment values starting with `/` when starting a
+  Windows program: the base64 test key failed until it was hex.
+- **Tests**: backend 212 suites / 3 861 passed / 3 skipped; mobile tsc 0, lint 0 errors (29 old warnings), pure
+  268/268, render — 156/156 with two workers (with default workers `agent-money` times out under load and cascades; passes alone); website CI run 38249387941: Vitest 119/119, Playwright 58/58, gitleaks clean.
+- **Teardown**: API stopped, port 3011 released, temporary grants revoked (`phonestore_app` back to `phonestore.*`), every
+  `erp_rh_*` database dropped, scratch copies of credentials deleted; `phonestore` still at 0091; no user process touched.
+- **Not done**: device verification (`docs/24` §64); QR rendering for enrolment; email flows for recovery and alerts;
+  commission in profit analytics; personal-login deletion over HTTP; `local-scripts/boutiques-local.ts` (outside the
+  repositories) still signs in to the console without the second factor.
+- Nothing deployed, merged to production, purchased, published or applied to a live database; no DNS; no Apple step;
+  `tsx-public-site` not merged.

@@ -4405,3 +4405,17 @@ Data left on the PC copy (development only): the exchanges above (one with a non
 *Test entry, non-test number*); Boutique 6's 2026-10-10 day reopened, a 9 900 drawer shortfall recorded at its 19:45 close
 (a typed count), *Test provider B* counted at 500 on the open day. Owed on the phone, against mobile `0c814be` or later:
 the two fixed FAILED rows, then every NOT VERIFIED row.
+
+## 64. Typed commission, deletion, Dukan ERP (2026-10-12) — device-only checks, NOT yet run
+
+1. New exchange: the commission field accepts digits only (Arabic keyboard digits too); empty → no Review; `0` → Review.
+2. Give cash with a commission above the amount: the field says so; nothing is sent.
+3. The review at 320 px, with the largest text, and in Arabic: amount, commission, cash handed over/received, credit — no
+   cut or overlapping figures.
+4. Providers and a provider: label above value, readable in RTL; no rate anywhere; a version from before shows its rates
+   as history.
+5. An exchange queued offline by the previous build: after the update it shows *Not recorded* with *Edit and send*; the
+   commission typed, it is sent under a new key.
+6. Exchange detail: a typed commission says it was typed at the counter; an old one shows its earlier rate.
+7. Delete a login: after "deleted", the phone signs out and the next sign-in with that identifier is a new device.
+8. The app's name under the icon and on the login screen: **Dukan ERP**, with "Developed and operated by TSX-MR".

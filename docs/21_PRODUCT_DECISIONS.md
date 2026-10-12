@@ -6968,6 +6968,8 @@ sample or typed commission as a fallback, and a provider with an incomplete conf
 the actor derived from the session, never a form field; Employees record and report mistakes, the Owner or a Manager
 reverses once with audit; a distinct rebalancing operation outside count, volume and commission; per-branch cash and
 per-provider float, one physical drawer and one daily closing for a combined branch; unknown stays unknown.
+*(2026-10-12: the commission part — configured rate, destination, deduction, "no typed commission" — is **superseded by
+D164**: the commission is typed for every exchange and paid by the customer.)*
 
 **Decisions taken to implement it, for the owner's confirmation (reversible):** (a) **"renewal"** = the Super Admin's
 extension or approval that moves the period end forward: it closes the current billing period, applies scheduled
@@ -7167,9 +7169,60 @@ or contact fact is invented: they are production inputs, and a production build 
 test value, while no tested deletion channel is declared, or while any legal decision is still pending in the published
 texts (privacy, terms, deletion — drafts written from the code). Prices on the public site stay server-derived (D140),
 now on the Dukan ERP page. The money-services commission is described as the code computes it (from the rate the Owner
-configures per provider), not as typed per exchange. Contact is `mailto:` only. The initial hosting arrangement to prepare
+configures per provider), not as typed per exchange. *(Superseded by D164, 2026-10-12: the site now says the commission
+is typed per exchange and paid by the customer.)* Contact is `mailto:` only. The initial hosting arrangement to prepare
 (not deployed): Cloudflare Pages + Cloudflare DNS/TLS for the website, Railway for the API and MySQL, Resend for email and
 Meta WhatsApp Cloud API later, Cloudflare R2 for encrypted off-site backups (`docs/74` §8, estimated ≈ $10–15/month plus
 domain and Apple fees). *As built:* website `tsx-public-site` `98c9107` (from `money-agent-3` `36f04b2`), verified in CI
 only (the owner's PC cannot run Vite 8). Open: `docs/74` §7 B-1…B-13 — notably the app's own name ("Retail ERP") must
 become Dukan ERP before the App Store.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D164: the commission is typed for every exchange and paid by the customer
+
+**Supersedes** the rate model of D154 (commission at the provider's configured rate, destinations, deductions, "no
+typed commission"), `docs/73` §1.2, §4.2 and §4.7, and D163's sentence describing the rate on the website. There is no
+fixed rate. The provider does not pay the commission and does not check it; **the customer pays it to the business**.
+It varies per exchange: **the employee types it for every exchange**, in whole MRU — `0` typed when the customer paid
+none, never an empty field read as zero — and when cash is handed over it can never exceed the amount. The employee is
+the person signed in, never chosen and never sent by the phone. The commission is immutable once confirmed. The
+provider's credit moves by the amount only: receiving cash = cash in A + C, credit out A; giving cash = cash out A, cash
+in C (the customer is handed A − C), credit in A. A provider keeps its name, its state and whether it asks for its
+reference; nothing is configured before use. History and reports are sufficient — **no separate commission dashboard**.
+Historical exchanges recorded under a rate keep their stored commission, legs, rate, version and snapshot, marked
+`legacy_rate`, never recalculated; configuration versions written before D164 keep their rates as history only. *As
+built:* backend `9c9005a` (migration `0092`), mobile `8bb9201`, website `83d2e1a`; `docs/75` §2–§5.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D165: a deletion removes the person wherever the app copied them, and says what it cannot reach
+
+A deleted login also loses its sign-in identifier, session and device details, every code destination, verification
+intents, the sign-up, seat-request and verification rows naming its contacts, its sync queue, and its name on the
+records that allow it ("Deleted user"); a closed business also loses its customers', suppliers' and lent-to people's
+contacts, payer and counter customer numbers, notes, receipt photos (files removed after the commit), branch addresses
+and city. New audit events never hold a contact; search terms never reach a log. **The hash-chained audit trail,
+subscription and platform events, append-only agent snapshots and backups are not edited** — said so in the app, on the
+website and in every deletion summary; the backup retention period is TSX-MR's to set and production stays blocked
+until it is. *As built:* backend `4cc2533`, mobile `02f2e4e`, website `9b079c2`; `docs/75` §7.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D166: no delivery is claimed before it is proven
+
+Email has a provider boundary (disabled by default; a development log refused in production; Resend inert without its
+key and sender; no provider connected). WhatsApp in production stays closed until one message per language (en, fr, ar)
+is delivered and reported through the signed webhook on that deployment (`npm run whatsapp:prove`); until then no code,
+deletion code or invitation is claimed. Contact-verification codes are stored as HMAC under the pepper; a code that
+could not be sent is dead and never shown. *As built:* backend `e345680` (migration `0093`); `docs/75` §8.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D167: mandatory TOTP MFA for platform administrators
+
+A password opens nothing but the second-factor routes. TOTP (RFC 6238) with replay refusal and a lock; enrolment and
+reset only with a one-time token issued on the server; the secret sealed under `PLATFORM_MFA_KEY` (production refuses to
+start without it); ten single-use recovery codes, regenerated after a step-up; every high-impact action needs the
+password and a fresh code, recorded on the session for five minutes; all of it audited without secrets. Cloudflare
+Access remains optional. *As built:* backend `1d8321b` (migration `0094`), website `e2384c0`, `e892a27`; `docs/75` §9.
+
+### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D168: the product is Dukan ERP, developed and operated by TSX-MR
+
+Every user-visible name is Dukan ERP (app name, login title and byline, permission text, PDF footer and file names,
+API documentation title, package descriptions, email texts). Technical identifiers are unchanged and are publication
+inputs awaiting the owner's explicit decision: Expo slug `phonestore-erp`, scheme `retailerp`, bundle id / package
+`mr.retailerp.app`, EAS project, push identifiers, database, tables, permissions, API fields (`docs/75` §6). No logo was
+made. *As built:* mobile `db67298`, backend `2bb5130`, website `fa3c3fe`.

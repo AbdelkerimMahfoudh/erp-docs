@@ -323,3 +323,13 @@ Backend `reports-export` **`7283844`**, mobile `reports-export` **`6f6ef47`**.
 and the public App Store stay **NO-GO** on RC-01 (deletion needs D116), RC-04, RC-06, RC-07, RC-08 and RC-09. **The
 website is not operational**: it is a contract (`docs/68`), and the Super Admin's approve / refuse / create / invite
 have no UI until it is built (`docs/68` §8).
+
+## Correction phase (2026-10-12) — release conditions added
+
+- Migrations **0092–0094** (rehearsed 0083 → 0094 and 0091 → 0094 on disposable copies, `docs/75` §3.1) must be applied
+  **together with the API from `reports-export`**: the previous API's exchange insert is refused by the 0092 CHECK.
+- Every platform administrator enrols (CLI token) before the console is used; every open administrator session becomes
+  pending at 0094.
+- Release blocked until: the WhatsApp delivery proof (en, fr, ar), the backup retention period, legal inputs
+  (`docs/75` §13), and the owner's decision on the app identifiers (D168).
+- Phones: an exchange queued by an earlier build is refused `commission_required` and fixed by *Edit and send*.
