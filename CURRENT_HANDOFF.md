@@ -1,7 +1,18 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE-B
+started_at_utc: 2026-10-12T10:00Z
+session: CLAUDE-B (local, the owner's Windows PC) — takeover from READY_FOR_HANDOFF / NONE (previous handoff complete)
+scope: the owner's correction brief of 2026-10-12 — (1) money-agent commission entered manually per exchange, paid by the customer, never touching provider credit (supersedes the rate model of D154/docs/73 §4.2); (2) website copy; (3) Dukan ERP naming; (4) deletion privacy gaps; (5) honest email/WhatsApp delivery boundaries; (6) Super Admin TOTP MFA; (7) legal inputs stay blocked; (8) migration rehearsal 0084+ on disposable MySQL only. No deploy, no merge of `tsx-public-site` into `main`, no live data, no DNS, no Apple.
+heads_at_takeover: backend `reports-export` `c7034c8`; mobile `reports-export` `0c814be`; docs `master` `918cc34`; website `tsx-public-site` `98c9107` (unmerged; `main` `0417bfe`) — all clean and level.
+takeover_discrepancies: (a) the brief's premise is confirmed and goes further than "a rate": the configured matrix also credits commission to the provider float, nets it into the principal ("deducted") or holds it per provider (`commission_held`) — all forbidden by the new rule (docs/73 §4.2); (b) no pre-0084 database exists on the PC (oldest dump is at 0085), so the 0084+ rehearsal must build a disposable 0083 database; (c) MySQL 3308 was down and was started (no other change).
+next: commission audit results → backend contract + migration 0092 → mobile → website → naming → deletion → delivery boundaries → MFA → rehearsal → docs.
+
+---
+
+## Previous handoff (2026-10-12, READY_FOR_HANDOFF / NONE), kept for reference below
+
 last_session: CLAUDE-B (local, the owner's Windows PC), 2026-10-12T06:00Z → 2026-10-12T09:30Z — complete
 previous_handoff: this account's own interrupted IN_PROGRESS of 2026-10-10 (device run) — its record completed in docs `7addccd`
 scope_done: the owner's brief of 2026-10-12 — TSX-MR's official website with Dukan ERP as its product, deployable but **not deployed** (`docs/74`, D163)
