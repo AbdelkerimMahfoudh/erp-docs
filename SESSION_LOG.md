@@ -11179,3 +11179,33 @@ nothing deployed, published or submitted; no message sent.
 `4f9a63d`, `e688d26`, `0636b78`, `69e39ca`, `bea454c` (13, `reports-export`) · `erp-mobile` `a90a0b8`, `2ef9ecd`,
 `aeecf71`, `bbffdd4`, `2fc01a1` (5, `money-agent-4` = `reports-export`) · `erp-control-web` `8161014`, `36f04b2` (2,
 `money-agent-3`) · `erp-docs` `1c97f27` and the commit carrying this entry. All pushed; all four trees clean.
+
+## 2026-10-10T04:30Z → 2026-10-11T06:00Z — CLAUDE-B (local, the owner's Windows PC) — the access date, 0088–0091 on the PC database, the device run of `docs/24` §59–§62, D162 and three device fixes
+
+Owner's brief of 2026-10-10: fix the grant date on the access screen; back up and restore-check `phonestore`; apply
+`0088`–`0091`; restart API and Metro with the cache cleared; prove `2fc01a1` or a descendant on the phone; run §62, then
+§59–§61, with test rates and fake numbers. Two interruptions (the desktop app restarted; the owner changed Wi-Fi twice —
+the PC kept `192.168.100.7`) did not change any state.
+
+- **Access date** (Known gap): the screen dates access to the later of the grant's end and the paid end; an endless grant
+  has no date. Mobile `3984bdf`; pure 266, rendered 150; DEVICE VERIFIED.
+- **Backup and migrations (PC database only):** dump `~/erp-backups/phonestore-before-0088-20261010-043816.sql`
+  (1 235 914 bytes, trailer, 97 tables, 31 triggers, 0 raw `_binary`); path-2 restore into a temporary database identical
+  to the fingerprint (97 checksums, 97 row counts, 31 trigger bodies, `HEX(id)` MD5s); the audit trigger fires as
+  `phonestore_app` on copy and source (a temporary grant on the copy, revoked); temporary database dropped, sanitised
+  copy deleted. `0088`–`0091` applied; `docs/73` §8.2/§8.3 checks as specified (107 tables, 47 triggers, 9 agent tables,
+  14 agent triggers, 9 permissions, Owners 9 grants, Administrator 0, every branch electronics); every pre-existing row
+  unchanged (original columns of the five widened tables identical by MD5). Live untouched at `0083`.
+- **Device run** (`docs/24` §63): 15 rows DEVICE VERIFIED, 3 FAILED and fixed (offline provider list, the blank closing,
+  D159 with an Unknown float), the rest SERVER ONLY or NOT VERIFIED with reasons. The owner asked twice whether Claude
+  could run the checks itself: the phone cannot be driven from the PC, and the app's web build is blocked here
+  (`lightningcss` refused by Smart App Control — measured again); server-side steps (API stops, state changes, a
+  "second phone" over HTTP) were done by Claude and verified in the database and log.
+- **D162** (owner, 2026-10-11): the agent customer number is exactly eight digits — backend `b75b637`, mobile `10369b6`.
+- **Fixes:** mobile `6a4afc8` (closing notice), `0c814be` (kept provider list); backend `c7034c8` (Unknown float, D159).
+- **Verification at the end:** backend `c7034c8` tsc clean, jest 207 suites / **3 805 passed / 3 skipped**; real HTTP
+  for D162 and the Unknown-float fix. Mobile `0c814be` tsc clean, pure **269/269**, rendered **14 suites / 154**,
+  `expo lint` 0 errors / 29 warnings (baseline). (A full rendered run in parallel with Metro and the API timed out in two
+  unrelated suites; both pass alone and the whole suite passes with two workers.)
+- **Not done:** the docs were not updated before the session ended (done at the start of the next session, 2026-10-12);
+  the fixed FAILED rows and every NOT VERIFIED row are owed on the phone against mobile `0c814be` or later.

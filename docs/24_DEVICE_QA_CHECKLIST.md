@@ -4359,3 +4359,49 @@ states cannot be seen in a browser at all. Use **invented** rates and obviously 
 **Provider settings retried (D160).**
 - [ ] As the Owner, add a provider and save a configuration with the network flapping (or tap Save twice): one provider,
       one version, the history intact.
+
+## 63. Results — §59–§62 and the access date, on the owner's iPhone (2026-10-10 → 2026-10-11, PC, Expo Go)
+
+Run by CLAUDE-B on the owner's PC against the **PC database** (`127.0.0.1:3308` `phonestore`, `0091` since
+2026-10-10T04:40Z with a verified backup — `docs/22` §2, path-2 restore identical; live untouched at `0083`). Mobile served
+by Metro from `3984bdf` → `10369b6` → `0c814be` (the build line read on the phone: `3984bdf · reports-export`); API at
+backend `bea454c` → `b75b637` → `c7034c8`. Invented rates and fake numbers only. Every device answer was checked against
+the database and the API log; where they disagreed the database is recorded. **DEVICE VERIFIED** = the owner saw it on
+the phone and the server agrees; **SERVER ONLY** = proven over HTTP or in the served bundle, not seen on the phone.
+
+Setup on the PC copy only: Boutique 5 `money_agent`, Boutique 6 `both` (`branches.activity` set directly, as §61 allows
+on a development copy); on Boutique 6 the Owner added *Bankily* (invented 3 %, then 4 % — the 4 % version inserted while
+the API was stopped, to provoke a stale rate) and, over HTTP, *Test provider B* (invented 1 %).
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| Access screen with a platform grant (the Known gap) | **DEVICE VERIFIED** — *active until 5 Oct 2027* | Boutique 6: no paid period, grant to 2027-10-05; mobile `3984bdf` |
+| §61 tabs, combined branch | **DEVICE VERIFIED** | Home · Exchanges · Money · Stock · More; Receive/Sell + New exchange |
+| §61 tabs, agent-only / shop | SERVER ONLY | entitlement `money_agent` (B5) / `electronics` (B2); owner declined the device check |
+| §61 320 pt, largest text, AR tab fit, deep links, closed-day words | NOT VERIFIED | not run |
+| §61 counter flow, server time and recorder, commission | **DEVICE VERIFIED** | 1 000 MRU, 30 commission at 300 bp, *Owner Boutique 6*, server time |
+| §61 Confirm tapped three times online | **DEVICE VERIFIED** — one exchange | one row, one client UUID |
+| §61 masked list, whole number to the Owner | **DEVICE VERIFIED** | `•••• 1234`; Employee case NOT VERIFIED (no employee) |
+| §61 reverse once with a reason | **DEVICE VERIFIED** | one `reverse` call; status `reversed`; 3 offsetting movements |
+| §61 Money: drawer once, float line | **DEVICE VERIFIED** | |
+| §61 providers: blank = *Not set up yet*; versions listed | **DEVICE VERIFIED** | 4 % in force, two earlier versions |
+| §61 reports (count, volume, commission, reversal apart) | **DEVICE VERIFIED** | |
+| §61 rebalancing beyond the drawer refused, *Record it anyway* | SERVER ONLY | 409 `rebalancing_negative`, drawer named, nothing moved |
+| §61/§62 airplane mode, record an exchange | **FAILED → fixed, NOT DEVICE VERIFIED** | New exchange showed *Something went wrong*: the provider list was memory-only. Fixed in mobile `0c814be` (kept list, `docs/73` §11.8) |
+| §62 queued while the API was down; kill and relaunch | **DEVICE VERIFIED** | *Pending*, kept after relaunch, the number in no list |
+| §62 provider switched off while waiting → *Send again* once on | **DEVICE VERIFIED** | 400 `provider_inactive` ×6 (the owner's taps), `PATCH` on, then one 201 (device time 06:27:26, server 06:36:49) |
+| §62 rate changed while waiting → *Review and send* | **DEVICE VERIFIED** | 409 `stale_configuration`, then one record at 400 bp, commission 20 |
+| §62 answer lost → *Checking*; day closed; permission removed; suspended; sign-out isolation | NOT VERIFIED | not run |
+| §61 Daily closing while the phone holds an exchange | **FAILED → fixed, NOT DEVICE VERIFIED** | blank page with the API unreachable; fixed in mobile `6a4afc8` (`docs/73` §11.8) |
+| §62 D159 money moved after counting (drawer counted) | **DEVICE VERIFIED** | *Money changed after counting began*; held on the phone, no `POST /closings`; recount → closed 19:45:51 |
+| §62 D159 with a float the app does not know | **FAILED → fixed** (SERVER ONLY) | first run closed silently (Unknown = Unknown); fixed in backend `c7034c8`; real HTTP: `movedSinceCount` false → true after one exchange |
+| §62 reopened float counted short; attested opening review | NOT VERIFIED | no known float short; not run |
+| §62 D160 provider settings saved twice | **DEVICE VERIFIED** | one provider, one version per save, one request key each |
+| §59 unknown accounts on the Money card | SERVER ONLY | B2 Sedad and Bankily `known: false`; owner declined the device check |
+| §60 Keep below zero | NOT VERIFIED — precondition absent | B2's drawer is +1 000 since its 2026-10-07 opening (the 2026-10-05 negative drawers no longer exist) |
+| D162 exactly eight digits | SERVER ONLY | 7 and 9 digits → 400, 8 → 201; the served bundle carries the rule and the words |
+
+Data left on the PC copy (development only): the exchanges above (one with a non-test number, reversed with the reason
+*Test entry, non-test number*); Boutique 6's 2026-10-10 day reopened, a 9 900 drawer shortfall recorded at its 19:45 close
+(a typed count), *Test provider B* counted at 500 on the open day. Owed on the phone, against mobile `0c814be` or later:
+the two fixed FAILED rows, then every NOT VERIFIED row.

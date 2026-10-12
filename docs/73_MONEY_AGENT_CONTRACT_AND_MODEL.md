@@ -604,3 +604,21 @@ grant-by-grant `superseded`; as built, `paidUntil`, and a newer grant is simply 
 | Adversarial review | 17 agents: 12 findings confirmed (2 major — the credit-priced upgrade after a renewal, the reopened day's recount — both fixed with tests that fail without the fix), 1 refuted; every confirmed finding fixed except the phone's access-screen date (§11.6, pre-existing) |
 | Migration rehearsal | `docs/22` E.5: 0088 → 0091 on the disposable copy, demo data unchanged, path-2 restore identical |
 | Phone | **NOT DEVICE VERIFIED** — `docs/24` §62 |
+
+### 11.8 Found on the device and fixed (2026-10-10 → 2026-10-11, PC run, `docs/24` §63)
+
+- **The offline counter (D155).** The provider list lived only in the query cache: a refresh that failed without a
+  network replaced it with an error, and a relaunch had none, so no exchange could be prepared offline. The providers
+  query now keeps every list the server sends, one file per branch (`lib/offline/kept-providers.ts`, rules in
+  `kept-providers-rules.ts`), and answers from it only when the server cannot be reached (no network, unreachable,
+  timeout, 5xx) — never on a refusal. The counter says *The providers as this phone last read them, …*; a kept rate is
+  safe because an exchange on an older version is refused as `stale_configuration` and shown again (seen on the device).
+  Mobile `0c814be`.
+- **The Daily closing while an exchange is queued.** The *Exchanges still on this phone* notice lived inside the report,
+  so with the API unreachable the page was empty. It is now one notice at the top, steady from the first frame. Mobile
+  `6a4afc8`.
+- **D159 and a float the app does not know.** Unknown at the count and Unknown now compare equal, so an exchange after an
+  Unknown float's count closed silently. A counted float that was Unknown at its count now reads `movedAfterCount` from
+  the movements (one read on `ix_agent_movements_account_at`) and is counted again; a known float is unchanged.
+  Backend `c7034c8`.
+- **D162** — the customer number is exactly eight digits (backend `b75b637`, mobile `10369b6`).

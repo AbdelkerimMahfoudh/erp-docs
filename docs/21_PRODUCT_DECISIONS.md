@@ -7146,3 +7146,14 @@ uncertain until the lookup answers — never retries blindly after an uncertain 
 waiting, and keeps the customer's number in SecureStore scoped by company, branch, person and exchange. *As built:*
 `docs/73` §11.4 (backend `86a492e`, `1bcf250`, `69e39ca`; mobile `a90a0b8`, `2ef9ecd`). The lookup answers what became
 of the exchange and nothing written about it since (no reference, legs, notes or reversal reason).
+
+### ✅ APPROVED AND IMPLEMENTED (the owner, 2026-10-11, on the device run) — D162: the agent customer number is exactly eight digits
+
+"Mauritanian numbers are 8 digits — not 9, not 7." The customer number of a money-agent exchange is accepted only as
+exactly eight digits, read as before (spaces and hyphens dropped, Arabic-Indic digits read as digits); a leading `+` or
+a country code is refused as invalid. The server refuses with 400 `customer_number_invalid` (never naming the number);
+the counter says it before anything is sent — *Exactly 8 digits — this number is too short / too long*, *Digits only —
+no + and no country code* — in EN, FR and AR. **The sale's payer number keeps its open format (D151)**: the owner's
+earlier instruction not to force eight digits there stands. Stored exchanges are unaffected (every one on the PC
+database already had eight digits). *As built:* backend `b75b637`, mobile `10369b6`; verified over real HTTP (7 and 9
+digits → 400, 8 → 201) and in the bundle Metro served the phone; NOT DEVICE VERIFIED by sight.
