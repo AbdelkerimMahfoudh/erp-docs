@@ -50,3 +50,49 @@ Credentials (WhatsApp WABA/number/token/app secret/approved EN-FR-AR templates; 
 `PLATFORM_MFA_KEY` per environment) · the backup retention period · legal review (privacy, terms, deletion, TSX-MR's
 identity) · the owner's decision on the app identifiers · Dukan ERP WhatsApp template texts · logo (four concepts
 delivered; awaiting the owner's choice).
+
+## Concurrent phase — CLAUDE-B (local, the owner's Windows PC): the final technical identity and a clean HTTP rerun
+
+Status of this phase: **IN_PROGRESS** · Owner: **CLAUDE-B (local)** · started_at_utc: 2026-10-13T03:22Z (the owner's
+brief; read-only takeover until this claim). The brief runs this phase beside the free-trial phase above and says to
+work around it without overwriting it. **The free-trial phase is not finished**: its owner is the cloud session
+(claimed 03:13Z); at 03:36Z no free-trial commit had reached any code repository. This phase therefore stays out of its
+files, and the status above stays theirs.
+
+HEADs at this claim (fetched 03:36Z; all four trees clean and level with their remotes): backend `reports-export`
+`aad5862`, mobile `reports-export` `02f2e4e`, website `tsx-public-site` `e892a27` (`main` `0417bfe`), docs `master`
+`bfa2e31`.
+
+**Scope (the owner's binding identity):** product **Dukan ERP**, operator **TSX-MR**, Expo slug `dukan-erp`, scheme
+`dukanerp`, iOS bundle identifier and Android package `mr.tsxmr.dukanerp`. Also the deep links, the visible-name audit,
+the QA script's MFA flow, a clean 51-check HTTP rerun on a fresh disposable database, the test gates, and the docs.
+
+**Kept clear of (the free-trial scope):** backend registration, platform and subscription, trial, template and messaging
+code; migration `0095`; the website's trial pages; the mobile registration and eligibility screens. The shared docs
+(this file, `SESSION_LOG.md`, `docs/21`, `24`, `67`, `74`, `75`) get additive sections only.
+
+**Precondition — no published or production identity exists for the old identifiers** (so the new ones are used and no
+second store identity is created):
+- App Store Connect: no record. There is no Apple Developer membership (`docs/67` §8, `docs/21`), so there has never
+  been a TestFlight or App Store build.
+- Google Play: no app. No document, script or credential refers to one.
+- EAS (`eas build:list`, read-only, account `salah_rim`, project `834d8b25-…`): three builds, all **Android preview,
+  internal distribution** of `mr.retailerp.app` (2026-09-01 errored, 2026-09-01 and 2026-09-08 finished). There are no
+  production, iOS or store builds.
+- Push: `expo-notifications` is not installed, so there are no push credentials. EAS Update: `expo-updates` is not
+  installed, so there are no channels.
+- `retailerp://`: nothing outside `app.json` produces or receives it. The backend's messages carry codes, not app links,
+  and the website has no app link.
+
+**Discrepancies reported:**
+1. The free-trial phase is still running (above).
+2. `eas.json`'s `development` profile asks for a development client, but `expo-dev-client` is not installed. The owner
+   works in Expo Go.
+3. The internal preview APKs of `mr.retailerp.app` may be installed on test phones. A build under the new package
+   installs **beside** them, not over them.
+4. `local-scripts/boutiques-local.ts` (outside every repository) still signs in to the console without the second factor
+   (already recorded on 2026-10-12).
+
+**Next intended action:** the mobile identity (`app.json`, then the deep-link and config tests), the backend's
+remaining old names in comments and package names, the website's metadata audit, then the clean HTTP rerun and the
+gates. Docs are updated last.
