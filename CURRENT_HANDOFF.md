@@ -41,6 +41,15 @@ idempotency, locking and audit. Trial instants are stored in **UTC** and shown i
 (never hardcoded). The exported mobile bundle test must prove every forbidden trial action absent. Working contract:
 the session's `SPEC.md` (scratch); its content goes into `docs/76` at the end.
 
+**Owner clarification (2026-10-13), binding:** website sign-in works **without** the message link. An eligible Owner who
+opens the website independently, signs in normally and has verified the required contacts sees the same trial card and
+can start the trial after explicit confirmation — whether the message was lost, failed, expired or consumed, or the
+device changed. The token only continues to the right page after authentication; it never activates anything; previews
+consume nothing; an expired or invalid token never removes eligibility; delivery is never a second eligibility
+requirement. **Integration with the concurrent identity phase:** no blind merge — inspect the exact diffs and HEADs,
+keep both changes, resolve overlaps deliberately, rerun the complete combined gates, never force-push, and record the
+final combined commit ancestry here.
+
 ## Databases
 
 - `phonestore` (the PC's development database, 3308): still at `0091_stabilization` — not touched by this session.
