@@ -58,13 +58,68 @@ final combined commit ancestry here.
 - Migrations 0092–0094 exist in `reports-export` and are not applied to the PC database; deploy the API and 0092–0094+
   together.
 
+## Checkpoint — 2026-10-13T07:55Z: the trial's first implementation, merged with the identity phase and pushed
+
+This checkpoint is green, but it is **not finished**. An adversarial review found 35 issues, and their fixes are in
+progress. The pushed commits hold the trial as first implemented.
+
+| Repository | Branch | HEAD (pushed) | Combined ancestry |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `c3aa803` | merge of `2c9ffbb` (the trial, `aad5862..2c9ffbb`, migrations `0095_free_trial` and `0096_trial_link_claimed`) and `5bdba80` (identity) |
+| `erp-mobile` | `reports-export` | `7b64918` | merge of `4620312` (the trial, `02f2e4e..4620312`) and `9af0401` (identity) |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`) | `4b61f79` | merge of `a355ea2` (the trial, `e892a27..a355ea2`) and `72b1be8` (identity) |
+
+### Integration with the identity phase (the owner's clarification)
+
+- **No blind merge.** The two sides were compared file by file. The merges are `--no-ff` merge commits, with no rebase
+  and no force-push.
+- **Only two files are touched by both sides,** each in disjoint hunks, and both sides are kept:
+  - backend `.env.example`: the product name on line 2, plus the trial's two new variables;
+  - website `README.md`.
+- **One behavioural point of contact, in mobile:** `__tests__/deep-links.test.tsx` now also covers the restored sign-up
+  routes, and it passes.
+
+Combined gates on the merged trees:
+
+- **Backend:** `tsc` 0; Jest 224 suites, 4 156 passed, 3 skipped.
+- **Mobile:**
+  - `tsc` 0; lint 0 errors (29 warnings);
+  - Jest 17 suites, 206 passed;
+  - pure tests, 109 files passed;
+  - release configuration sound.
+- **Website:** typecheck 0; Vitest 15 files, 169 passed.
+
+### Verification so far
+
+**Migrations.** `0095` and `0096` were rehearsed on disposable MySQL only: a backup, a restore check and the reverse
+SQL. Existing businesses got no trial (20 / 20). **No shared database was touched.** The PC's `phonestore` is still at
+`0091_stabilization`, and `0092`–`0096` must arrive together with the matching API.
+
+**Real HTTP, run r4, on a disposable copy:**
+
+- 107 checks passed, through the 168-hour boundary and the expiry (sections A–O).
+- **M3 failed on an existing leak, not a trial defect:** the global exception filter logs the raw request URL, so a
+  `?t=` token reaches the API log. Fix in progress.
+- The run then stalled on a harness defect: the administrator's TOTP waited after the clock moved back. The harness is
+  fixed.
+
+### Open: the review's findings, being fixed now (cloud session)
+
+| Severity | Count | Findings |
+| --- | --- | --- |
+| Blocker | 3 | the mobile bundle audit and boundary test can be bypassed by other spellings and by letter case; the website timelines print raw UTC instants |
+| Major | 12 | the automatic send can hold verification past the app's 20 s timeout; a store or seat bought during a trial is charged twice; the trial card says read-only although paid access is approved; the terms say paid access is "arranged on this website"; a both-contacts Owner has no app path to verify the WhatsApp number; the zone name is cut on iPhone; plus others |
+| Minor | 19 | — |
+| Nit | 1 | — |
+
 ## Next intended action
 
-In progress (nothing committed yet in any code repository): backend — migration `0095_free_trial`, the computed trial
-states, the claim, setup links and automatic delivery, the website-only resend, the restored app registration routes,
-the deferred paid start; website — the Owner's trial card, `/account/trial`, console facts; mobile — restored sign-up and
-the display-only eligibility card with a committed bundle audit. Then review, migration rehearsal with backup/restore
-on a disposable MySQL in this cloud container, real HTTP (incl. the 168-hour boundary), screenshots, docs.
+1. The review fix round in the three code repositories.
+2. The full combined gates.
+3. The real-HTTP rerun on a disposable copy.
+4. The migration rehearsal again, if a migration changes.
+5. Website screenshots in EN, FR and AR at 375 and 1280 px.
+6. `docs/76` and D169+, `SESSION_LOG.md`, then `READY_FOR_HANDOFF` once all four trees are clean and pushed.
 
 ## Blockers carried over (`docs/75` §13)
 
