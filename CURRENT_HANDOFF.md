@@ -27,9 +27,19 @@ The plan was explained (findings, design, files, risks) and approved with three 
    extended or rewritten).
 
 Binding from the brief: the trial is claimed and activated **only on the website**, by the Owner, once per business,
-starting at the server's claim instant and ending exactly 168 hours later; no payment, no Super Admin approval; the app
-shows eligibility and sends setup instructions to verified contacts, with no claim, link, QR, WebView, price or
-subscription action; existing businesses get no trial; disposable data only.
+starting at the server's claim instant and ending exactly 168 hours later; no payment, no billing record, no grace, no
+renewal, no Super Admin approval; existing businesses get no trial; disposable data only.
+
+**Owner correction (2026-10-13, later the same day), binding:** the mobile app is **display-only** for the trial — no
+trial-related action button of any kind (no claim, no *Resend instructions*), no website link, QR code, WebView, claim
+token, claim API call, price or payment instruction; it shows only eligibility, "not started", the seven-day duration,
+whether the instructions were sent, the masked verified destination and an honest unavailable status. Setup
+instructions are sent **automatically** after contact verification; resending happens only after the Owner signs in on
+the **website** (or through the existing support process). **No Origin/Referer check** is used as a security boundary
+(none is implemented): the claim is protected by Owner authority, verified contacts, eligibility, the one-time token,
+idempotency, locking and audit. Trial instants are stored in **UTC** and shown in the **business's configured time zone**
+(never hardcoded). The exported mobile bundle test must prove every forbidden trial action absent. Working contract:
+the session's `SPEC.md` (scratch); its content goes into `docs/76` at the end.
 
 ## Databases
 
@@ -41,8 +51,11 @@ subscription action; existing businesses get no trial; disposable data only.
 
 ## Next intended action
 
-Backend: the trial's facts (migration `0095_free_trial`), the computed states, the claim, setup links and delivery, the
-restored registration routes, and the deferred paid start — then the website, then the mobile app, then the docs.
+In progress (nothing committed yet in any code repository): backend — migration `0095_free_trial`, the computed trial
+states, the claim, setup links and automatic delivery, the website-only resend, the restored app registration routes,
+the deferred paid start; website — the Owner's trial card, `/account/trial`, console facts; mobile — restored sign-up and
+the display-only eligibility card with a committed bundle audit. Then review, migration rehearsal with backup/restore
+on a disposable MySQL in this cloud container, real HTTP (incl. the 168-hour boundary), screenshots, docs.
 
 ## Blockers carried over (`docs/75` §13)
 
