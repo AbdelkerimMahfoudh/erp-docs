@@ -11273,3 +11273,86 @@ held commission); no pre-0084 database existed; MySQL 3308 was down and was star
   repositories) still signs in to the console without the second factor.
 - Nothing deployed, merged to production, purchased, published or applied to a live database; no DNS; no Apple step;
   `tsx-public-site` not merged.
+
+## 2026-10-13T03:22Z → 2026-10-13T05:25Z — CLAUDE-B (local, the owner's Windows PC) — the final technical identity and a clean HTTP rerun (`docs/75` §15–§19, D168 amended)
+
+**Brief and takeover.** The owner's brief of 2026-10-13: make the identity final (Dukan ERP / TSX-MR, slug `dukan-erp`,
+scheme `dukanerp`, bundle identifier and package `mr.tsxmr.dukanerp`), then rerun the 51 HTTP checks cleanly. It ran
+beside the free-trial phase, which is still IN_PROGRESS under the cloud session; the brief said to work around it.
+
+- **Claim:** `9dff495`, appended to the handoff without touching the free-trial block.
+- **HEADs at the claim:** backend `aad5862`, mobile `02f2e4e`, website `e892a27`, docs `bfa2e31`; all clean and level
+  with their remotes.
+- **Discrepancies reported:**
+  - the free-trial phase was unfinished;
+  - `eas.json`'s `development` profile needs `expo-dev-client`, which is not installed;
+  - internal preview APKs of `mr.retailerp.app` may be on test phones;
+  - the local script had no second factor;
+  - my memory note gave the PC database as 0087; it is 0091.
+
+**Precondition: no published identity.** There is no App Store Connect record and no Apple membership, and no Google
+Play app. EAS (`build:list`, read-only) holds three internal Android preview builds and no production or iOS build. No
+push, no update channel, and nothing outside `app.json` uses `retailerp://`. So the new identifiers were used, no second
+store identity exists, and the old scheme has no alias.
+
+**Identity: mobile `0a94e13` and `9af0401`, backend `33b671c`, website `72b1be8`.**
+
+- `app.json` carries the four identifiers; the npm names changed; the iOS prompts now name Dukan ERP.
+- The EAS project `834d8b25` is **kept**. Expo ties a project ID to one slug, so EAS waits for the owner to link a
+  `dukan-erp` project (`docs/44`). `expo start` is unaffected.
+- Proven:
+  - the configuration under all three EAS profiles;
+  - a scratch `expo prebuild` for Android, and for iOS with only the Windows filter bypassed: `applicationId` and
+    `PRODUCT_BUNDLE_IDENTIFIER` are `mr.tsxmr.dukanerp`, the name is "Dukan ERP", the only scheme `dukanerp`, and the
+    entitlements are empty;
+  - the release bundles (`expo export:embed`) and the embedded `app.config` contain the new identifiers and none of
+    the old;
+  - 32 deep-link tests run through Expo Router's own cold-start path.
+- Logo: none approved and none made; the template icon remains a blocker.
+
+**Real HTTP: 51 / 51 (HTTP 43 / 43, database integrity 8 / 8), run `1e4bbd`.**
+
+- A fresh dump of `phonestore` at 0091, read once, was migrated to 0094 on the copy.
+- Fixtures, the administrator and the keys were all generated per run; the API was built from `33b671c`.
+- Every check is classified and scoped to the run. The reversal's audit is counted by transaction id after a retry
+  and a refused second attempt.
+- The first attempt (`da6b3a`) answered 500 at its fixture. The cause: my new script had not stripped the PC
+  triggers' `phonestore_migrator` definer. Nothing was written; the copy was dropped, the script fixed, and the whole
+  run repeated.
+- The previous API's insert is still refused by the 0092 CHECK. Permission catalogue 73 / 73.
+
+**QA scripts: backend `8e4a372` and `5bdba80`.**
+
+- The tracked script gained the recovery-code path and never overwrites a person's enrolment.
+- Running it end to end found two defects, both fixed:
+  1. **ECONNRESET:** after a blocked event loop, a request went out on a closed keep-alive socket. Reproduced, then
+     fixed with one resend.
+  2. **`--verify` used `auth/logout-all`,** which signs every Owner out everywhere, a phone included. It now closes
+     only its own sessions.
+- Proven on disposable `prisma_qa_t*` schemas (93 migrations from empty): `--apply`, `--verify` 64 / 64, the
+  authenticator and recovery paths, the reset path, and a phone session that survives.
+- **The local copy was not edited.** `docs/patches/boutiques-local-0094.patch` brings it to the same flow and keyed
+  codes, and removes the same `logout-all`. Run through a guard-only scratch variant on a copy of the PC data at 0094:
+  69 checks pass, plus 1 failure from the owner's own sale; the phone session survived. Applying it is operator work,
+  after the PC database is migrated.
+
+**Tests.**
+
+- **Mobile:** `tsc` 0; lint 0 errors / 29 warnings; pure tests 106 files, 279 / 279; render 15 suites, 188 / 188; parity
+  3 742 × 3; Expo Doctor 20 / 21 (patch versions, pre-existing). Web export: blocked by Smart App Control (`lightningcss`
+  1.33.0).
+- **Backend:** `tsc` 0; Jest 212 suites, 3 861 passed, 3 skipped; validate and migrate status; secret scan clean (2 051
+  blobs, 321 commits).
+- **Website:** CI run 38344708273, all green: Vitest 119; Playwright 58; links 1 659, 0 broken; gitleaks clean; no old
+  name in the built site.
+
+**Docs:** `docs/21` (D168 amended), `24` §65, `44`, `64` (template drafts), `67`, `74`, `75` §15–§19,
+`docs/patches/`, this entry, the handoff.
+
+**Safety.**
+
+- Disposable databases only: `erp_rh_da6b3a`, `1e4bbd`, `2b28d6`, `284ab6` and `prisma_qa_tbb779a`, `t83623b`. All
+  dropped, grants revoked, run credentials and dumps deleted, junctions removed before deletion.
+- `phonestore` stayed at 0091; no live database exists.
+- Not done: no EAS project created or deleted, no store listing, no deploy, no merge, no provider or domain, no
+  device verification. No mobile trial button or link was added.

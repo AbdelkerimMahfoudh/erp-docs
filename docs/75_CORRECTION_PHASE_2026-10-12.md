@@ -226,3 +226,316 @@ The owner reviews this phase and decides the app identifiers and the legal/reten
 database restored from a fresh backup: apply 0092–0094 with the API from `reports-export` in one window, enrol each
 administrator with a CLI token, and run the device checklist `docs/24` §64. `tsx-public-site` stays unmerged until those
 inputs exist; no live migration until the owner approves the runbook.
+
+## 15. The final technical identity (2026-10-13)
+
+The owner's brief of 2026-10-13 fixed the identity before any store publication (`docs/21` D168, as amended). CLAUDE-B
+(local) did it beside the free-trial phase (cloud), touching none of its files.
+
+| Field | Before | Now |
+| --- | --- | --- |
+| Product | Dukan ERP (D168) | **Dukan ERP** |
+| Operator | TSX-MR | **TSX-MR**, for operator and legal attribution only |
+| Expo slug | `phonestore-erp` | **`dukan-erp`** |
+| URL scheme | `retailerp` | **`dukanerp`**, with no alias |
+| iOS bundle identifier | `mr.retailerp.app` | **`mr.tsxmr.dukanerp`** |
+| Android application ID / package | `mr.retailerp.app` | **`mr.tsxmr.dukanerp`** |
+| npm packages | `phonestore-erp-mobile`, `phonestore-erp-backend` | `dukan-erp-mobile`, `dukan-erp-backend` |
+| EAS project | `834d8b25-2737-46e8-b911-3eac6d85c2fb`, slug `phonestore-erp`, account `salah_rim` | **unchanged** (§15.3) |
+
+### 15.1 No store or production identity existed
+
+- **App Store Connect:** no record exists, because there is no Apple Developer membership (`docs/67` §8). There has never
+  been an iOS, TestFlight or App Store build.
+- **Google Play:** no app. No document, script or credential refers to one.
+- **EAS** (`eas build:list`, read-only): three builds, all Android `preview` with internal distribution for
+  `mr.retailerp.app`. One errored on 2026-09-01; the others finished on 2026-09-01 and 2026-09-08. There is no
+  production or store build.
+- **Push and updates:** `expo-notifications` and `expo-updates` are not installed. So there are no push credentials
+  and no update channel. The generated iOS entitlements are empty, and `Expo.plist` has updates disabled.
+- **`retailerp://`:** nothing outside `app.json` produced or received it. The backend's messages carry codes, not app
+  links. The website has no app link and no store link.
+
+**Consequence:** the new identifiers are used, no second store identity exists, and `retailerp://` was removed with no
+alias.
+
+### 15.2 What changed, and what deliberately did not
+
+- **Mobile `0a94e13`:**
+  - `app.json`: slug, scheme, `ios.bundleIdentifier`, `android.package`.
+  - Every iOS system prompt now names Dukan ERP. The plugin defaults read "Allow $(PRODUCT_NAME)…", which shows as
+    "DukanERP". Now:
+    - photos (expense receipts): *Dukan ERP opens your photos only when you choose a receipt picture for an expense.*
+    - microphone: *Dukan ERP does not record sound.*
+    - Face ID: *Dukan ERP does not use Face ID.*
+
+    The microphone and Face ID strings stay because their modules link those APIs. Removing the string risks Apple's
+    upload check for missing purpose strings. Neither prompt is ever shown.
+  - `expo-image-picker` is now listed with its texts.
+  - The npm name, the lockfile name, and the Tailwind comment.
+  - New tests: `lib/app-identity.test.ts` and `__tests__/deep-links.test.tsx`.
+  - `9af0401` corrects a section reference.
+- **Backend `33b671c`:** the README, the `.env.example` and `docker-compose.yml` comments, and the package name.
+- **Website `72b1be8`:** one README line. The site already said Dukan ERP everywhere.
+- **Unchanged, on purpose:**
+  - Database, user and folder names (`phonestore`, `phonestore_app`, `phonestore_migrator`, …). They are technical
+    identifiers, not the product's name.
+  - The audit history.
+  - The `PATCHED (PhoneStoreERP)` comments inside `patches/expo-camera+57.0.5.patch`. They are native source comments
+    and are not shipped.
+  - No migration was made for naming.
+
+### 15.3 EAS: the project keeps its ID, and builds wait for the owner
+
+Expo documents that *"A project ID is associated with a single slug, which cannot be changed"*
+(expo.fyi/eas-project-id). Every EAS command that resolves the project therefore refuses with:
+`Project config: Slug for project identified by "extra.eas.projectId" (phonestore-erp) does not match the "slug"
+field (dukan-erp)`.
+
+As the brief requires, the ID was neither deleted nor replaced, and no project was created. This is **blocked on the
+owner**; the exact steps are in `docs/44`, "Store identity — the operator's steps".
+
+`expo start` is not affected. With Metro started online as usual, the Expo Go scope key comes from the server by project
+ID, so Expo Go's storage (session, device credential, queued offline items) is unchanged.
+
+- **Offline starts:** an offline start derives the key from the local slug, so it now opens a fresh scope. Keep starting
+  Metro online.
+- **Linking a new project:** this means a new scope. Drain every phone's queued exchanges first; the phones will sign in
+  again and verify their device again.
+- **Android signing:** the old project's Android keystore belongs to `mr.retailerp.app` and is not reused. EAS generates
+  an upload key for `mr.tsxmr.dukanerp` on the first build.
+- **iOS credentials:** these need the Apple membership. No team ID, key or ownership was invented.
+
+### 15.4 Deep links
+
+The only scheme is `dukanerp://`. Expo Router opens it; there is no hand-written parser and no `+native-intent`.
+
+- **Codes, not links.** Verification, password reset, invitations and deletion all use codes typed in the app, so no
+  message carries an app link.
+- **Notifications.** In-app notifications carry paths (`actionLink`); push notifications are not built.
+
+`__tests__/deep-links.test.tsx` (32 tests) opens links through Expo Router's own iOS cold-start path
+(`Linking.getLinkingURL()` → `extractExpoPathFromURL` → `getStateFromPath`). It runs over the app's real route files,
+with stub screens. It covers:
+
+- **Screens:** sign-in, branch choice, stores, access, the closed-business screen, the account and its deletion,
+  notifications, a sale, a sale period with its query, a unit by IMEI, an exchange, and the legacy `hub/money`.
+- **Edge cases:** the bare scheme, and an unknown address (the not-found screen).
+- **Server notification targets:** every destination a server notification carries (`/analytics`, `/closing`,
+  approvals, a catalogue item with and without `?unit=`, returns, transfers).
+- **The sign-in guard** (`entryRoute`):
+  - signed out → sign-in;
+  - no branch → branch choice;
+  - signed in with a branch → the record;
+  - a closed business → the refusal, while the person's own account and deletion stay open;
+  - restoring → nothing moves.
+- **No secret in a link:** no route segment, and no screen parameter, is named after a code, token, password or secret.
+
+### 15.5 Proven from what a build generates
+
+- **Configuration.** `lib/app-identity.test.ts` (9 tests) resolves the configuration with `@expo/config` under each
+  EAS profile's environment (development, preview, production) and gets the same identity each time. It also reads the
+  native files through Expo's introspection: the home-screen name, the URL schemes, the package, and the system
+  prompts.
+- **Native projects.** `expo prebuild` ran on a scratch copy of `0a94e13`. On Windows, Expo CLI drops `ios`; the
+  scratch run bypassed only that filter.
+  - Android: `applicationId` and `namespace` are `mr.tsxmr.dukanerp`; `rootProject.name` and `app_name` are
+    "Dukan ERP"; the Kotlin package is `mr/tsxmr/dukanerp`; the only VIEW scheme is `dukanerp`.
+  - iOS: `PRODUCT_BUNDLE_IDENTIFIER` is `mr.tsxmr.dukanerp` in Debug and Release; `CFBundleDisplayName` is "Dukan ERP";
+    the URL schemes are `dukanerp` and `mr.tsxmr.dukanerp`; every purpose string names Dukan ERP; the entitlements are
+    empty.
+  - No old identifier appears anywhere in either tree.
+- **Release bundles.** `expo export:embed` was run for Android and iOS, as Gradle and Xcode run it, together with the
+  embedded `app.config` from `expo-constants`.
+  - Each JS bundle contains "Dukan ERP" 6 times.
+  - The embedded config contains `dukan-erp`, `dukanerp` and `mr.tsxmr.dukanerp`.
+  - None of the artifacts contains `Retail ERP`, `retailerp`, `retailerp://`, `phonestore-erp` or `mr.retailerp.app`.
+- **Mutation check.** Putting the old scheme back as an alias fails 6 of the 9 identity tests.
+
+### 15.6 Visible names, the logo, and observations
+
+- **Branding.** D168 had already renamed every visible surface. This phase adds the iOS prompts (§15.2) and the WhatsApp
+  template drafts in `docs/64`, which now say Dukan ERP and must be registered at Meta under that name.
+- **Website.** CI run 38344708273 shows no old name in the 52 built files. Titles read "TSX-MR — …" for the
+  organisation's pages and "Dukan ERP — TSX-MR" for the product page. Arabic pages render `dir="rtl"`.
+- **Logo: release blocker.** No approved logo is in the repository. `app.json` has no `icon`, so a build shows the Expo
+  template's icon, and the splash shows the template's plain mark. Nothing was drawn or rendered from text. The owner
+  chooses among the four concepts.
+- **Observation, not changed: Android `RECORD_AUDIO`.** It is declared because `expo-image-picker` adds it; the app
+  never records. Decide before the Play listing: `"microphonePermission": false` on that plugin, or
+  `android.blockedPermissions`.
+- **Observation, not changed: iOS prompts are English only**, as the camera's was before.
+- **Observation, not changed: Expo Doctor** reports 10 Expo patch versions behind the SDK. This was already recorded as
+  owed; `expo-camera` is pinned by our native patch.
+
+### 15.7 Upgrading from the current builds
+
+A native build of `mr.tsxmr.dukanerp` installs **beside** an internal preview APK of `mr.retailerp.app`; it does not
+replace it. Nothing carries over between them. Drain the old app's queue, then uninstall it. Expo Go development is
+unchanged (§15.3).
+
+## 16. Clean real-HTTP rerun (2026-10-13)
+
+**Harness.** These are the correction phase's 51 checks, now on a **fresh** disposable database per run. Every check is
+classified:
+
+- **[HTTP]:** asserts on HTTP responses only.
+- **[DB]:** an integrity check by SQL on the copy. These are counted separately and never as an HTTP pass.
+
+None was weakened. The changes:
+
+- The raced key's row count moved into the database row check.
+- The reversal now also retries under its own key (the same reversal is returned) and tries another key (`409
+  already_reversed`). Its audit is then counted **by the transaction's id**: exactly one.
+- "Another company's provider" is chosen outside Boutique 5.
+- The MFA audit is scoped to this run's administrator.
+- "Records kept" compares counts before and after the closure.
+- The by-route check covers both directions.
+- The TOTP issuer must read Dukan ERP.
+
+**Run `1e4bbd`:**
+
+- **The copy.** A new `mysqldump --single-transaction` of `phonestore` at 0091, read once, was loaded into
+  `erp_rh_1e4bbd`. `migrate status` listed 3 pending migrations; `migrate deploy` applied 0092–0094 in 4.2 s; status
+  was then up to date. Drift matches the 2026-10-12 baseline (562 known lines), and `prisma validate` passes.
+- **Fixtures.** All are generated per run:
+  - Boutiques 5 and 6: their owners get a run password (argon2id, by the backend's library), and Boutique 6 gets a test
+    number, an address and a city.
+  - The administrator `qa-admin-1e4bbd@test.local` is created by the backend's CLI, with a server enrolment token.
+  - A random MFA key and pepper.
+  - The API is built from backend `33b671c`.
+- **Result.** **51 / 51: HTTP 43 / 43, database integrity 8 / 8.** No answer was 500 or above.
+- **The 8 DB checks:**
+  - one row under each idempotency key;
+  - exactly one audit entry for the reversal;
+  - the commission immutable for the application user;
+  - the MFA secret sealed at rest;
+  - this administrator's MFA events audited;
+  - no secret or recovery code in the platform audit;
+  - nothing personal left after the closure;
+  - the closed business's records kept (8 exchanges, 0 sales, the same before and after).
+- **Coverage:**
+  - the agent lifecycle;
+  - the commission typed and paid by the customer;
+  - reversal and audit uniqueness;
+  - tenant isolation;
+  - administrator MFA and step-up;
+  - business closure;
+  - malformed requests;
+  - idempotent retries and a race.
+
+**An earlier attempt, honestly recorded.** Run `da6b3a` answered `500` to the fixture opening Boutique 5's day:
+`TRIGGER command denied to user 'phonestore_migrator'`. The PC's triggers are defined by `phonestore_migrator`, whose
+rights cover only `phonestore`, so they fail on a copy. The previous phase stripped the definer from its dump; my new
+script had not. Nothing was written: the request rolled back and no journey ran. The copy was dropped, the script fixed,
+and the complete run repeated from a new copy (`1e4bbd`).
+
+**Also on the migrated copy:**
+
+- The previous API's exchange insert is still refused: `ERROR 3819 … ck_agent_transactions_commission_manual`. Deploy
+  the API and 0092–0094 together.
+- Permission catalogue: on a further fresh copy (`2b28d6`), 73 / 73 canonical keys are present and the grants are
+  complete.
+
+**Teardown.**
+
+- Every API was stopped and every temporary grant revoked; `phonestore_app` is back to `phonestore.*` only.
+- Every disposable database was dropped.
+- The run files holding test credentials or PC data were deleted.
+- `phonestore` stayed at `0091_stabilization` throughout.
+- No live database exists, and none was touched.
+
+## 17. The QA scripts and the local copy (2026-10-13)
+
+**Tracked: `erp-backend/scripts/qa-boutiques.ts`** (`8e4a372`, `5bdba80`). The administrator's flow:
+
+- the password;
+- the factor the script provisions (derived from the API's `PLATFORM_MFA_KEY`) when the administrator has none;
+- its code, or, for an administrator a person enrolled with an authenticator app, one recovery code from
+  `QA_ADMIN_RECOVERY_CODE`, spent once and never printed;
+- a step-up before each grant.
+
+A person's enrolment is never overwritten: `--apply` refuses and names the server reset. Two defects were found by
+running the script end to end for the first time since 0094:
+
+1. **ECONNRESET.** Reading a code back blocks the script for seconds, past the API's keep-alive, so the next request
+   went out on a closed socket. This was reproduced with a blocked event loop. Such a request is now sent once more.
+2. **`--verify` signed every Owner out everywhere.** It ended with `auth/logout-all` for every Owner, which also signs a
+   phone out. It now closes only its own sessions, and so do registration and stocking.
+
+**Results on disposable `prisma_qa_t*` schemas, built from all 93 migrations, empty:**
+
+- `--apply`: 10 boutiques; `--verify` 64 / 64.
+- App-enrolled administrator:
+  - the dry run reports it;
+  - `--verify` stops without a recovery code and passes with one;
+  - `--apply` refuses.
+- After `platform-admin-mfa.ts enrolment-token`: `--apply` re-provisions, and `--verify` passes 64 / 64.
+- A separate "phone" session stays signed in after `--verify`.
+- Repeated runs leave the number of open Owner sessions unchanged.
+- No password, code or key appears in any output or the API log.
+
+**Local: `local-scripts/boutiques-local.ts`** is outside every repository and was **not edited**: it is the same file
+as on 2026-10-05, md5 `66fa0dce…`. The focused patch is `docs/patches/boutiques-local-0094.patch` (+126 / −32). It
+brings the copy to the same flow and keyed codes (0093). Its `--verify` used `logout-all` and would have signed the
+owner's phone out of every boutique.
+
+The patched file was run through a scratch variant whose only difference is the database guard, against a disposable
+copy of the PC data at 0094:
+
+- the dry run says "would be reset";
+- `--apply` provisioned the factor and signed in with password and code;
+- `--verify` passed 69 checks, with 1 failure from the owner's own data (Boutique 2 sold a phone: 39 of 40);
+- a phone session opened first stayed signed in.
+
+**Operator step.** Apply it only once the PC database has 0092–0094 with the matching API:
+
+```
+cd C:\wamp64\www\ERP
+git -c core.autocrlf=false apply -p1 erp-docs/docs/patches/boutiques-local-0094.patch
+```
+
+Then run the script from `erp-backend` as before, with `PLATFORM_MFA_KEY` in `erp-backend/.env`, the API's own key.
+
+One remark, not patched: the copy opens a never-opened day with `decision: 'keep'`, which the server refuses for a
+never-counted drawer (D146). This is reached only when a boutique is stocked for the first time.
+
+## 18. Test totals (2026-10-13)
+
+| Suite | Result |
+| --- | --- |
+| Mobile `tsc` | 0 errors |
+| Mobile lint | 0 errors, 29 warnings (the baseline; none in this phase's files) |
+| Mobile pure tests | **106 files, 279 / 279** (the identity test included) |
+| Mobile render (Jest, two workers) | **15 suites, 188 / 188** (deep links 32 included) |
+| EN / FR / AR parity | 3 742 keys × 3, the same order, no duplicates |
+| Mobile release bundles and embedded config | identity audit **PASS** (§15.5) |
+| Mobile native projects (prebuild, scratch) | package, bundle identifier, name and schemes as §15.5 |
+| Expo Doctor | 20 / 21 (patch versions behind — §15.6) |
+| Mobile web export and route export | **not run**: Smart App Control blocks `lightningcss` 1.33.0 (*"An Application Control policy has blocked this file"*); the setting was not changed |
+| Backend `tsc` | 0 errors |
+| Backend Jest | **212 suites, 3 861 passed, 3 skipped** |
+| Backend `prisma validate`, `migrate status` (disposable) | valid; up to date after 0092–0094 |
+| Permission catalogue (disposable at 0094) | 73 / 73 |
+| Backend secret scan | full history clean (2 051 blobs, 321 commits); working tree clean |
+| Real HTTP | **51 / 51 (HTTP 43 / 43, DB 8 / 8)** — §16 |
+| Website (CI run 38344708273 on `72b1be8`) | typecheck; Vitest **119 / 119** (13 files); production build refused as designed (11 inputs and legal blockers); preview 52 files; links 38 pages, 1 659 links, 0 broken; bundle audit PASS; gitleaks history and dist clean; Playwright **58 / 58** (EN/FR/AR, RTL asserted) |
+
+## 19. Blockers and the next safe step (2026-10-13)
+
+**Blocked on the owner:**
+
+1. **Link an EAS project named `dukan-erp`** (`docs/44`). This blocks every EAS build.
+2. **The Apple Developer membership and an App Store Connect record** for `mr.tsxmr.dukanerp`, and a **Google Play app**
+   `mr.tsxmr.dukanerp`.
+3. **The logo:** choose among the four concepts.
+4. **WhatsApp templates** registered at Meta as Dukan ERP (`docs/64`).
+5. **`RECORD_AUDIO`** (§15.6).
+
+**Unchanged from §13:** the email provider, `PLATFORM_MFA_KEY` per environment, the backup retention period, and legal
+review.
+
+**Not done:**
+
+- **Device verification:** `docs/24` §65 needs a new native build on a physical phone. Nothing is claimed.
+- **`tsx-public-site`:** not merged; no authorisation.

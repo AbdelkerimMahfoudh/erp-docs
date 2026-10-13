@@ -100,9 +100,9 @@ delivery state of the challenge its message id belongs to.
 
 | Template (config key) | Category | EN | FR | AR |
 |---|---|---|---|---|
-| `auth.otp` (`WHATSAPP_TEMPLATE_AUTH_OTP`) | AUTHENTICATION (Meta's fixed layout: code + copy button) | *{{1}} is your Retail ERP verification code. It expires in 5 minutes.* | *{{1}} est votre code de vérification Retail ERP. Il expire dans 5 minutes.* | *{{1}} هو رمز التحقق الخاص بك في Retail ERP. تنتهي صلاحيته خلال 5 دقائق.* |
-| `account.deletion` (`WHATSAPP_TEMPLATE_ACCOUNT_DELETION`) | UTILITY | *Account-deletion code: {{1}}. Enter it in Retail ERP to delete your account. This cannot be undone. If you did not ask for this, do not share the code. The code expires in {{2}} minutes.* | *Code de suppression de compte : {{1}}. Saisissez-le dans Retail ERP pour supprimer votre compte. Cette action est irréversible. Si vous n'êtes pas à l'origine de cette demande, ne partagez pas ce code. Le code expire dans {{2}} minutes.* | *رمز حذف الحساب: {{1}}. أدخله في Retail ERP لحذف حسابك. لا يمكن التراجع عن هذا الإجراء. إذا لم تطلب ذلك، فلا تشارك الرمز. تنتهي صلاحية الرمز خلال {{2}} دقيقة.* |
-| `account.deleted` (`WHATSAPP_TEMPLATE_ACCOUNT_DELETED`) | UTILITY | *Retail ERP: {{1}} has been deleted. Records required by law are kept without your personal details.* | *Retail ERP : {{1}} a été supprimé. Les documents exigés par la loi sont conservés sans vos données personnelles.* | *Retail ERP: تم حذف {{1}}. يُحتفظ بالسجلات التي يوجبها القانون من دون بياناتك الشخصية.* |
+| `auth.otp` (`WHATSAPP_TEMPLATE_AUTH_OTP`) | AUTHENTICATION (Meta's fixed layout: code + copy button) | *{{1}} is your Dukan ERP verification code. It expires in 5 minutes.* | *{{1}} est votre code de vérification Dukan ERP. Il expire dans 5 minutes.* | *{{1}} هو رمز التحقق الخاص بك في Dukan ERP. تنتهي صلاحيته خلال 5 دقائق.* |
+| `account.deletion` (`WHATSAPP_TEMPLATE_ACCOUNT_DELETION`) | UTILITY | *Account-deletion code: {{1}}. Enter it in Dukan ERP to delete your account. This cannot be undone. If you did not ask for this, do not share the code. The code expires in {{2}} minutes.* | *Code de suppression de compte : {{1}}. Saisissez-le dans Dukan ERP pour supprimer votre compte. Cette action est irréversible. Si vous n'êtes pas à l'origine de cette demande, ne partagez pas ce code. Le code expire dans {{2}} minutes.* | *رمز حذف الحساب: {{1}}. أدخله في Dukan ERP لحذف حسابك. لا يمكن التراجع عن هذا الإجراء. إذا لم تطلب ذلك، فلا تشارك الرمز. تنتهي صلاحية الرمز خلال {{2}} دقيقة.* |
+| `account.deleted` (`WHATSAPP_TEMPLATE_ACCOUNT_DELETED`) | UTILITY | *Dukan ERP: {{1}} has been deleted. Records required by law are kept without your personal details.* | *Dukan ERP : {{1}} a été supprimé. Les documents exigés par la loi sont conservés sans vos données personnelles.* | *Dukan ERP: تم حذف {{1}}. يُحتفظ بالسجلات التي يوجبها القانون من دون بياناتك الشخصية.* |
 
 For `account.deleted`, `{{1}}` is the localised phrase *your login* / *your business and every login in it*.
 
@@ -182,3 +182,12 @@ operator task with the same code sent by hand. Until decided, **this is a releas
   must be resubmitted to Meta as **Dukan ERP** (D168).
 - **Email** (D166): a provider boundary exists (Resend, inert); SPF, DKIM and DMARC on the sending domain are required
   before `EMAIL_CHANNEL=resend`; deletion codes stay WhatsApp-only.
+
+## The template drafts say Dukan ERP (2026-10-13)
+
+The three WhatsApp templates under "The approved copy to register" now read **Dukan ERP** in EN, FR and AR: `auth.otp`,
+`account.deletion` and `account.deleted`. Only the product name changed; every other word, the category and the
+placeholders are as before.
+
+They are drafts, registered at Meta by the owner under these names before WhatsApp is switched on (D166, D168). The app's
+identifiers are final (`docs/21` D168, as amended): the messages name the product, and carry a code, never an app link.

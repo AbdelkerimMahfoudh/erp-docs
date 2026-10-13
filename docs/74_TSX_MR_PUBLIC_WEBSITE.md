@@ -383,3 +383,31 @@ WhatsApp pricing (rate card not shown publicly per country in the fetched pages)
 - Package description names Dukan ERP (`fa3c3fe`).
 - CI: run 38249387941 on `e892a27` green — Vitest 119/119, Playwright 58/58, gitleaks clean. `tsx-public-site` stays
   **unmerged**.
+
+## Final technical identity (2026-10-13)
+
+- **B-11 (names): done in the code.**
+  - The app's name, login, permission texts and PDFs, and the API title, were renamed by D168.
+  - The app's identifiers are now final (D168, as amended): slug `dukan-erp`, scheme `dukanerp`, iOS bundle identifier
+    and Android package `mr.tsxmr.dukanerp`.
+  - **Still open:** the WhatsApp templates. Their drafts in `docs/64` now say Dukan ERP and must be registered at Meta
+    under that name, by the owner.
+- **The site needed no change for the new identifiers.** It opens no app link and links to no store. Only the README's
+  last "Electronics Retail Management System" was replaced (`72b1be8`).
+  - **When the store records exist:** the Play link is `https://play.google.com/store/apps/details?id=mr.tsxmr.dukanerp`.
+    The App Store link uses the numeric ID that App Store Connect assigns; it is not known yet and not invented.
+- **Branding audit (CI run 38344708273 on `72b1be8`, all green):**
+  - no "Retail ERP", "phonestore" or old identifier in any of the 52 built files;
+  - "TSX-MR — …" titles the organisation's pages, and "Dukan ERP — TSX-MR" the product page, in EN, FR and AR;
+  - Arabic pages render `lang="ar" dir="rtl"`, asserted by Playwright;
+  - the web manifest and `og:site_name` are TSX-MR, the organisation (D163).
+- **Gates in that run:**
+  - typecheck;
+  - Vitest 119 / 119;
+  - the production build refused as designed (11 inputs and the legal blockers);
+  - the preview built;
+  - links: 38 pages, 1 659 links, 0 broken;
+  - bundle audit PASS;
+  - gitleaks history and dist clean;
+  - Playwright 58 / 58.
+- **`tsx-public-site` stays unmerged.** Nothing authorises the merge.

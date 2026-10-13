@@ -333,3 +333,30 @@ have no UI until it is built (`docs/68` §8).
 - Release blocked until: the WhatsApp delivery proof (en, fr, ar), the backup retention period, legal inputs
   (`docs/75` §13), and the owner's decision on the app identifiers (D168).
 - Phones: an exchange queued by an earlier build is refused `commission_required` and fixed by *Edit and send*.
+
+## Final technical identity (2026-10-13) — release conditions
+
+The identity is final before any store publication (`docs/21` D168, as amended; `docs/75` §15). The App Store Connect
+record and the Google Play app are created for **`mr.tsxmr.dukanerp`**, named **Dukan ERP**, with **TSX-MR** as seller
+and developer. This supersedes `mr.retailerp.app` in §8. Nothing had been published under the old identifiers.
+
+New release conditions:
+
+1. **An EAS project named `dukan-erp` linked by the owner** (`docs/44`, "Store identity — the operator's steps"). Every
+   EAS build is blocked until then; the old project ID stays as it was.
+2. **The approved logo.** `app.json` has no icon, so a build shows the Expo template's icon. This blocks external
+   TestFlight testing and the store.
+3. **The microphone permission on Android.** `RECORD_AUDIO` is declared because `expo-image-picker` adds it, but the app
+   never records. Decide before the Play listing (`docs/75` §15.6).
+4. **A new native build verified on a physical phone** (`docs/24` §65): the name, the package, the scheme, the prompts,
+   and the upgrade beside an old preview APK.
+
+Already proven, without a device:
+
+- the configuration under every EAS profile;
+- the native projects a build generates;
+- the release bundles and the embedded configuration;
+- `dukanerp://` links through Expo Router;
+- real HTTP **51 / 51** (HTTP 43, database integrity 8) on a fresh copy at 0094.
+
+**GO / NO-GO.** Internal TestFlight additionally needs condition 1. Every other condition of §8 stands.

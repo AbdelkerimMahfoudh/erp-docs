@@ -73,48 +73,126 @@ Credentials (WhatsApp WABA/number/token/app secret/approved EN-FR-AR templates; 
 identity) · the owner's decision on the app identifiers · Dukan ERP WhatsApp template texts · logo (four concepts
 delivered; awaiting the owner's choice).
 
-## Concurrent phase — CLAUDE-B (local, the owner's Windows PC): the final technical identity and a clean HTTP rerun
+## Concurrent phase — CLAUDE-B (local, the owner's Windows PC): the final technical identity — COMPLETE
 
-Status of this phase: **IN_PROGRESS** · Owner: **CLAUDE-B (local)** · started_at_utc: 2026-10-13T03:22Z (the owner's
-brief; read-only takeover until this claim). The brief runs this phase beside the free-trial phase above and says to
-work around it without overwriting it. **The free-trial phase is not finished**: its owner is the cloud session
-(claimed 03:13Z); at 03:36Z no free-trial commit had reached any code repository. This phase therefore stays out of its
-files, and the status above stays theirs.
+**Status of this phase: COMPLETE.** It is ready for handoff on its own scope, with no owner (finished 2026-10-13T05:25Z).
 
-HEADs at this claim (fetched 03:36Z; all four trees clean and level with their remotes): backend `reports-export`
-`aad5862`, mobile `reports-export` `02f2e4e`, website `tsx-public-site` `e892a27` (`main` `0417bfe`), docs `master`
-`bfa2e31`.
+**Why the status at the top stays IN_PROGRESS.** The brief asked to restore `READY_FOR_HANDOFF` / `NONE`, but the
+status at the top belongs to the free-trial phase, which is still working in the cloud with no code pushed. Setting the
+whole file to `READY_FOR_HANDOFF` / `NONE` would invite another session onto that unfinished work, so it was not done;
+the discrepancy is reported to the owner. The free-trial phase's checkpoint already plans the deliberate integration:
+exact diffs, both changes kept, the combined gates, its final ancestry recorded here.
 
-**Scope (the owner's binding identity):** product **Dukan ERP**, operator **TSX-MR**, Expo slug `dukan-erp`, scheme
-`dukanerp`, iOS bundle identifier and Android package `mr.tsxmr.dukanerp`. Also the deep links, the visible-name audit,
-the QA script's MFA flow, a clean 51-check HTTP rerun on a fresh disposable database, the test gates, and the docs.
+### HEADs at the end of this phase
 
-**Kept clear of (the free-trial scope):** backend registration, platform and subscription, trial, template and messaging
-code; migration `0095`; the website's trial pages; the mobile registration and eligibility screens. The shared docs
-(this file, `SESSION_LOG.md`, `docs/21`, `24`, `67`, `74`, `75`) get additive sections only.
+All are pushed and every tree is clean.
 
-**Precondition — no published or production identity exists for the old identifiers** (so the new ones are used and no
-second store identity is created):
-- App Store Connect: no record. There is no Apple Developer membership (`docs/67` §8, `docs/21`), so there has never
-  been a TestFlight or App Store build.
-- Google Play: no app. No document, script or credential refers to one.
-- EAS (`eas build:list`, read-only, account `salah_rim`, project `834d8b25-…`): three builds, all **Android preview,
-  internal distribution** of `mr.retailerp.app` (2026-09-01 errored, 2026-09-01 and 2026-09-08 finished). There are no
-  production, iOS or store builds.
-- Push: `expo-notifications` is not installed, so there are no push credentials. EAS Update: `expo-updates` is not
-  installed, so there are no channels.
-- `retailerp://`: nothing outside `app.json` produces or receives it. The backend's messages carry codes, not app links,
-  and the website has no app link.
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `5bdba80` |
+| `erp-mobile` | `reports-export` | `9af0401` |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`) | `72b1be8` |
+| `erp-docs` | `master` | the commit carrying this section |
 
-**Discrepancies reported:**
-1. The free-trial phase is still running (above).
-2. `eas.json`'s `development` profile asks for a development client, but `expo-dev-client` is not installed. The owner
-   works in Expo Go.
-3. The internal preview APKs of `mr.retailerp.app` may be installed on test phones. A build under the new package
-   installs **beside** them, not over them.
-4. `local-scripts/boutiques-local.ts` (outside every repository) still signs in to the console without the second factor
-   (already recorded on 2026-10-12).
+### Commits
 
-**Next intended action:** the mobile identity (`app.json`, then the deep-link and config tests), the backend's
-remaining old names in comments and package names, the website's metadata audit, then the clean HTTP rerun and the
-gates. Docs are updated last.
+- **Docs claim:** `9dff495`.
+- **Mobile:**
+  - `0a94e13`: identity, iOS prompt texts, `lib/app-identity.test.ts`, `__tests__/deep-links.test.tsx`;
+  - `9af0401`: a reference fix.
+- **Backend:**
+  - `33b671c`: names;
+  - `8e4a372`: QA script recovery code, a person's enrolment left alone, closed-socket resend;
+  - `5bdba80`: QA script closes only its own sessions.
+- **Website:** `72b1be8`, the README.
+- **Docs (this commit):** D168 amended; `docs/24` §65; `docs/44` (the operator's steps); `docs/64` (template drafts
+  say Dukan ERP); `docs/67`; `docs/74`; `docs/75` §15–§19; `docs/patches/boutiques-local-0094.patch`; `SESSION_LOG.md`.
+
+### Identity
+
+The product is Dukan ERP, operated by TSX-MR:
+
+- slug `dukan-erp`;
+- scheme `dukanerp`, with no alias;
+- iOS bundle identifier and Android package `mr.tsxmr.dukanerp`.
+
+**No earlier store identity existed:**
+
+- no App Store Connect record;
+- no Google Play app;
+- no production or iOS build;
+- no push credentials;
+- no update channel;
+- only three internal Android preview builds.
+
+**The EAS project `834d8b25` is kept as it was, and blocked.** Its slug cannot change, so every EAS command waits for the
+owner to link a `dukan-erp` project (`docs/44`). `expo start` is unaffected.
+
+**The logo is not in the repository**, so a build shows the template icon. It is a release blocker.
+
+This resolves the "owner's decision on the app identifiers" listed among the blockers above.
+
+### Database and migrations
+
+- No migration was added.
+- `phonestore` is still at `0091_stabilization`.
+- 0092–0094 were applied only on disposable copies, every one dropped. Deploy the API and 0092–0094 together: the
+  previous API's exchange insert is still refused by the 0092 CHECK.
+
+### Verification
+
+- **Real HTTP:** **51 / 51 (HTTP 43 / 43, database integrity 8 / 8)** on a fresh copy, run `1e4bbd` (`docs/75` §16).
+- **Mobile:**
+  - `tsc` 0; lint 0 errors;
+  - pure tests 279 / 279; render 188 / 188;
+  - parity 3 742 × 3;
+  - the release bundles' identity audit passes, as does the prebuild inspection;
+  - Expo Doctor 20 / 21: patch versions behind, pre-existing;
+  - web export blocked by Smart App Control.
+- **Backend:**
+  - `tsc` 0;
+  - Jest 212 suites, 3 861 passed, 3 skipped;
+  - permission catalogue 73 / 73;
+  - secret scan clean.
+- **Website (CI run 38344708273):**
+  - all green: Vitest 119; Playwright 58; links 0 broken; gitleaks clean;
+  - no old name in the build.
+- **Device: not verified** (`docs/24` §65 needs a new native build).
+
+### Points of contact with the free-trial phase
+
+These are the files this phase changed that the free-trial phase may also change:
+
+- **`erp-mobile/app.json`:** identity fields, the `expo-secure-store`, `expo-camera` and `expo-image-picker` plugin
+  options.
+- **`package.json` / `package-lock.json`:** the `name` field only, in mobile and backend.
+- **The mobile tests:**
+  - `__tests__/deep-links.test.tsx` reads the real route tree, so restored registration routes are included
+    automatically;
+  - its "no secret in a link" checks scan every route's parameters;
+  - its signed-out cases do not name a registration route.
+- **`erp-backend/scripts/qa-boutiques.ts`:** the registration calls are unchanged.
+- **Backend `.env.example`:** line 2, a comment only.
+- **The docs:** every addition is an appended section. The D168 amendment sits under its own heading, not at the end
+  of `docs/21`, and `SESSION_LOG.md` was appended to.
+
+### Blockers (the owner's)
+
+- link an EAS project `dukan-erp`;
+- the Apple Developer membership and the App Store Connect record `mr.tsxmr.dukanerp`;
+- the Google Play app `mr.tsxmr.dukanerp`;
+- the logo;
+- WhatsApp templates at Meta under Dukan ERP;
+- `RECORD_AUDIO` on Android;
+- the email provider;
+- `PLATFORM_MFA_KEY` per environment;
+- the backup retention period;
+- legal review;
+- device verification (`docs/24` §65).
+
+### Next exact actions for the identity
+
+1. The owner links the EAS project (`docs/44`, step 2), then runs the first Android preview build of `mr.tsxmr.dukanerp`
+   and `docs/24` §65 on a physical phone.
+2. After the PC database receives 0092–0094 with the matching API, apply `docs/patches/boutiques-local-0094.patch` to
+   `local-scripts/boutiques-local.ts` (`docs/75` §17). That copy is operator work and was not edited.

@@ -168,3 +168,45 @@ oversight.
 
 Merging, deploying, buying, registering a domain, changing DNS, or taking a
 production backup. Every one of those is the owner's, and none was done.
+
+## Store identity — the operator's steps (2026-10-13)
+
+The app's identity is final (`docs/21` D168, as amended; `docs/75` §15):
+
+- Dukan ERP, operated by TSX-MR;
+- slug `dukan-erp`;
+- scheme `dukanerp`;
+- iOS bundle identifier and Android package `mr.tsxmr.dukanerp`.
+
+Nothing was published under the old identifiers. Each step below is the owner's: none was done, and no value here is
+invented.
+
+1. **Choose the Expo account that will own Dukan ERP.** Today's project, `834d8b25…`, belongs to `salah_rim`.
+2. **Link an EAS project named `dukan-erp`.** Expo will not rename the old project's slug.
+   - Create the project on expo.dev under that account and copy its ID. Then, in `erp-mobile`:
+     ```
+     npx eas-cli@latest init --id <the new project ID> --force
+     ```
+     `--force` replaces `extra.eas.projectId` in `app.json`.
+   - In the same commit, set `EAS_PROJECT_ID` in `lib/app-identity.test.ts` to that ID, and run
+     `node --test lib/app-identity.test.ts`.
+   - Do not delete the old project: it holds the build history. `npx eas-cli@latest project:info` (read-only) then
+     shows the link.
+3. **Before the first build of the new identity, drain every test phone.**
+   - Send each phone's queued exchanges.
+   - Linking a new project gives Expo Go a new storage scope: phones sign in again and verify their device again.
+   - An internal preview APK of `mr.retailerp.app` is a different app. Drain it, then uninstall it after the new build
+     is installed.
+4. **Android.** Run `npx eas-cli@latest build --platform android --profile preview`.
+   - Accept "Generate a new Android Keystore?": the old keystore belongs to `mr.retailerp.app`.
+   - Keep EAS's copy of the new key. It signs every future upload of `mr.tsxmr.dukanerp`.
+   - The Google Play app is created by the owner with package `mr.tsxmr.dukanerp`.
+5. **iOS.** This needs the Apple Developer membership. The team ID comes from Apple, never from here.
+   - The App Store Connect app record uses bundle identifier `mr.tsxmr.dukanerp`, name Dukan ERP and seller TSX-MR.
+   - Then run `npx eas-cli@latest build --platform ios --profile production`.
+   - Then run `npx eas-cli@latest submit --platform ios` for TestFlight. The remaining conditions are in `docs/67` §8 and
+     its later sections.
+6. **Do not use the `development` profile** unless `expo-dev-client` is installed deliberately (a dependency change).
+   The profile asks for a development client the project does not have.
+7. **Check the build itself, on a physical phone, against `docs/24` §65:** the name, the package, the scheme, the prompts
+   and the upgrade.

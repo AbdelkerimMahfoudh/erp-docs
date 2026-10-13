@@ -1,0 +1,288 @@
+diff --git a/local-scripts/boutiques-local.ts b/local-scripts/boutiques-local.ts
+index be5d502..5a05744 100644
+--- a/local-scripts/boutiques-local.ts
++++ b/local-scripts/boutiques-local.ts
+@@ -21,12 +21,21 @@
+ // Run from erp-backend (so its .env and node_modules are used):
+ //   NODE_PATH=./node_modules QA_PASSWORD=… npx ts-node --transpile-only \
+ //     --project tsconfig.json ../local-scripts/boutiques-local.ts [--apply|--verify]
++//
++// Since 0094 the platform administrator has a second factor (D167). PLATFORM_MFA_KEY must be the local API's own
++// key (erp-backend/.env, read here too). When admin@test.com has no factor, --apply provisions one derived from that
++// key, so every later run can compute its codes; sign-in is the password and a code, and each grant is preceded by a
++// step-up. An administrator a person enrolled with an authenticator app is left alone: --apply refuses (the grants
++// need that app's codes), and a --verify sign-in takes one of its recovery codes in QA_ADMIN_RECOVERY_CODE.
++// No password, code, key or token is ever printed.
+ // ===========================================================================
+ 
+ import { config as loadEnv } from 'dotenv';
+ import { PrismaClient } from '@prisma/client';
+-import { createHash as sha256 } from 'node:crypto';
++import { createHash as sha256, createHmac } from 'node:crypto';
+ import { HashingService } from '../erp-backend/src/common/security/hashing.service';
++import { open, parseMfaKey, seal } from '../erp-backend/src/platform/mfa/secret-box';
++import { base32Encode, stepAt, totpForStep } from '../erp-backend/src/platform/mfa/totp';
+ import { isValidImei, luhnValid } from '../erp-backend/src/inventory/imei.util';
+ import { newUuidV7Bin } from '../erp-backend/src/common/utils/uuid.util';
+ 
+@@ -239,19 +248,31 @@ interface Reply {
+   cookie: string | null;
+ }
+ 
++/**
++ * Reading a contact code back blocks this script for seconds, longer than the API keeps an idle connection: the next
++ * request can go out on the socket the API just closed and fail with ECONNRESET before the server reads it. Such a
++ * request is sent once more; any other failure is reported as it is.
++ */
++function closedSocket(e: unknown): boolean {
++  const code = (e as { cause?: { code?: string } })?.cause?.code;
++  return code === 'ECONNRESET' || code === 'UND_ERR_SOCKET' || code === 'EPIPE';
++}
++
+ async function call(method: string, path: string, opts: { body?: unknown; token?: string; branch?: string; cookie?: string } = {}): Promise<Reply> {
+   for (let attempt = 0; attempt < 20; attempt++) {
+-    const res = await fetch(`${API}/${path}`, {
+-      method,
+-      headers: {
+-        ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+-        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+-        ...(opts.branch ? { 'X-Branch-Id': opts.branch } : {}),
+-        ...(opts.cookie ? { Cookie: opts.cookie } : {}),
+-        'User-Agent': 'local-boutiques',
+-      },
+-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+-    });
++    const send = () =>
++      fetch(`${API}/${path}`, {
++        method,
++        headers: {
++          ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
++          ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
++          ...(opts.branch ? { 'X-Branch-Id': opts.branch } : {}),
++          ...(opts.cookie ? { Cookie: opts.cookie } : {}),
++          'User-Agent': 'local-boutiques',
++        },
++        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
++      });
++    const res = await send().catch((e: unknown) => (closedSocket(e) ? send() : Promise.reject(e)));
+     if (res.status === 429) {
+       const wait = Number(res.headers.get('retry-after')) || 15;
+       console.log(`    (rate limited on ${path}; waiting ${Math.min(60, wait)} s)`);
+@@ -273,17 +294,79 @@ function expectOk(r: Reply, what: string): any {
+ 
+ // ── Steps ──────────────────────────────────────────────────────────────────
+ 
++// ── The administrator's second factor (0094) ──────────────────────────────
++
++function mfaKey(): Buffer {
++  const key = parseMfaKey(process.env.PLATFORM_MFA_KEY);
++  if (!key) throw new Error('PLATFORM_MFA_KEY is not set: the administrator cannot complete a sign-in (0094).');
++  return key;
++}
++
++/** The factor this script provisions: derived from the local API's key, so a later run computes the same codes. */
++function qaAdminSecret(): string {
++  return base32Encode(createHmac('sha256', mfaKey()).update(`qa-admin-totp:${ADMIN_EMAIL}`).digest().subarray(0, 20));
++}
++
++let lastTotpStep = -1;
++/** A code for now — waiting for the next step when this one was already used (the server refuses a replay). */
++async function qaAdminCode(): Promise<string> {
++  while (stepAt(Date.now()) <= lastTotpStep) await new Promise((r) => setTimeout(r, 1_000));
++  lastTotpStep = stepAt(Date.now());
++  return totpForStep(qaAdminSecret(), lastTotpStep);
++}
++
++/** `derived`: the factor this script provisions (or none yet); `app`: an authenticator app a person enrolled. */
++let adminFactor: 'derived' | 'app' = 'derived';
++async function readAdminFactor(prisma: PrismaClient): Promise<void> {
++  const admin = await prisma.platformAdmin.findUnique({ where: { email: ADMIN_EMAIL }, select: { mfaSecretEnc: true, mfaEnabledAt: true } });
++  const enrolled = admin?.mfaEnabledAt != null && admin.mfaSecretEnc != null;
++  adminFactor = enrolled && open(admin.mfaSecretEnc, mfaKey()) !== qaAdminSecret() ? 'app' : 'derived';
++}
++
++function recoveryCode(): string {
++  const value = process.env.QA_ADMIN_RECOVERY_CODE?.trim();
++  if (!value) {
++    throw new Error(`${ADMIN_EMAIL} was enrolled with an authenticator app (or under another PLATFORM_MFA_KEY), whose codes this script cannot compute: set QA_ADMIN_RECOVERY_CODE to one of its recovery codes — it is spent on this sign-in.`);
++  }
++  return value;
++}
++
++/** Password, then the second factor — the derived code, or a recovery code of an app-enrolled administrator. */
++async function adminSignIn(pw: string): Promise<{ status: number; cookie: string | null }> {
++  const signIn = await call('POST', 'platform/admin/sign-in', { body: { email: ADMIN_EMAIL, password: pw } });
++  const cookie = signIn.cookie ?? (signIn.json?.sessionToken ? `erp_platform_session=${signIn.json.sessionToken}` : null);
++  if (signIn.status !== 200 || !cookie) return { status: signIn.status, cookie: null };
++  const factor = adminFactor === 'derived' ? { code: await qaAdminCode() } : { recoveryCode: recoveryCode() };
++  const verified = await call('POST', 'platform/admin/mfa/verify', { cookie, body: factor });
++  return { status: verified.status, cookie: verified.status === 200 ? cookie : null };
++}
++
++let steppedUpAt = 0;
++/** A grant needs a step-up on the session, good five minutes: renewed a minute before it lapses. */
++async function ensureStepUp(cookie: string, pw: string): Promise<void> {
++  if (Date.now() - steppedUpAt < 4 * 60_000) return;
++  const r = await call('POST', 'platform/admin/step-up', { cookie, body: { password: pw, code: await qaAdminCode() } });
++  if (r.status !== 200) throw new Error(`administrator step-up: ${r.status}`);
++  steppedUpAt = Date.now();
++}
++
+ async function ensureAdmin(prisma: PrismaClient, hashing: HashingService, pw: string): Promise<string> {
++  if (adminFactor === 'app') {
++    if (!APPLY) return 'enrolled with an authenticator app — left as it is; --apply would refuse';
++    throw new Error(`Refusing: ${ADMIN_EMAIL} was enrolled with an authenticator app, and the grants need step-up codes this script cannot compute. Reset that factor on the server first — npx ts-node prisma/platform-admin-mfa.ts enrolment-token ${ADMIN_EMAIL}, the token left unused — and run --apply again.`);
++  }
+   const existing = await prisma.platformAdmin.findUnique({ where: { email: ADMIN_EMAIL } });
+-  if (existing && existing.isActive && !existing.deletedAt && (await hashing.verify(existing.passwordHash, pw))) return 'present';
++  const enrolled = existing?.mfaEnabledAt != null && existing.mfaSecretEnc != null;
++  if (existing && existing.isActive && !existing.deletedAt && enrolled && (await hashing.verify(existing.passwordHash, pw))) return 'present';
+   if (!APPLY) return existing ? 'would be reset' : 'would be created';
+   const passwordHash = await hashing.hash(pw);
++  const factor = { mfaSecretEnc: seal(qaAdminSecret(), mfaKey()), mfaEnabledAt: new Date(), mfaLastStep: null, mfaFailedCount: 0, mfaLockedUntil: null };
+   if (existing) {
+-    await prisma.platformAdmin.update({ where: { email: ADMIN_EMAIL }, data: { passwordHash, name: ADMIN_NAME, isActive: true, deletedAt: null } });
++    await prisma.platformAdmin.update({ where: { email: ADMIN_EMAIL }, data: { passwordHash, name: ADMIN_NAME, isActive: true, deletedAt: null, ...factor } });
+     await prisma.platformAdminSession.updateMany({ where: { adminId: existing.id, revokedAt: null }, data: { revokedAt: new Date() } });
+     return 'reset';
+   }
+-  await prisma.platformAdmin.create({ data: { id: newUuidV7Bin(), email: ADMIN_EMAIL, name: ADMIN_NAME, passwordHash } });
++  await prisma.platformAdmin.create({ data: { id: newUuidV7Bin(), email: ADMIN_EMAIL, name: ADMIN_NAME, passwordHash, ...factor } });
+   return 'created';
+ }
+ 
+@@ -292,11 +375,14 @@ async function codeFor(prisma: PrismaClient, destination: string): Promise<strin
+   const row = await prisma.contactVerification.findFirstOrThrow({
+     where: { destination, consumedAt: null },
+     orderBy: { createdAt: 'desc' },
+-    select: { codeHash: true },
++    select: { codeHash: true, hashVersion: true },
+   });
++  // Version 2 is keyed with OTP_PEPPER (0093): read from the same environment the API uses.
++  const pepper = process.env.OTP_PEPPER ?? '';
++  const digest = (text: string) => (row.hashVersion === 2 ? createHmac('sha256', pepper) : sha256('sha256')).update(text).digest('hex');
+   for (let i = 0; i < 1_000_000; i++) {
+     const candidate = String(i).padStart(6, '0');
+-    if (sha256('sha256').update(`${destination}:${candidate}`).digest('hex') === row.codeHash) return candidate;
++    if (digest(`${destination}:${candidate}`) === row.codeHash) return candidate;
+   }
+   throw new Error(`could not recover the code for ${destination}`);
+ }
+@@ -322,7 +408,7 @@ async function provisionBoutique(n: number, prisma: PrismaClient, pw: string, ad
+     expectOk(await call('POST', 'platform/register/verify/start', { body: { continuation: reg.continuation.token, language: 'fr' } }), `verify start ${email}`);
+     const code = await codeFor(prisma, email);
+     const done = expectOk(await call('POST', 'platform/register/verify/confirm', { body: { continuation: reg.continuation.token, code } }), `verify ${email}`);
+-    if (done?.accessToken) await call('POST', 'auth/logout-all', { token: done.accessToken, body: {} });
++    if (done?.accessToken) await call('POST', 'auth/logout', { token: done.accessToken, body: { refreshToken: done.refreshToken } });
+   }
+   const found = expectOk(await call('GET', `platform/businesses?q=${encodeURIComponent(email)}`, { cookie: adminCookie }), `find ${email}`);
+   const row = (found.rows ?? []).find((r: any) => r.name === `Boutique ${n}`);
+@@ -330,23 +416,25 @@ async function provisionBoutique(n: number, prisma: PrismaClient, pw: string, ad
+   const status = row.subscription?.status ?? row.status ?? row.subscriptionStatus;
+   if (status !== 'activated') {
+     expectOk(
+-      await call('POST', `platform/businesses/${row.id}/activate-grant`, { cookie: adminCookie, body: { days: GRANT_DAYS, reason: GRANT_REASON, confirmPassword: pw } }),
++      await ensureStepUp(adminCookie, pw).then(() => call('POST', `platform/businesses/${row.id}/activate-grant`, { cookie: adminCookie, body: { days: GRANT_DAYS, reason: GRANT_REASON, confirmPassword: pw } })),
+       `activate Boutique ${n}`,
+     );
+   }
+   return { companyId: row.id, created: Boolean(reg.created) };
+ }
+ 
+-async function signIn(email: string, pw: string): Promise<{ token: string; branch: string }> {
++async function signIn(email: string, pw: string): Promise<{ token: string; refresh: string; branch: string }> {
+   const login = expectOk(await call('POST', 'auth/login', { body: { identifier: email, password: pw } }), `sign in ${email}`);
+   const branches = expectOk(await call('GET', 'auth/branches', { token: login.accessToken }), `branches ${email}`);
+   if (!Array.isArray(branches) || branches.length !== 1) throw new Error(`${email}: expected one branch, got ${Array.isArray(branches) ? branches.length : '?'}`);
+-  return { token: login.accessToken, branch: branches[0].id };
++  return { token: login.accessToken, refresh: login.refreshToken, branch: branches[0].id };
+ }
+ 
+ async function stockBoutique(n: number, pw: string): Promise<{ products: number; phones: number; accessories: number; stocked: boolean }> {
+-  const { token, branch } = await signIn(EMAIL(n), pw);
++  const { token, refresh, branch } = await signIn(EMAIL(n), pw);
+   const as = { token, branch };
++  // The Owner's session opened for this receipt is closed again — that one only, never the phone's.
++  const close = () => call('POST', 'auth/logout', { token, body: { refreshToken: refresh } });
+ 
+   const categories = expectOk(await call('GET', 'categories', as), 'categories');
+   const list: any[] = Array.isArray(categories) ? categories : categories.rows ?? categories.items ?? [];
+@@ -404,7 +492,10 @@ async function stockBoutique(n: number, pw: string): Promise<{ products: number;
+   const phones = shelf.reduce((s, l) => s + l.units, 0);
+   const accessories = ACCESSORIES.reduce((s, a) => s + a.quantity, 0);
+   const firstImei = (items[0] as { units: { identifier: string }[] }).units[0].identifier;
+-  if ((await call('GET', `units/${firstImei}`, as)).status === 200) return { products: products.length, phones, accessories, stocked: true };
++  if ((await call('GET', `units/${firstImei}`, as)).status === 200) {
++    await close();
++    return { products: products.length, phones, accessories, stocked: true };
++  }
+ 
+   // Receipts wait for the day's opening: open it, keeping the amounts.
+   const day = expectOk(await call('GET', 'closings/business-day', as), 'business day');
+@@ -424,6 +515,7 @@ async function stockBoutique(n: number, pw: string): Promise<{ products: number;
+     }),
+     `receipt Boutique ${n}`,
+   );
++  await close();
+   return { products: products.length, phones, accessories, stocked: false };
+ }
+ 
+@@ -437,7 +529,7 @@ async function verify(pw: string): Promise<boolean> {
+   };
+   const rowsOf = (j: any): any[] => (Array.isArray(j) ? j : j?.rows ?? j?.items ?? []);
+ 
+-  const owners: { n: number; token: string; branch: string; productId: string; imei: string }[] = [];
++  const owners: { n: number; token: string; refresh: string; branch: string; productId: string; imei: string }[] = [];
+   for (let n = 1; n <= BOUTIQUES; n++) {
+     const email = EMAIL(n);
+     const login = await call('POST', 'auth/login', { body: { identifier: email, password: pw } });
+@@ -454,7 +546,7 @@ async function verify(pw: string): Promise<boolean> {
+     const list = (await call('GET', 'inventory?status=in_stock&limit=1', { token, branch })).json;
+     const firstPhone = summary.find((r: any) => r.trackingType === 'imei');
+     const unitList = rowsOf((await call('GET', `inventory?productId=${firstPhone?.productId}&limit=1`, { token, branch })).json);
+-    owners.push({ n, token, branch, productId: firstPhone?.productId, imei: unitList[0]?.identifier ?? unitList[0]?.imeiPrimary });
++    owners.push({ n, token, refresh: login.json.refreshToken, branch, productId: firstPhone?.productId, imei: unitList[0]?.identifier ?? unitList[0]?.imeiPrimary });
+     check(`${email}: the unit list agrees (${list?.totals?.units} phones in stock)`, list?.totals?.units === phones, JSON.stringify(list?.totals ?? null));
+     const product = (await call('GET', `products/${firstPhone?.productId}`, { token, branch })).json;
+     const specKeys = Object.keys(product?.specifications ?? {});
+@@ -476,7 +568,8 @@ async function verify(pw: string): Promise<boolean> {
+     );
+   }
+ 
+-  for (const o of owners) await call('POST', 'auth/logout-all', { token: o.token, body: {} });
++  // Only the sessions opened here are closed: logout-all would sign the phone out of every boutique too.
++  for (const o of owners) await call('POST', 'auth/logout', { token: o.token, body: { refreshToken: o.refresh } });
+   console.log(`\n  ${failed === 0 ? 'all checks passed' : `${failed} check(s) FAILED`}\n`);
+   return failed === 0;
+ }
+@@ -517,6 +610,7 @@ async function main(): Promise<void> {
+   console.log(`  plan: ${BOUTIQUES} boutiques × (${phonesEach} phones over ${DEPTHS.length} variants + ${UNITS_PER_SHOP - phonesEach} accessories); ${all.size} distinct identifiers`);
+ 
+   try {
++    await readAdminFactor(prisma);
+     if (VERIFY) {
+       if (!(await verify(pw))) process.exitCode = 1;
+       return;
+@@ -529,10 +623,9 @@ async function main(): Promise<void> {
+     }
+ 
+     // The API must serve THIS database: it has to accept the administrator just written here.
+-    const adminSignIn = await call('POST', 'platform/admin/sign-in', { body: { email: ADMIN_EMAIL, password: pw } });
+-    const token = adminSignIn.json?.sessionToken as string | undefined;
+-    const adminCookie = adminSignIn.cookie ?? (token ? `erp_platform_session=${token}` : null);
+-    if (adminSignIn.status !== 200 || !adminCookie) throw new Error(`Refusing: the API at ${API} does not serve this database (administrator sign-in: ${adminSignIn.status}).`);
++    const signedIn = await adminSignIn(pw);
++    const adminCookie = signedIn.cookie;
++    if (signedIn.status !== 200 || !adminCookie) throw new Error(`Refusing: the API at ${API} does not serve this database (administrator sign-in: ${signedIn.status}).`);
+ 
+     for (let n = 1; n <= BOUTIQUES; n++) {
+       const b = await provisionBoutique(n, prisma, pw, adminCookie);
+@@ -547,6 +640,7 @@ async function main(): Promise<void> {
+ }
+ 
+ main().catch((e) => {
+-  console.error(`\n  failed: ${e instanceof Error ? e.message : String(e)}\n`);
++  const cause = (e as { cause?: { code?: string } })?.cause?.code;
++  console.error(`\n  failed: ${e instanceof Error ? e.message : String(e)}${cause ? ` (${cause})` : ''}\n`);
+   process.exit(1);
+ });

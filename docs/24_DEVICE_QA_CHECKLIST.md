@@ -4419,3 +4419,31 @@ the two fixed FAILED rows, then every NOT VERIFIED row.
 6. Exchange detail: a typed commission says it was typed at the counter; an old one shows its earlier rate.
 7. Delete a login: after "deleted", the phone signs out and the next sign-in with that identifier is a new device.
 8. The app's name under the icon and on the login screen: **Dukan ERP**, with "Developed and operated by TSX-MR".
+
+## 65. The final identity on a fresh native build (2026-10-13) — NOT DEVICE VERIFIED
+
+**Preconditions.** A **new native build** of `mr.tsxmr.dukanerp` (`docs/44`, "Store identity — the operator's steps"),
+installed on a **physical** phone. Expo Go does not count: it shows Expo Go's name, icon and scheme. Run every row on
+Android and on an iPhone once one exists, in EN and in AR.
+
+| # | Do | Expect | Android | iPhone |
+| --- | --- | --- | --- | --- |
+| ID1 | Look at the home screen and the app switcher | **Dukan ERP** under the icon and on the card — never "Retail ERP", "DukanERP" or "phonestore" | | |
+| ID2 | Cold start | The splash and loading show the current safe mark on indigo. The logo itself is a release blocker: no wordmark image | | |
+| ID3 | Android: Settings → Apps → the app. iPhone: Settings → the app | Name Dukan ERP; package or bundle `mr.tsxmr.dukanerp` (Android shows it under *App details*) | | |
+| ID4 | First scan, first receipt photo | The camera prompt and the photo prompt each begin with "Dukan ERP …"; no microphone or Face ID prompt ever appears | | |
+| ID5 | Notifications screen → open a notification | The destination opens. Notifications are in-app; the system shows none, because push is not built | | |
+| ID6 | App closed: open `dukanerp://sales/<a sale id>` (from Notes or a QR code) | Signed in with a branch: the sale. Signed out: sign-in first, never a blank page | | |
+| ID7 | App running in the background: open `dukanerp://notifications` | The notifications screen | | |
+| ID8 | Open `retailerp://sales` | Nothing opens the app: the old scheme is not registered | | |
+| ID9 | Verification, password reset and an invitation | Each continues with the **code typed in the app**; no message carries a link into the app | | |
+| ID10 | Account → Delete, from a deep link `dukanerp://account/delete` | The deletion screen, also when the business is closed | | |
+| ID11 | Switch to **Arabic**, close the app, then open `dukanerp://notifications` | The screen opens right to left: back arrow, header, list | | |
+| ID12 | Business choice: `dukanerp://select-branch` with two branches | The branch list; after choosing, Home | | |
+| ID13 | Share a daily-closing PDF; look at the share sheet and the file | `DukanERP_<Branch>_Daily_<date>_<LANG>.pdf`; "Dukan ERP" in the footer; no old name in the sheet or the system dialogs | | |
+| ID14 | Upgrade: a phone with the old internal preview APK (`mr.retailerp.app`) | The new build installs **beside** it, and nothing carries over. Send the old app's queue first, then uninstall the old app | | |
+| ID15 | Expo Go development (Metro started online) | Still signed in and the queue intact after the slug change. A new EAS project link later means a fresh sign-in (`docs/75` §15.3) | | |
+
+**Earlier rows.** Rows that open `retailerp://…` (§55 AF7 and AF11, §61) are run with `dukanerp://…` from this build
+on. Rows expecting "Retail ERP" in the camera prompt (§54 AE1) or `RetailERP_…` file names (§52 AC1 and AC7, §54 AE13)
+now expect **Dukan ERP** and `DukanERP_…` (D168).

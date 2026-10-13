@@ -7221,6 +7221,33 @@ Access remains optional. *As built:* backend `1d8321b` (migration `0094`), websi
 
 ### ✅ APPROVED AND IMPLEMENTED (the owner's correction brief, 2026-10-12) — D168: the product is Dukan ERP, developed and operated by TSX-MR
 
+> **Amended by the owner's brief of 2026-10-13 — the final technical identity, set before any store publication.**
+>
+> | Identifier | Value |
+> | --- | --- |
+> | Expo slug | `dukan-erp` |
+> | URL scheme | `dukanerp` |
+> | iOS bundle identifier and Android package | `mr.tsxmr.dukanerp` |
+> | npm packages | `dukan-erp-mobile`, `dukan-erp-backend` |
+>
+> **Nothing had been published under the old identifiers.** There is no App Store Connect record, no Google Play app, no
+> production or iOS build, no push credentials and no update channel; the only builds are three internal Android
+> preview builds. So no second store identity exists, and `retailerp://` was removed without an alias: nothing outside
+> `app.json` produced or received it.
+>
+> **EAS project:** `834d8b25…` (account `salah_rim`) is kept. Expo ties a project ID to one slug, which cannot be
+> changed, so every EAS command waits until the owner links a project named `dukan-erp` (`docs/75` §15.3, `docs/44`).
+>
+> **What else holds:**
+>
+> - Links carry no credential: codes are typed.
+> - Every iOS system prompt names Dukan ERP.
+> - Database, user and folder names keep `phonestore`; they are technical identifiers, unchanged.
+> - No logo was made, and the template icon remains a release blocker.
+>
+> *As built:* mobile `0a94e13`, backend `33b671c`, website `72b1be8` (README only). Real HTTP 51/51 (`docs/75`
+> §16). NOT DEVICE VERIFIED (`docs/24` §65).
+
 Every user-visible name is Dukan ERP (app name, login title and byline, permission text, PDF footer and file names,
 API documentation title, package descriptions, email texts). Technical identifiers are unchanged and are publication
 inputs awaiting the owner's explicit decision: Expo slug `phonestore-erp`, scheme `retailerp`, bundle id / package
