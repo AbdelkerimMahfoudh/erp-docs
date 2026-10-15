@@ -191,3 +191,33 @@ placeholders are as before.
 
 They are drafts, registered at Meta by the owner under these names before WhatsApp is switched on (D166, D168). The app's
 identifiers are final (`docs/21` D168, as amended): the messages name the product, and carry a code, never an app link.
+
+## The free trial's setup instructions (2026-10-13, `docs/76` §8)
+
+One message is sent automatically, once, after the Owner's required contacts are verified. It is resent only when the
+Owner, signed in on the website, asks. It goes to verified contacts only, and carries the business name and a 24-hour
+website link: never a price, an amount or a payment instruction.
+
+The link is `PUBLIC_SITE_ORIGIN/account/trial#t=<token>`. The token is 256 random bits. It is never stored, logged,
+audited or returned by an API. It is a convenience, never the only path: a signed-in Owner can claim without it.
+
+**Email `trial.setup`.** The variables are `{business}` and `{link}`.
+
+| | Subject | Body |
+| --- | --- | --- |
+| en | Your Dukan ERP free trial is ready to start | {business} is eligible for a 7-day free trial of Dukan ERP. Your trial has not started. To start it, open this link, sign in, and confirm "Start my 7-day free trial" on the Dukan ERP website: {link} The trial lasts 7 days from the moment you confirm it. No payment is required. The link expires in 24 hours and works for your account only; after it expires, sign in on the Dukan ERP website to start your trial or to get a new link. If you did not create this account, ignore this email. Need help? Contact Dukan ERP support. Dukan ERP is developed and operated by TSX-MR. |
+| fr | Votre essai gratuit Dukan ERP est prêt à démarrer | the same, translated faithfully (`trial.setup` in `src/messaging/templates`) |
+| ar | فترتك التجريبية المجانية في Dukan ERP جاهزة للبدء | the same, translated faithfully, right to left |
+
+**WhatsApp `trial.setup`.**
+
+- **Template:** a utility template, `WHATSAPP_TEMPLATE_TRIAL_SETUP`, optional.
+- **Body variable:** `{{1}}` is the business name.
+- **The button:** a URL button whose dynamic suffix is the token. The button's URL is
+  `PUBLIC_SITE_ORIGIN/account/trial?t={{1}}`.
+- **Draft copy to register (en):** "{{1}} is eligible for a 7-day free trial of Dukan ERP. It has not started. Tap the
+  button, sign in on the Dukan ERP website and confirm to start it. The link expires in 24 hours."
+- **French and Arabic:** translated faithfully, then registered at Meta by the owner under the same name before
+  WhatsApp carries this message.
+- **While the template is unnamed,** WhatsApp does not carry the setup instructions. Email carries them when it can,
+  and the app and the website say so honestly.

@@ -2482,6 +2482,10 @@ generated server-side. Login remains **email or WhatsApp number, plus password**
 
 ### ✅ APPROVED — new businesses begin pending, and there is no free trial
 
+> **Superseded in part by D169 (2026-10-13).** New businesses still begin pending, and creating an account still
+> grants nothing. A self-registered business may now claim **one** seven-day free trial, on the website, by its Owner's
+> explicit confirmation (`docs/76`). The rest of this decision holds.
+
 Registration creates the company, first branch, Owner and a `pending_activation`
 subscription in one transaction. Succeeding at registration grants nothing; a
 person decides activation and the decision is recorded.
@@ -6554,6 +6558,9 @@ non-operational.
 
 ### ✅ RESOLVED — D117: no self-registration in the customer app
 
+> **Reversed by D170 (2026-10-13, the owner's decision Q1).** Business sign-up is back in the app, through
+> `auth/register*`. The up-front refusal described below still holds, and now covers every contact given (D177).
+
 The sign-in screen offers no *Create account*; it says *Accounts are set up by your organisation's administrator.* The
 register and verify screens, the registration helper and the continuation store are gone; `POST platform/register`
 **refuses up front** — `503 registration_unavailable`, "Nothing was saved" — whenever no verification code can leave the
@@ -6563,6 +6570,9 @@ and the Owner invitation do not depend on the channel (the invitation is handed 
 account-recovery flow in this release to depend on it either.
 
 ### ✅ RESOLVED — D118: business accounts only; nothing is bought in the app (option 1 of `docs/67` §5.2)
+
+> **Extended by D173 (2026-10-13).** The app also carries no trial action of any kind: no claim, no resend, no link,
+> QR code, WebView, token or claim call. The exported-bundle audit proves it. D118 holds unchanged.
 
 The app carries no price, no staff price, no payment method or instruction, no purchase, renewal or extension action,
 no website link whose purpose is purchasing, no *Subscribe* / *Buy* / *Pay now*, no plan, no billing control, no
@@ -7253,3 +7263,161 @@ API documentation title, package descriptions, email texts). Technical identifie
 inputs awaiting the owner's explicit decision: Expo slug `phonestore-erp`, scheme `retailerp`, bundle id / package
 `mr.retailerp.app`, EAS project, push identifiers, database, tables, permissions, API fields (`docs/75` §6). No logo was
 made. *As built:* mobile `db67298`, backend `2bb5130`, website `fa3c3fe`.
+
+## The website-only seven-day free trial (2026-10-13 → 2026-10-15, CLAUDE-B, cloud) — `docs/76`
+
+> **In progress (2026-10-15).** The first implementation is pushed (backend `c3aa803`, mobile `7b64918`, website
+> `4b61f79`); the review's fixes and the add-on scheduling are being made. Each heading says how far it has got;
+> `CURRENT_HANDOFF.md` is the live state.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's brief, 2026-10-13) — D169: one seven-day free trial per self-registered business, claimed on the website
+
+**The trial.** A business created through the public sign-up may claim **one** free trial. It lasts exactly 168 hours,
+measured from the server's instant of its Owner's explicit confirmation on the website.
+
+**What claiming does not do.** It creates no payment, billing record, grace period or renewal, and needs no Super Admin
+approval.
+
+**Its states.**
+
+- `trial_available`: closed, like pending.
+- `trial_active`: reads and writes.
+- `trial_expired`: read-only, with no grace.
+
+**Who gets it.** Existing businesses get no trial retroactively, and there is no backfill.
+
+**The approved plan defaults:**
+
+- Required contacts are the contacts given at registration.
+- Fraud is handled by suspending or refusing.
+- Setup links last 24 h.
+- Website resends are limited to 60 s, 3 per 15 min and 10 per 24 h.
+- The console queue keeps refuse, suspend and approve.
+
+*As built:* `docs/76`, migrations `0095_free_trial` and `0096_trial_link_claimed`.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q1, 2026-10-13) — D170: business sign-up returns to the app
+
+**This reverses D117.** The app's sign-up uses `auth/register`, `auth/register/verify/start` and
+`auth/register/verify/confirm`. Those aliases share one flow, one throttle budget and one set of refusals with the
+website's `platform/register*`. Creating an account never starts a trial.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q2, 2026-10-13) — D171: businesses created by the Super Admin get no trial
+
+Only the public self-registration creates a trial eligibility. The console's *create business* and the QA and staging
+fixtures never do.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q3, 2026-10-13) — D172: access approved during a running trial starts when the trial ends
+
+A paid period, or a grant, approved while a trial runs opens at the trial's end. The trial is never shortened, extended
+or rewritten.
+
+The trial facts are never written by a lifecycle action. Every decision that gives or ends access closes the
+eligibility under the subscription lock, which serialises it with claims.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's correction, 2026-10-13) — D173: the app is display-only for the trial
+
+**No trial-related action button, of any kind.** That excludes:
+
+- a claim or a resend;
+- a website link, a QR code or a WebView;
+- a token or a claim call;
+- a price or a payment instruction.
+
+**What the app shows:** the eligibility, "not started", seven days, whether the instructions were sent, the masked
+verified contact, and an honest status when nothing can deliver them.
+
+**How the instructions travel.** They are sent automatically after verification, and resent only by the Owner signed in
+on the website, or through support.
+
+*Proof:* `lib/access-boundary.test.ts` and the exported web and iOS bundle audit in CI.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's correction, 2026-10-13) — D174: no request-origin boundary; trial instants in UTC, shown in the business's zone
+
+**No Origin, Referer or "came from the website" check protects anything.** The claim is protected by:
+
+- the Owner's authenticated authority;
+- the verified contacts;
+- eligibility;
+- the one-time token, where one is presented;
+- idempotency;
+- the subscription row lock;
+- the audit.
+
+**Time.** Instants are stored and sent in UTC, and every client shows them in the business's configured zone, with the
+zone's name. No zone is ever hardcoded.
+
+### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's clarification, 2026-10-13) — D175: website sign-in works without the message link
+
+An eligible Owner who signs in on the website independently sees the same trial card and can start the trial after
+explicit confirmation. This holds whatever happened to the message: lost, failed, expired, consumed, or the device
+changed.
+
+**The token:**
+
+- only continues to the right page after authentication;
+- activates nothing by being opened;
+- is consumed by nothing a link preview does;
+- never removes eligibility when it is expired or invalid.
+
+Delivery is never a second eligibility requirement.
+
+### ✅ APPROVED, DESIGN IN PROGRESS (the owner's correction, 2026-10-15) — D176: a store or a paid seat requested during a trial is scheduled to the trial's end
+
+**Not blocked.** It is quoted, and may be paid for and approved, during the trial.
+
+**Scheduled.** It stays *scheduled*. Its activation and its first paid billing period begin exactly at the trial's
+expiry.
+
+**Charged once.** Never charged at once and again in the first period; never two payment obligations. Nothing is
+activated unpaid.
+
+**Idempotent.** Repeated approval, payment confirmation or expiry processing never activates or bills twice.
+
+**Displayed.** The website shows the scheduled date. The app shows no pricing, payment, purchase or activation
+control.
+
+**Fallback.** If the model could not schedule safely without a substantial redesign: pending until expiry, documented —
+never a double charge.
+
+*As built:* `docs/76` §6.1.
+
+### ✅ APPROVED, IMPLEMENTATION IN PROGRESS (confirmed by the owner, 2026-10-15) — D177: every contact given at registration must be verified
+
+**The rule.** A business that gave an email and a WhatsApp number must verify both before its trial can be claimed.
+
+**The guard against a dead end.** Registration refuses up front, before saving anything, with `registration_unavailable`
+naming `unavailableContacts`, when a given contact's channel cannot carry a verification code now. This extends D117's
+up-front refusal from the first contact to every contact, so no Owner is left with a contact that can never be verified.
+
+### ⏳ AWAITING THE OWNER — the trial's terms sentence about paid access (review finding R4-04)
+
+**The question.** The terms the Owner confirms say "Paid access after the trial is arranged on this website.". The
+expired notice says the same. Neither is true today: there is no website action that arranges paid access. The public
+pages say "arranged with the Dukan ERP team".
+
+**Unchanged until the owner decides.** Both the wording and the terms version `2026-10-13` are kept as they are.
+
+**The alternatives:**
+
+1. *"Paid access after the trial is arranged with the Dukan ERP team."* — the public pages' wording.
+2. Remove the sentence.
+3. Keep it until a website payment provider exists.
+
+Any wording change bumps `TRIAL_TERMS_VERSION` and the website's shown version together.
+
+### ⏳ AWAITING THE OWNER — the both-contacts Owner's path to the WhatsApp verification in the app (review finding R5-4)
+
+**The question.** An Owner who gave both an email and a WhatsApp number verifies the email during sign-up. The trial
+then waits for the WhatsApp number. On the closed screen, that verification is reachable only through *Delete my
+account* → *Verify a number*. The website tells the Owner to use *Your account* → *WhatsApp number* in the app.
+
+**Unchanged until the owner decides.**
+
+**The alternatives:**
+
+1. A general, non-trial **Your account** action on the closed screen. The navigation guard already allows the account
+   segment.
+2. Verify both contacts during sign-up when both are given.
+3. Keep the screen as it is.
+

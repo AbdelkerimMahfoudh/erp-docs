@@ -470,3 +470,45 @@ the migrations; structure and 30 triggers identical after restore) and the PC da
 after restore). Applied with `prisma migrate deploy`: 0084–0094 in 8.5 s on the empty base; 0092–0094 in 4.1 s on the
 PC data; drift none beyond the known baseline. Rollback = restore the pre-migration backup (proven). Details: `docs/75`
 §3.1. Nothing applied to `phonestore` or any live database.
+
+## Rehearsal record — 0095 and 0096, the free trial (2026-10-13, disposable only)
+
+The rehearsal ran in a cloud container on MySQL 8.0.46 with `sql_mode=''` (as on the owner's PC) and UTC. The
+application identity was `phonestore_app`, the subject of the triggers. **Nothing was applied to `phonestore` or to any
+live or shared database.**
+
+**The dataset at 0094.**
+
+- It was built from all 93 migrations, then populated **through the pre-trial API** (backend `aad5862`).
+- It holds the QA fixture: an administrator and 10 boutiques registered on the public route, verified and granted 365
+  days.
+- It holds four more businesses: a self-registered one never approved, a refused one, a suspended one, and one created
+  in the console.
+- 14 companies in all.
+
+**The backup.**
+
+- File: `prisma_qa_rh0094-before-0095-20261013T042314Z.sql`.
+- Size: 1 675 138 bytes.
+- SHA-256: `573ddadafa1794d0cf711b2f0c3d773872a8f17a5e6e18eb5da3e749ae37293f`.
+- The trailer "Dump completed" is present.
+- **The restore was proven:** 108 tables identical (row counts and `CHECKSUM TABLE`), and 47 triggers.
+
+**The migration.**
+
+- `prisma migrate deploy` applied 0095 and 0096 in 1.5 s.
+- The four new tables are empty: there is no backfill.
+- 53 triggers now exist (47 + 6).
+- Every pre-existing table is identical in rows and checksum, `subscription_events` included: its ENUM was widened and no
+  row moved.
+
+**Behaviour on the migrated copy.** Every pre-existing business keeps its state, with no trial view, no offer, no app
+card, and a claim refused (20 / 20 checks).
+
+**The rollback, two ways:**
+
+- **Reverse SQL** (0096 then 0095, plus the two `_prisma_migrations` rows) returns the schema to the 0094 backup exactly.
+  Only the behaviour check's own activity differs in rows.
+- **Restoring the backup**, proven above.
+
+Details are in `docs/76` §14.

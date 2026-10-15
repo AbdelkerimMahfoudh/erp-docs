@@ -47,6 +47,7 @@ app credential cannot drop a table.
 | `API_BIND` | P | O | O | R | **R** | ⚠️ **not in Joi** | Defaults to every interface. **Production must be `127.0.0.1` behind the edge**, or the administration endpoints answer beside the proxy. Now refused at startup |
 | `CORS_ORIGINS` | P | R | O | R | R | ✅ default `''` | Empty is **fail-closed** (`origin: false`). A production list naming `localhost`, `127.0.0.1`, `10.`, `192.168.` or `172.16–31.` is now refused |
 | `SWAGGER_ENABLED` | P | O | O | O | **R** | ✅ default **`true`** | The default publishes the API surface. **`true` in production is now refused** |
+| `PUBLIC_SITE_ORIGIN` | P | O | O | **R** | **R** | ✅ default `''`; staging and production refuse to start unless it is an `https://` origin with no path and no trailing slash | The Dukan ERP website's origin, used **only** to build the free trial's setup links (`docs/76` §8) — never to check where a request came from. Empty = no setup link can be built, so no setup message is sent and the website says so |
 
 ### Rate limiting and logging
 
@@ -70,6 +71,7 @@ app credential cannot drop a table.
 | `WHATSAPP_TEMPLATE_LANGUAGE_EN/FR/AR` | P | O | O | O | O | ✅ defaults `en` `fr` `ar` | The provider's language codes for the approved templates |
 | `WHATSAPP_TEMPLATE_AUTH_OTP` · `WHATSAPP_TEMPLATE_ACCOUNT_DELETION` | P | O | O | R with cloud-api | **R** with cloud-api | ✅ the guard refuses cloud-api without both | The approved template **names** (copy in `docs/64` §4). Empty = that message cannot be sent, said honestly |
 | `WHATSAPP_TEMPLATE_ACCOUNT_DELETED` · `WHATSAPP_TEMPLATE_CLOSING_REOPENED` · `_SALE` · `_RECLOSED` | P | O | O | O | O | ✅ default `''` | Optional messages; unsent while unnamed |
+| `WHATSAPP_TEMPLATE_TRIAL_SETUP` | P | O | O | O | O | ✅ default `''`; the production guard does not require it | The approved utility template with a URL button whose suffix is the free trial's setup token (copy in `docs/64`, `docs/76` §8). Empty = WhatsApp does not carry the setup instructions; email does when it can, and the status says so honestly |
 | `ACCOUNT_THROTTLE_LIMIT` | P | O | O | O | O | ✅ 1–100 000, default **5** | Per-client per-minute limit on the code-issuing account routes (`docs/64` §3). Raised only by a test harness |
 | `OTP_TTL_SECONDS` · `OTP_MAX_ATTEMPTS` · `OTP_RESEND_COOLDOWN_SECONDS` · `OTP_MAX_SENDS_PER_WINDOW` · `OTP_SEND_WINDOW_SECONDS` · `OTP_MAX_SENDS_PER_DAY` | P | O | O | O | O | ✅ bounded | Abuse controls. Every one has a validated min and max |
 
@@ -130,7 +132,7 @@ These are values nobody has chosen yet. Each blocks the production checklist in
 |---|---|
 | `APP_DATABASE_URL`, `DATABASE_URL` | Where the production database lives, and who holds each credential |
 | `JWT_ACCESS_SECRET`, `OTP_PEPPER`, `PLATFORM_ADMIN_KEY` | Generated, stored where, rotated how often, by whom |
-| `CORS_ORIGINS`, `EXPO_PUBLIC_*` URLs | **The domain** — every one of these embeds it |
+| `CORS_ORIGINS`, `EXPO_PUBLIC_*` URLs, `PUBLIC_SITE_ORIGIN` | **The domain** — every one of these embeds it |
 | `WHATSAPP_CHANNEL=cloud-api`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_AUTH_OTP`, `WHATSAPP_TEMPLATE_ACCOUNT_DELETION` (+ `_ACCOUNT_DELETED`, the webhook pair) | The WhatsApp Business account, its approved templates in EN/FR/AR and its token (`docs/64` §4, §8). Without them registration cannot issue a session and **no account can be deleted** |
 | `BACKUP_PASSPHRASE_FILE`, the backup host | Where encrypted backups are kept off the host and who holds the passphrase (`deploy/backup-encrypted.sh`, `docs/22`) |
 | `UPLOAD_DIR` | Local volume or object storage |
