@@ -172,17 +172,30 @@ SQL. Existing businesses got no trial (20 / 20). **No shared database was touche
 | Minor | 19 | — |
 | Nit | 1 | — |
 
-## Checkpoint — 2026-10-15T13:55Z: review fixes round 2 in progress; backend pushed; add-on round started
+## Checkpoint — 2026-10-15T18:00Z: backend and website review fixes pushed; the add-on round resumed after a usage limit
 
 **The work is not finished. Do not take over.** Agents of this cloud session are committing in the backend, mobile and
 website trees right now.
 
-| Repository | Branch | Pushed | Local | State |
+**The interruption.** A usage limit stopped every agent at about 15:10 UTC, mid-task. Each was resumed at 18:00 UTC from
+its exact state: committed work kept, every uncommitted draft reviewed by the next agent. The disposable MySQL died when
+the container paused and was restarted, with its data intact.
+
+| Repository | Branch | Pushed | Local (not pushed) | State |
 | --- | --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `7274fca` | `7274fca` + the add-on round's commits as they land | the review fixes (17 commits `c3aa803..7274fca`) are pushed; the add-on round (migration `0097_scheduled_addons`, the scheduled store/seat, the contract parts C6, C7, C8, R4-05, R1-F4) is being built on top, not pushed |
-| `erp-mobile` | `reports-export` | `7b64918` | `d51b3ee` (11 commits) + a fix-up in progress (2 dirty files) | not pushed |
-| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`, untouched) | `4b61f79` | `10f9401` (18 commits) + a fix-up in progress | not pushed |
+| `erp-backend` | `reports-export` | `7274fca` | `a39d74e` (10 commits) + the add-on specs in progress | review fixes `c3aa803..7274fca` pushed. Add-on round: steps 1–8 committed (refactors, migration `0097_scheduled_addons`, TrialEndRoll, the sweeper, coverage, scheduled confirm, lifecycle idempotency, console reads). The specs, then the contract parts (C6, C7, C8, R4-05, C17, C18, R1-F4), are being finished |
+| `erp-mobile` | `reports-export` | `7b64918` | `5520bec` (16 commits) + one draft test file | the round-2 fix-up is being finished, then C17 and the Team sheet's conflict wording |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`, untouched) | `6164dea` | `f1b65d8` (7 commits) | review fixes `4b61f79..6164dea` pushed (21 commits; gates rerun independently: typecheck 0, Vitest 216/216, preview build, links 0 broken of 1 659, bundle audit pass, Playwright 72/72). Add-on display committed; its gates and C18 and the `/apply` code-check wording follow |
 | `erp-docs` | `master` | the commit carrying this checkpoint | — | — |
+
+**0097's rehearsal (disposable copies only)** found a design defect, and the agent deviated from the design:
+
+- **The defect:** MySQL refuses a CHECK on `payment_id` (ERROR 3823), because the foreign key's `ON DELETE SET NULL`
+  writes that column.
+- **What was done:** the CHECK holds `status`, `effective_at` and `kind`. The confirmation's single guarded UPDATE, with
+  its read-back, holds the payment link.
+- **Recovery** of a half-applied 0097 is rehearsed, and so is the reverse SQL (valid only with zero `scheduled` rows).
+- **Where it is recorded:** the session's scratch `addon-round/REHEARSAL-0097.md`, which goes into `docs/22` at the end.
 
 **Backend gates at `7274fca`:**
 
@@ -214,10 +227,10 @@ The final run from a fresh database comes after the add-on round.
 
 ## Next intended action
 
-1. Finish fix round 2's mobile and website fix-ups. Then, in each repository: run the gates, rewrite the committer of
-   its unpushed commits only, and push as a fast-forward.
-2. The add-on round on the backend: build, three adversarial verifiers (money, concurrency, scope), fix-up. Then the
-   website's display of scheduled add-ons.
+1. Finish the resumed work: the backend add-on specs, then the backend contract parts; the website add-on display and its
+   residuals; the mobile fix-up and its residuals. Then three adversarial verifiers on the backend (money, concurrency,
+   scope), one on the website and one on mobile, with fix-ups where they find something.
+2. In each repository: run the gates, rewrite the committer of its unpushed commits only, and push as a fast-forward.
 3. The full combined gates.
 4. The final real-HTTP journey from a fresh disposable database, reporting only genuine passes.
 5. Website screenshots in EN, FR and AR at 375 and 1280 px.
