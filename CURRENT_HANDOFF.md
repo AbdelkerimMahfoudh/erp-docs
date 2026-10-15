@@ -111,10 +111,12 @@ No other unresolved product question may be turned into code.
 ## Databases
 
 - `phonestore` (the PC's development database, 3308): still at `0091_stabilization` — not touched by this session.
-- No live/production database exists or will be touched. Migration `0095` (planned) is rehearsed only on a disposable
-  MySQL inside this cloud container, with a backup and a restore check first (`docs/22`).
-- Migrations 0092–0094 exist in `reports-export` and are not applied to the PC database; deploy the API and 0092–0094+
-  together.
+- No live/production database exists or will be touched.
+- Migrations `0095_free_trial` and `0096_trial_link_claimed` are pushed. `0097_scheduled_addons` is in progress, not
+  pushed. Each is rehearsed only on a disposable MySQL inside this cloud container, with a backup and a restore check
+  first (`docs/22`).
+- Migrations 0092–0096 exist in `reports-export` and are not applied to the PC database. Deploy the API and
+  0092–0096 (0097 once approved) together.
 
 ## Checkpoint — 2026-10-13T07:55Z: the trial's first implementation, merged with the identity phase and pushed
 
@@ -170,19 +172,58 @@ SQL. Existing businesses got no trial (20 / 20). **No shared database was touche
 | Minor | 19 | — |
 | Nit | 1 | — |
 
+## Checkpoint — 2026-10-15T13:55Z: review fixes round 2 in progress; backend pushed; add-on round started
+
+**The work is not finished. Do not take over.** Agents of this cloud session are committing in the backend, mobile and
+website trees right now.
+
+| Repository | Branch | Pushed | Local | State |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `7274fca` | `7274fca` + the add-on round's commits as they land | the review fixes (17 commits `c3aa803..7274fca`) are pushed; the add-on round (migration `0097_scheduled_addons`, the scheduled store/seat, the contract parts C6, C7, C8, R4-05, R1-F4) is being built on top, not pushed |
+| `erp-mobile` | `reports-export` | `7b64918` | `d51b3ee` (11 commits) + a fix-up in progress (2 dirty files) | not pushed |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`, untouched) | `4b61f79` | `10f9401` (18 commits) + a fix-up in progress | not pushed |
+| `erp-docs` | `master` | the commit carrying this checkpoint | — | — |
+
+**Backend gates at `7274fca`:**
+
+- `tsc` 0;
+- Jest 228 suites, 4 234 passed, 3 skipped;
+- `prisma validate` passes;
+- secret scan clean (1 903 blobs, 250 commits).
+
+**Commit identity.** The backend's 17 commits carry author `CLAUDE-B`, committer `Claude <noreply@anthropic.com>`.
+That identity was rewritten on the unpushed commits only, with an identical tree, before the first push.
+
+**Migration `0097_scheduled_addons`** (the owner's correction of 2026-10-15) is additive:
+
+- an ENUM value `scheduled`;
+- `effective_at DATETIME(6) NULL`;
+- a CHECK.
+
+It is applied **only to disposable databases**, with a `docs/22` rehearsal. **It needs the owner's approval before any
+shared database sees it.** `phonestore` (the PC's database) is still at `0091_stabilization`.
+
+**The real-HTTP preview, run r6, on the fixed backend: 154 / 158.** The four failures are the contract parts the add-on
+round now delivers:
+
+- G4b and G4c: C6;
+- M2b: C7;
+- M2d: C8.
+
+The final run from a fresh database comes after the add-on round.
+
 ## Next intended action
 
-The first fix round (2026-10-13) stopped on a usage limit before any agent changed a file. Every tree is still clean at
-the pushed checkpoint; this was re-verified on 2026-10-15T03:40Z, and every remote is unchanged.
-
-0. Map the store, seat and billing model and design the scheduled add-on: safe within the model, or the documented
-   fallback.
-1. The review fix round in the three code repositories, under the 2026-10-15 correction.
-2. The full combined gates.
-3. The real-HTTP rerun on a disposable copy.
-4. The migration rehearsal again, if a migration changes.
+1. Finish fix round 2's mobile and website fix-ups. Then, in each repository: run the gates, rewrite the committer of
+   its unpushed commits only, and push as a fast-forward.
+2. The add-on round on the backend: build, three adversarial verifiers (money, concurrency, scope), fix-up. Then the
+   website's display of scheduled add-ons.
+3. The full combined gates.
+4. The final real-HTTP journey from a fresh disposable database, reporting only genuine passes.
 5. Website screenshots in EN, FR and AR at 375 and 1280 px.
-6. `docs/76` and D169+, `SESSION_LOG.md`, then `READY_FOR_HANDOFF` once all four trees are clean and pushed.
+6. Drop the disposable databases and stop every process.
+7. `docs/76` as built, `docs/21`, `docs/68`, `docs/22`, `docs/24`, `SESSION_LOG.md`. Then `READY_FOR_HANDOFF`, once
+   all four trees are clean and pushed.
 
 ## Blockers carried over (`docs/75` §13)
 
