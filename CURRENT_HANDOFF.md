@@ -50,6 +50,64 @@ requirement. **Integration with the concurrent identity phase:** no blind merge 
 keep both changes, resolve overlaps deliberately, rerun the complete combined gates, never force-push, and record the
 final combined commit ancestry here.
 
+**Owner correction (2026-10-15), binding — add-ons during the trial.**
+
+**What the trial covers.** The trial covers the first store and its included free employee allowance. During the
+trial, the Owner may request an additional store or a paid employee seat through the website's established flow. The
+server may quote it and record payment or approval during the trial. Such a request must **not** be blocked merely
+because a trial is running.
+
+**Its timing.** The add-on stays `scheduled` (or equivalent) until the trial ends. Its activation and its first paid
+billing period begin exactly at the trial's expiry.
+
+**Money and safety.**
+
+- Exactly one charge: never charged at once and again in the first paid period, never two payment obligations.
+- The trial is never shortened, replaced or extended.
+- A scheduled add-on consumes no paid entitlement before its effective date.
+- At expiry, activation and the first period happen atomically, or fail safely.
+- If the add-on is unpaid at expiry, it stays pending and is not activated.
+- Repeated approval, payment confirmation or expiry processing never activates or bills twice.
+
+**Display.** The website shows the scheduled activation date clearly. The app shows no pricing, payment, purchase or
+activation control.
+
+**Tests required:**
+
+- a store, and a paid seat, requested during the trial;
+- payment confirmed during the trial;
+- no immediate billing period, and no immediate activation;
+- exact activation at expiry;
+- one charge only;
+- duplicate payment confirmation;
+- concurrent expiry and payment confirmation;
+- an unpaid request at expiry;
+- a cancelled or refused request;
+- a suspended business at the activation time;
+- a claim racing an add-on request;
+- company and store isolation.
+
+**Fallback.** If the data model cannot schedule this safely without a substantial redesign: leave the add-on pending
+until expiry and document the limitation. Never double-charge.
+
+**Decisions.** Of the four review findings reported as needing confirmation:
+
+- **R1-F1** is replaced by the add-on rule above.
+- **R2-3** proceeds under the confirmed rule that every contact given at registration must be verified.
+- **R4-04** (the terms sentence) and **R5-4** (the both-contacts Owner's path to the WhatsApp verification) are
+  **awaiting the owner**. Current behaviour is preserved and the alternatives are presented.
+
+No other unresolved product question may be turned into code.
+
+**Final verification required:**
+
+- the error-path token logging leak is fixed;
+- setup tokens, portal tickets and other secrets are proved absent from successful and failing request logs;
+- the whole real-HTTP journey is rerun from a fresh disposable database;
+- only genuinely completed passes are reported, and harness failures are never counted as product passes;
+- the complete combined gates are rerun;
+- anything not verified on a physical phone is reported separately.
+
 ## Databases
 
 - `phonestore` (the PC's development database, 3308): still at `0091_stabilization` — not touched by this session.
@@ -114,7 +172,12 @@ SQL. Existing businesses got no trial (20 / 20). **No shared database was touche
 
 ## Next intended action
 
-1. The review fix round in the three code repositories.
+The first fix round (2026-10-13) stopped on a usage limit before any agent changed a file. Every tree is still clean at
+the pushed checkpoint; this was re-verified on 2026-10-15T03:40Z, and every remote is unchanged.
+
+0. Map the store, seat and billing model and design the scheduled add-on: safe within the model, or the documented
+   fallback.
+1. The review fix round in the three code repositories, under the 2026-10-15 correction.
 2. The full combined gates.
 3. The real-HTTP rerun on a disposable copy.
 4. The migration rehearsal again, if a migration changes.
