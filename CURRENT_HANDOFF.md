@@ -9,8 +9,21 @@ remotes at takeover
 active_phase: production-readiness audit and defect fixing for TestFlight under TSX-MR (the owner's brief of
 2026-10-16). Not authorised: deployment, publication, TestFlight or App Store upload, DNS, purchases, provider
 activation, production credentials, live-database operations, real customer data.
-next_intended_action: record the baseline; investigate the website's failing GitHub CI on `tsx-public-site`; then the
-per-file review manifest and the audit.
+next_intended_action: apply the verified fixes for the review's blocker/high findings (verifiers V1–V7 working in
+scratch clones, patches applied by this session only), then the deliverables in `docs/77`–`docs/81`, the session log
+and the final handoff.
+
+## Checkpoint 2026-10-16T06:40Z (pushed)
+
+| Repository | HEAD | Commits this phase (newest first) |
+| --- | --- | --- |
+| `erp-backend` | `f350031` | `f350031` Swagger fail-closed · `1cd3cfb` qs 6.16.1 · `cf2cb23` malformed id → 400 · `98fc73a` expense race · `18c00ce` sale race · `d2ad456` start:prod · `0eeb309`, `506568f` honest CI + database job · `f6d0b44` upload limits · `9400480` audit overrides |
+| `erp-mobile` | `0cb381c` | `0cb381c` approval key per asking · `b5f8b81` 502/504 after a sale is uncertain · `0e384a3` session survives offline/5xx · `1167f52` dev gallery out of release · `cfdb756`, `114fe00`, `f94fc61` honest CI, overrides, revoked-blob scan |
+| `erp-control-web` | `35ca6d1` | `35ca6d1` CI green (Casablanca tzdata) |
+| `erp-docs` | `c784d1a` + this checkpoint | uncommitted drafts: `docs/48` triage, `docs/78`–`docs/81` |
+
+CI green on every pushed head checked (backend `cf2cb23`, mobile `1167f52`; later heads running). Disposable MySQL only;
+no live system touched.
 
 ## Baseline at takeover (2026-10-16T04:32Z)
 
