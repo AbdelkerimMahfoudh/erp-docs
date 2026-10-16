@@ -172,71 +172,73 @@ SQL. Existing businesses got no trial (20 / 20). **No shared database was touche
 | Minor | 19 | — |
 | Nit | 1 | — |
 
-## Checkpoint — 2026-10-15T18:00Z: backend and website review fixes pushed; the add-on round resumed after a usage limit
+## Checkpoint — 2026-10-16T01:55Z: every code repository pushed; adversarial verification of the add-on round in progress
 
-**The work is not finished. Do not take over.** Agents of this cloud session are committing in the backend, mobile and
-website trees right now.
+**The work is not finished. Do not take over.** This cloud session's verifiers are reading the backend and mobile trees,
+and any fix-up they cause will commit there.
 
-**The interruption.** A usage limit stopped every agent at about 15:10 UTC, mid-task. Each was resumed at 18:00 UTC from
-its exact state: committed work kept, every uncommitted draft reviewed by the next agent. The disposable MySQL died when
-the container paused and was restarted, with its data intact.
+**Two usage limits** interrupted the agents: at about 15:10 UTC and again at about 22:00 UTC on 2026-10-15. Each was
+resumed from its exact state: committed work kept, and every uncommitted draft reviewed by the next agent. The
+disposable MySQL died both times the container paused, and was restarted with its data intact. The interrupted
+verifiers' scratch databases were dropped, and their grants revoked.
 
-| Repository | Branch | Pushed | Local (not pushed) | State |
-| --- | --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `7274fca` | `a39d74e` (10 commits) + the add-on specs in progress | review fixes `c3aa803..7274fca` pushed. Add-on round: steps 1–8 committed (refactors, migration `0097_scheduled_addons`, TrialEndRoll, the sweeper, coverage, scheduled confirm, lifecycle idempotency, console reads). The specs, then the contract parts (C6, C7, C8, R4-05, C17, C18, R1-F4), are being finished |
-| `erp-mobile` | `reports-export` | `7b64918` | `5520bec` (16 commits) + one draft test file | the round-2 fix-up is being finished, then C17 and the Team sheet's conflict wording |
-| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`, untouched) | `6164dea` | `f1b65d8` (7 commits) | review fixes `4b61f79..6164dea` pushed (21 commits; gates rerun independently: typecheck 0, Vitest 216/216, preview build, links 0 broken of 1 659, bundle audit pass, Playwright 72/72). Add-on display committed; its gates and C18 and the `/apply` code-check wording follow |
-| `erp-docs` | `master` | the commit carrying this checkpoint | — | — |
+| Repository | Branch | HEAD (pushed) | Since the last checkpoint |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `97b58ff` | `7274fca..97b58ff`, 23 commits: the add-on round (steps 1–9, migration `0097_scheduled_addons`, a sweeper-starvation fix found on the way) and the contract parts C6, C7, C8, R4-05, C11, C17, C18, then R1-F4 |
+| `erp-mobile` | `reports-export` | `6ca5c50` | `7b64918..6ca5c50`, 22 commits: the review fixes (R5-1, R5-2, R5-3, R5-5–R5-9, C1, C6, C10, C14), the boundary guards made to prove rather than recognise, C17's honest "not sent", and the Team sheet's conflict words |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`, untouched) | `3b6cdc7` | `6164dea..3b6cdc7`, 20 commits: scheduled add-ons shown with their start, C18's business-zone dates, the `/apply` code check after a lost answer (a 502 or 504 counts as no answer), the rate limit in the page's own words, and Vitest pinned to UTC |
+| `erp-docs` | `master` | the commit carrying this checkpoint | — |
 
-**0097's rehearsal (disposable copies only)** found a design defect, and the agent deviated from the design:
+**Every pushed commit** carries author `CLAUDE-B`, committer `Claude <noreply@anthropic.com>`. Where a committer was
+rewritten, only unpushed commits were touched, with an identical tree (tree diff 0), and every push is a fast-forward.
 
-- **The defect:** MySQL refuses a CHECK on `payment_id` (ERROR 3823), because the foreign key's `ON DELETE SET NULL`
-  writes that column.
-- **What was done:** the CHECK holds `status`, `effective_at` and `kind`. The confirmation's single guarded UPDATE, with
-  its read-back, holds the payment link.
-- **Recovery** of a half-applied 0097 is rehearsed, and so is the reverse SQL (valid only with zero `scheduled` rows).
-- **Where it is recorded:** the session's scratch `addon-round/REHEARSAL-0097.md`, which goes into `docs/22` at the end.
+**Gates rerun independently, before each push:**
 
-**Backend gates at `7274fca`:**
+- **Backend `97b58ff`:**
+  - `prisma validate` passes; `tsc` 0;
+  - Jest 234 suites, 4 389 passed, 18 skipped;
+  - build 0;
+  - secret scan clean (2 004 blobs, 273 commits; work tree clean).
+  - The skipped tests are the env-gated real-MySQL add-on spec (15, run 3 × 15/15 by its author on fresh databases)
+    and 3 pre-existing ones.
+- **Mobile `6ca5c50`:**
+  - `tsc` 0; lint 0 errors;
+  - the pure tests, 113 files, pass; Jest 240/240; release config sound;
+  - fresh web and iOS exports with source maps: no server secret name, and the bundle audit **PASS**;
+  - secret scan clean.
+- **Website `3b6cdc7`:**
+  - typecheck 0;
+  - Vitest 295/295, in UTC and in Pacific/Kiritimati;
+  - the preview build passes; links: 0 broken of 1 659; the bundle audit passes;
+  - Playwright 111/111;
+  - secret scan clean.
 
-- `tsc` 0;
-- Jest 228 suites, 4 234 passed, 3 skipped;
-- `prisma validate` passes;
-- secret scan clean (1 903 blobs, 250 commits).
+**Migration `0097_scheduled_addons` is pushed but must NOT be applied to any shared database until the owner
+approves it** (schema change: CLAUDE.md).
 
-**Commit identity.** The backend's 17 commits carry author `CLAUDE-B`, committer `Claude <noreply@anthropic.com>`.
-That identity was rewritten on the unpushed commits only, with an identical tree, before the first push.
+- **What it does:** three statements on `seat_allocations`: an appended ENUM value, a nullable `effective_at`, and a
+  CHECK.
+- **Where it has run:** only on disposable copies, with a backup, a restore proof, a recovery from a half-applied state,
+  and the reverse SQL. The reverse is valid only while no row is `scheduled`.
+- **A deviation from the design:** MySQL refuses the design's CHECK on `payment_id` (ERROR 3823). The payment link is
+  held by the one guarded writer of `scheduled`, which a spec pins.
+- **The API at this HEAD needs 0097.** Deploy 0092–0097 with it, and the website with it.
 
-**Migration `0097_scheduled_addons`** (the owner's correction of 2026-10-15) is additive:
-
-- an ENUM value `scheduled`;
-- `effective_at DATETIME(6) NULL`;
-- a CHECK.
-
-It is applied **only to disposable databases**, with a `docs/22` rehearsal. **It needs the owner's approval before any
-shared database sees it.** `phonestore` (the PC's database) is still at `0091_stabilization`.
-
-**The real-HTTP preview, run r6, on the fixed backend: 154 / 158.** The four failures are the contract parts the add-on
-round now delivers:
-
-- G4b and G4c: C6;
-- M2b: C7;
-- M2d: C8.
-
-The final run from a fresh database comes after the add-on round.
+`phonestore` (the PC's database) is still at `0091_stabilization`, untouched.
 
 ## Next intended action
 
-1. Finish the resumed work: the backend add-on specs, then the backend contract parts; the website add-on display and its
-   residuals; the mobile fix-up and its residuals. Then three adversarial verifiers on the backend (money, concurrency,
-   scope), one on the website and one on mobile, with fix-ups where they find something.
-2. In each repository: run the gates, rewrite the committer of its unpushed commits only, and push as a fast-forward.
-3. The full combined gates.
-4. The final real-HTTP journey from a fresh disposable database, reporting only genuine passes.
-5. Website screenshots in EN, FR and AR at 375 and 1280 px.
-6. Drop the disposable databases and stop every process.
-7. `docs/76` as built, `docs/21`, `docs/68`, `docs/22`, `docs/24`, `SESSION_LOG.md`. Then `READY_FOR_HANDOFF`, once
-   all four trees are clean and pushed.
+1. Finish the adversarial verification of the add-on round:
+   - the backend: money, concurrency and scope verifiers;
+   - mobile: one verifier.
+
+   Each is followed by a fix-up if it finds something. Then rerun the gates, and push as a fast-forward.
+2. The final real-HTTP journey (`trial-http.cjs`, 167 checks) from a fresh disposable database at 0097, reporting only
+   genuine passes.
+3. Website screenshots against the real API in EN, FR and AR at 375 and 1280 px.
+4. Drop the disposable databases and stop every process.
+5. Write `docs/76` as built, plus `docs/21`, `docs/68` §11, `docs/22` (the 0097 record), `docs/24` and `SESSION_LOG.md`.
+   Then set `READY_FOR_HANDOFF`, once all four trees are clean and pushed.
 
 ## Blockers carried over (`docs/75` §13)
 
