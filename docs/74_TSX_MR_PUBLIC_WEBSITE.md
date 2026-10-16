@@ -144,6 +144,12 @@ no `dist/`. `npm run build:preview` fills blanks with visibly marked test values
 
 ## 6. Privacy and deletion — what the code actually does (audit 2026-10-12)
 
+> **Superseded in part (2026-10-16).** The current, line-referenced inventory is `docs/86` (data), `docs/87`
+> (processors) and `docs/88` (retention and deletion). Out of date below: an email provider **does** exist in code
+> (Resend, `EMAIL_CHANNEL=resend`, off by default; it never carries deletion codes); "no location" is not certain
+> while receipt photos keep EXIF (F13); much of B-7 was fixed in the 0084/0085 rounds and in backend `dc53129`, and what
+> remains is listed in docs/88. The legal pages added on 2026-10-16 are `docs/85`.
+
 The privacy policy and the deletion page were written from a read-only audit of backend and app code (agent report in
 this session; key facts):
 

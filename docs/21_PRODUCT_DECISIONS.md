@@ -938,6 +938,7 @@ Recorded decisions, in brief:
 - **Offline:** essential. Visible status by colour **and** words (Offline · N waiting / Syncing / Synced) · cache only the user's branch data · queue with stable IDs · **never silently resolve conflicting IMEI transactions** — first server-valid wins, the other freezes in a Conflict Center for Manager/Owner · offline manually-entered unknown IMEIs are High-risk pending review.
   *Note:* `SyncDevice` and `OutboxChange` models exist but are unused; `clientUuid` idempotency is already honoured by Sell.
 - **Subscription:** 500 MRU per branch per month, monthly only at launch · Owner seat free · two pooled employee seats per branch, extra seats 100 MRU, charged in full mid-cycle, no refunds, seat reusable to period end · unified renewal date, prorated first partial period · 72-hour grace, then employees lose transaction creation while the Owner keeps read-only and export · **never auto-delete business data**.
+  *(2026-10-16: "no website link" now has one exception, the four legal pages — see the owner's brief of 2026-10-16 at the end of this file. Everything else here stands.)*
   **Mobile app must contain no price, no amount, no payment method, no payment button, no website link and no purchasing flow.** Approved copy: *"Subscription access ends in X days. Check the message sent to the Owner's WhatsApp for renewal information."*
   All payment integration is website- and server-side only, provider-independent, activated by verified invoice reference — **never by amount alone**.
 
@@ -7569,3 +7570,39 @@ The full list, with what each blocks, is `docs/77` §6 (O-A0…O-C8). The ones t
 - **Recording a payment:** a client idempotency key for the console, refusing a reused reference for another amount,
   refusing a future payment date — none built.
 - **Partial consignment sales** (O-B3) and the other O-B rows: built as the table above says until decided.
+
+### ✅ DECIDED BY THE OWNER — legal pages, privacy disclosure and Apple readiness (the brief of 2026-10-16)
+
+- **O-A5 settled, for the legal pages only.** The mobile app may open exactly four pages — the privacy policy, the
+  terms, support and how account deletion works — in the phone's own browser (never a web view), at their `/in-app/`
+  addresses on the configured https website origin (`EXPO_PUBLIC_LEGAL_ORIGIN`), in the person's language. They are
+  shown on sign-in, More → Your account, Delete account, the closed-access screen and the no-branch screen. Every
+  other address stays refused; none of the four leads to a price, an application or a sign-in, and the `/in-app/`
+  pages carry no site navigation. The trial card stays display-only. The rule "no website link in the app" otherwise
+  stands (mobile `b6adc48`; docs/90 §6).
+- The website publishes `/privacy`, `/terms`, `/support`, `/account-deletion`, `/privacy-choices`, `/legal` and
+  `/security` in EN/FR/AR, each labelled **DRAFT — REQUIRES TSX-MR APPROVAL** until TSX-MR approves it. No owner fact
+  is invented; a production build refuses blank inputs, placeholders, legal blockers and drafts (website `8bf6f65`;
+  docs/93). No non-essential cookie, so no consent banner and no `/cookies` page.
+
+### ✅ IMPLEMENTED AS FIXES OF EXISTING RULES — the legal-pages phase (2026-10-16)
+
+| What now happens | The rule it enforces | Commit |
+| --- | --- | --- |
+| Recording a subscription payment writes its audit row in the same transaction; a replay answers `applied: false` | the audit trail records every change (D109) | backend `6ed5fc8` |
+| A business closure also clears payer numbers and request hashes, de-identifies the business's earlier-deleted logins, and a completed deletion forgets its IP | D165 (what deletion removes) | backend `dc53129` |
+| A login's deletion no longer de-identifies another business's registration attempts | tenant isolation | backend `dc53129` |
+| The closing notice goes only to a verified WhatsApp number | D110 (verified numbers only) | backend `dc53129` |
+| The deletion screen says "deleted" only when the session really ended (401), never on a lost answer | a lost answer is not a result (C14) | mobile `b6adc48` |
+| A login assigned to no branch can open Your account, and so delete itself | docs/64 (deletion reachable in every state) | mobile `b6adc48` |
+| No microphone or Face ID prompt text; camera and photo prompts in EN/FR/AR | ask only for what is used (docs/48) | mobile `b6adc48` |
+| The closure copy says which notes go and which stay | the texts may not promise more than the code (the brief) | mobile `6609574`, website `8bf6f65` |
+
+### ⏳ AWAITING THE OWNER — the legal-pages phase (2026-10-16)
+
+The full list is `docs/93`: the TSX-MR facts (O-L1…O-L16), the twelve legal blockers, and the decisions O-A7/F01
+(the deletion channel — a blocker for review), F02 (erasure for people who cannot sign in), L-1 (the in-app terms
+describe access paid outside the app), L-2 (receipt photo EXIF), L-3 (the phone's local data after deletion), L-4
+(imported rows kept), L-5 (identifiers in request logs), L-6…L-11 (App Privacy and manifest details). Nothing in this
+phase decided any of them.
+

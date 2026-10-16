@@ -46,8 +46,8 @@ Read from `app.json` and from an `expo prebuild --platform ios` in a scratch cop
 
 ### App Store (later)
 - [ ] Privacy Policy URL — the website's `/privacy` exists **as a draft awaiting legal review** (`docs/74` B-2).
-- [ ] In-app access to the privacy policy (guideline 5.1.1(i)). The app currently has **no link to any website by product rule** → owner decision O-A5 (e.g. the policy text inside the app, or one allowed link).
-- [ ] App Privacy ("nutrition label"): data collected — contact info (email/phone of staff), user content (business records), identifiers (device id for session binding), usage of camera/photos on device only. Written by the owner from `docs/64`.
+- [ ] In-app access to the privacy policy (guideline 5.1.1(i)). **Built (2026-10-16, mobile `b6adc48`):** O-A5 settled by the owner's brief for the legal pages only — privacy, terms, support and how deletion works open in the phone's browser from sign-in, Your account, Delete account, the closed-access screen and the no-branch screen (`docs/90` §6). Needs `EXPO_PUBLIC_LEGAL_ORIGIN` as an EAS variable; a release build is refused without it.
+- [ ] App Privacy ("nutrition label"): the proposed answers are `docs/89` (a draft for TSX-MR, from the code).
 - [ ] Account deletion inside the app (5.1.1(v)) — exists; completing it needs a delivery channel in production (D116; WhatsApp postponed, email provider not chosen) → **blocks App Store review**.
 - [ ] Business model (3.1.1 / 3.1.3(c)): D118 — business accounts only, no purchase in the app. Review notes say so.
 - [ ] Age rating, category (Business), support URL, marketing URL (optional), copyright "TSX-MR".
@@ -107,6 +107,14 @@ the device model and the build number. **Every line starts as NOT DEVICE VERIFIE
 | # | Check | Expected | Status |
 | --- | --- | --- | --- |
 | T6.1 | Your account → Delete | reachable in ≤ 3 taps; honest refusal while no channel can send a code | NOT DEVICE VERIFIED |
+
+### T6b — Legal pages (2026-10-16)
+| # | Check | Expected | Status |
+| --- | --- | --- | --- |
+| T6.2 | Sign in screen → Privacy policy, Terms of use, Help and support, How account deletion works | each opens in Safari (not inside the app), at `/in-app/…` in the app's language; the page has no sign-in, application or price | NOT DEVICE VERIFIED |
+| T6.3 | More → Your account → the four rows; Delete account → its three rows | same; back in the app afterwards nothing was lost | NOT DEVICE VERIFIED |
+| T6.4 | A login with no branch | "Your account" opens; deletion is reachable | NOT DEVICE VERIFIED |
+| T6.5 | Purpose strings in FR and AR | camera and photo prompts in the phone's language; no microphone or Face ID prompt anywhere | NOT DEVICE VERIFIED |
 
 ### T7 — Text size and widths
 | # | Check | Expected | Status |

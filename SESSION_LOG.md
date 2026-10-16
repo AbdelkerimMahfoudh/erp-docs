@@ -11463,3 +11463,47 @@ owner's decisions O-A0…O-C8 and O-B13…O-B16. **An external penetration test 
 
 **GO / NO-GO.** Internal TestFlight: NO-GO today, code ready (needs O-A0 Apple membership, O-A4 the EAS project, O-A6 an
 https staging API). External TestFlight: NO-GO. App Store: NO-GO. Reasons in `docs/77` §7.
+
+## 2026-10-16T12:36Z → 2026-10-16T13:35Z — CLAUDE-B (cloud) — legal pages, privacy disclosure and Apple-submission readiness (`docs/85`–`docs/94`)
+
+**Brief.** The owner's brief of 2026-10-16 (legal pages, privacy disclosure, Apple-submission readiness for Dukan ERP
+under TSX-MR), together with "check the code line per line and verify everything in the code is ready for prod".
+Authorised: source, website content, tests, documentation. Not done, by instruction: publishing, DNS, deployment,
+production credentials, providers, live data, TestFlight or App Store upload, accepting legal wording for TSX-MR.
+Took over from the production-readiness phase's READY_FOR_HANDOFF (all trees clean and level at 12:36Z).
+
+**Commits.**
+
+- Backend `reports-export` `06a0db7..dc53129`: `6ed5fc8` (payment audit row in the transaction; replay answers
+  `applied: false` — review R-1, R-2), `dc53129` (deletion de-identification F03, F04, F07, F11; closing notice to
+  verified numbers only F17).
+- Mobile `reports-export` `b23badb..6609574`: `b6adc48` (legal pages in the phone's browser through the one allowlisted
+  opener; deletion reachable without a branch; the deletion poll says "deleted" only on a 401; unused permissions
+  removed, FR/AR purpose strings; release check, CI and bundle audit carry `EXPO_PUBLIC_LEGAL_ORIGIN`), `6609574`
+  (closure copy no longer claims every note is deleted).
+- Website `tsx-public-site` `0eedfaa..8bf6f65` (not merged; `main` `0417bfe` untouched): the seven legal and support
+  pages in EN/FR/AR, `/in-app/` variants, the release guard for placeholders and drafts, the privacy and deletion
+  texts reconciled with the code.
+- Docs `master`: `docs/85`–`docs/94`, `docs/21` (O-A5 settled for the legal pages; fixes; open questions), `docs/74` §6
+  marked superseded in part, `docs/81` (legal-page rows and device checks), this entry, the handoff.
+
+**Verification.** Backend: tsc clean, 4 512 tests passed (24 skipped). Mobile: tsc clean, lint 0 errors, 115 pure test
+files and 285 rendered tests pass, fresh web and iOS exports pass the bundle audit (also with a realistic legal origin,
+which fails without the allowance — the allowance is exact), Expo Doctor 19/21 (the two need `exp.host`). Website:
+typecheck clean, vitest 376/376, build:preview 66 pages, link audit 0 broken of 3 255, bundle audit PASS, production
+build refused with 33 reasons as intended. 126 screenshots of the legal pages (EN/FR/AR, phone and desktop, light and
+dark, plus the in-app variants) — all status 200, one heading, right language and direction, no sideways scroll;
+kept outside the repositories and delivered to the owner.
+
+**Found and not fixed (docs/93).** F01/O-A7: account deletion cannot complete in production (WhatsApp only, off; email
+never carries deletion codes) — a review blocker. F02: no erasure path for people who cannot sign in. F05, F06, F08,
+F09, F10, F12, F13, F14, F15 and lows; M-DEL-3 the phone keeps the deleted person's local files; L-1 the in-app terms
+describe access paid outside the app; R-3…R-17 lows from the line-by-line review of the last three commits.
+
+**Not verified.** No device test, no built archive, no legal review, no provider exercised; the website's CI
+Playwright suite was not run here; no automated contrast tool.
+
+**Live data and deployment.** None touched; nothing deployed, published, uploaded or submitted.
+
+**Next.** The owner answers docs/93 (facts, legal blockers, O-A7). The first engineering step after that is whichever
+of O-A7 (b) email deletion codes, L-2 EXIF stripping, L-3 local cleanup after deletion the owner approves.
