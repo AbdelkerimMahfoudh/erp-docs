@@ -1,10 +1,29 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_owner: CLAUDE-B (cloud session), 2026-10-13T03:13Z → 2026-10-16T05:10Z — complete
-last_phase: the website-only seven-day free trial, its review round and the add-on rule of 2026-10-15 (`docs/76`,
-D169–D177)
+Status: IN_PROGRESS
+Owner: CLAUDE-B (cloud session)
+started_at_utc: 2026-10-16T04:32Z
+previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (cloud), the free-trial phase, 2026-10-13T03:13Z →
+2026-10-16T04:25Z — complete (the 05:10Z written at its end was a mistake); all four trees clean and level with their
+remotes at takeover
+active_phase: production-readiness audit and defect fixing for TestFlight under TSX-MR (the owner's brief of
+2026-10-16). Not authorised: deployment, publication, TestFlight or App Store upload, DNS, purchases, provider
+activation, production credentials, live-database operations, real customer data.
+next_intended_action: record the baseline; investigate the website's failing GitHub CI on `tsx-public-site`; then the
+per-file review manifest and the audit.
+
+## Baseline at takeover (2026-10-16T04:32Z)
+
+| Repository | Branch | HEAD | Upstream |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `6a4cfc0` | level, clean |
+| `erp-mobile` | `reports-export` | `a8b48c4` | level, clean |
+| `erp-control-web` | `tsx-public-site` (not merged; `main` `0417bfe`) | `8efa902` | level, clean |
+| `erp-docs` | `master` | `fd86e24` | level, clean |
+
+---
+
+The previous phase's final snapshot follows, unchanged.
 
 ## HEAD of every repository
 
