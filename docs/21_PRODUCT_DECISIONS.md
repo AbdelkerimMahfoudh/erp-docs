@@ -7266,11 +7266,11 @@ made. *As built:* mobile `db67298`, backend `2bb5130`, website `fa3c3fe`.
 
 ## The website-only seven-day free trial (2026-10-13 → 2026-10-15, CLAUDE-B, cloud) — `docs/76`
 
-> **In progress (2026-10-15).** The first implementation is pushed (backend `c3aa803`, mobile `7b64918`, website
-> `4b61f79`); the review's fixes and the add-on scheduling are being made. Each heading says how far it has got;
-> `CURRENT_HANDOFF.md` is the live state.
+> **As built (2026-10-16).** Backend `6a4cfc0`, mobile `a8b48c4`, website `8efa902` (`tsx-public-site`, not merged).
+> Reviewed by five adversarial reviewers (35 findings), fixed, verified independently. Migration `0097` and the
+> questions below marked ⏳ await the owner. Nothing is deployed.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's brief, 2026-10-13) — D169: one seven-day free trial per self-registered business, claimed on the website
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's brief, 2026-10-13) — D169: one seven-day free trial per self-registered business, claimed on the website
 
 **The trial.** A business created through the public sign-up may claim **one** free trial. It lasts exactly 168 hours,
 measured from the server's instant of its Owner's explicit confirmation on the website.
@@ -7296,18 +7296,18 @@ approval.
 
 *As built:* `docs/76`, migrations `0095_free_trial` and `0096_trial_link_claimed`.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q1, 2026-10-13) — D170: business sign-up returns to the app
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's decision Q1, 2026-10-13) — D170: business sign-up returns to the app
 
 **This reverses D117.** The app's sign-up uses `auth/register`, `auth/register/verify/start` and
 `auth/register/verify/confirm`. Those aliases share one flow, one throttle budget and one set of refusals with the
 website's `platform/register*`. Creating an account never starts a trial.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q2, 2026-10-13) — D171: businesses created by the Super Admin get no trial
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's decision Q2, 2026-10-13) — D171: businesses created by the Super Admin get no trial
 
 Only the public self-registration creates a trial eligibility. The console's *create business* and the QA and staging
 fixtures never do.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's decision Q3, 2026-10-13) — D172: access approved during a running trial starts when the trial ends
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's decision Q3, 2026-10-13) — D172: access approved during a running trial starts when the trial ends
 
 A paid period, or a grant, approved while a trial runs opens at the trial's end. The trial is never shortened, extended
 or rewritten.
@@ -7315,7 +7315,7 @@ or rewritten.
 The trial facts are never written by a lifecycle action. Every decision that gives or ends access closes the
 eligibility under the subscription lock, which serialises it with claims.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's correction, 2026-10-13) — D173: the app is display-only for the trial
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's correction, 2026-10-13) — D173: the app is display-only for the trial
 
 **No trial-related action button, of any kind.** That excludes:
 
@@ -7332,7 +7332,7 @@ on the website, or through support.
 
 *Proof:* `lib/access-boundary.test.ts` and the exported web and iOS bundle audit in CI.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's correction, 2026-10-13) — D174: no request-origin boundary; trial instants in UTC, shown in the business's zone
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's correction, 2026-10-13) — D174: no request-origin boundary; trial instants in UTC, shown in the business's zone
 
 **No Origin, Referer or "came from the website" check protects anything.** The claim is protected by:
 
@@ -7347,7 +7347,7 @@ on the website, or through support.
 **Time.** Instants are stored and sent in UTC, and every client shows them in the business's configured zone, with the
 zone's name. No zone is ever hardcoded.
 
-### ✅ APPROVED AND IMPLEMENTED, REVIEW FIXES IN PROGRESS (the owner's clarification, 2026-10-13) — D175: website sign-in works without the message link
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's clarification, 2026-10-13) — D175: website sign-in works without the message link
 
 An eligible Owner who signs in on the website independently sees the same trial card and can start the trial after
 explicit confirmation. This holds whatever happened to the message: lost, failed, expired, consumed, or the device
@@ -7362,7 +7362,7 @@ changed.
 
 Delivery is never a second eligibility requirement.
 
-### ✅ APPROVED, DESIGN IN PROGRESS (the owner's correction, 2026-10-15) — D176: a store or a paid seat requested during a trial is scheduled to the trial's end
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED — MIGRATION `0097` AWAITS THE OWNER (the owner's correction, 2026-10-15) — D176: a store or a paid seat requested during a trial is scheduled to the trial's end
 
 **Not blocked.** It is quoted, and may be paid for and approved, during the trial.
 
@@ -7378,11 +7378,14 @@ activated unpaid.
 control.
 
 **Fallback.** If the model could not schedule safely without a substantial redesign: pending until expiry, documented —
-never a double charge.
+never a double charge. *Not needed:* the model schedules safely.
 
-*As built:* `docs/76` §6.1.
+*As built:* `docs/76` §6.1 — migration `0097_scheduled_addons` (the status `scheduled`, `effective_at`, a CHECK), the
+payment recorded once and the row scheduled at confirmation, everything put in force at the trial's end in one
+transaction per business that never waits on a lock, a sweeper within a minute, and the owner's 14 required tests
+(59 unit tests, 21 on real MySQL, the real-HTTP sections AO-A, AO-K and AO-END).
 
-### ✅ APPROVED, IMPLEMENTATION IN PROGRESS (confirmed by the owner, 2026-10-15) — D177: every contact given at registration must be verified
+### ✅ APPROVED AND IMPLEMENTED, REVIEWED (confirmed by the owner, 2026-10-15) — D177: every contact given at registration must be verified
 
 **The rule.** A business that gave an email and a WhatsApp number must verify both before its trial can be claimed.
 
@@ -7421,3 +7424,110 @@ account* → *Verify a number*. The website tells the Owner to use *Your account
 2. Verify both contacts during sign-up when both are given.
 3. Keep the screen as it is.
 
+
+### ⏳ AWAITING THE OWNER — migration `0097_scheduled_addons` before any shared database (D176)
+
+**The question.** D176 needs one schema change. `seat_allocations` gains the status `scheduled`, the column
+`effective_at`, and a CHECK binding the two. It was applied only to disposable copies in the cloud container (`docs/22`,
+"Rehearsal record — 0097").
+
+**Unchanged until the owner decides.** Nothing shared has seen it. The PC's `phonestore` is still at `0091`.
+
+**The approval asked for:** apply `0092`–`0097` together with the API of the same commit, after the backup and restore
+check of `docs/22`, with the website deployed in the same release window (see the deployment entry below).
+
+### ⏳ AWAITING THE OWNER — one release window for the API (`0092`–`0097`) and the website
+
+**The question.** The website of `tsx-public-site` and the API of `reports-export` depend on each other through D176.
+
+- **Website first:** it would promise scheduling to Owners while the older API opens and bills a store at once.
+- **API first:** the older website shows a scheduled request with no words for its status.
+
+**Recommended:** one release window, with the API stopped while `0097` is applied (its CHECK rebuilds
+`seat_allocations`, `docs/22`). The website's `main` (`0417bfe`) and every database are untouched until the owner
+decides.
+
+### ⏳ AWAITING THE OWNER — seventeen product questions D176 raised (PQ1–PQ17)
+
+**What was built.** Each question below has a **safe default**: today's behaviour wherever it does not double charge,
+and the owner's own rules (charge once, unpaid stays pending) where it would. None of them was decided invisibly: each
+is built as stated here, and each can be changed by the owner.
+
+| # | The question | Built (the default) | The alternatives |
+| --- | --- | --- | --- |
+| PQ1 | A store or seat paid for during the trial, with no paid access approved when the trial ends | It stays scheduled, paid for and counted nowhere, and starts with the first paid period whenever it is approved — charged once, never refunded. The website says "Starts with the first paid month, once paid access is approved" | (a) refuse the payment during the trial until paid access is approved; (b) activate it at the end on a read-only business; (c) refund or credit it (needs the unused reversal path) |
+| PQ2 | A payment confirmed for a business with trial facts, no paid period ever started and no trial running (not started, ended unapproved, refused, cancelled) | 409 `paid_period_not_started`; nothing written; the request stays pending | (a) schedule it to the first paid period, as during the trial; (b) today's immediate path — excluded, it double charges |
+| PQ3 | The business is suspended, or cancelled by the Super Admin, at the add-on's start | It starts on schedule when a paid period is in force; a business closed by its Owner never does | (a) hold while suspended, start at reinstatement; (b) hold cancelled businesses too; (c) hold until the Super Admin decides |
+| PQ4 | May a paid, scheduled add-on be refused, withdrawn or released before it starts — and refunded? | No (400): paid is paid; no refund path exists | (a) a Super Admin cancellation with a compensating payment row; (b) an Owner withdrawal before the end, refunded outside the system; (c) a credit on the first period |
+| PQ5 | A new plan version takes effect between the quote and the period the add-on joins | Today's quote rules; the period's own price governs; the activation records the paid amount, the quote and the actual increase, so a difference is visible, never turned into money | (a) quote add-ons at the first period's prices; (b) refuse the confirmation when the figures differ; (c) freeze the request's price for its first period |
+| PQ6 | Activity upgrades paid for during the trial (D176's wording does not cover them) | Unchanged: before an approval the upgrade waits for the renewal; after a deferred approval it is charged and applied at once | (a) schedule upgrades to the trial's end; (b) refuse upgrades while a trial runs |
+| PQ7 | A deferred approval applies the renewal's scheduled activity changes mid-trial (R1-F3) | Unchanged in timing; the records now carry the true instant (fixed) | (a) move the changes to the trial's end (a larger change, listed in `docs/76`); (b) keep the approval-time change, as built |
+| PQ8 | The server requests seats by itself during the trial (a Team invite into a full store, a person's verification) | Unchanged, except that an unreserved scheduled seat at that store covers the next person, as an unnamed paid seat does today | (a) no automatic requests during the trial; (b) automatic requests need the Owner's confirmation on the website before payment |
+| PQ9 | Changing the activity of a store that is scheduled but not open | Impossible, as today: it opens with the activity paid for | (a) allow it before it opens, the difference charged or credited |
+| PQ10 | A grant instead of (or after) a paid approval during the trial | No change to money: the add-on's own payment stands and it joins the grant's period once | (a) the grant covers add-ons, with a refund or credit; (b) refuse a grant while paid add-ons are scheduled |
+| PQ11 | The start is stamped at the trial's end but written at the first trigger after it | A bounded delay of at most 60 s (the sweeper), as for the prepaid renewal; money is unaffected | (a) treat due rows as in force before they are written (invasive); (b) a shorter sweep |
+| PQ12 | A seat or store confirmed outside any trial while no paid period is in force (console-created, lapsed, grace) | Unchanged: today's immediate path, priced in full by the next period (D154); a due renewal is applied first | (a) extend the 409 to every business with no period in force; (b) schedule it to the next period; (c) credit the payment against it |
+| PQ13 | What the app's Team view says for a seat waiting for its start | The existing words: "held" for the person's own seat, "included" for one an unnamed seat covers; no date, no price | (a) a new neutral state with its start date, in a later app release; (b) "awaiting payment" — excluded, it misstates a confirmed payment |
+| PQ14 | Should the website and the console list, per period, the request payments it already includes? | No new figure: each request shows its reference and status, the timeline names the period and the increase, and the console says not to collect paid add-ons again | (a) a server-computed per-period list (needs a link from payment to period); (b) a "joining at {date}" figure before the end |
+| PQ15 | The `trial_expired` note says "Nothing was charged." while paid access or add-ons may start at that same instant | Kept: it is true of the trial itself | (a) "The free trial itself charged nothing."; (b) drop the sentence |
+| PQ16 | A replacement store (D158) during a running trial — unreachable today, no archive action exists | Today's D158 path; such rows are never scheduled | (a) ignore replacement slots during a trial; (b) schedule the replacement and record it at activation |
+| PQ17 | The Owner of a business whose trial has not started cannot list requests on the website, though the request itself is allowed | Unchanged: the request's answer carries the created row; once the trial runs, the list is readable and shows the start | (a) make the list always readable for the Owner |
+
+The full reasoning, with the code each default rests on, is in `docs/76` §16.
+
+### ⏳ AWAITING THE OWNER — a business closed by its Owner around a payment confirmed during the trial (D176, a PQ3/PQ4 follow-up)
+
+**Built (today's behaviour, pinned by tests).** The console's confirmation is accepted and the payment recorded. The
+request stays scheduled and says it starts at the trial's end, but a closed business is never put in force, and
+nothing flags the stranded payment.
+
+**The alternatives:**
+
+1. Refuse the confirmation for a closed company: 409 before any write, the request stays pending (as PQ2).
+2. Keep accepting it, but stop promising a start, and flag each stranded request once (a reason and an audit row) for
+   the Super Admin to settle outside the system.
+
+### ⏳ AWAITING THE OWNER — the setup status when an earlier send went out and the latest attempt failed
+
+**Built.** The website and the app read *failed* or *unavailable* from the last attempt alone, even when an earlier
+message reached a verified contact and still works (C17 tells apart only *not sent*).
+
+**The alternatives:**
+
+1. A line in both clients: "The setup instructions were sent to your verified contact on {date}, but the latest ones
+   could not be sent."
+2. The server reports *sent* while an earlier accepted send still binds, and the failed resend shows only in the
+   website's history.
+3. Keep it as it is.
+
+### ⏳ AWAITING THE OWNER — wording and server English left as they are (the free trial, 2026-10-16)
+
+**Wording to review in EN, FR and AR:**
+
+- *Paid · scheduled* and its start lines;
+- the trial note under the request forms and the console's paid-once note;
+- "The person still waits for the seat to start.";
+- the setup lines of C2 and C17;
+- the app's three code-check lines (*not sent*, *too many tries*, *could not tell whether the code was sent*);
+- the deferred activity-change note, which says "at the approval" also after a grant or an extension.
+
+**Server English on the website.** A refused resend at `/apply` ("That registration cannot be continued."), and other
+refusals across the site (pre-existing), appear in English under a translated title on French and Arabic pages. The
+app now says them in its own words. The alternatives:
+
+1. The website does the same as the app.
+2. The server gives distinct codes for a spent registration and the hourly code limit (one 400 today), so both clients
+   can say "start again" or "wait" exactly.
+
+**Smaller presentation questions:**
+
+- the console's businesses list shows *Ends —* for a business in its trial;
+- a co-Owner reads "sent to" beside their own masked contact;
+- the *sending* line names no destination when there are several contacts;
+- the applications queue's *Email address* column shows a phone number (pre-existing).
+
+### ⏳ AWAITING THE OWNER — payment rows the application may update (pre-existing, found 2026-10-16)
+
+The application's database account cannot delete a `subscription_payments` row (a trigger refuses it), but it can update
+one, the amount included. If payments are meant to be append-only, a future migration adds a `BEFORE UPDATE` trigger,
+as `agent_movements` has. This is a schema decision, not part of D176.

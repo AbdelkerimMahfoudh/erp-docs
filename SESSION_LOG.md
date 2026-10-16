@@ -11356,3 +11356,50 @@ store identity exists, and the old scheme has no alias.
 - `phonestore` stayed at 0091; no live database exists.
 - Not done: no EAS project created or deleted, no store listing, no deploy, no merge, no provider or domain, no
   device verification. No mobile trial button or link was added.
+
+## 2026-10-13T03:13Z → 2026-10-16T05:10Z — CLAUDE-B (cloud) — the website-only seven-day free trial, its review round and the add-ons scheduled to the trial's end (`docs/76`, D169–D177)
+
+**Brief and decisions.** The owner's brief of 2026-10-13 and its addendum; the owner's answers Q1–Q3 (app sign-up
+restored, console-made businesses ineligible, access approved during a trial starts at its end); the correction (the
+app display-only, no Origin/Referer boundary, UTC stored and the business's zone shown); the clarification (website
+sign-in without the link; the concurrent identity work integrated deliberately); the correction of 2026-10-15 (stores
+and paid seats requested during a trial are scheduled to its end and charged once, with 14 required tests; no
+unresolved product question turned into code).
+
+**Built.**
+
+- Backend `aad5862..6a4cfc0`: migrations `0095`, `0096`, `0097`; the trial's states, claim, setup links, delivery and
+  resend; registration through both doors; the deferred paid start; the add-on scheduling with `TrialEndRoll` and its
+  sweeper; the review's contract C1–C18; the entitlement facts in one read.
+- Mobile `7b64918..a8b48c4` (after the identity merge): the restored sign-up, the display-only trial card, the trial's
+  dates in the business's zone, the boundary guards in the source and in the exported bundles, the code check's lost
+  answers.
+- Website `tsx-public-site` `..8efa902` (not merged; `main` `0417bfe` untouched): the Owner's trial card, the link's
+  landing, the delivery history, the console's trial facts and scheduled queue, the add-ons with their start.
+- Integration with the identity phase by `--no-ff` merges: backend `c3aa803`, mobile `7b64918`, website `4b61f79`.
+
+**Review.** Five adversarial reviewers, 35 findings (3 blockers, 10 majors, 21 minors, 1 nit; an earlier handoff
+miscounted them as 12 and 19). 31 fixed; R5-5 fixed in code only; R1-F3's records fixed with its timing awaiting the
+owner; R4-04 and R5-4 awaiting the owner. Independent verifiers then tried to refute every fix (money, concurrency,
+scope, website, mobile), and their own findings were fixed: lock waits on rows other than the subscription's (N1), the
+sweeper's bound when a row is busy (N2), period ordering on non-monotonic ids, the status inventory's blind spot, the
+sweeper starved by waiting businesses, more ways out of the app and more claim wordings, the code check's lost answers
+on both clients, a console layout overflow.
+
+**Verified.** Backend Jest 4 416 passed, 24 skipped; the MySQL add-on spec 21/21 ×3; mobile 253 rendered tests and 113
+pure test files; website Vitest 295, Playwright 114; the real-HTTP journey from a fresh database, 188 product checks
+plus 1 harness precondition, 0 failures; no secret in the API log on successful or failing requests; 108 screenshots
+against the real API. Two harness defects were found and fixed in the scratch harness and are not counted as product
+results (a wrong role in AO9; a TOTP step the QA seed had already used).
+
+**Docs.** `docs/76` as built; `docs/21` (D169–D177 statuses; the entries awaiting the owner for `0097`, the release
+window, PQ1–PQ17, a closed business's paid add-on, the setup status, wording, payment-row updates); `docs/68` v1.3
+(§11); `docs/22` (the `0097` rehearsal); `docs/24` §66; the handoff.
+
+**Safety.** Disposable databases only, in the cloud container, all dropped, with grants revoked. `phonestore` stayed at
+`0091`; no live database exists. Nothing deployed, merged to a production branch, published or sent to a real person.
+No force-push; history rewritten only on unpushed commits, to set the committer. Two throw-away probe specs were briefly
+created inside the backend tree by a fix-up agent and deleted at once, never committed, holding no secret (contrary to
+the scratch-file rule; recorded here).
+
+**Status:** READY_FOR_HANDOFF / NONE. Next: the owner's production-readiness brief of 2026-10-16.

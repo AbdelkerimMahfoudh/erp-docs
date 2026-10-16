@@ -4447,3 +4447,30 @@ Android and on an iPhone once one exists, in EN and in AR.
 **Earlier rows.** Rows that open `retailerp://…` (§55 AF7 and AF11, §61) are run with `dukanerp://…` from this build
 on. Rows expecting "Retail ERP" in the camera prompt (§54 AE1) or `RetailERP_…` file names (§52 AC1 and AC7, §54 AE13)
 now expect **Dukan ERP** and `DukanERP_…` (D168).
+
+## 66. The website-only free trial, from the phone (D169–D177, `docs/76`) — NOT DEVICE VERIFIED
+
+**Nothing in this section has been run on a physical phone.** Every row was proven only by rendered tests, exported-bundle
+audits and real-HTTP runs in the cloud container. Run each row on Android and on an iPhone, in EN, FR and AR, against a
+**test** server whose businesses are disposable. Never use a real customer's number.
+
+**Preconditions.** An app build of `reports-export` at or after the commit recorded in `CURRENT_HANDOFF.md`, and an API
+with migrations up to `0097`, applied only to a test database after the owner's approval. You also need a computer or
+a second phone for the website.
+
+| # | Do | Expect | Android | iPhone |
+| --- | --- | --- | --- | --- |
+| TR1 | Sign-in screen → *Create a business account*, fill the form, type the code | The closed screen, with the Owner's trial card. No button, link, QR code or navigation on the card, and nothing names a price, a payment or the website | | |
+| TR2 | Read the card in EN, FR and AR; tap every line | "Eligible for a 7-day free trial", "not started", 7 days, "starts only after you claim it", the masked contact and one delivery line. Arabic reads right to left. Nothing responds to a tap | | |
+| TR3 | Register with an email **and** a WhatsApp number | The card says the instructions wait for the WhatsApp number. Write down how a first-week person finds that verification: today it is reachable only through *Delete my account* → *Verify a number* (R5-4, awaiting the owner) | | |
+| TR4 | A test server with no channel able to send the instructions | "Setup instructions cannot be sent right now … Please contact Dukan ERP support". No resend control | | |
+| TR5 | After the instructions went out, change the Owner's password on the website, then *Check again* in the app | "The setup instructions were sent on {date}, but they no longer work because your account details have changed since" (C17). The date is in the business's zone, with the zone's name | | |
+| TR6 | Claim the trial on the website, then *Check again* in the app | "Free trial: active, ends {date and time} ({zone})". On the **iPhone**, the zone's **whole** name, e.g. "Greenwich Mean Time", never cut to its first word (R5-5, fixed in code only) | | |
+| TR7 | A test business past its trial's end | The read-only notice with the end date and time. Sales, stock and money cannot be recorded, said in the app's words; reading and export work | | |
+| TR8 | At the code check, tap *Confirm* and cut the network at once (airplane mode) | "We could not confirm in time. If the code was right, your account is ready — sign in with your password." Tapping *Confirm* again with the same code never says the code is wrong | | |
+| TR9 | Leave a sign-up at the code check, close the app, open it again | The sign-in screen. Nothing of the unfinished registration resumes, and a new sign-up starts clean (R5-8) | | |
+| TR10 | Sign in as a Manager and as an Employee of a business whose trial has not started | A neutral "Access has not started yet". No trial card and no trial words | | |
+| TR11 | Team: switch a member back on while no seat is free, for example while a seat bought during the trial waits for its end | The sheet says no seat is free, in the person's language. It never says "phone taken", and no server English appears | | |
+| TR12 | Team, during the trial: a person whose seat was paid for on the website | "{store}: a seat is held for this person." or "included". No date, price, payment or activation control (PQ13) | | |
+| TR13 | The website on the phone's browser at its own width, in EN, FR and AR | The trial card, the claim's confirmation and the requests' *Paid · scheduled* rows with their start in the business's zone. No sideways scroll | | |
+| TR14 | Open the setup link from the email and from WhatsApp on the phone | The website's landing. Signed out, it asks for sign-in and does nothing else. The token leaves the address bar, and the claim needs the tap. A link preview in WhatsApp consumes nothing | | |

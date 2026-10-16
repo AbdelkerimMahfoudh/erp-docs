@@ -342,3 +342,122 @@ The contract for both lives in `docs/73` §11.1 and §11.5; what the website rea
 - A confirmation of a request priced against a replacement slot or credit that no longer holds (the period renewed,
   the archived store is active again, another store took its place) is **409 `replacement_no_longer_applies`**,
   nothing written: the Super Admin refuses it, or the Owner withdraws it and asks again.
+
+## 11. Additions of 2026-10-13 → 2026-10-16 — the free trial, and a store or seat bought during it (v1.3)
+
+The trial's whole contract lives in `docs/76`. This section lists what the website, the console and the app read and
+send, field by field, as built (backend `reports-export`; website `tsx-public-site`; app `reports-export`). Every
+addition is optional for an older client, and every client keeps today's rendering when a field is absent.
+
+### 11.1 The Owner (tenant session)
+
+| Route | Body | Answer |
+| --- | --- | --- |
+| `GET platform/my-subscription` | — | `entitlement.trial`: the trial view (`docs/76` §4), with `accessAfterTrial` (C6). Top-level `timeZone`: the business's IANA zone, or `UTC` for an invalid stored zone (C18). |
+| `GET platform/my-subscription/trial` | — | `{ state, trial, offer, setup }`. `setup` may be `null` when its read failed: the offer and the claim still stand (C3). |
+| `POST platform/my-subscription/trial/claim` | `{ idempotencyKey, termsVersion }` | 201 the trial; the same key and body replays (200, `replayed: true`). The key must match `^[A-Za-z0-9._:-]{1,80}$`, otherwise 400 (C11). |
+| `POST platform/my-subscription/trial/setup/resend` | — | the new `setup`. 429 carries `resendAvailableAt`; 503 `setup_delivery_unavailable` when nothing can carry it. |
+| `POST platform/my-subscription/store-requests`, `…/seat-requests` | as §9.2 | **Accepted while a trial runs** (D176). |
+| `GET platform/my-subscription/seat-requests` | — | each `SeatRequest` gains `effectiveAt` and `activation`; `status` may be `scheduled` (§11.4). |
+| `POST platform/my-subscription/seat-requests/:rid/withdraw` | — | 400 for a `scheduled` row: it is paid for. |
+
+**`setup`** (the website's trial card):
+
+- `delivery`: `waiting_for_contact`, `sending`, `not_sent`, `sent`, `failed` or `unavailable`.
+  - `sending` (C1) means a link was issued less than 60 s ago and its attempt is not recorded yet.
+  - `sent` holds only while the link still binds to the link's Owner as they are now (C2): a contact, password or
+    verification change makes it `not_sent`, with `sentTo: []`.
+- `sentTo`: the channels that took the last current message.
+- `destinations`: the Owner's verified contacts, masked.
+- `canResendNow`.
+- `resendBlockedBy`: `null`, `throttle`, `unavailable` or `contact_unverified` (C4). It is `null` exactly when
+  `canResendNow` is true, and only `throttle` counts down to `resendAvailableAt`.
+- `history`: `[{ at, trigger, email, whatsapp }]`. An attempt is dated at its link's issue instant (C5).
+
+**`accessAfterTrial`** (C6): `{ kind: 'paid' | 'granted', startsAt }`, where `startsAt` equals the trial's `endsAt`. It
+is the paid period or grant approved during the trial, which begins when the trial ends; otherwise `null`.
+
+- A suspended business keeps what was arranged.
+- A cancelled one reads `null`.
+- After the end, it is shown only when the eligibility's closure proves the decision was taken during the trial.
+
+### 11.2 Registration (both doors, the website's and the app's)
+
+- **One throttle budget per step** across `platform/register*` and `auth/register*` (C15).
+- **Refused up front, nothing saved,** with 503 `registration_unavailable` when any given contact's channel cannot
+  carry a code now. The body names `unavailableContacts: ('email' | 'phone')[]` (C10).
+- **`verify/confirm` answers within about 3 s** (`SETUP_DELIVERY_WAIT_MS`) whatever the providers do. The setup message
+  goes on in the background (C14).
+- **A lost answer is never called a wrong code.** The server refuses a finished registration exactly as it refuses a
+  wrong code: one shape for every refusal of a continuation. So when a code's answer is lost — no answer, a 502 or 504
+  from a gateway, or a success without its body — the clients say the account may be ready and offer to sign in.
+- **The idempotency key** follows the pattern above.
+
+### 11.3 The Super Admin (cookie realm; `confirmPassword` on every mutation)
+
+| Route | Change |
+| --- | --- |
+| `GET platform/pending` | each row gains `state` (the computed entitlement state; `null` only for an application with no business) and `trial: { status: 'available' \| 'active' \| 'expired', endsAt, timeZone } \| null` (C8) |
+| `GET platform/businesses` | each row gains `trial`, in the same shape (C18) |
+| `POST platform/businesses` | `idempotencyKey` must match `^[A-Za-z0-9._:-]{1,74}$`: the server stores it as `admin:<key>` in 80 characters (C11) |
+| approve, set the period's end | an end inside a running trial: 400 `period_ends_before_trial_end`, which carries `trialEndsAt` (UTC ISO). The message holds no instant (R4-05). |
+| `GET platform/seat-requests?status=scheduled` | the scheduled queue (§11.4) |
+| `POST platform/businesses/:id/seat-requests/:rid/confirm-payment` | §11.4 |
+| refuse, release a request | 400 for a `scheduled` row |
+
+**Server notes carry no instant** (C7). The dates travel as data, and every client says them in the business's zone:
+
+- `approved`: "Paid access starts when the free trial ends."
+- `renewed`: "First billing period opens when the free trial ends, at today's size and the prices in force then."
+- `trial_expired`: "The 7-day free trial ended. Nothing was charged."
+- the claim: "Free trial claimed on the website by the Owner: 7 days from the claim. Nothing was charged."
+- `seat_paid`, when scheduled: "It opens when the free trial ends; its first paid month starts then."
+
+### 11.4 A store or a paid seat bought during a trial (D176)
+
+**`SeatRequest` gains three things:**
+
+- `status: 'scheduled'`: paid for, in force nowhere, waiting for the trial's end.
+- `effectiveAt: string | null`: for a scheduled row, when it starts (the trial's end). Once in force, when it took
+  effect. Otherwise `null`.
+- `activation: { startsAt, timeZone, waitsFor: 'trial_end' | 'paid_access' } | null`: only for a scheduled row.
+  - `trial_end`: paid access is arranged from the trial's end, so the row starts then.
+  - `paid_access`: none is arranged yet, so the row starts with the first paid period (PQ1).
+
+**What a confirmation does:**
+
+1. **During a trial:** the payment is recorded once and the row becomes `scheduled` at the trial's end. Nothing opens,
+   counts or is assessed now. The answer carries the scheduled row.
+2. **A paid period in force:** at once, as before.
+3. **A business with trial facts, no paid period ever started and no trial running:** 409 `paid_period_not_started`,
+   and nothing is written. The first paid period would charge the add-on again, so the request waits (PQ2).
+4. **A repeat:** `applied: false`. A stale `expectedVersion` gives 409 `seat_request_changed`.
+
+**At the trial's end,** in one transaction:
+
+- every scheduled row whose business has a paid period in force from that instant is put in force, stamped at the end;
+- the first paid period is raised once by its price.
+
+This happens on the first evaluation after the end, and the sweeper puts it in force within 60 s if nobody looks. A
+suspended or cancelled business activates on schedule; a closed one never does (PQ3).
+
+**A seat waiting for its start** reads to the staff side as held. Its activation's pending reason is `seat_scheduled`.
+
+### 11.5 The app (display only)
+
+`GET account/trial-setup`, eligible branch:
+
+- `delivery` includes `sending` (C1).
+- `lastSentAt: string | null` (C17): the newest attempt a provider accepted, whatever happened since. With
+  `delivery: 'not_sent'`, the app tells "never sent" from "sent, then the account changed" (`sentTo: []`) and from
+  "sent, but the latest has not gone".
+
+The app shows no price, payment, purchase or activation control for a store or a seat.
+
+### 11.6 Routing and logs
+
+- **Routing is case-sensitive** (C13). Only the canonical lower-case path reaches a handler; any other casing answers
+  404.
+- **No secret reaches a log**, on a request that succeeds or fails (C16). This covers setup tokens, portal tickets,
+  bearer and refresh tokens, cookies, codes, continuations, passwords and the webhook verify token, wherever they
+  travel. The proof is `src/common/http/request-log.spec.ts`, plus the real-HTTP run's log scan (`docs/76` §14).

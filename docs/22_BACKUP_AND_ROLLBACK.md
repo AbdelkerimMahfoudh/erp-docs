@@ -512,3 +512,67 @@ card, and a claim refused (20 / 20 checks).
 - **Restoring the backup**, proven above.
 
 Details are in `docs/76` §14.
+
+## Rehearsal record — 0097, scheduled add-ons (2026-10-15, disposable only)
+
+`0097_scheduled_addons` serves the owner's correction of 2026-10-15 (D176): a store or a paid seat paid for during a
+free trial waits, *scheduled*, for the trial's end. **It is a schema change and needs the owner's approval before any
+shared database sees it.** It was applied only to disposable copies in the cloud container (MySQL 8.0.46, `sql_mode=''`,
+UTC), every one of them dropped.
+
+**What it does — three statements on `seat_allocations`, nothing else:**
+
+1. `status` gains the ENUM value `scheduled`, appended (INSTANT).
+2. `effective_at DATETIME(6) NULL` is added (INSTANT).
+3. `ck_seat_alloc_scheduled CHECK (status <> 'scheduled' OR (effective_at IS NOT NULL AND kind IN ('seat','store')))`
+   is added. This one rebuilds the table (COPY) and blocks its writes while it copies: 0.06 s for 24 rows. Deploy with
+   the API stopped, as always.
+
+**A defect in the design, found by the rehearsal.** The design's CHECK also named `payment_id`. MySQL refuses it
+(ERROR 3823): the column is written by `fk_seat_alloc_payment`'s `ON DELETE SET NULL`. The first apply stopped after
+statements 1 and 2, because MySQL DDL is not transactional, and Prisma recorded 0097 as failed. The CHECK now holds
+status, instant and kind. The payment link is held by the one code path that writes `scheduled`: one guarded UPDATE
+with its read-back, in the payment's own transaction. A spec pins that path as the only writer. 0097 had been applied
+nowhere else, so its file was amended rather than followed by a 0098.
+
+**Recovering a half-applied 0097 (rehearsed).** With no row `scheduled`:
+
+1. Drop `effective_at` and return `status` to its five values.
+2. Run `npx prisma migrate resolve --rolled-back 0097_scheduled_addons`.
+
+Every table and trigger then matched the 0096 backup, `seat_allocations`' definition included.
+
+**The backup.**
+
+- File: `addon_be_rh_src-before-0097-20261015T140353Z.sql` (`--single-transaction --routines --triggers --events
+  --hex-blob`).
+- Size: 402 685 bytes.
+- SHA-256: `d832553cc8c532490b5a46258b5817b09963f42e6f5f0745bd769afdd3ec6002`.
+- The trailer is present.
+- **The restore was proven:** 113 tables (row counts and `CHECKSUM TABLE`) and 53 trigger bodies identical.
+
+The dataset at 0096 held 24 `seat_allocations` rows, in every status and kind a row can hold today.
+
+**The clean apply.**
+
+- `prisma migrate deploy`, from the backup, took 1.44 s. The migration's checksum is `ee436397…8538052`.
+- All 111 untouched tables are identical in rows and checksum, and so are the 53 triggers.
+- `seat_allocations` holds the same 24 rows; a SHA-256 over its original columns is unchanged.
+
+**The CHECK binds every account.** It refused the same three malformed writes as `root` and as `phonestore_app`
+(ERROR 3819), and it accepted the well-formed one for both.
+
+**The reverse SQL** is in the migration's header and is valid **only while no row is `scheduled`**.
+
+- Proven on a throwaway copy: with a scheduled row present, returning the ENUM to five values silently empties that
+  row's status (`Warning 1265`) under the server's empty `sql_mode`.
+- With zero scheduled rows, the reverse returns every table and trigger to the 0096 backup.
+- 0097 then re-applies identically.
+
+**The API-rollback rule.** Roll the API back to a version before 0097 only while no row is `scheduled`. Otherwise roll
+forward. An older API does not know the status.
+
+**After the code was finished (2026-10-15/16)**, the env-gated `trial-addons.mysql.spec.ts` ran on fresh disposable
+databases at 0097: 15/15 several times on `97b58ff`, then, after the verifiers' fix-ups added six cases, 21/21 three
+times on `80c9133`. It covers the CHECK, the NOWAIT locks and the races. It is a manual pre-merge gate, skipped in CI by
+design. An independent verifier re-ran the whole rehearsal on its own copies and found the same results.
