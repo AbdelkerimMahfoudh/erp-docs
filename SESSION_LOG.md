@@ -11403,3 +11403,63 @@ created inside the backend tree by a fix-up agent and deleted at once, never com
 the scratch-file rule; recorded here).
 
 **Status:** READY_FOR_HANDOFF / NONE. Next: the owner's production-readiness brief of 2026-10-16.
+
+## 2026-10-16T04:32Z → 2026-10-16T12:20Z — CLAUDE-B (cloud) — production-readiness audit and defect fixing for TestFlight under TSX-MR (`docs/77`–`docs/84`)
+
+**Brief.** The owner's production-readiness prompt of 2026-10-16: an audit and defect-fixing phase only. Not authorised
+and not done: deployment, publication, TestFlight or App Store upload, DNS, purchases, provider activation,
+production credentials, live-database operations, real customer data. WhatsApp stays postponed (no placeholder
+credentials, numbers or templates). Took over from the free-trial phase's READY_FOR_HANDOFF.
+
+**Correction to the previous entry.** The free-trial phase ended at **2026-10-16T04:25Z**, not 05:10Z as its heading
+says (recorded at takeover in `CURRENT_HANDOFF.md`).
+
+**Commits.**
+
+- Backend `reports-export` `6a4cfc0..06a0db7`, 28 commits: `9400480`, `f6d0b44`, `506568f`, `0eeb309`, `d2ad456`,
+  `18c00ce`, `98fc73a`, `cf2cb23`, `1cd3cfb`, `f350031`, `bbe7c4f`, `2f01f7a`, `f6dd5b5`, `bd43cf1`, `ca94087`,
+  `3df8080`, `f49e371`, `d92012b`, `75f1ca8`, `d7359fb`, `65be480`, `ce30374`, `d4235bc`, `2251c06`, `42c8b4f`,
+  `0784e83`, `b6521a9`, `06a0db7` (revert of `2251c06`).
+- Mobile `reports-export` `a8b48c4..b23badb`, 15 commits: `f94fc61`, `114fe00`, `cfdb756`, `1167f52`, `0e384a3`,
+  `b5f8b81`, `0cb381c`, `561c61d`, `fa8e09b`, `e00a480`, `79851eb`, `b9cb4ff`, `7c127b3`, `a1fedda`, `b23badb`.
+- Website `tsx-public-site` `8efa902..0eedfaa`: `35ca6d1` (CI green), `0eedfaa` (the account page's requests card).
+  `main` `0417bfe` untouched; nothing merged.
+- Docs `master`: `c784d1a`, `c649e3b`, `03867b8`, and the final commit carrying this entry.
+
+**What was done.** A per-file review of every tracked file by 13 reviewers plus two fix reviews (243 findings: 1
+blocker, 20 high, 61 medium, 116 low, 45 notes; `docs/82`, `docs/83`); every blocker and high verified by an independent
+verifier, refute-first, reproduced over real HTTP on a disposable copy or in a rendered test; 17 of them fixed, 4 owner
+decisions. CI made honest and green in all three code repositories. Gates from clean installs; migrations from empty,
+a `0083`-shaped copy, the developer shape at `0091` and an interrupted `0095`; encrypted backups and two restore drills
+(`docs/80`). Tenant isolation over real HTTP (284 routes, 14 778 requests, 0 leaks, 0 × 5xx, re-run on the final build
+with the same result); the trial harness 189/189 including the 168-hour boundary; money idempotency 18/18 on the final
+build. A screenshot matrix of 561 entries in a browser (`docs/84`). Deliverables `docs/77` (readiness, the three GO/NO-GO
+answers, the owner's decisions), `docs/78` (environment and secrets, names only), `docs/79` (staging, live deployment
+and rollback runbooks), `docs/80` (rehearsal), `docs/81` (App Store Connect checklist and the physical-iPhone script,
+every check NOT DEVICE VERIFIED), `docs/48` (dependency triage and the controls changed), `docs/21` (the fixes that
+change what a user sees, and the new owner questions).
+
+**Mistakes recorded, not rewritten.**
+
+- Backend `2251c06` made the Owner's request list and request prices readable in every closed state. That is `docs/21`
+  PQ17's alternative (a), awaiting the owner — a product decision this phase must not take. Reverted in `06a0db7` the
+  same hour; the website half (`0eedfaa`) decides nothing and stays. The website commit's message says the server half
+  "is the backend's own change": that half no longer exists.
+- Mobile `a1fedda`'s message says "jest 28 suites / 280"; the count was 279.
+- My first fix for NW2-03 (`0e384a3`) was incomplete (an expired access token at launch still signed the person out
+  on a 5xx refresh); completed in `a1fedda`.
+- A draft of `docs/48` described GHSA-36xv-jgw5-4q75 as concerning server-sent events; corrected to "not assessed in
+  detail" before commit.
+
+**Live systems.** None touched. Every database was disposable, on the session's own MySQL 8 in its scratch directory,
+and every one is dropped (`phonestore` there was a disposable build, not the PC's), as are its `phonestore_*`
+identities; no API or server process is left running; the scratch backups, keys and env files are deleted. The PC's
+`phonestore` is still at `0091`; `0092`–`0097` are applied to no shared database. Migration status of the real
+databases was not inspected (none is reachable from the cloud container).
+
+**Open.** `docs/77` §5–§7 and `docs/83`: 42 medium and 113 low findings read from code only; R1 (a 320 pt × 1.3 header,
+medium), PR-F18 / O-B13 (inter-store notifications reach the proposing store), PR-F09 (no backend linter), PR-F15; the
+owner's decisions O-A0…O-C8 and O-B13…O-B16. **An external penetration test has not been done.**
+
+**GO / NO-GO.** Internal TestFlight: NO-GO today, code ready (needs O-A0 Apple membership, O-A4 the EAS project, O-A6 an
+https staging API). External TestFlight: NO-GO. App Store: NO-GO. Reasons in `docs/77` §7.

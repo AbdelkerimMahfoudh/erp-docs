@@ -1,126 +1,78 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE-B (cloud session)
-started_at_utc: 2026-10-16T04:32Z
-previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (cloud), the free-trial phase, 2026-10-13T03:13Z →
-2026-10-16T04:25Z — complete (the 05:10Z written at its end was a mistake); all four trees clean and level with their
-remotes at takeover
-active_phase: production-readiness audit and defect fixing for TestFlight under TSX-MR (the owner's brief of
-2026-10-16). Not authorised: deployment, publication, TestFlight or App Store upload, DNS, purchases, provider
-activation, production credentials, live-database operations, real customer data.
-next_intended_action: apply the verified fixes for the review's blocker/high findings (verifiers V1–V7 working in
-scratch clones, patches applied by this session only), then the deliverables in `docs/77`–`docs/81`, the session log
-and the final handoff.
-
-## Checkpoint 2026-10-16T06:40Z (pushed)
-
-| Repository | HEAD | Commits this phase (newest first) |
-| --- | --- | --- |
-| `erp-backend` | `f350031` | `f350031` Swagger fail-closed · `1cd3cfb` qs 6.16.1 · `cf2cb23` malformed id → 400 · `98fc73a` expense race · `18c00ce` sale race · `d2ad456` start:prod · `0eeb309`, `506568f` honest CI + database job · `f6d0b44` upload limits · `9400480` audit overrides |
-| `erp-mobile` | `0cb381c` | `0cb381c` approval key per asking · `b5f8b81` 502/504 after a sale is uncertain · `0e384a3` session survives offline/5xx · `1167f52` dev gallery out of release · `cfdb756`, `114fe00`, `f94fc61` honest CI, overrides, revoked-blob scan |
-| `erp-control-web` | `35ca6d1` | `35ca6d1` CI green (Casablanca tzdata) |
-| `erp-docs` | `c784d1a` + this checkpoint | uncommitted drafts: `docs/48` triage, `docs/78`–`docs/81` |
-
-CI green on every pushed head checked (backend `cf2cb23`, mobile `1167f52`; later heads running). Disposable MySQL only;
-no live system touched.
-
-## Baseline at takeover (2026-10-16T04:32Z)
-
-| Repository | Branch | HEAD | Upstream |
-| --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `6a4cfc0` | level, clean |
-| `erp-mobile` | `reports-export` | `a8b48c4` | level, clean |
-| `erp-control-web` | `tsx-public-site` (not merged; `main` `0417bfe`) | `8efa902` | level, clean |
-| `erp-docs` | `master` | `fd86e24` | level, clean |
-
----
-
-The previous phase's final snapshot follows, unchanged.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE-B (cloud session), the production-readiness phase, 2026-10-16T04:32Z → 2026-10-16T12:20Z —
+complete; all four trees clean and level with their remotes
+took_over_from: READY_FOR_HANDOFF / NONE (the free-trial phase, ended 2026-10-16T04:25Z)
 
 ## HEAD of every repository
 
-All four are pushed, clean and level with their remotes. These are the final commits of the free-trial phase.
-
 | Repository | Branch | HEAD | Notes |
 | --- | --- | --- | --- |
-| `erp-backend` | `reports-export` | `6a4cfc0` | `80c9133` plus one comment-only commit; the real-HTTP run and the gates ran on `80c9133` |
-| `erp-mobile` | `reports-export` | `a8b48c4` | |
-| `erp-control-web` | `tsx-public-site` (**not merged**) | `8efa902` | `main` is `0417bfe`, untouched |
+| `erp-backend` | `reports-export` | `06a0db7` | CI run 38898384642 green (secret scan, dependency audit, type-check/tests, real-MySQL database gates) |
+| `erp-mobile` | `reports-export` | `b23badb` | CI run 38896028221 green |
+| `erp-control-web` | `tsx-public-site` (**not merged**) | `0eedfaa` | CI run 38897130217 green (incl. Playwright); `main` is `0417bfe`, untouched |
 | `erp-docs` | `master` | the commit carrying this file | |
 
-Another ref: the clean, detached worktree `/home/user/erp-backend-seed` (`d88893a`, an earlier phase's QA seed work)
-is left as it was.
+Baseline at takeover: backend `6a4cfc0`, mobile `a8b48c4`, website `8efa902`, docs `fd86e24`. The clean detached
+worktree `/home/user/erp-backend-seed` (`d88893a`, an earlier phase's QA seed work) is left as it was.
+
+Open draft PRs (none touched): backend #1 `claude/qa-boutique-seed`, #2 `claude/audit-fixes`; mobile #1
+`claude/stock-finds-products`, #2 `claude/audit-fixes` (the two `audit-fixes` are superseded — O-C7).
 
 ## What the phase delivered
 
-- **The trial (D169–D175):** one seven-day trial per self-registered business, claimed only by the Owner signed in on
-  the website, with or without the message's link; setup instructions sent automatically after verification; resend
-  only on the website; the app display-only; instants in UTC shown in the business's zone; app sign-up restored (D170);
-  console-made businesses ineligible (D171); paid or granted access approved during a trial starts at its end (D172).
-- **The review round:** 35 findings from five adversarial reviewers (3 blockers, 10 majors, 21 minors, 1 nit). 31
-  fixed; R5-5 fixed in code but not verified on a phone; R1-F3 fixed in its records, its timing awaiting the owner
-  (PQ7); R4-04 and R5-4 awaiting the owner, unchanged. Every fix was checked by independent verifiers, whose own
-  findings were fixed. The table with commits and tests is in `docs/76` §12.
-- **Stores and seats paid for during a trial (D176):** scheduled to the trial's end, charged once, put in force at the
-  end in one transaction that never waits on a lock, with a sweeper within a minute. The owner's 14 required tests
-  pass.
-- **Every contact given at registration must be verified (D177).**
+The production-readiness audit for TestFlight under TSX-MR. Read first: **`docs/77`** (the readiness report, the
+GO/NO-GO for internal TestFlight, external TestFlight and the App Store, and the owner's decisions). Then `docs/83`
+(every finding with its status, commit and test), `docs/82` (every tracked file's review row), `docs/78` (environment
+and secrets, names only), `docs/79` (staging, live deployment and rollback), `docs/80` (migration, backup and restore
+rehearsal), `docs/81` (App Store Connect checklist and the physical-iPhone script), `docs/84` (screenshot matrix),
+`docs/48` (dependency triage and the controls changed), `docs/21` (the fixes a user can notice; the new owner
+questions). The session's narrative is the last entry of `SESSION_LOG.md`.
+
+- 243 review findings: the 1 blocker and 20 highs all verified — 17 fixed with regression tests, 4 owner decisions.
+- No schema change was written. No migration was applied to anything shared.
+- **GO / NO-GO:** internal TestFlight NO-GO today, code ready (O-A0, O-A4, O-A6 stand between it and GO); external
+  TestFlight NO-GO; App Store NO-GO. **An external penetration test has not been done.**
+
+## Verification at the final heads
+
+| Repository | Result |
+| --- | --- |
+| backend `06a0db7` | `tsc` 0 · Jest 249 suites passed, 1 skipped · 4 508 tests passed, 24 skipped, **0 failed** |
+| mobile `b23badb` | `tsc` 0 · lint 0 errors, 29 warnings · 114 pure test files · Jest 28 suites / 279 tests, 0 failed |
+| website `0eedfaa` | typecheck · Vitest 18 files / 296 tests · `build:preview` · CI Playwright browser checks |
+| real HTTP (final backend build) | isolation 14 778 requests, 0 leaks, 0 × 5xx · money idempotency 18/18 |
+
+Browser- and API-verified only. **NOT DEVICE VERIFIED:** camera, haptics, native sharing, the native PDF preview,
+safe areas, cold-launch RTL, Keychain, push, the EAS build itself.
 
 ## Databases
 
-- `phonestore` (the PC's development database) is still at `0091_stabilization`. It was not touched.
-- No live or production database exists, and none was touched.
-- Migrations `0092`–`0097` exist in `reports-export` and are applied nowhere shared. `0095`, `0096` and `0097` were
-  rehearsed with a backup and a restore check on disposable copies only (`docs/22`).
-- **`0097_scheduled_addons` needs the owner's approval before any shared database sees it.**
-- Every disposable database of this phase is dropped, the `phonestore_app` grants on them are revoked, and no API or
-  server process is running.
+- No live or production database exists, and none was touched. The PC's `phonestore` is still at `0091`; this cloud
+  session cannot reach it and did not inspect it.
+- `0092`–`0097` exist in `reports-export` and are applied to no shared database. **`0097` needs the owner's approval
+  before any shared database sees it** (D176, O-B12).
+- Every disposable database of this phase (on the session's own scratch MySQL) is dropped with its `phonestore_*`
+  identities; no API or server process is running; scratch keys, backups and env files are deleted.
 
-## Verification (final commits)
+## Known risks and blockers
 
-- **Backend `80c9133`:** `prisma validate` and `tsc` 0; Jest 234 suites passed, 1 skipped (the env-gated MySQL spec),
-  4 416 tests passed, 24 skipped; the MySQL add-on spec 21/21, three runs; secret scan clean.
-- **Mobile `a8b48c4`:** `tsc` 0; lint 0 errors, 29 warnings; pure tests 113 files passed; rendered tests 253 / 253;
-  release configuration sound; fresh web and iOS exports pass the bundle audit, and every reviewer's and verifier's
-  injection is caught.
-- **Website `8efa902`:** typecheck 0; Vitest 295 / 295; `build:preview` 36 pages; links 1 659, 0 broken; bundle audit
-  PASS; Playwright 114 / 114.
-- **Real HTTP, from a fresh disposable database at `0097`:** 188 product checks passed, 0 failed, 0 skipped, plus 1
-  harness precondition. No secret in the API log across the run (123 secrets handled), on successful and failing
-  requests.
-- **Screenshots against the real API:** 108 (EN, FR, AR; 375 and 1 280 px; before and after the trials' end), no
-  sideways scroll.
-- **Not verified on any physical phone:** the whole app side (`docs/24` §66).
-
-## Awaiting the owner (`docs/21`, `docs/76` §16)
-
-1. Approval of migration `0097` before any shared database, and one release window for the API (`0092`–`0097`) and
-   the website.
-2. R4-04 (the terms sentence) and R5-4 (the both-contacts Owner's path to the WhatsApp verification).
-3. PQ1–PQ17, the defaults D176 is built on.
-4. A business closed by its Owner around a payment confirmed during its trial.
-5. The setup status after an earlier send went out and the latest attempt failed.
-6. Wording to review, server English on the website, and small presentation questions.
-7. Payment rows the application account may update (a pre-existing schema question).
-8. The logo: four concepts delivered, no choice yet.
-
-## Blockers carried over
-
-- **Credentials:** WhatsApp (WABA, number, token, app secret, approved EN/FR/AR templates under Dukan ERP); an email
-  provider and a sending domain; `PLATFORM_MFA_KEY` per environment.
-- **The owner's operations:** link an EAS project `dukan-erp` (`docs/44`); the Apple Developer membership and the App
-  Store Connect record `mr.tsxmr.dukanerp`; the Google Play app; `RECORD_AUDIO` on Android.
-- **Decisions and reviews:** the backup retention period; legal review (privacy, terms, deletion, TSX-MR's identity);
-  the logo.
-- **Device verification:** `docs/24` §65 (identity) and §66 (the trial).
+- The owner's decisions in `docs/77` §6 (O-A0…O-A8, O-B1…O-B16, O-C1…O-C8). The product rules among them are also in
+  `docs/21` ("Awaiting the owner — questions the production-readiness phase found").
+- 42 medium and 113 low findings read from code only (`docs/83`, status "open").
+- R1 (`docs/84`): the money-services Transactions header breaks mid-word at 320 pt with 1.3× text — a layout choice for
+  the shared `TabHeader`.
+- PR-F18 / O-B13: inter-store notifications are written to the proposing store.
+- The backend has no linter (PR-F09); the website header offers "Sign in" while signed in (R4).
 
 ## Next exact action
 
-The owner's next brief (2026-10-16) is a **production-readiness audit and defect-fixing phase** for TestFlight under
-TSX-MR. It may start now: claim this file (`IN_PROGRESS`, the account, the start time, the HEADs above) before changing
-anything. It authorises no deployment, publication, App Store or TestFlight upload, DNS change, purchase, provider
-activation, live-database operation or real customer data.
+Nothing is in progress. The next session should:
 
-Independently of it, when the owner is ready: answer the questions above, first `0097` and the release window; then run
-`docs/24` §65 and §66 on a physical Android phone and an iPhone against a test API.
+1. Read `docs/77` §6 with the owner and record each decision in `docs/21`. O-A0, O-A4 and O-A6 unblock internal
+   TestFlight; no build is to be made or uploaded before the owner says so.
+2. Once a staging host exists, follow `docs/79` §A with a fresh backup, then run `docs/81` §3 on a physical iPhone and
+   record each row's result there.
+3. Work the open mediums of `docs/83` by severity, each reproduced before it is fixed.

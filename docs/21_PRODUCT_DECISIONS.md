@@ -7531,3 +7531,41 @@ app now says them in its own words. The alternatives:
 The application's database account cannot delete a `subscription_payments` row (a trigger refuses it), but it can update
 one, the amount included. If payments are meant to be append-only, a future migration adds a `BEFORE UPDATE` trigger,
 as `agent_movements` has. This is a schema decision, not part of D176.
+
+### ✅ IMPLEMENTED AS FIXES OF EXISTING RULES — the production-readiness phase (2026-10-16)
+
+No new product rule. Each change below makes the code do what an existing rule or contract already says; each was
+reproduced first (real HTTP on a disposable copy, or a rendered test) and has a regression test that fails on the old
+code (`docs/83`). Behaviour a user can notice:
+
+| What now happens | The rule it enforces | Commit |
+| --- | --- | --- |
+| A discount that takes a line below its cost is refused, 403 `discount_below_cost` ("Remove it or make it smaller."). Selling below cost stays possible the documented way: an approved final price with a reason | `docs/04` rule 14, D2.1 (the cost floor is independent of `discount.apply`) | backend `bd43cf1`, `d4235bc`; app `561c61d`, `b23badb` |
+| A consignment is reported sold all or none: a partial report is refused (400) instead of stranding the other phones. The receivable is the agreed total once, not once per phone | the consignment lifecycle (`docs/31`) | backend `bbe7c4f` |
+| A consignment or loan payment, reversal or write-off is applied once under concurrency | money is recorded once (`docs/04`) | backend `bbe7c4f`, `2f01f7a` |
+| A Store Manager of one branch sees and changes only that branch's stock, units, notifications, branch comparison and anomaly dismissals; an Owner correcting another branch's phone switches to that branch first | branch scoping (`docs/03`) | backend `f49e371`, `d92012b`, `75f1ca8`, `d7359fb`, `65be480` |
+| The unused public `verify-contact` routes are gone (anyone could make the platform send codes) | no unauthenticated message sending | backend `f6dd5b5` |
+| A contact code's six attempts and the Super Admin factor's five tries hold under concurrency; one authenticator code verifies one session | `docs/48`, `platform-mfa.service.ts` header | backend `42c8b4f` |
+| Two refreshes of one session token at once: one rotates, the session is revoked as reuse | `docs/15` §5 | backend `0784e83` |
+| Recording the same subscription payment twice (same reference, channel, amount, day, confirmation) records it once | `docs/68` §4.2 | backend `b6521a9` |
+| A release build cannot be made, or run, without its https API origin; it shows a blocking screen instead | `docs/45`, `docs/78` | app `7c127b3` |
+| A lost connection, a server error or a bad minute at launch never signs the person out | a session ends only when the server refuses it (`docs/15` §5) | app `0e384a3`, `a1fedda` |
+| A malformed record id is 400 `id_invalid`, never a 500 | the error contract (D161 shape) | backend `cf2cb23` |
+| A workbook is refused once it unpacks past 160 MB or 2 000 000 cells | upload limits (`docs/48`) | backend `3df8080`, `ce30374` |
+
+### ⏳ AWAITING THE OWNER — questions the production-readiness phase found (2026-10-16)
+
+The full list, with what each blocks, is `docs/77` §6 (O-A0…O-C8). The ones that are product rules:
+
+- **O-B13 — inter-store notifications reach the wrong store.** "A store proposed a debt" and "A store wants to send
+  you stock" are written under the proposing company, so it is told to accept its own offer and the other store is
+  never notified (no data crosses tenants). Delivering them needs a deliberate cross-tenant notification write.
+  *Unchanged.* Alternatives: (a) a platform-side write of the counterparty's notification; (b) drop the notification
+  until (a) exists; (c) keep it.
+- **PQ17 seen in more states.** The screenshot matrix shows the same gap for a suspended, pending or refused business:
+  the Owner may ask for a seat, store or activity change but cannot list the requests or read their prices. *Unchanged*
+  (the website now shows the refusal once instead of loading for ever, `0eedfaa`). It was implemented by mistake in
+  backend `2251c06` and reverted in `06a0db7`; PQ17 (a) would cover every closed state.
+- **Recording a payment:** a client idempotency key for the console, refusing a reused reference for another amount,
+  refusing a future payment date — none built.
+- **Partial consignment sales** (O-B3) and the other O-B rows: built as the table above says until decided.

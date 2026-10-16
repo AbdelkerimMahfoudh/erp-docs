@@ -341,3 +341,17 @@ requests identical (`1cd3cfb`); mobile critical `shell-quote` and highs `@xmldom
 the permission catalogue and a real MySQL job (`506568f`); the identity verifier's subscription-event probe is no longer
 vacuous (`506568f`); the mobile secret scan skips only the revoked G2A-CP4.5 blob by its SHA (`f94fc61`). An **external
 penetration test has not been done.**
+
+**Controls changed later the same day (the fix round, 2026-10-16):**
+
+| # | Control | Now | Evidence |
+| --- | --- | --- | --- |
+| 4 | Tenant scoping, adversarial | **PASS for company isolation; branch scope fixed** — the per-module adversarial suite asked for since 2026-09-30 now exists as a real-HTTP harness: company A's Owner against company B's real identifiers on every one of 284 routes, 14 778 requests, **0 leaks, 0 × 5xx**, B and 8 bystanders byte-identical after; 27 of 32 GET-by-id routes proven against a live B object; re-run on the final build with the same result. Inside a company, six branch-scope defects found and fixed | `docs/77` §2; backend `f49e371`, `d92012b`, `75f1ca8`, `d7359fb`, `65be480` |
+| 7 | Default deny | **PASS** — a Store Manager of one branch no longer reads or changes another branch's stock, units, notifications, comparison or anomalies | as 4 |
+| 9 | Token rotation | **PASS** — `rotate()` now compare-and-swaps the refresh hash: of concurrent refreshes one rotates and the session is revoked as reuse (the 2026-10-03 note "no compare-and-swap" is resolved) | backend `0784e83`, `sessions.service.spec.ts` |
+| 11 | Rate limits, attempt limits | **PASS** — a contact code's attempts and the Super Admin factor's tries are claimed atomically before comparing; one code verifies one session. Before: ten parallel guesses with one attempt left set an invited employee's password | backend `42c8b4f`; the unused public `verify-contact` routes removed, `f6dd5b5` |
+| 14 | Input limits | **PASS** — malformed ids 400 (`cf2cb23`); a workbook refused above two million cells and once it unpacks past 160 MB, before the excess is held (`3df8080`, `ce30374`) | `workbook-unpack-limit.spec.ts`, `file-receiving.spec.ts` |
+| 19 | HTTPS in the release build | **PASS (in code)** — a release build without an https `EXPO_PUBLIC_API_ORIGIN` is refused by the EAS build hook (`eas-build-post-install`) and, if made anyway, shows a blocking screen and makes no request | mobile `7c127b3`; the EAS build itself NOT VERIFIED |
+
+Still open: 5 and 18 (the host's TLS, disk encryption, the header capture — no host exists yet), 12 (bot protection,
+FAIL medium), and **the external penetration test, not done** (`docs/77` O-C4).

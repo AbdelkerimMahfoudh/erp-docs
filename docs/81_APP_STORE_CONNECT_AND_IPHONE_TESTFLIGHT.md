@@ -77,6 +77,7 @@ the device model and the build number. **Every line starts as NOT DEVICE VERIFIE
 | T2.2 | Kill and relaunch | still signed in (Keychain), no second prompt | NOT DEVICE VERIFIED |
 | T2.3 | Airplane mode mid-request, then back | "lost answer" honesty: never "wrong code" or a false failure | NOT DEVICE VERIFIED |
 | T2.4 | Sign out | tokens gone; relaunch shows sign-in | NOT DEVICE VERIFIED |
+| T2.5 | Leave the app closed past the access token's life, turn on airplane mode, launch | still signed in, a "could not confirm your session" state, not the sign-in screen; back online, it carries on (NW2-03, `a1fedda`; rendered test `refresh-transient.test.tsx`) | NOT DEVICE VERIFIED |
 
 ### T3 — Camera and scanning
 | # | Check | Expected | Status |
@@ -93,6 +94,7 @@ the device model and the build number. **Every line starts as NOT DEVICE VERIFIE
 | T4.3 | Report an expense with a receipt photo | photo prompt shows the receipt sentence; the photo attaches | NOT DEVICE VERIFIED |
 | T4.4 | Daily closing; the daily PDF | the PDF previews natively and shares by the share sheet | NOT DEVICE VERIFIED |
 | T4.5 | Haptics on success/error where the app uses them | felt, not overdone | NOT DEVICE VERIFIED |
+| T4.6 | Give a discount that takes a phone below its cost | refused in the seller's language ("Remove it or make it smaller."), nothing sold; selling below cost with the Owner's approved price and a reason still works (`bd43cf1`, `561c61d`, `b23badb`) | NOT DEVICE VERIFIED |
 
 ### T5 — Roles and access states (one QA business each)
 | # | Check | Expected | Status |
