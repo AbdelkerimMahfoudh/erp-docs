@@ -35,8 +35,8 @@
   the FR/AR permission prompts and the absence of microphone/Face ID prompts are proved by configuration only.
 - **No built iOS archive** (no EAS build): the merged privacy manifest and the final Info.plist are not inspected.
 - The Swift/ObjC of native modules was not audited line by line.
-- Playwright on the website ran only through the screenshot script (status, heading, language, direction, overflow);
-  the CI Playwright suite (`e2e/site.spec.ts`) was not run in this container. Accessibility was checked by the rendered
+- Playwright: the screenshot script here (status, heading, language, direction, overflow) and the website CI's
+  `e2e/site.spec.ts` over every public route (green on `8bf6f65`). Accessibility was checked by the rendered
   tests (one h1, semantic sections, 44 px touch targets, keyboard-reachable links); no automated axe/contrast tool ran.
 - No legal review of any text. No provider is enabled; email and WhatsApp delivery were not exercised.
 - Expo Doctor: 19/21; the two failing checks need `exp.host`, which this container cannot reach.

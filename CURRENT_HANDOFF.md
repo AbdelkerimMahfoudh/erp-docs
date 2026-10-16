@@ -15,7 +15,7 @@ active_phase: none. Nothing is in progress.
 | `erp-control-web` | `tsx-public-site` (**not merged**) | `8bf6f65` | `0eedfaa` | `main` is `0417bfe`, untouched |
 | `erp-docs` | `master` | the commit carrying this file | `6e2a462` (+ `4204ea4`, the takeover) | |
 
-CI was not observed for these heads in this session (the pushes trigger it). Open draft PRs (none touched): backend
+CI is green on every new head: backend `dc53129` security, mobile `b6adc48` and `6609574` security (with the legal origin in the release check, exports and bundle audit), website `8bf6f65` ci (incl. Playwright). Open draft PRs (none touched): backend
 #1, #2; mobile #1, #2 (the two `audit-fixes` are superseded — O-C7). The clean detached worktree
 `/home/user/erp-backend-seed` (`d88893a`) is an earlier phase's and was left as it was.
 
