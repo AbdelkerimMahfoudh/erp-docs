@@ -58,7 +58,7 @@ evidence owed" names what must still be captured on the release candidate.
 | 17 | Minimal DTOs: no cost/margin to the wrong role, no hashes or tokens ever | **PASS** | `USER_SELECT`, `DEVICE_SELECT`, the account view and the platform business view exclude every hash and token; the journey asserts no code in any response and only a hash in the database; costs withheld by role (8) | — |
 | 18 | Security headers, a portal CSP, HSTS only on the production host | **PARTIAL** | helmet's defaults on the API; HSTS dropped when `APP_ENV=staging` (`main.ts`) | the portal's CSP without `unsafe-inline` — the control website repository; a header capture on the production host |
 | 19 | HTTPS required for the production API and portal, including the release build | **PASS** (in code) | the guard refuses plain-http origins and provider addresses in production; `verify-release-config.js` refuses a non-https `EXPO_PUBLIC_API_ORIGIN` for the production and preview profiles (**exercised: refused / sound / refused**); the CI job runs it | the certificate, the redirect, and a release build made with the production origin |
-| 20 | Dependency and lockfile scanning in CI, with tracked exceptions | **PARTIAL** | `npm audit --omit=dev` today: backend **17** (6 high: `@nestjs/platform-express` via `@nestjs/core`, `brace-expansion`, `joi`, `js-yaml`, `lodash`, `multer`), mobile **18** (3 high: `@xmldom/xmldom`, `brace-expansion`, `js-yaml`); the CI job fails the build above `high`; **none of these is bumped** (the previous record of 17 / 18 stands) | the triage: each high advisory bumped or recorded as an accepted exception with an expiry (§7.3) — rated **high** until triaged |
+| 20 | Dependency and lockfile scanning in CI, with tracked exceptions | **PASS (2026-10-16, see the triage at the end of this file)** — previously PARTIAL: | `npm audit --omit=dev` today: backend **17** (6 high: `@nestjs/platform-express` via `@nestjs/core`, `brace-expansion`, `joi`, `js-yaml`, `lodash`, `multer`), mobile **18** (3 high: `@xmldom/xmldom`, `brace-expansion`, `js-yaml`); the CI job fails the build above `high`; **none of these is bumped** (the previous record of 17 / 18 stands) | the triage: each high advisory bumped or recorded as an accepted exception with an expiry (§7.3) — rated **high** until triaged |
 
 ## The additional blockers of the gate
 
@@ -147,7 +147,7 @@ for, and it is why scratch files must never be created inside a repository.
 |---|---|---|---|
 | 7.1 | Production API and portal are HTTPS-only, with HSTS | Redirect and header capture | ◐ enforced in configuration; capture owed |
 | 7.2 | Security headers and a real CSP on the portal | Header capture; CSP without `unsafe-inline` | ◐ API headers; portal owed |
-| 7.3 | Dependency and lockfile scanning, with a triage record | Scanner output; advisories recorded | ◐ 17 / 18 recorded, CI job written, triage owed |
+| 7.3 | Dependency and lockfile scanning, with a triage record | Scanner output; advisories recorded | ● triaged 2026-10-16 (end of this file); 0 critical, 0 high shipped |
 | 7.4 | Error responses leak no stack trace, SQL or internal path | Production-mode error capture | ✅ `AllExceptionsFilter` allow-lists the detail keys; the journey's error bodies carry a code and a sentence |
 
 ## 8. Data protection and operations
@@ -307,3 +307,37 @@ prerequisites and the independent assessment stand).
 
 Still open for release: the per-environment `PLATFORM_MFA_KEY` and its custody; the WhatsApp proof; the email provider;
 the backup retention period; Cloudflare Access in front of `/admin` remains optional.
+
+## Production-readiness phase (2026-10-16) — dependency triage (§7.3) and controls changed
+
+Full record: `docs/77`. Production dependency audits at the final heads (`npm audit --omit=dev`):
+
+| Repository | Critical | High | Moderate | Gate in CI |
+| --- | --- | --- | --- | --- |
+| backend | 0 | 0 | 9 | `npm audit --omit=dev --audit-level=high` |
+| mobile | 0 | 49 entries, **2 root advisories, both build tooling** | 21 entries, 5 root | `--audit-level=critical` **plus** `scripts/audit-shipped-deps.js`, which fails on any high/critical advisory whose package is in the exported web or iOS bundle |
+| website | 0 | 0 | 0 | `npm audit --omit=dev` |
+
+**Fixed this phase:** backend critical `proxy-addr` and highs `multer`, `lodash`, `js-yaml`, `body-parser` (audit fix and
+same-major overrides, `9400480`); backend `qs` 6.14.2 under Express — three remotely triggerable query-string advisories
+(GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx, GHSA-q8mj-m7cp-5q26) — override to 6.16.1, differential probe of 936 real
+requests identical (`1cd3cfb`); mobile critical `shell-quote` and highs `@xmldom/xmldom`, `js-yaml`, `brace-expansion`
+(overrides, `114fe00`).
+
+**Accepted exceptions** (each re-examined at the next dependency upgrade, and no later than the App Store submission):
+
+| Advisory | Package (path) | Why it is not exploitable here | Exit |
+| --- | --- | --- | --- |
+| GHSA-36xv-jgw5-4q75 (moderate, CWE-74, CVSS 6.1, user interaction required) | `@nestjs/core` ≤ 11.1.17 (backend) | **not assessed in detail** — the advisory text could not be read from this environment; the API answers JSON only and declares no server-sent-events route. Treat as open until read | Nest 11.1.18+ / 12 — a major upgrade from 10.x, owner decision O-D1 |
+| GHSA-5v7r-6r5c-r473, GHSA-j47w-4g3g-c36v (moderate) | `file-type` 20.4.1 via `@nestjs/common` (backend) | loaded only by Nest's `FileTypeValidator`, which the API does not use (uploads are bounded by `uploadLimits` and checked by their own readers) | with the Nest upgrade |
+| GHSA-w5hq-g745-h8pq (moderate) | `uuid` 8.3.2 via `exceljs` (backend); via `xcode` (mobile, build only) | the advisory needs v3/v5/v6 with a caller's buffer; `exceljs` calls only `v4()` without one | `exceljs` 4.x has no fixed release |
+| GHSA-vfj7-8cjw-p6xm (high) | `braces` via `micromatch` (mobile) | Metro, Jest and Tailwind at build time only; `audit-shipped-deps.js` proves it absent from the shipped bundles | Expo / RN major |
+| GHSA-86w9-cpqp-85rv (high) | `node-forge` via `@expo/code-signing-certificates` (mobile) | EAS / Expo CLI signing at build time; not in the shipped bundles | Expo major |
+| GHSA-vcc3-ghjq-m6fr (moderate) | `decode-uri-component` via `expo-router` → `query-string` (mobile) | **ships**: a malformed percent-encoded deep link can burn CPU on the phone that opens it — local denial of service of the user's own app | `expo-router` major |
+| GHSA-rj75-hqrm-r3gf, GHSA-hp3w-g68c-fv3c (moderate) | `postcss-selector-parser`, `sprintf-js` (mobile) | build tooling only | Tailwind / Jest majors |
+
+**Controls changed this phase:** upload routes bounded beyond file size (`f6d0b44`); a malformed record id is 400, never
+500 (`cf2cb23`); production refuses to start unless `SWAGGER_ENABLED=false` (`f350031`); backend CI reaches tsc, Jest,
+the permission catalogue and a real MySQL job (`506568f`); the identity verifier's subscription-event probe is no longer
+vacuous (`506568f`); the mobile secret scan skips only the revoked G2A-CP4.5 blob by its SHA (`f94fc61`). An **external
+penetration test has not been done.**
