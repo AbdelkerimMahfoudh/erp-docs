@@ -1,10 +1,29 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-previous_owner: CLAUDE-B (cloud session), the production-readiness phase, 2026-10-16T04:32Z → 2026-10-16T12:20Z —
-complete; all four trees clean and level with their remotes
-took_over_from: READY_FOR_HANDOFF / NONE (the free-trial phase, ended 2026-10-16T04:25Z)
+Status: IN_PROGRESS
+Owner: CLAUDE-B (cloud session)
+started_at_utc: 2026-10-16T12:36Z
+previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (cloud), the production-readiness phase, 2026-10-16T04:32Z →
+12:20Z — complete; all four trees clean and level with their remotes at takeover (fetched 12:36Z)
+active_phase: legal pages, privacy disclosure and Apple-submission readiness (the owner's brief of 2026-10-16), with a
+line-by-line production-readiness check of the code. Authorised: source, website content, tests, documentation. Not
+authorised: publishing, DNS, deployment, production credentials, providers, live data, TestFlight or App Store
+upload, accepting legal wording on behalf of TSX-MR.
+next_intended_action: build the factual data inventory from the code, then the public legal/support routes on the
+website, the app links, the release guard, the Apple worksheets and the deliverables.
+
+## Baseline at takeover (2026-10-16T12:36Z)
+
+| Repository | Branch | HEAD | Upstream |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `06a0db7` | level, clean |
+| `erp-mobile` | `reports-export` | `b23badb` | level, clean |
+| `erp-control-web` | `tsx-public-site` (not merged; `main` `0417bfe`) | `0eedfaa` | level, clean |
+| `erp-docs` | `master` | `6e2a462` | level, clean |
+
+---
+
+The previous phase's final snapshot follows, unchanged.
 
 ## HEAD of every repository
 
