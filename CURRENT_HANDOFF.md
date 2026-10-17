@@ -1,10 +1,17 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_owner: CLAUDE-B (cloud session), 2026-10-16T12:36Z → 13:35Z — the legal-pages, privacy-disclosure and
-Apple-readiness phase (the owner's brief of 2026-10-16). Complete: all four trees clean and level with their remotes.
-active_phase: none. Nothing is in progress.
+Status: IN_PROGRESS
+Owner: CLAUDE-B (local, the owner's Windows PC)
+started_at_utc: 2026-10-17T01:18Z
+previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (cloud session), 2026-10-16T13:35Z — complete; all four trees
+clean and level with their remotes at takeover
+active_phase: publishing the existing public website at https://tsxmr.com on Cloudflare Pages (the owner's brief of
+2026-10-17). Audit and repository preparation only: no deploy, no merge, no DNS change, nothing public until the owner
+approves the verified build and the final screenshots. Mobile, scanner, refund and backend feature work stopped (none
+was in progress).
+
+Baseline at this takeover: backend  , mobile  , website
+  ( , 78 behind), docs  .
 
 ## HEAD of every repository
 
