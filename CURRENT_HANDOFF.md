@@ -1,11 +1,14 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_owner: CLAUDE-B (local, the owner's Windows PC), 2026-10-17T01:18Z → 02:05Z — tsxmr.com on Cloudflare Pages:
-audit and repository preparation (the owner's brief of 2026-10-17). Complete: all four trees clean and level with their
-remotes. Nothing deployed, merged or published; nothing changed in Cloudflare.
-active_phase: none. The publication waits on the owner (below).
+Status: IN_PROGRESS
+Owner: CLAUDE-B (local, the owner's Windows PC)
+started_at_utc: 2026-10-17T02:30Z
+previous_handoff: READY_FOR_HANDOFF / NONE (CLAUDE-B local, the tsxmr.com audit) — complete; all four trees clean and
+level with their remotes
+active_phase: separate release gates (the owner's brief of 2026-10-17, second): PUBLIC_WEBSITE (the pre-launch corporate
+site at tsxmr.com), PORTAL and APP_STORE (both kept strict); truthful pre-launch copy; a production public build;
+EN/FR/AR screenshots. No deploy, no merge, VITE_PORTAL_ORIGIN unset, no app-production check weakened.
+Baseline: backend dc53129, mobile 6609574, website tsx-public-site fe38bbc (main 0417bfe), docs 727b44e.
 
 ## The tsxmr.com publication (2026-10-17) — read `docs/95` first
 
