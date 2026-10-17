@@ -61,8 +61,10 @@ All working trees are clean and level with their remotes. The website checkout i
   - preview deployment `d5a0d716-5bf0-497c-acc2-4cdb52017435`, checked from GitHub (`verify-not-found` run
     39047362786): **25/25**, the same as locally;
   - evidence on `ci-evidence` `evidence/not-found/`.
-- CI on `397ec6b` (run 39047253429): in progress when this file was written. Every step through the full-site
-  browser suite had passed; the public browser suite was running. Read the final result on the commit's checks.
+- CI on `397ec6b` (run 39047253429): **green** (unit, builds, audits, full-site and public browser suites).
+- Production re-check `verify-production` (run 39047362671, triggered by the ops push): 20 checks pass and the
+  browser suite against tsxmr.com passes 103/103. The same two checks fail as before: Cloudflare Email Address
+  Obfuscation is still on (owner action 3). Production is unchanged.
 
 **Known, by the host's design.** `/404`, the error page's own address, answers 200 (the file exists). It is noindex and
 linked from nowhere.
