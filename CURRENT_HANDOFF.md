@@ -358,3 +358,40 @@ needs the owner's approval first (D176, O-B12). No disposable database was creat
    L-2 (strip EXIF on upload), L-3 (clear the deleted person's local data, with a warning when work is unsent) — each
    reproduced first and tested.
 3. On a physical iPhone, run `docs/81` §3 including T6.2–T6.5 and record each row there.
+
+## Checkpoint 2026-10-17 — redesign implementation, paused mid-way (CLAUDE, local session; usage limit)
+
+Status stays IN_PROGRESS, owner CLAUDE. Nothing committed yet: all work is uncommitted on erp-control-web branch site-redesign
+(from tsx-public-site 6016b8a). Production untouched: tsx-public-site 6016b8a, Pages deployment b4737b88 (rollback point).
+
+Done on disk (erp-control-web):
+- Fonts: public/fonts (Bricolage Grotesque variable, IBM Plex Sans 400/500/600, IBM Plex Sans Arabic 400/500/700, OFL
+  LICENSE.txt), src/theme/fonts.css, index.html preloads, /fonts/* immutable cache rule in src/site/generated.ts.
+- Tokens: ink/amber/mint/phone tokens appended to both theme blocks of src/theme/tokens.css.
+- src/theme/global.css: font/radius/motion variables, type scale, .btn transitions, .btn-ghost, main.site-main.
+- New: src/components/public/icons.tsx, src/lib/reveal.ts (data-reveal, html.js, 700 ms fallback), src/components/public/ProductVisual.tsx.
+- Content: src/content/home.ts rewritten to the new HomeContent shape (hero, proofs, problems, capabilities, activities,
+  how, previews, local, trust, cta, visual) in EN/FR/AR; src/content/prelaunch.ts (homePrelaunch = capabilitiesLead,
+  howLead, cta; homeAsPrelaunch updated; aboutPrelaunch gains the 'roles' publisher-vs-product section); page.home.title in
+  src/i18n/{en,fr,ar}.ts.
+- Components/pages: blocks.tsx (Band, SectionHead, PageIntro as a navy band), Chrome.tsx (useReveal, main.site-main for
+  public, main.site-main.in-app), Home.tsx, DukanErp.tsx, Products in Legal.tsx rewritten.
+- npx tsc --noEmit FAILS on this state (1 errors; run it first).
+
+Not done, in order:
+1. src/theme/public.css rewrite — every new class is still unstyled: band/band-light/band-tint/band-dark, hero-grid,
+   hero-copy, hero-stage, hero-actions, hero-title .hl, proofs, pv-* (phone + two cards + pv-demo), icon-badge, card-lift,
+   problem-grid, bento/tile-*, art-*, activities, how-steps(+ -light), step-num, previews/preview-art/ui-row/ui-total/chip,
+   lang-cards/lang-tag, local-grid, trust-grid/trust-links/trust-list, cta-grid/band-cta, section-head, feature-list,
+   products-grid, either, providers, app-split, .num (ltr + tabular), .btn-lg, .stagger + [data-reveal] (html.js only,
+   opacity .4 -> 1), dark header/footer, segmented language pill, .in-app .page-intro light, prefers-reduced-motion off
+   switch, overflow hidden on bands. Rules: tokens only (no raw hex/rgba outside tokens.css), logical properties, keep the
+   selectors the tests use (.chrome-header, details.menu, .nav-narrow a, .skip-link, .toc a, .org-details, .contact-label,
+   .chrome-footer, .legal-draft, .legal-related, .notice).
+2. Fix the scratchpad checker's import paths (file:///C:/... or relative) and run it; run tsc; adjust tests pinned to old
+   content names if any (none found by grep so far).
+3. Commit (git -c user.name=CLAUDE -c user.email=abdelkerim.mahfoudh@gmail.com, trailer Co-Authored-By: Claude Fable 5.1
+   <noreply@anthropic.com>), push site-redesign, read ci-evidence, serve dist-public locally, headless screenshots at
+   320/375/393/768/1280/1600 x EN/FR/AR x light/dark x reduced motion, fix, repeat.
+4. Owner decision: enable a Pages preview for site-redesign (plus Preview env vars) or approve promotion by fast-forwarding
+   tsx-public-site; verify production; keep b4737b88 as rollback. Then docs/21, session log, READY_FOR_HANDOFF / NONE.
