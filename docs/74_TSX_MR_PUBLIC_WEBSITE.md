@@ -633,3 +633,19 @@ noindex and linked from nowhere.
   - every referenced file answers 200 from every depth;
   - every known page answers 200.
 - The recorded rows are `/in-app/` → 404 in the app's frame, `/fr/in-app` → 404 in public French, and `/404` → 200.
+
+**Promoted to production (2026-10-17, on the owner's approval of its appearance).**
+- `tsx-public-site` was fast-forwarded `de6e6ba → 397ec6b` with a normal push. It brought two commits: the test fix
+  `918b0b5` and the page `397ec6b`.
+- The release gates were re-run on that head first: vitest 483/483, public Playwright 127/127, links 2,982/0 broken,
+  bundle PASS, PUBLIC_WEBSITE GO.
+- Cloudflare production deployment: **`8a828f1b-65d5-4ea4-8644-dfdaebad09d2`**. Rollback target: `ccf9d282` (the
+  redesign without the page).
+- `verify-not-found` against https://tsxmr.com (run 39068321886) passed 25/25, the same as on the preview.
+- `verify-production` (run 39068320800):
+  - 20 checks pass, and the browser suite against production passes 127/127, the 404 checks included;
+  - the only failures are the two known Cloudflare Email Address Obfuscation checks, whose differences decode back to
+    the build.
+- The verifier's page check now skips every `404.html` (`bff3143`). It had asked the localized not-found files for a
+  canonical, which they deliberately lack.
+

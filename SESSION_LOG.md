@@ -12103,3 +12103,34 @@ is `58d315d`; its `started_at_utc` says 15:20Z, but the true time was 15:39Z.
 
 **Not touched:** production (`tsx-public-site` de6e6ba), Cloudflare settings (preview deployments remain on — the
 preview above depends on them), DNS, email, backend, mobile, legal text.
+
+## 2026-10-17T20:24Z → 2026-10-17T20:54Z — CLAUDE (cloud) — the custom 404 page promoted to production (D194)
+
+**Authority.** The owner approved the page's appearance ("Approved"). The handoff was READY_FOR_HANDOFF with no owner,
+and every HEAD matched it: web `tsx-public-site` de6e6ba, `site-redesign` 397ec6b, `ops/verify-production` a86b26e;
+backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
+
+**Gates on 397ec6b before the push:**
+- production-variable `build:public-release`: 57 pages and 6 not-found pages, links 2,982/0 broken, bundle PASS;
+- public Playwright 127/127; PUBLIC_WEBSITE GO;
+- vitest 483/483. A first run showed 210 failures because the shell still exported the production `VITE_*`
+  variables; a clean environment, as in CI, gives 483/483.
+
+**Promotion.**
+- `tsx-public-site` de6e6ba → 397ec6b, fast-forward, normal push. It brought `918b0b5` (test fix) and `397ec6b` (the
+  page). CI on `tsx-public-site` was green.
+- Cloudflare production deployment `8a828f1b-65d5-4ea4-8644-dfdaebad09d2`; rollback target `ccf9d282`.
+
+**Production verification, from GitHub.**
+- `ops/verify-production` merged `site-redesign` (`de48f94`), and `verify-not-found` now defaults to production
+  (`a452273`).
+- `verify-not-found` on https://tsxmr.com: 25/25 (runs 39067889650 and 39068321886).
+- `verify-production`, first run (39067889614):
+  - a new failure: its page check asked the localized `fr/404.html` and `ar/404.html` for a canonical, which the
+    not-found page deliberately lacks;
+  - fixed in the verifier (`bff3143`: every `404.html` is skipped, as the root one already was).
+- Re-run (39068320800): 20 checks pass, including the 57 pages' canonicals and the protected-address 404s; browser
+  suite 127/127 against production; TLS, redirects and email DNS unchanged. The only failures are the two known Email
+  Address Obfuscation checks, every difference decoding back to the build.
+
+**Not touched:** Cloudflare settings, DNS, email, backend, mobile, legal text.

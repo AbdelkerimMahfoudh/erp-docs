@@ -7959,3 +7959,7 @@ The owner's brief of 2026-10-17. Website `erp-control-web` `site-redesign` `397e
 - **Language links.** On a 404 they lead to each language's home page. A stored language never moves a reader off an
   unknown address.
 - **Status.** Preview only. Promotion to `tsx-public-site` waits for the owner's approval of its appearance.
+
+**D194 — promoted (2026-10-17).** The owner approved the page's appearance. It is in production: `tsx-public-site`
+`397ec6b`, Cloudflare deployment `8a828f1b`, verified on https://tsxmr.com (`docs/74`).
+

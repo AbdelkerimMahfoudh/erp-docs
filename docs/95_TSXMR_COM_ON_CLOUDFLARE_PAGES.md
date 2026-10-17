@@ -261,3 +261,12 @@ The owner approved the redesign (`site-redesign` `de6e6ba`) for production.
   file; it reaches production with the next approved promotion.
 - The failed job on `de6e6ba` was re-run once, to confirm.
 
+## Production promotion of the custom 404 page (2026-10-17, CLAUDE, cloud)
+
+- `tsx-public-site` was fast-forwarded `de6e6ba → 397ec6b` with a normal push.
+- Production deployment `8a828f1b-65d5-4ea4-8644-dfdaebad09d2`; rollback target `ccf9d282-a314-4868-88ec-a31f3c25a6f8`.
+- Detail and evidence: `docs/74` "Page not found".
+- The workflow `verify-not-found` (branch `ops/verify-production`) now checks production by default; run it by hand
+  with a preview's origin to check a page before promotion.
+- Still open: Email Address Obfuscation is on, and preview deployments are still on (both owner settings).
+

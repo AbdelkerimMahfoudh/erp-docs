@@ -1,18 +1,43 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T20:24Z
-takeover: authorised by the owner's approval of the 404 page's appearance ("Approved", 2026-10-17). The previous phase
-(the 404 page on preview, CLAUDE cloud) ended READY_FOR_HANDOFF; its handoff is complete.
-baseline (verified local = remote, all clean): web `tsx-public-site` de6e6ba (production, Pages ccf9d282) ·
-`site-redesign` 397ec6b (CI 39047253429 green; nothing after it) · `ops/verify-production` a86b26e · `main` 0417bfe ·
-backend d3c11a8 · mobile e6773aa · docs b579ed3.
-active_phase: fast-forward `tsx-public-site` de6e6ba → 397ec6b (`918b0b5` test fix + `397ec6b` 404 page), normal push;
-verify production (404 behaviour from GitHub, plus the standing production check); merge `site-redesign` into
-`ops/verify-production`. Rollback target: Pages deployment ccf9d282. No Cloudflare-setting, DNS, email, backend, mobile
-or legal-text change.
-next_action: re-run the release gates on 397ec6b, then push the fast-forward.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE (cloud session), 2026-10-17T20:24Z → 2026-10-17T20:54Z. The phase is complete, and the handoff is complete.
+authorised by: the owner's approval of the 404 page's appearance ("Approved", 2026-10-17).
+next_action (the owner):
+1. Cloudflare → tsxmr.com → Scrape Shield → Email Address Obfuscation **Off**. Then re-run `verify-production` (push
+   `ops/verify-production` or Actions → Run workflow). It is the only remaining production failure (2 checks).
+2. Pages → `tsxmr-public` → Settings → Builds → Preview branch deployments: **None**, unless previews are wanted for
+   future reviews (`docs/95`).
+3. Staging host inputs (`docs/99` §10).
+
+## The custom 404 page in production (2026-10-17, CLAUDE, cloud)
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` (production) | `397ec6b` | fast-forwarded from `de6e6ba` (`918b0b5`, `397ec6b`) |
+| `erp-control-web` | `site-redesign` | `397ec6b` | unchanged (equal to production) |
+| `erp-control-web` | `ops/verify-production` | `bff3143` | merge `de48f94`, `a452273` (verify-not-found → production), `bff3143` (verifier skips 404.html) |
+| `erp-control-web` | `main` | `0417bfe` | untouched |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `aff4afd`; `docs/74`, `docs/95`, `docs/21` D194, session log |
+
+All working trees are clean and level with their remotes. The website checkout is on `site-redesign`.
+
+- **Cloudflare production deployment:** `8a828f1b-65d5-4ea4-8644-dfdaebad09d2`.
+- **Rollback target:** `ccf9d282-a314-4868-88ec-a31f3c25a6f8` (the redesign without the page). It was not needed.
+- **Verified on https://tsxmr.com from GitHub:**
+  - `verify-not-found` 25/25: every unknown address, root, deep, FR, AR, `/account`, `/admin` and `/in-app/`, gives a
+    404 in its language and frame; files load at depth; known pages give 200;
+  - browser suite 127/127, with the 404 checks;
+  - `verify-production` 20 passes. Its 2 failures are the known Email Address Obfuscation (owner action 1).
+- Gates on the promoted head: vitest 483/483, public Playwright 127/127, links 2,982/0, bundle PASS, PUBLIC_WEBSITE GO;
+  CI green.
+
+---
+
+The previous records follow, unchanged.
 
 ## The public site's custom "Page not found" (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's approval
 
