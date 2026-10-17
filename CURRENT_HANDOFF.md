@@ -1,15 +1,27 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-17T08:32Z
-active_phase: the tsxmr.com redesign — the owner's brief of 2026-10-17: implement the approved dark Dukan ERP direction in
-erp-control-web on every public page (EN/FR/AR, RTL), verify through the repository's gates, preview, then promote.
-scope: erp-control-web only, on a new branch from tsx-public-site 6016b8a; production stays on 6016b8a (Pages deployment
-b4737b88, the rollback point) until the promotion step. erp-docs for the record. Backend, mobile, DNS, email, SMTP,
-WhatsApp, Meta, App Store: untouched.
-baseline: web tsx-public-site 6016b8a · backend reports-export d0a7495 · mobile reports-export e6773aa · docs deef5d5.
-next_action: read the site's chrome, styles, routes and gates; build the design tokens and components; then the pages.
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T11:55Z
+takeover: authorised by the owner's brief "focused refinement of the approved TSX-MR public-site redesign" (2026-10-17).
+The previous phase (the redesign, CLAUDE local session, started 08:32Z) had stopped at its last checkpoint: `site-redesign`
+f719617 pushed and green in CI (run 39027574766), "awaiting the owner's choice of preview vs promotion". Its work is
+complete and level with the remote; nothing uncommitted is taken over.
+active_phase: refinement on `site-redesign`, in erp-control-web only:
+1. contact methods as cards;
+2. one shared card elevation and motion system, the Launch cards included;
+3. the Appearance select replaced by a header sun/moon toggle.
+Then the gates, a push to `site-redesign` (its Cloudflare preview only) and evidence.
+baseline: web `site-redesign` f719617 (= origin; CI green) · production `tsx-public-site` 6016b8a (Pages b4737b88, untouched) ·
+backend `reports-export` d0a7495 · mobile `reports-export` e6773aa · docs 38402ba.
+discrepancies recorded:
+- the Cloudflare preview for `site-redesign` (site-redesign.tsxmr-public.pages.dev) is not recorded in the docs;
+  `docs/95` still says "preview deployments: None";
+- this cloud container cannot reach `*.pages.dev` or tsxmr.com (egress policy), so the deployed preview could not be
+  compared with the branch here;
+- there is no session-log entry yet for the redesign phase.
+not touched: production branch, Cloudflare settings, DNS, email routing, backend, mobile, SMTP, WhatsApp, Apple.
+next_action: read the redesign's chrome, theme, contact and card code; implement; run the gates.
 
 **The public website is LIVE at https://tsxmr.com (2026-10-17).** Every repository is clean and level with its remote.
 
