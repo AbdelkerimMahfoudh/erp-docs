@@ -1,20 +1,18 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-previous_owner: CLAUDE (cloud session), 2026-10-17T15:39Z → 2026-10-17T16:40Z. The phase is complete, and the handoff is
-complete. (The claim `58d315d` wrote `started_at_utc: 15:20Z`; the true time was 15:39Z.)
-authorised by: the owner's brief "implement a polished custom 404 page for the TSX-MR public website" (2026-10-17).
-next_action (the owner):
-1. Review the page on the preview: https://site-redesign.tsxmr-public.pages.dev/any-missing-page (and `/fr/…`,
-   `/ar/…`, `/in-app/…`), in light and dark, on a phone. Approve or reject its appearance.
-2. On approval, a session fast-forwards `tsx-public-site` `de6e6ba` → `site-redesign` (`397ec6b` or later), normal push,
-   after the full gates and green CI on that head. Then run `verify-not-found` against https://tsxmr.com (Actions →
-   verify-not-found → Run workflow → origin), and merge `site-redesign` into `ops/verify-production` so its copy of the
-   browser suite gains the 404 checks. Do **not** merge it there before the promotion: that suite also runs against
-   production, which does not have the page yet.
-3. Still open from before: Cloudflare Email Address Obfuscation **Off**; staging host inputs (`docs/99` §10).
-   Preview deployments: still on. The 404 preview depends on them; switch them to None only after the review.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T20:24Z
+takeover: authorised by the owner's approval of the 404 page's appearance ("Approved", 2026-10-17). The previous phase
+(the 404 page on preview, CLAUDE cloud) ended READY_FOR_HANDOFF; its handoff is complete.
+baseline (verified local = remote, all clean): web `tsx-public-site` de6e6ba (production, Pages ccf9d282) ·
+`site-redesign` 397ec6b (CI 39047253429 green; nothing after it) · `ops/verify-production` a86b26e · `main` 0417bfe ·
+backend d3c11a8 · mobile e6773aa · docs b579ed3.
+active_phase: fast-forward `tsx-public-site` de6e6ba → 397ec6b (`918b0b5` test fix + `397ec6b` 404 page), normal push;
+verify production (404 behaviour from GitHub, plus the standing production check); merge `site-redesign` into
+`ops/verify-production`. Rollback target: Pages deployment ccf9d282. No Cloudflare-setting, DNS, email, backend, mobile
+or legal-text change.
+next_action: re-run the release gates on 397ec6b, then push the fast-forward.
 
 ## The public site's custom "Page not found" (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's approval
 
