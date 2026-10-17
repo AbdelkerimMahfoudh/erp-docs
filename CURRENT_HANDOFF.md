@@ -1,14 +1,49 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE-B (local, the owner's Windows PC)
-started_at_utc: 2026-10-17T02:30Z
-previous_handoff: READY_FOR_HANDOFF / NONE (CLAUDE-B local, the tsxmr.com audit) — complete; all four trees clean and
-level with their remotes
-active_phase: separate release gates (the owner's brief of 2026-10-17, second): PUBLIC_WEBSITE (the pre-launch corporate
-site at tsxmr.com), PORTAL and APP_STORE (both kept strict); truthful pre-launch copy; a production public build;
-EN/FR/AR screenshots. No deploy, no merge, VITE_PORTAL_ORIGIN unset, no app-production check weakened.
-Baseline: backend dc53129, mobile 6609574, website tsx-public-site fe38bbc (main 0417bfe), docs 727b44e.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_owner: CLAUDE-B (local, the owner's Windows PC), 2026-10-17T02:30Z → 03:05Z — the three release gates and the
+pre-launch tsxmr.com (the owner's brief of 2026-10-17, second). Complete: all four trees clean and level with their
+remotes. Nothing deployed, merged or published; nothing changed in Cloudflare; `VITE_PORTAL_ORIGIN` unset.
+active_phase: none. The website waits on the owner (below).
+
+## Release gates and the pre-launch website (2026-10-17) — read `docs/96`, then `docs/95`
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `dc53129` (unchanged) |
+| `erp-mobile` | `reports-export` | `6609574` (unchanged; its release check untouched) |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`) | `0288d8a` |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**The gates.**
+
+- **PUBLIC_WEBSITE** (public build, pre-launch): needs the TSX-MR facts, the six pre-launch texts approved by TSX-MR,
+  and the origin `https://tsxmr.com` exactly; refuses any portal, API, console or app-store address.
+- **PORTAL:** unchanged and strict.
+- **APP_STORE:** strict, including WhatsApp deletion end to end.
+
+**Verdicts in CI run 38995650063:** PUBLIC_WEBSITE NO-GO (16: 10 facts, 6 approvals), PORTAL NO-GO (35), APP_STORE
+NO-GO (22).
+
+**CI, all green:**
+
+- Vitest 414 / 414.
+- Playwright: full site 126 / 126, public site 79 / 79.
+- Links: 2 619, 0 broken; bundle audits PASS; gitleaks clean.
+
+**Next exact action.** The owner gives the facts of `docs/96` §3 and approves, or edits, the six pre-launch texts in
+`erp-control-web/src/content/legal-prelaunch.ts`. Then:
+
+1. a preview with the real values is screenshotted;
+2. on the owner's explicit approval: fast-forward `main`, create the Pages project (build `npm ci && npm run
+   build:public-release`, `VITE_SITE_SURFACE=public`), then the custom domain and the www rule (`docs/95` §3–§4).
+
+The API (3010) and Metro (8082) on the PC were left running for the owner's phone; the PC database is still at 0091.
+
+---
+
+Earlier records follow, unchanged.
 
 ## The tsxmr.com publication (2026-10-17) — read `docs/95` first
 

@@ -11564,3 +11564,62 @@ blockers classified. It also records the "on this website" wording and that `tsx
 - Then counsel's decisions and TSX-MR's approval of the six drafts.
 - A tested deletion channel.
 - The owner's approval of the merge and the deployment.
+
+## 2026-10-17T02:30Z → 2026-10-17T03:05Z — CLAUDE-B (local, the owner's Windows PC) — three release gates; the pre-launch tsxmr.com (`docs/96`)
+
+**Brief.** The owner's brief of 2026-10-17 (second). The public website must be publishable before the backend,
+portal, registration, payments, trial and deletion work. The portal and App Store gates stay strict, WhatsApp deletion
+included. No deploy, `VITE_PORTAL_ORIGIN` unset.
+
+**Takeover.** From `READY_FOR_HANDOFF` / `NONE` (my own previous phase), clean. Claim `b79dd20`.
+
+**Website `4db74b0`, `a952d28`, `0288d8a` (on `tsx-public-site`, not merged).**
+
+- **PUBLIC_WEBSITE:**
+  - required: the TSX-MR identity and contacts, the effective date, the origin exactly `https://tsxmr.com`, and
+    TSX-MR's approval of its pre-launch texts;
+  - forbidden: any portal, API, console or app-store address;
+  - not asked for: the API, the deletion channel and support commitments.
+- **Pre-launch texts (EN/FR/AR):** Dukan ERP "coming soon — not yet open for public registration". No subscription,
+  prices, trial, registration or sign-in. Pre-launch privacy, terms of use, account deletion, privacy choices, legal
+  notice, security, support, about and contact, written from the website's code. All six legal texts are DRAFT.
+- **PORTAL:** the existing rule, unchanged; its verdict adds the backend and its channels.
+- **APP_STORE:** the service texts approved with no blocker, `whatsapp`, and the external proofs. Both stay NO-GO.
+- **Tooling:**
+  - `scripts/release-verdicts.mjs` and `src/config/gates.ts` give the verdicts;
+  - `build:public-release` is the Cloudflare build command;
+  - `e2e/public-site.spec.ts` (run with `E2E_SURFACE=public`);
+  - the CI public browser run, contact sheets and verdicts.
+
+**Mistakes, recorded.**
+
+- The first public browser run failed on my own HSTS assertion: the plain-HTTP test server drops HSTS by design, and
+  HSTS is checked in `_headers` instead.
+- Reviewing the screenshots showed "TSX-MR" split across lines inside the Dukan ERP steps. It was a grid-cell bug
+  already in the code, fixed in `0288d8a`.
+- Shell expansions cost three re-edits, all caught by `tsc` or a re-read.
+
+**CI run 38995650063 on `0288d8a`, all green.**
+
+| Check | Result |
+| --- | --- |
+| Vitest | 414 / 414 |
+| Playwright, full site | 126 / 126 |
+| Playwright, public site | 79 / 79 (72 page checks EN/FR/AR × 375 px and desktop with axe, plus host and content checks) |
+| Links, public build | 2 619, 0 broken |
+| Bundle audits | PASS |
+| gitleaks | clean |
+
+**Verdicts.**
+
+- PUBLIC_WEBSITE: NO-GO, 16 reasons (10 TSX-MR facts and 6 approvals).
+- PORTAL: NO-GO, 35.
+- APP_STORE: NO-GO, 22.
+
+The public production build was run, and was refused for exactly those 16 reasons.
+
+Screenshots are in the evidence (`public/`) and in `C:\wamp64\www\ERP\website-screenshots-2026-10-17\` (outside the
+repositories).
+
+**Not done.** No deploy, merge, Cloudflare change, approval, counsel review, or change to the app's or the backend's
+checks. No database touched.

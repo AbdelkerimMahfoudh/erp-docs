@@ -176,3 +176,14 @@ The legal ones go to counsel with §5.3. The others need the owner's choice of w
 - No branch was merged.
 - No Cloudflare project, DNS record, rule or variable was created.
 - Nothing was bought, and no secret was created.
+
+## Superseded in part by `docs/96` (2026-10-17, later)
+
+The public build is now the **pre-launch** website, with its own gate (PUBLIC_WEBSITE):
+
+- **Required:** the TSX-MR facts and TSX-MR's approval of six pre-launch texts.
+- **Not required:** the deletion channel, the support commitments and counsel's service blockers. Those stay with the
+  PORTAL and APP_STORE gates.
+- **Cloudflare build command:** `npm ci && npm run build:public-release`.
+- **The origin:** must be `https://tsxmr.com` exactly.
+- **`VITE_PORTAL_ORIGIN` must stay unset:** the gate refuses it.
