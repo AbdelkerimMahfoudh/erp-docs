@@ -1,11 +1,24 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_owner: CLAUDE-B (local, the owner's Windows PC), 2026-10-17T02:30Z → 03:05Z — the three release gates and the
-pre-launch tsxmr.com (the owner's brief of 2026-10-17, second). Complete: all four trees clean and level with their
-remotes. Nothing deployed, merged or published; nothing changed in Cloudflare; `VITE_PORTAL_ORIGIN` unset.
-active_phase: none. The website waits on the owner (below).
+Status: IN_PROGRESS
+Owner: CLAUDE-B (cloud session)
+started_at_utc: 2026-10-17T02:55Z
+previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (local, the owner's Windows PC), the release-gate phase,
+2026-10-17T02:30Z → 03:05Z — complete. The owner authorised this session to proceed (its handoff was still
+IN_PROGRESS when the task arrived and turned READY_FOR_HANDOFF before anything was changed). Its website work
+(`tsx-public-site` `0288d8a`) is not touched by this phase.
+active_phase: the sale workflow (the owner's brief of 2026-10-17, with Pictures 1–3): Review sale (return policy card,
+discount card, one Continue to payment), payment sheet (Confirm payment, split payment as its own control), partial
+payment → customer debt with a due date and the Owner's reminder through the existing overdue-debt notification.
+Backend and mobile only; no deploy. Expected: no migration (`Sale.dueDate` exists).
+Baseline: backend `reports-export` `dc53129`, mobile `reports-export` `6609574`, website `tsx-public-site` `0288d8a`
+(`main` `0417bfe`), docs `2a87fbf`.
+next_intended_action: backend — `dueInDays` on the sale, the due date from the confirmed business day, customer phone
+required for a customer debt; then the mobile screens, tests, screenshots.
+
+---
+
+The previous phase's record follows, unchanged.
 
 ## Release gates and the pre-launch website (2026-10-17) — read `docs/96`, then `docs/95`
 
