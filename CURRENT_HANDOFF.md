@@ -13,6 +13,21 @@ Baseline: backend `reports-export` `1ed6b00`, mobile `reports-export` `e6773aa`,
 `origin/tsx-public-site` (at `8bf6f65`); fast-forwarded, nothing local lost.
 next_intended_action: the identity schema and the PUBLIC_WEBSITE guard, then the content.
 
+
+## Second active phase, in parallel (owner-authorised, 2026-10-17T04:30Z)
+
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's Windows PC)
+started_at_utc: 2026-10-17T04:23Z
+authorisation: the owner chose to run this phase in parallel with the cloud session above. Repositories do not
+overlap: this phase changes **erp-backend** only (plus its own erp-docs entries); the cloud session changes
+erp-control-web. Each pulls erp-docs before every push and leaves the other's entries intact.
+active_phase: Brevo SMTP + WhatsApp Cloud API backend integration, Phases 2–5 (docs/21 D181).
+scope: erp-backend (messaging, OTP delivery, consent, migration 0098 on a disposable database only). No deployment,
+no live switch, no real message, no migration on the PC or live database.
+baseline: backend `reports-export` `1ed6b00`, mobile `e6773aa` (untouched), website `0288d8a` (not touched here).
+next_action: the SMTP channel (nodemailer), then the WhatsApp controls, queue and consent.
+
 ---
 
 ## The sale workflow (2026-10-17) — read `docs/21` D178–D180 and the session log entry

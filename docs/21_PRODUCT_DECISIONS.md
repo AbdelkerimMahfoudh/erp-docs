@@ -7659,3 +7659,69 @@ The permission exists and every built-in selling role holds it, but `POST /sales
 floor and the approval rules constrain a discount. The app therefore shows the Discount card to every seller, as the
 old sheet did. Enforcing it would refuse discounts to a custom role without the permission; not done in this phase.
 
+
+## Transactional email (Brevo SMTP) and the WhatsApp Cloud API (2026-10-17, CLAUDE, local)
+
+The owner's brief of 2026-10-17 (Brevo SMTP + WhatsApp Cloud API), the Phase 1 audit, and the owner's approval with
+binding corrections. Recorded before implementation. From this phase on, sessions use the single identity
+**`CLAUDE`** (no CLAUDE-A / CLAUDE-B). Nothing is deployed, no live switch is turned on, no real message is sent.
+
+### ✅ APPROVED — D181: Brevo SMTP and the WhatsApp Cloud API, with the owner's binding corrections
+
+1. **Dependency.** `nodemailer` and `@types/nodemailer`, exact versions pinned by the lockfile, with the dependency
+   and security audit run. SMTP on port 587 with STARTTLS **required**, TLS 1.2 minimum, finite connection, greeting
+   and socket timeouts, debug logging off, and no credential in any error.
+2. **Resend.** The dormant Resend channel stays. It is neither removed nor activated.
+3. **Template-only WhatsApp.** No general free-text sending API. Inbound message **contents are never stored**. When
+   opt-out keywords are detected, the text is processed in memory against documented EN/FR/AR keywords; only the
+   resulting opt-out state and its timestamp are persisted, and the text is discarded.
+4. **Test sending is separate from live sending.** Independent controls:
+   - `WHATSAPP_CHANNEL=disabled|cloud`;
+   - `WHATSAPP_MODE=test|live`;
+   - `WHATSAPP_TEST_RECIPIENTS=…` (exact E.164 numbers);
+   - `WHATSAPP_LIVE_SENDS=disabled|enabled`.
+
+   Rules:
+   - `test` mode sends **only** to the exact allowlisted test recipients — never to a number merely because it is in
+     application data.
+   - `WHATSAPP_LIVE_SENDS=disabled` blocks every real-customer template send.
+   - The delivery-proof script works **only** in test mode, against allowlisted recipients. Readiness (D166) can
+     therefore be established without enabling live sends.
+   - Production refuses to boot in `live` mode unless the channel, permanent credentials, approved templates, the
+     webhook configuration and the explicit live-send switch are all valid.
+   - There is never a silent fallback from WhatsApp to email or to development logging.
+   - Live authentication templates, deletion codes and every other message operate only after live sending is
+     explicitly enabled.
+5. **Consent and opt-out.**
+   - Explicit, **versioned** WhatsApp consent during Owner registration / contact verification. Recorded: consent
+     version, timestamp, purpose categories, masked number and keyed number hash, actor, and an audit event.
+   - The consent copy says WhatsApp is the **mandatory verified account contact**, used for authentication, account
+     recovery, employee invitations, security alerts and account-deletion confirmation.
+   - An opt-out blocks optional operational notifications (closing notices, non-essential reminders).
+   - User-initiated essential messages may still be sent after an opt-out: sign-in verification, password/account
+     recovery, employee invitation verification, security verification, account-deletion verification.
+   - An opt-out of the mandatory channel itself returns an honest state naming the account functions that become
+     unavailable; nothing pretends account security continues without a verified channel.
+   - No marketing message is sent.
+6. **Minimal scope.** Automatic report and receipt email delivery stays postponed (D111): no unused production
+   delivery path, no queued payload, no database-retained report or receipt variable. Sender addresses may exist in
+   configuration; only the message types of active workflows are implemented — verification and sign-in, account
+   recovery and security, employee invitation and contact verification, the approved trial setup instructions,
+   account-deletion verification, and the existing operational notices.
+7. **Message-log privacy.** Recipient hashes are keyed HMACs under a dedicated secret, never plain hashes (numbers and
+   addresses are enumerable). No log or record holds an OTP or deletion code, a one-time link or token, a message
+   body, an SMTP credential, a WhatsApp access token, a complete address or number, or report/receipt contents.
+   Retention periods for message metadata, webhook events and provider identifiers are defined and documented;
+   completed webhook payloads are minimised or removed after processing.
+8. **Queue correctness (webhook).** Signature verified over the raw body before enqueueing; the event is durably
+   inserted before 200; a failed insert answers a retryable non-success; provider retries are deduplicated; a leased
+   worker processes; statuses move forward only; a late `failed` never overwrites `delivered`/`read`; D166's
+   delivery-proof semantics are preserved.
+9. **Email correctness.** Every email has text and HTML alternatives, escaped variables, `dir="rtl"` for Arabic, no
+   remote image, no tracking pixel, and `Reply-To: support@tsxmr.com`. An ambiguous SMTP timeout never creates a new
+   code: a retry reuses the same challenge, code and idempotency context, and a recipient may receive the same valid
+   message twice. The application-side quota and reserve are an **internal safety limit**, not a guaranteed
+   reflection of Brevo's account usage. Brevo delivery-webhook reconciliation is documented as later work.
+10. **Scope and deployment.** Migration `0098` is verified on a disposable database only; `0092–0098` are not applied
+    to the PC or live database in this phase. No real email or WhatsApp message in automated tests; no deployment, no
+    live switch.
