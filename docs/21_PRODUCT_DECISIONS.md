@@ -7726,6 +7726,39 @@ binding corrections. Recorded before implementation. From this phase on, session
     to the PC or live database in this phase. No real email or WhatsApp message in automated tests; no deployment, no
     live switch.
 
+### ✅ IMPLEMENTED — D181 (backend `2d575ed`, `d7869a0`, `60832f2`, `d0a7495`; deployment guide `docs/98`)
+
+Every correction of D181 is in the code and under test. Choices made inside it:
+
+- **Template classes.** Each WhatsApp template declares a use: `essential` (sign-in and verification codes, deletion
+  code and confirmation), `optional` (closing notices, trial setup instructions) or `operator` (the delivery check).
+  The opt-out, consent and test/live rules decide by it.
+- **Test mode is open only with an allowlist**, and a channel in test mode answers "would you send to this number?"
+  before anything is created, so a registration or a number verification with a non-allowlisted number is refused up
+  front ("nothing was saved"), never left waiting for a code.
+- **Live mode's "permanent credentials"** are checked with Meta at start-up (`debug_token`: valid, this app, never
+  expires, messaging scope; and the number is visible), and the boot is refused on any problem or if Meta cannot be
+  reached. Production also refuses `WHATSAPP_LIVE_SENDS=enabled` in test mode as a contradiction.
+- **Delivery proofs belong to a sending number** (`messaging_delivery_proofs.phone_number_id`): proving with Meta's test
+  number does not open the channel for the real one.
+- **Consent is required at registration and number verification while WhatsApp runs live**; outside live mode it is
+  optional but always version-checked and recorded when sent. An essential message needs no consent row (the first
+  code is how the number is verified); an optional one does, in live mode. A withdrawal stops essential messages too
+  and the account says what becomes unavailable. The consent history records the business and person as **actors**
+  (`actor_company_id`, `actor_user_id`): it is read by number, across businesses.
+- **The 24-hour window** is recorded but gates nothing: the system is template-only.
+- **Email**: only `contact.verification` (codes) and `trial.setup` are sent, as before; the held templates stay held.
+  Codes are never queued: a temporary failure is retried once, immediately, with the same code and Message-ID.
+
+### ⏳ AWAITING THE OWNER — D181 follow-ups
+
+- Rotate the Brevo SMTP key shared in chat; authenticate `tsxmr.com` in Brevo; check and turn off open/click tracking
+  (click tracking would rewrite the trial setup link and its one-time token).
+- Approve the WhatsApp consent copy (`wa-consent-2026-10-17`, EN/FR/AR) with counsel; any change is a new version.
+- The app and the website must show the copy and send `whatsappConsentVersion` before live mode (a next phase).
+- Meta: publish the app (privacy policy URL), register the real number, permanent token, templates, webhook.
+- Later: Brevo delivery webhooks for reconciliation; a re-keying tool for `MESSAGING_HASH_KEY`.
+
 ## The public website's operator identity (2026-10-17, CLAUDE, cloud)
 
 The owner's brief of 2026-10-17 (third). Website `erp-control-web` `tsx-public-site` `0516a9c` (not merged). Nothing

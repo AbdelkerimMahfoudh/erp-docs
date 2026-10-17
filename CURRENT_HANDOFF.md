@@ -6,9 +6,14 @@ own status:
 | Phase | Repositories | Status | Owner |
 | --- | --- | --- | --- |
 | Website production preparation (cloud session) | `erp-control-web` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
-| Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | IN_PROGRESS (see its section below) | CLAUDE (local) |
+| Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
 
-**Do not take `erp-backend` while the local phase is IN_PROGRESS.** `erp-control-web` and `erp-mobile` are free.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+
+Both phases are complete; every repository is clean and level with its remote. Nothing is held.
+
+Backend phase: previous_owner CLAUDE (local session), 2026-10-17T04:23Z → 2026-10-17T05:50Z, complete.
 
 Website phase: previous_owner CLAUDE (cloud session), 2026-10-17T04:56Z → 2026-10-17T06:00Z, complete (claim
 `d92de38`).
@@ -120,19 +125,38 @@ The previous website record follows, unchanged.
 The sale-workflow device check (below) is still owed on the iPhone.
 
 
-## Second active phase, in parallel (owner-authorised, 2026-10-17T04:30Z)
+## Brevo SMTP + WhatsApp Cloud API (2026-10-17, CLAUDE local) — read `docs/98`, then `docs/21` D181
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's Windows PC)
-started_at_utc: 2026-10-17T04:23Z
-authorisation: the owner chose to run this phase in parallel with the cloud session above. Repositories do not
-overlap: this phase changes **erp-backend** only (plus its own erp-docs entries); the cloud session changes
-erp-control-web. Each pulls erp-docs before every push and leaves the other's entries intact.
-active_phase: Brevo SMTP + WhatsApp Cloud API backend integration, Phases 2–5 (docs/21 D181).
-scope: erp-backend (messaging, OTP delivery, consent, migration 0098 on a disposable database only). No deployment,
-no live switch, no real message, no migration on the PC or live database.
-baseline: backend `reports-export` `1ed6b00`, mobile `e6773aa` (untouched), website `0288d8a` (not touched here).
-next_action: the SMTP channel (nodemailer), then the WhatsApp controls, queue and consent.
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `d0a7495` (from `1ed6b00`: `2d575ed`, `d7869a0`, `60832f2`, `d0a7495`) |
+| `erp-mobile` | `reports-export` | `e6773aa` (untouched) |
+| `erp-control-web` | `tsx-public-site` | `b5c0328` (the cloud phase; untouched here) |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**Migration 0098** (additive; five tables, one column, one index): verified on disposable databases only, dropped.
+**Not applied** to the PC database (still 0091) or any live database. **Deployed:** nothing. **Live switches:** none.
+**Messages sent:** none. **Templates submitted:** none.
+
+**What changed.** Brevo SMTP channel (587, STARTTLS required, TLS 1.2), sender classes, Reply-To, text+HTML, email
+records with an internal daily safety limit and a reserve for codes; WhatsApp test/live controls with an exact
+allowlist and an explicit live-send switch, a send policy (opt-out, withdrawal, consent, pacing, records), Graph
+v26.0, provider codes 131026/131047/190, a start-up token check for live mode; an asynchronous signed webhook with a
+leased, forward-only worker that keeps D166's proofs (now per sending number); the proof script in test mode only;
+versioned WhatsApp consent at registration and number verification; account consent and opt-out routes.
+
+**Verified.** tsc; full suite 4 660 pass (1 pre-existing Windows-only failure, also on `1ed6b00`); 0098 on MySQL 8.4
+from empty with no drift on the new tables, an 11-check smoke, rollback and re-apply; an API boot over HTTP (webhook
+verify/sign/dedupe, STOP, consent copy). Not run: ESLint (absent from the backend), gitleaks (absent here).
+
+**Awaiting the owner** (`docs/98` §8): rotate the Brevo SMTP key shared in chat; Brevo domain authentication and
+tracking off; Meta app publication (privacy policy URL), real number, permanent token, templates, webhook; the API
+host; approval of the consent copy.
+
+**Next exact action.** Either (a) the client phase: the app and the website show `GET /api/v1/messaging/whatsapp/consent`
+and send `whatsappConsentVersion` with registration and number verification, plus the opt-out screen; or (b) after the
+owner's actions, a test-mode deployment per `docs/98` §2–§5 (back up, migrate, set the secrets, `whatsapp:prove`).
+The sale-workflow iPhone check (below) is still owed.
 
 ---
 

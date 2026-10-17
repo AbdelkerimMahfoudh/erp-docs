@@ -11817,3 +11817,38 @@ fault.
 - No approval; no effective date.
 - Nothing in backend or mobile; no database touched.
 - The Brevo credential shared in chat must be rotated before production. This session never saw it.
+
+## 2026-10-17 — CLAUDE (local, the owner's PC): Brevo SMTP and the WhatsApp Cloud API (D181)
+
+**Brief.** The owner's brief of 2026-10-17 (Brevo SMTP + WhatsApp Cloud API, Phases 1–5), the Phase 1 audit and plan,
+and the owner's approval with ten binding corrections (D181). From this phase the single identity `CLAUDE` is used.
+The owner authorised running in parallel with the cloud website session (no repository overlap).
+
+**Backend `reports-export`:** `2d575ed` nodemailer 10.0.13 / @types/nodemailer 8.0.2 pinned; `d7869a0` migration 0098
+(email_messages, whatsapp_messages, whatsapp_webhook_events, whatsapp_contacts, whatsapp_consents,
+messaging_delivery_proofs.phone_number_id); `60832f2` the SMTP channel, HTML alternatives, sender classes, email
+records and internal safety limit, the WhatsApp send policy (test/live/allowlist/live switch, opt-out, consent,
+pacing, records), provider codes, the live-mode token check, the asynchronous webhook and its leased worker, the
+proof script in test mode only, versioned consent at registration and number verification, account consent and
+opt-out routes, production-guard rules, `.env.example`; `d0a7495` references to `docs/98`.
+
+**Found and fixed on the way.** A side effect that failed after a status moved would have made the retry skip the
+D166 proof forever: the worker now decides effects by where the record stands, idempotently (test added).
+
+**Verification.**
+
+| Check | Result |
+| --- | --- |
+| tsc | pass |
+| Full backend suite | 4 660 passed, 24 skipped, 1 failed — `trial.service.spec` path-separator assertion, failing identically on the baseline `1ed6b00` (pre-existing, Windows-only) |
+| Messaging and guard suites | 299 pass (new: policy 21, consent 39, consent flows 11, SMTP/HTML/log 24, live check 14, webhook 29, guard +8, Graph codes +7) |
+| Migration 0098 | disposable MySQL 8.4 `prisma_qa_msg`, twice: 0001→0098 from empty, no drift on the new tables, 11/11 smoke on the real tables, rollback and re-apply; dropped |
+| API boot | disposable `prisma_qa_boot`, cloud/test mode with a fake token and the Graph URL on a closed local port: routes mapped; verify 200/403; unsigned 401; signed 200; a repeated delivery stored once; STOP → opt-out; no secret, number or text in the log; stopped; dropped |
+| Audit | no finding for nodemailer; 9 moderate pre-existing |
+| Not run | ESLint (not installed in the backend), gitleaks (not installed here), any real send |
+
+**Databases.** Only the two disposable databases above, both dropped. The PC database is untouched (at 0091); no live
+database touched. **Deployed:** nothing. **Live switches:** none. **Messages sent:** none.
+
+**Docs.** `docs/98` (deployment guide), `docs/21` D181 (approved, implemented, awaiting the owner), this entry, the
+handoff.
