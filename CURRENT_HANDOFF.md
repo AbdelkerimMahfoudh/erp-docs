@@ -1,7 +1,21 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T13:40Z
+takeover: authorised by the owner's brief "finish the visual consistency work on the TSX-MR website" (2026-10-17). The
+previous phase (the refinement, CLAUDE cloud, 11:55Z → 12:50Z) ended READY_FOR_HANDOFF; its handoff is complete.
+baseline (verified local = remote, all clean): web `site-redesign` 0b7fb52 · production `tsx-public-site` 6016b8a
+(untouched) · web `main` 0417bfe · backend `reports-export` d0a7495 · mobile `reports-export` e6773aa · docs 2b78b60.
+active_phase: on `site-redesign` in erp-control-web only:
+1. one link system across every public and `/in-app/` page (tables of contents, contact and operator details, prose,
+   navigation, footer);
+2. a hamburger/close icon button for the mobile menu;
+3. EN/FR/AR language labels with full names kept for assistive technology.
+Then the gates, a push to `site-redesign` (preview only), evidence, docs.
+not authorised: production promotion, Cloudflare settings, DNS, email, backend, mobile, SMTP, WhatsApp.
+next_action: audit every link family in the built public site; implement; run the gates.
+
 previous_owner: CLAUDE (cloud session), 2026-10-17T11:55Z → 2026-10-17T12:50Z. The phase is complete, and the handoff is
 complete.
 
