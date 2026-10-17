@@ -458,3 +458,47 @@ capabilities; About gains "The publisher and the product" (TSX-MR publishes and 
 no claim of a company). Legal texts, URLs, versions and the effective date are unchanged; only their typography moved.
 The pre-launch wording (docs/96) is kept: the coming-soon badge on the home, Dukan ERP and Products pages, no price, no
 trial claim, no account link.
+
+### Refinement (2026-10-17, CLAUDE, cloud)
+
+The owner's review of the redesign named three defects: plain, underlined contact labels; Launch cards without the
+elevation the other cards have; and an Appearance select in the footer. All three fixes are on `site-redesign` only.
+Production is unchanged.
+
+- **Contact methods are cards** (`ContactMethods`, `components/public/blocks.tsx`), grouped "By email" and "By
+  telephone". The whole card is the link. Each card shows:
+  - an icon and the purpose (emails only);
+  - the address or number, `dir="ltr"` inside Arabic;
+  - a localized Write/Call action.
+  - Links are real `mailto:`/`tel:` links, with spaces removed from the `tel:` value.
+  - Accessible names state the action and the destination: "Contact email: write to contact@tsxmr.com", "Call
+    +222 36 96 38 39".
+  - The telephones claim no purpose and carry no WhatsApp label, because the repository defines neither.
+  - The cards sit in a grid that stacks on phones. Below 420 px the action keeps only its arrow; below 360 px it is
+    hidden, so the value never breaks.
+  - The same component serves the Contact page, the Support page and the legal texts' contact blocks. Addresses and
+    numbers are unchanged.
+- **One elevation and motion system** (`.elevated`, `theme/public.css`; tokens `--lift`, `--dur-lift`,
+  `--shadow-raised`, `--border-raised`):
+  - At rest a card carries the shared shadow. On hover it rises 3 px over 200 ms, with a stronger shadow and border.
+  - The CSS `translate` property is used, so it composes with the reveal's `transform`.
+  - Hover applies only under `(hover: hover) and (pointer: fine)`, so touch screens never keep a sticky hover.
+    Keyboard focus inside a card (`:has(:focus-visible)`) gives the same state.
+  - On navy bands the card uses a shadow made for navy.
+  - Under reduced motion `--lift` and the arrows' `--nudge` become `0px`: the shadow still changes, nothing moves.
+  - The reveal's stagger now delays only the reveal (`--reveal-delay`), never the hover.
+  - Every principal card family uses it: problems, capabilities, activities, how it works (home and Dukan ERP),
+    **Launch**, previews, languages, products and contact. `card-lift` and `.tile:hover` are gone.
+- **Header theme toggle** (`ThemeToggle`, `components/Chrome.tsx`): a sun/moon icon button replaces the footer select.
+  - It is a 44 px target named for its action: "Switch to dark mode" or "Switch to light mode", in EN, FR and AR.
+  - It stays on the brand's row at 320 px, and follows RTL.
+  - The rule (D188) is: a stored choice wins; otherwise the device's `prefers-color-scheme` applies, followed live
+    until the visitor chooses.
+  - Only an explicit choice is stored, under the same key (`erp.web.theme`).
+  - `theme-boot.js` applies the same rule before paint. CSS picks the icon from `data-theme`, so there is no flash and
+    no wrong icon before hydration.
+- Tests:
+  - `test/site-refinement.test.tsx` holds 12 unit tests.
+  - `e2e/public-site.spec.ts` gains 3 browser tests per language: contact cards at 320/375/1280; the toggle by
+    keyboard and click, persisting across navigation and reload; the Launch cards at rest, on hover and under reduced
+    motion.

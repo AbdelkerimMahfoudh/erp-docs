@@ -7856,3 +7856,18 @@ https://tsxmr.com. Detail: the handoff's deployment record and the session log.
   Always Use HTTPS on; email DNS untouched (one SPF at the root; catch-all disabled).
 - **Cloudflare's free-zone RUM beacon was auto-injected and has been disabled completely** — the site runs no
   analytics, as the privacy text says. PUBLIC_WEBSITE GO; PORTAL and APP_STORE stay NO-GO, nothing of them enabled.
+
+## Public-site redesign refinement (2026-10-17, CLAUDE, cloud)
+
+The owner's brief "focused refinement of the approved TSX-MR public-site redesign". Website `erp-control-web`
+`site-redesign`; production `tsx-public-site` `6016b8a` unchanged. Detail: `docs/74` "Refinement".
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (preview) — D188: the public site's appearance follows the device until the visitor chooses
+
+- **Supersedes** the redesign's "light by default". On a first visit the site follows the device's
+  `prefers-color-scheme`, live. Once the visitor uses the header's sun/moon toggle, that choice is stored
+  (`erp.web.theme`, the existing key) and wins on every later visit.
+- The footer "Appearance" select is removed; the header toggle is the only control.
+- Contact methods are cards that are the links, and every principal card family shares one elevation and motion system.
+  Neither invents a fact: the addresses and numbers are unchanged, and no telephone purpose or WhatsApp label is added.
+- Preview only, on `site-redesign`. Promotion to `tsx-public-site` waits for the owner's explicit approval.

@@ -11899,3 +11899,45 @@ handoff.
 
 Repository heads after this session: erp-control-web tsx-public-site 6016b8a (main 0417bfe untouched);
 erp-backend reports-export d0a7495 and erp-mobile reports-export e6773aa untouched; erp-docs master = this commit.
+
+## 2026-10-17T11:55Z → 2026-10-17T12:50Z — CLAUDE (cloud) — public-site redesign refinement: contact cards, card motion, header theme toggle (D188)
+
+**Takeover.** The owner authorised a focused refinement of the approved redesign. The previous phase (CLAUDE, local) had
+stopped cleanly: `site-redesign` was at `f719617`, level with origin and green in CI; production `tsx-public-site` was at
+`6016b8a` (Pages `b4737b88`). Nothing uncommitted was taken over. Discrepancies were recorded in the claim (`0563c8c`):
+- the `site-redesign` preview deployments were not recorded in the docs (`docs/95` said preview deployments "None");
+- this container cannot reach `*.pages.dev` or tsxmr.com;
+- there was no session-log entry for the redesign phase itself.
+
+**Website `0b7fb52` on `site-redesign`** (one commit, detail in `docs/74` "Refinement"):
+1. Contact methods are cards that are the real `mailto:`/`tel:` links, with purpose, value, a localized Write/Call
+   action and accessible names. No telephone purpose or WhatsApp label was invented.
+2. One `.elevated` system on every principal card family, the Launch cards included:
+   - hover only on fine pointers, with the same state on keyboard focus;
+   - `translate`-based, so it composes with the reveal;
+   - the reveal stagger no longer delays the hover;
+   - reduced motion zeroes `--lift`/`--nudge`. A first attempt with `translate: none` was dropped by the CSS minifier,
+     and the browser test caught it.
+3. A header sun/moon toggle replaces the footer select. It follows the device until the visitor chooses (D188).
+   - The boot script applies the same rule before paint.
+   - The narrow header's controls now sit at the inline end; they sat beside the logo before.
+
+**Verification** (working tree = `0b7fb52`):
+- `npm ci`, typecheck, vitest 452/452 (26 files, 12 new) and both production refusals.
+- Full preview: links 3 400/0 broken, bundle PASS, Playwright 126/126.
+- Public preview: links 2 753/0, bundle PASS, Playwright 91/91. Also run with both telephone numbers: 91/91.
+- `build:public-release` with the production variables: links 2 831/0, bundle `--public` PASS, 0 test values;
+  Playwright 91/91 on that dist; `release-verdicts --require public` PUBLIC_WEBSITE GO (PORTAL 25, APP_STORE 21 NO-GO,
+  unchanged).
+- gitleaks clean on history, src and both dists.
+- Served-build checks: CSP/headers unchanged; robots, sitemap (36 URLs, no in-app) and canonical correct; `/account`,
+  `/admin`, `/apply`, `/login` 404; no analytics or third-party request.
+- CI run 39033394872 green on `0b7fb52` (126 + 91 browser tests); evidence `fe7d674` on `ci-evidence`.
+
+**Deployment.** Cloudflare built the branch preview from the push: deployment
+`533f4ef1-0432-4cdc-9d6d-228a6e40ea88`, https://533f4ef1.tsxmr-public.pages.dev and
+https://site-redesign.tsxmr-public.pages.dev. This is per its GitHub check run; the container cannot open either URL.
+Production `tsx-public-site` is still `6016b8a` (Pages `b4737b88`).
+
+**Not touched:** production branch, Cloudflare settings, DNS, email routing, RUM (still off), backend, mobile, SMTP,
+WhatsApp, Apple.

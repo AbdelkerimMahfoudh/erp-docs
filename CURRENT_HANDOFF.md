@@ -1,27 +1,63 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T11:55Z
-takeover: authorised by the owner's brief "focused refinement of the approved TSX-MR public-site redesign" (2026-10-17).
-The previous phase (the redesign, CLAUDE local session, started 08:32Z) had stopped at its last checkpoint: `site-redesign`
-f719617 pushed and green in CI (run 39027574766), "awaiting the owner's choice of preview vs promotion". Its work is
-complete and level with the remote; nothing uncommitted is taken over.
-active_phase: refinement on `site-redesign`, in erp-control-web only:
-1. contact methods as cards;
-2. one shared card elevation and motion system, the Launch cards included;
-3. the Appearance select replaced by a header sun/moon toggle.
-Then the gates, a push to `site-redesign` (its Cloudflare preview only) and evidence.
-baseline: web `site-redesign` f719617 (= origin; CI green) · production `tsx-public-site` 6016b8a (Pages b4737b88, untouched) ·
-backend `reports-export` d0a7495 · mobile `reports-export` e6773aa · docs 38402ba.
-discrepancies recorded:
-- the Cloudflare preview for `site-redesign` (site-redesign.tsxmr-public.pages.dev) is not recorded in the docs;
-  `docs/95` still says "preview deployments: None";
-- this cloud container cannot reach `*.pages.dev` or tsxmr.com (egress policy), so the deployed preview could not be
-  compared with the branch here;
-- there is no session-log entry yet for the redesign phase.
-not touched: production branch, Cloudflare settings, DNS, email routing, backend, mobile, SMTP, WhatsApp, Apple.
-next_action: read the redesign's chrome, theme, contact and card code; implement; run the gates.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE (cloud session), 2026-10-17T11:55Z → 2026-10-17T12:50Z. The phase is complete, and the handoff is
+complete.
+
+## The public-site redesign refinement (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's decision
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-control-web` | `site-redesign` (preview only; **not merged**) | `0b7fb52` (from `f719617`). CI run 39033394872 green; evidence `fe7d674` |
+| `erp-control-web` | `tsx-public-site` (production) | `6016b8a`, **untouched** (Pages `b4737b88` still serves tsxmr.com) |
+| `erp-backend` | `reports-export` | `d0a7495` (untouched) |
+| `erp-mobile` | `reports-export` | `e6773aa` (untouched) |
+| `erp-docs` | `master` | the commit carrying this file (claim `0563c8c`) |
+
+**Changed (website `0b7fb52`, one commit).** Detail is in `docs/74` "Refinement" and D188.
+- Files: `src/theme/{tokens,global,public}.css`, `src/theme/theme.tsx`, `public/theme-boot.js`,
+  `src/components/Chrome.tsx`, `src/components/public/{blocks,icons}.tsx`,
+  `src/pages/public/{Home,DukanErp,Legal}.tsx`, `src/i18n/{en,fr,ar}.ts`, `e2e/public-site.spec.ts`, and the new
+  `test/site-refinement.test.tsx`.
+- Contact methods are cards that are the real `mailto:`/`tel:` links. Addresses and numbers are unchanged; no
+  telephone purpose or WhatsApp label was added.
+- One `.elevated` card elevation and motion system covers every principal card family, the Launch cards included.
+  Reduced motion keeps the shadow and drops the movement.
+- A header sun/moon toggle replaces the footer select. It follows the device until the visitor chooses, and only an
+  explicit choice is stored (D188).
+- No migration, no database, no dependency, no CSP change.
+
+**Verified.** Detail is in the session log.
+- vitest 452/452. Full preview: Playwright 126/126, links 3 400/0. Public preview: Playwright 91/91, links 2 753/0.
+- Production-variable `build:public-release` PASS: 2 831 links, 0 broken, 0 test values. Playwright 91/91 on it;
+  PUBLIC_WEBSITE GO.
+- gitleaks clean. Headers, robots, sitemap and canonical unchanged; `/account` and `/admin` 404; no third-party request.
+- CI green on `0b7fb52`.
+
+**Deployment.**
+- Cloudflare built the preview from the push: deployment `533f4ef1-0432-4cdc-9d6d-228a6e40ea88`.
+- URLs: https://533f4ef1.tsxmr-public.pages.dev and https://site-redesign.tsxmr-public.pages.dev. The source is
+  Cloudflare's GitHub check run on `0b7fb52`. This container cannot reach `*.pages.dev`, so the deployed pages were
+  not opened from here.
+- Production, the Cloudflare settings, DNS, email routing and RUM (still off) were not touched.
+
+**Known discrepancy, open.** `docs/95` and D187 record "preview deployments: None". Cloudflare now builds previews for
+`site-redesign` (the owner's setting; the brief says only that branch). This is to be recorded in `docs/95` once the
+owner decides whether previews stay on.
+
+**Next exact action (the owner).**
+1. Review https://site-redesign.tsxmr-public.pages.dev in EN/FR/AR, light and dark.
+2. Approve or reject promotion.
+   - On approval, the next session fast-forwards `tsx-public-site` to `site-redesign`, normal push, no force. Before
+     that, run the full gates on the merged head and confirm CI.
+   - Then verify the production deployment on tsxmr.com.
+3. Then decide whether preview deployments are switched off again.
+   Do **not** promote without that explicit approval.
+
+---
+
+The previous records follow, unchanged.
 
 **The public website is LIVE at https://tsxmr.com (2026-10-17).** Every repository is clean and level with its remote.
 
