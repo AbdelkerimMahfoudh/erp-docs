@@ -5506,7 +5506,7 @@ tree.
 
 No "total available" is shown, and accounts carry no balance: the model reconciles each drawer day on its own (no opening float) and never learns an account's opening balance or what the owner moves out privately, so neither figure can be stated honestly. The brief allowed exactly this condition. Below the figures: three sales with **View all sales** (today as a list; 7 days and a month a day at a time, each day's sales fetched only when opened), today's expenses with where each was paid from, and the registry actions — Results, Expenses, Daily closing, Loans and, new, **Outstanding payments** (`report.view`).
 
-**Partial payment at the counter.** The amount received now defaults to the whole total, so an ordinary sale is still one tap. Lowering it shows the remaining balance and the resulting status (Paid in full / Partially paid / Unpaid — now the only three names in the app) and asks who owes the rest: a **customer** — chosen from the list, or typed with a required name and optional phone, created inside the sale so nobody is duplicated and an employee needs only `sale.create` — or a **partner store**. Nothing received at all is a real sale. More than the total is never taken.
+**Partial payment at the counter.** The amount received now defaults to the whole total, so an ordinary sale is still one tap. Lowering it shows the remaining balance and the resulting status (Paid in full / Partially paid / Unpaid — now the only three names in the app) and asks who owes the rest: a **customer** — chosen from the list, or typed with a required name and optional phone *(superseded 2026-10-17, D179: a customer who owes must have a phone)*, created inside the sale so nobody is duplicated and an employee needs only `sale.create` — or a **partner store**. Nothing received at all is a real sale. More than the total is never taken.
 
 **A store as debtor — deliberately narrow.** `docs/21` previously refused to fake an outright inter-store sale with a customer sale. This records **our** sale with a balance a store owes: the unit leaves our stock and the receivable sits on our sale. **Nothing is written into the other store's company**, and the balance is not added to the shared Partners summary, whose privacy guard forbids reading sales there. Only a store with an **accepted** connection can be given new credit (the approved Partners rule); a person, or a store whose connection was removed, is refused. The bilateral inter-store sale remains undecided.
 
@@ -7605,4 +7605,57 @@ The full list is `docs/93`: the TSX-MR facts (O-L1…O-L16), the twelve legal bl
 describe access paid outside the app), L-2 (receipt photo EXIF), L-3 (the phone's local data after deletion), L-4
 (imported rows kept), L-5 (identifiers in request logs), L-6…L-11 (App Privacy and manifest details). Nothing in this
 phase decided any of them.
+
+## The sale workflow: review, payment and customer debt (2026-10-17, CLAUDE-B, cloud)
+
+The owner's brief of 2026-10-17, with Pictures 1–3. Backend `1ed6b00`, mobile `e6773aa`. **No migration**:
+`sales.due_date` already exists. Nothing deployed.
+
+### ✅ APPROVED AND IMPLEMENTED — D178: Review sale, then Confirm payment
+
+- **Review sale** keeps the product and the selling price. The purple banner ("The item leaves stock only when the
+  sale is confirmed") is replaced by a light-purple **Return policy** card: 1 day, 2 days, 3 days, **Choose duration**
+  (whole days, 1–365), the shop's default when it is something else, and **No returns** for whoever holds
+  `return.policy.override`. The existing rules stand: an employee sees the shop's policy read only, and a positive
+  default is never shortened to another positive window — such a choice is not offered and one sentence says why. The
+  deadline shown is a preview; the server sets the final one from the confirmed sale time.
+- A separate white **Discount** card, marked *Optional* and closed until tapped, sits under *Before you sell*. The
+  discount changes the sale total and the expected profit shown there; the server judges it under the existing rules
+  (cost floor, Owner approval). One primary action, **Continue to payment**; *Choose another item* is gone (the
+  header's back arrow does it; an item that cannot be sold keeps the button, since it has nothing else to press).
+- The single-item sale's discount, previously ignored (the sheet sent none), now reaches the request.
+- **Payment sheet**: *Amount received now* where it was; the method; **Split across methods** as its own control. The
+  combined *Discount, return policy and split payment* section is removed. The final action is **Confirm payment**,
+  whether or not money remains owed. The cart sale uses the same sheet and the same two cards.
+
+### ✅ APPROVED AND IMPLEMENTED — D179: a balance left owing is a customer debt with a due date
+
+- When the amount received is less than the total after discount, Confirm payment asks: *"The customer still owes
+  100 MRU. Record this sale with an outstanding balance?"* — **Go back** keeps everything typed and creates nothing;
+  **Record outstanding balance** opens the customer debt card. Nothing received is said as such ("Nothing has been
+  received…"). A changed amount is recalculated at once and asked about again before anything is sent. Paying in full
+  hides the card and the requirements. More than the total is refused; an overpayment is never a negative debt.
+- The card needs who owes it — **a customer, by name and phone** (new, or chosen from the list with the details
+  filled in; one with no phone saved is asked for one, which is then kept on the customer; a saved number is never
+  changed from a sale), or a partner store as before — and **the days until repayment is due** (1–365, quick choices
+  7/15/30), showing the outstanding amount and the due date. **This supersedes the optional phone of 0074.**
+- **Server.** `dueInDays` is required when money is owed (`due_days_required`, `due_days_invalid`) and ignored when
+  nothing is; `sales.due_date` = the sale's business day + the days. A new customer who owes needs a valid phone
+  (`customer_phone_required`, `customer_phone_invalid`; 8–15 digits, optional +, parsed like a payer number); an
+  existing one with none takes `customerPhone`. Credit-sale permissions are unchanged: `sale.create` and a named
+  debtor.
+- **Accounting.** The debt is the sale's own receivable (`balance_due`, the customer's cached `balance`) — no loan
+  and no second transaction. The money received goes to the chosen method or account; a later payment
+  (`POST /sales/:id/payments`) reduces the same balance. A retry with the same key answers the same sale (one sale,
+  one receivable); the same key with another due date is a 409.
+- **The Owner's reminder** is the existing overdue-debt notice (`anomaly.overdue_debt`), from the **day after** the
+  due date (the owner's choice; the shared definition `dueDate < today` is unchanged), recorded once a day. No
+  WhatsApp delivery.
+- The due date shows on the sale detail (*Due on*) and in Outstanding payments (each debtor's earliest).
+
+### ⏳ AWAITING THE OWNER — D180: should `discount.apply` gate discounts on the server?
+
+The permission exists and every built-in selling role holds it, but `POST /sales` never checks it — only the cost
+floor and the approval rules constrain a discount. The app therefore shows the Discount card to every seller, as the
+old sheet did. Enforcing it would refuse discounts to a custom role without the permission; not done in this phase.
 

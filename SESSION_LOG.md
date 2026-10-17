@@ -11623,3 +11623,46 @@ repositories).
 
 **Not done.** No deploy, merge, Cloudflare change, approval, counsel review, or change to the app's or the backend's
 checks. No database touched.
+
+## 2026-10-17T02:55Z → 2026-10-17T03:45Z — CLAUDE-B (cloud) — the sale workflow: review, Confirm payment, customer debt (D178–D180)
+
+**Brief.** The owner's brief of 2026-10-17 with Pictures 1–3. Takeover protocol; backend and mobile only; no deploy.
+Owner answers: take over now; the reminder fires from the day after the due date.
+
+**Takeover.** The PC session's handoff was `IN_PROGRESS` when the task arrived and turned `READY_FOR_HANDOFF` / `NONE`
+before anything changed. Claim `7e88ca6`. Baseline backend `dc53129`, mobile `6609574`, website `0288d8a` (untouched).
+
+**Backend `1ed6b00`.** `dueInDays` (1–365, required when money is owed, ignored otherwise) → `sales.due_date` from the
+sale's business day; a customer who owes needs a valid phone (new: `customer.phone`; existing with none:
+`customerPhone`, saved; a saved number never changed); a retry with another due date is a 409; `dueDate` on the
+sale, its detail and the outstanding rows (`nextDue` per debtor). New `src/sales/customer-debt.ts` + spec (10 tests).
+No migration.
+
+**Mobile `e6773aa`.** Review sale: Return policy card (1/2/3 days, No returns, Choose duration; existing rules kept),
+Discount card (Optional, closed until tapped; total and expected profit follow), one Continue to payment. Payment
+sheet: Confirm payment, Split across methods as its own control, the combined section removed; the outstanding-
+balance question (Go back / Record outstanding balance) and the customer debt card (name, phone, days, due date).
+Due date on the sale detail and in Outstanding payments. The single-item sale's discount, previously dropped, now
+reaches the request. `ReturnPolicyControl` and the old review/complete strings removed.
+
+**Verification.**
+
+| Check | Result |
+| --- | --- |
+| Backend tsc + full jest | pass — 250 suites, 4 522 tests (24 skipped, as before) |
+| Mobile tsc / lint | pass / 0 errors, 28 warnings (cap 40) |
+| Mobile pure tests | 115 files pass |
+| Mobile jest | 32 suites, 302 tests pass (new: `sale-debt-sheet` 10, `review-sale-cards` 7) |
+| Real HTTP on a disposable MySQL (`prisma_qa_sw`, 0001→0097 from empty, ten QA boutiques + annexes) | 50 / 50: full, partial (example 49 400 + 100 owed), zero payment; refusals create nothing; new/existing customers with and without a phone; discount + split (drawer + account); overpayment refused; retry and two concurrent retries → one sale, one receivable, balance not doubled; other days → 409; repayment 40 then 60 on the same sale (retried key once); annex/other-company 404s and their outstanding windows; another company cannot charge this company's customer; reminder absent on the due day, present the day after, recorded once a day, no WhatsApp |
+| Browser (web export vs that API) | before 4 variants, after 10 (EN/FR/AR × light/dark at 393 pt; EN/AR at 320 pt; EN/AR × 1.3 text): every after-run created its sale (201, 100 owed, due 2026-10-24); no sideways scroll, Confirm payment always in view, no page/API error |
+
+**Found and fixed on the way.** The No returns chip used the lower-case sentence fragment ("no returns") → the
+Settings label. Arabic sentences showed "MRU 100" → amounts isolated LTR. The debt card fields had no accessible
+label (VoiceOver would read nothing) → labelled. A client-only `discount.apply` gate I had added was removed: the
+server never checks it, so it would have been a client-side rule — D180 asks the owner.
+
+**Not verified.** Physical iPhone: NOT DEVICE VERIFIED (docs/81 T4.7–T4.11), including the real keyboard over the
+sheet. Screenshots (126 + two contact sheets) are in the cloud session's scratch, delivered to the owner.
+
+**Database.** Disposable `prisma_qa_sw` created, used and dropped; its app grant revoked; mysqld stopped. No shared
+or live database touched. No migration required.

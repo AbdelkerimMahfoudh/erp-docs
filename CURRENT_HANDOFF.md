@@ -1,20 +1,34 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE-B (cloud session)
-started_at_utc: 2026-10-17T02:55Z
-previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (local, the owner's Windows PC), the release-gate phase,
-2026-10-17T02:30Z → 03:05Z — complete. The owner authorised this session to proceed (its handoff was still
-IN_PROGRESS when the task arrived and turned READY_FOR_HANDOFF before anything was changed). Its website work
-(`tsx-public-site` `0288d8a`) is not touched by this phase.
-active_phase: the sale workflow (the owner's brief of 2026-10-17, with Pictures 1–3): Review sale (return policy card,
-discount card, one Continue to payment), payment sheet (Confirm payment, split payment as its own control), partial
-payment → customer debt with a due date and the Owner's reminder through the existing overdue-debt notification.
-Backend and mobile only; no deploy. Expected: no migration (`Sale.dueDate` exists).
-Baseline: backend `reports-export` `dc53129`, mobile `reports-export` `6609574`, website `tsx-public-site` `0288d8a`
-(`main` `0417bfe`), docs `2a87fbf`.
-next_intended_action: backend — `dueInDays` on the sale, the due date from the confirmed business day, customer phone
-required for a customer debt; then the mobile screens, tests, screenshots.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE-B (cloud), 2026-10-17T02:55Z → 03:45Z — the sale workflow (complete).
+
+## The sale workflow (2026-10-17) — read `docs/21` D178–D180 and the session log entry
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `1ed6b00` |
+| `erp-mobile` | `reports-export` | `e6773aa` |
+| `erp-control-web` | `tsx-public-site` (not merged; `main` `0417bfe`) | `0288d8a` (untouched) |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**Migration:** none required (`sales.due_date` already existed). **Deployed:** nothing.
+
+**What changed.** Review sale: Return policy card, Discount card (Optional), one Continue to payment. Payment sheet:
+Confirm payment, Split across methods as its own control. Less than the total → "The customer still owes … Record this
+sale with an outstanding balance?" → customer debt card (name, phone, days until due). Server: `dueInDays` → due date
+from the sale's business day; a customer who owes needs a phone (supersedes 0074's optional phone); the debt is the
+sale's receivable; the Owner is reminded by the existing overdue-debt notice from the day after.
+
+**Verified.** Backend tsc + 4 522 tests; mobile tsc, lint, 115 pure files, 302 jest tests; real HTTP 50/50 on a
+disposable MySQL (dropped); browser screenshots EN/FR/AR, RTL, light/dark, 320 pt, 1.3× text.
+**Not verified:** a physical iPhone (`docs/81` T4.7–T4.11).
+
+**Awaiting the owner.** D180 — should the server enforce `discount.apply`? Plus everything the previous record lists.
+
+**Next exact action.** On the owner's iPhone: pull backend `1ed6b00` and mobile `e6773aa`, restart the API and Metro,
+and run `docs/81` T4.7–T4.11 (keyboard over the debt card included). Then the release-gate work below continues.
 
 ---
 

@@ -96,6 +96,15 @@ the device model and the build number. **Every line starts as NOT DEVICE VERIFIE
 | T4.5 | Haptics on success/error where the app uses them | felt, not overdone | NOT DEVICE VERIFIED |
 | T4.6 | Give a discount that takes a phone below its cost | refused in the seller's language ("Remove it or make it smaller."), nothing sold; selling below cost with the Owner's approved price and a reason still works (`bd43cf1`, `561c61d`, `b23badb`) | NOT DEVICE VERIFIED |
 
+### T4b — The sale workflow (2026-10-17, mobile `e6773aa`)
+| # | Check | Expected | Status |
+| --- | --- | --- | --- |
+| T4.7 | Review sale: return policy card, Discount card (Optional, opens on tap), one Continue to payment | the discount changes the total and the expected profit; the deadline preview follows the choice | NOT DEVICE VERIFIED (browser export checked) |
+| T4.8 | Payment sheet with the keyboard open: amount, debt card name / phone / days | the sheet scrolls with the keyboard and Confirm payment stays reachable | NOT DEVICE VERIFIED |
+| T4.9 | Receive 100 less than the total → Confirm payment | "The customer still owes 100 MRU…"; Go back keeps everything; Record opens the debt card | NOT DEVICE VERIFIED (browser export checked) |
+| T4.10 | Save the debt; open the sale and Outstanding payments; record a later payment | Due on shown; the later payment reduces the same balance | NOT DEVICE VERIFIED (browser export checked) |
+| T4.11 | The same in FR and AR, light and dark, largest text | no clipped text; amounts read "100 MRU" in Arabic | NOT DEVICE VERIFIED (browser export checked) |
+
 ### T5 — Roles and access states (one QA business each)
 | # | Check | Expected | Status |
 | --- | --- | --- | --- |
