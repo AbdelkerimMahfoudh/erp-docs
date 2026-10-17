@@ -1,17 +1,47 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE-B (local, the owner's Windows PC)
-started_at_utc: 2026-10-17T01:18Z
-previous_handoff: READY_FOR_HANDOFF / NONE from CLAUDE-B (cloud session), 2026-10-16T13:35Z — complete; all four trees
-clean and level with their remotes at takeover
-active_phase: publishing the existing public website at https://tsxmr.com on Cloudflare Pages (the owner's brief of
-2026-10-17). Audit and repository preparation only: no deploy, no merge, no DNS change, nothing public until the owner
-approves the verified build and the final screenshots. Mobile, scanner, refund and backend feature work stopped (none
-was in progress).
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_owner: CLAUDE-B (local, the owner's Windows PC), 2026-10-17T01:18Z → 02:05Z — tsxmr.com on Cloudflare Pages:
+audit and repository preparation (the owner's brief of 2026-10-17). Complete: all four trees clean and level with their
+remotes. Nothing deployed, merged or published; nothing changed in Cloudflare.
+active_phase: none. The publication waits on the owner (below).
 
-Baseline at this takeover: backend `reports-export` `dc53129`, mobile `reports-export` `6609574`, website
-`tsx-public-site` `8bf6f65` (`main` `0417bfe`, 78 behind), docs `master` `65bc90d`.
+## The tsxmr.com publication (2026-10-17) — read `docs/95` first
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `dc53129` (unchanged) |
+| `erp-mobile` | `reports-export` | `6609574` (unchanged) |
+| `erp-control-web` | `tsx-public-site` (**not merged**; 80 ahead of `main` `0417bfe`, 0 behind) | `fe38bbc` |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**Website `3c08c3f`, `fe38bbc`: `VITE_SITE_SURFACE=public`.**
+
+- The public pages only: no API page, no `/account` or `/admin`, and none of their code in the bundle.
+- No API base is needed.
+- "Sign in" and "Apply" go to `VITE_PORTAL_ORIGIN` once given.
+
+**CI run 38991137218, all green:**
+
+- Vitest 401 / 401; Playwright 126 / 126.
+- Links: full 3 258, public 2 733, 0 broken; bundle audits PASS; gitleaks clean.
+- The production refusal stands: 32 reasons for the public build.
+
+**Next exact action.** The owner supplies the facts of `docs/95` §5.1. Then:
+
+1. counsel settles `docs/93` §2;
+2. TSX-MR approves the six drafts;
+3. a deletion channel is configured and tested;
+4. a preview with the real values is screenshotted for the owner;
+5. on the owner's explicit approval: fast-forward `main`, create the Pages project, then the domain and the www rule
+   (`docs/95` §3–§4).
+
+The API (3010) and Metro (8082) started on the PC for the owner's phone were left running; the PC database is still at 0091.
+
+---
+
+The previous phase's record (legal pages, 2026-10-16) follows, unchanged.
 
 ## HEAD of every repository
 

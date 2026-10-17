@@ -417,3 +417,13 @@ WhatsApp pricing (rate card not shown publicly per country in the fetched pages)
   - gitleaks history and dist clean;
   - Playwright 58 / 58.
 - **`tsx-public-site` stays unmerged.** Nothing authorises the merge.
+
+## Publication at tsxmr.com (2026-10-17)
+
+The domain is `tsxmr.com` (Cloudflare Registrar), and the host is Cloudflare Pages, Git-connected. The public site
+ships alone with `VITE_SITE_SURFACE=public` (website `3c08c3f`, `fe38bbc`): no page that needs the API, and no
+business-account or console code. The business account later goes to its own origin (`VITE_PORTAL_ORIGIN`, e.g.
+`https://dukan.tsxmr.com`), and the API to `https://api.tsxmr.com`.
+
+The settings, the variables, the domain steps, the www → apex redirect and the blockers are in **`docs/95`**. Nothing is
+deployed, and `tsx-public-site` stays unmerged until the owner approves.

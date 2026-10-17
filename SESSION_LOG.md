@@ -11507,3 +11507,60 @@ Playwright suite was not run here; no automated contrast tool.
 
 **Next.** The owner answers docs/93 (facts, legal blockers, O-A7). The first engineering step after that is whichever
 of O-A7 (b) email deletion codes, L-2 EXIF stripping, L-3 local cleanup after deletion the owner approves.
+
+## 2026-10-17T01:18Z → 2026-10-17T02:05Z — CLAUDE-B (local, the owner's Windows PC) — tsxmr.com on Cloudflare Pages: audit and preparation (`docs/95`)
+
+**Brief.** The owner's brief of 2026-10-17: publish the public website at `https://tsxmr.com` (registered with
+Cloudflare Registrar) through Cloudflare Pages Git deployment. Mobile, scanner, refund and backend work stops.
+
+**Takeover.**
+
+- **From:** `READY_FOR_HANDOFF` / `NONE` (the cloud session's legal-pages phase, complete).
+- **State found:** all four trees clean; the local clones were fast-forwarded.
+- **Baseline:** backend `dc53129`, mobile `6609574`, website `tsx-public-site` `8bf6f65` (`main` `0417bfe`), docs
+  `65bc90d`.
+- **Claim:** `ece6501`, plus `d4d8418`, which fixed the claim's baseline line after the shell ate its identifiers.
+- No feature work was in progress, so nothing needed a checkpoint.
+
+**Finding.** The site could not ship apart from the API and the admin portal:
+
+- `/apply`, `/login`, `/application-status` and the Dukan ERP prices call the API;
+- `/account` and `/admin` were in the same bundle on the same origin.
+
+**Website `3c08c3f`, `fe38bbc`: `VITE_SITE_SURFACE=public`** (the default `full` is unchanged).
+
+- No API page, no protected area, and no line of their code in the bundle (build alias, checked by
+  `audit-bundle --public`).
+- No API base asked for; the CSP has no API origin.
+- "Sign in" and "Apply" link to `VITE_PORTAL_ORIGIN` once given.
+- The Dukan ERP page has no prices and says to ask (EN/FR/AR).
+- Every other refusal stands.
+- `.node-version` pins 22.
+- New tests: `site-surface`, `site-surface-render`.
+- New CI step: the public build's refusal, preview, links and bundle.
+
+**One failure, recorded.** The first CI run (`3c08c3f`) failed on my own render test: its pattern `/\/account/` also
+matched the public `/account-deletion` link. I fixed the pattern (`fe38bbc`) and reran.
+
+**CI run 38991137218 on `fe38bbc`, all green:**
+
+- Vitest 401 / 401; Playwright 126 / 126.
+- Links: full 3 258, public 2 733, 0 broken; bundle audits PASS; gitleaks clean.
+- Production refusal: full 33 reasons, public 32 (none for the API).
+
+**Docs.** `docs/95`: the audit answers, the Pages settings, the variables, the custom domain and the www rule, and the
+blockers classified. It also records the "on this website" wording and that `tsx-public-site` is 80 commits ahead of
+`main` and 0 behind.
+
+**Not done.**
+
+- Nothing deployed, merged or published; no Cloudflare project, DNS or rule; nothing bought.
+- No database touched.
+- The API on 3010 and Metro on 8082, started earlier for the owner's phone, were left running.
+
+**Waiting for.**
+
+- The owner's facts (`docs/95` §5.1).
+- Then counsel's decisions and TSX-MR's approval of the six drafts.
+- A tested deletion channel.
+- The owner's approval of the merge and the deployment.
