@@ -1,22 +1,44 @@
 # CURRENT_HANDOFF
 
-Two phases ran in parallel on 2026-10-17, authorised by the owner, in repositories that do not overlap. Each has its
-own status:
-
-| Phase | Repositories | Status | Owner |
-| --- | --- | --- | --- |
-| Website production preparation (cloud session) | `erp-control-web` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
-| Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
-
 Status: READY_FOR_HANDOFF
 Owner: NONE
 
-Both phases are complete; every repository is clean and level with its remote. Nothing is held.
+**The public website is LIVE at https://tsxmr.com (2026-10-17).** Every repository is clean and level with its remote.
 
-Backend phase: previous_owner CLAUDE (local session), 2026-10-17T04:23Z → 2026-10-17T05:50Z, complete.
+Website deployment phase: previous_owner CLAUDE (cloud session), 2026-10-17T06:00Z → 2026-10-17T07:15Z, complete.
+Backend phase (Brevo SMTP + WhatsApp): previous_owner CLAUDE (local session), complete earlier the same day; untouched here.
 
-Website phase: previous_owner CLAUDE (cloud session), 2026-10-17T04:56Z → 2026-10-17T06:00Z, complete (claim
-`d92de38`).
+## The tsxmr.com production deployment (2026-10-17, CLAUDE, cloud) — the website is LIVE
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` (the Cloudflare Pages production branch; `main` `0417bfe`, not moved) | `6016b8a` (this phase: `8cb3ff2` approval, `6016b8a` tests) |
+| `erp-backend` | `reports-export` | `d0a7495` (untouched) |
+| `erp-mobile` | `reports-export` | `e6773aa` (untouched) |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**What happened.**
+
+- The owner explicitly approved the six pre-launch texts of `docs/97` v0.3 as they are (in chat, 2026-10-17), confirmed the §3 commitments, and confirmed contact@, support@, privacy@ and security@tsxmr.com are live and read.
+- `8cb3ff2`: each document `status: 'approved'`, `version: '1.0'` (EN/FR/AR), exactly as `docs/97` §1 instructs. `6016b8a`: the three prelaunch-gate test expectations follow. Committed through the GitHub web UI (the cloud session has no push credential); both files byte-identical (SHA-256) to the locally verified tree. CI on `6016b8a` green (evidence `11929c9` on `ci-evidence`).
+- Cloudflare Pages project **`tsxmr-public`** created (none existed): repository `AbdelkerimMahfoudh/erp-control-web`, production branch `tsx-public-site`, build `npm ci && npm run build:public-release`, output `dist`, `SKIP_DEPENDENCY_INSTALL=1`, `NODE_VERSION=22`, preview deployments **None**. Production variables per `docs/96` §6: `VITE_SITE_SURFACE=public`, `VITE_PUBLIC_SITE_ORIGIN=https://tsxmr.com`, `VITE_ORGANIZATION_PHONE` (the two public numbers), `VITE_LEGAL_EFFECTIVE_DATE=2026-10-17` (the deployment day). No secret of any kind is in the frontend environment.
+- First production deployment `b4737b88-3cc8-473f-9957-7374ce768e8f` built and passed; smoke-tested on `tsxmr-public.pages.dev`; then `tsxmr.com` and `www.tsxmr.com` attached (both Active, TLS issued), the zone redirect rule "www to apex (tsxmr.com)" deployed exactly as `docs/95` §4 (http.host eq "www.tsxmr.com" → concat("https://tsxmr.com", path), 301, preserve query string), and Always Use HTTPS turned on. HSTS stays from `_headers` only; no preload, no zone HSTS.
+- DNS: only the two proxied CNAMEs (`tsxmr.com` and `www` → `tsxmr-public.pages.dev`) were added, by Pages itself. The email records are untouched: the 3 Cloudflare Email Routing MX, the CF DKIM TXT, DMARC, the 2 Brevo DKIM CNAMEs, the brevo-code TXT, and exactly one SPF at the root. Email Routing stays enabled with its 15 address rules; the catch-all stays disabled.
+- **Cloudflare's free-zone RUM beacon was found auto-injected** into navigation responses (static.cloudflareinsights.com) — contradicting the published privacy text. RUM was **disabled completely** for the zone (Speed → Real user monitoring) and the beacon verified gone. No analytics run on the site.
+
+**Verified in production (https://tsxmr.com).** Every public, legal and `/in-app/` page answers 200 in EN, FR and AR; `/account`, `/admin`, `/apply`, `/login`, `/application-status`, `/app-shell.html` and unknown paths answer 404. http→https; www (http and https) → apex 301 with path and query preserved; no loop. Headers: the repository CSP (connect-src 'self'), HSTS max-age≈1y without preload, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy. robots.txt, sitemap.xml (36 URLs, all https://tsxmr.com, no in-app or portal page), security.txt, canonical and hreflang correct; OG image, icons, manifest and JSON-LD present; Arabic is genuinely RTL; the language choice survives navigation; keyboard focus is visible; no console error; no request to any other origin after the RUM fix. The deployed JS and CSS are **byte-identical (SHA-256)** to the locally audited production build, so its audits apply to what is deployed: vitest 440/440, `npm ci && npm run build:public-release` PASS (57 pages, 2 709 links, 0 broken, bundle audit `--public` PASS, 0 test values), Playwright public 82/82 against that dist, `release-verdicts --require public` **PUBLIC_WEBSITE GO**. PORTAL NO-GO (25) and APP_STORE NO-GO (21) are unchanged and stay closed.
+
+**Stable URLs for Apple and Meta:** https://tsxmr.com/privacy · https://tsxmr.com/terms · https://tsxmr.com/account-deletion · https://tsxmr.com/privacy-choices · https://tsxmr.com/legal · https://tsxmr.com/security · https://tsxmr.com/support (each with /fr and /ar variants, and /in-app/… variants for the app).
+
+**Rollback.** Cloudflare Pages → tsxmr-public → Deployments → promote a previous deployment (instant); or detach the custom domains (this is the first deployment, `b4737b88` is the known-good). A text correction is a new commit on `tsx-public-site` and an automatic redeploy; the effective date and version change with it. No database or backend is involved.
+
+**Not done, by the brief.** No backend, portal, app, SMTP, WhatsApp, migration, analytics (RUM was switched OFF, not on), purchase, nameserver or email-routing change. `main` was not fast-forwarded: the cloud session cannot push, so the Pages production branch is `tsx-public-site`, the documented alternative (`docs/95` §3); only that branch deploys. **The Brevo SMTP key once shared in chat still needs rotation before any SMTP production use.**
+
+**Next exact action.** (a) Optional: fast-forward `main` to `tsx-public-site` from the owner's PC and, if preferred, switch the Pages production branch to `main`. (b) Hand Meta / App Store Connect the stable URLs above — they answer 200 without authentication. (c) Rotate the Brevo SMTP key. (d) The open owner-or-counsel items stand: `docs/97` §4, `operator_registration`, D180, and the sale-workflow iPhone check.
+
+---
+
+The previous records follow, unchanged.
 
 ## Website production preparation (2026-10-17) — read `docs/96` §3, §8–§11, then `docs/97`
 

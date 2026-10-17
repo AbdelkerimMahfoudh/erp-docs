@@ -11852,3 +11852,50 @@ database touched. **Deployed:** nothing. **Live switches:** none. **Messages sen
 
 **Docs.** `docs/98` (deployment guide), `docs/21` D181 (approved, implemented, awaiting the owner), this entry, the
 handoff.
+
+---
+
+## 2026-10-17 — The tsxmr.com production deployment (CLAUDE, cloud session)
+
+**Scope:** publish the public website only, per the owner's deployment brief of 2026-10-17. Nothing else deployed.
+
+1. **Audit before anything.** Read the rulebook, CURRENT_HANDOFF, docs/74, 77, 78, 85, 93–98, the website README,
+   .env.example, schema.ts and the CI workflow. erp-control-web cloned fresh in the cloud container: tsx-public-site
+   at b5c0328, clean, pushed, 87 ahead of main 0417bfe (0 behind) — exactly as the handoff records. Full gate run on
+   the pristine tree: vitest 440/440; both production refusals exactly as designed (PORTAL, and PUBLIC_WEBSITE with
+   7 reasons: the date + the 6 approvals); preview builds, link audits (0 broken), bundle audits PASS; npm audit 0.
+2. **The owner's decisions (in chat).** The six docs/97 v0.3 texts approved as they are, the §3 commitments
+   confirmed, the four public mailboxes confirmed live and read. Effective date = the deployment day, 2026-10-17.
+3. **The approval commits.** In a scratch worktree: status 'approved' / version '1.0' ×18 (6 docs × EN/FR/AR) in
+   legal-prelaunch.ts; the three prelaunch-gate test expectations updated. Verified there: vitest 440/440, typecheck,
+   npm ci && npm run build:public-release with the docs/96 §6 values **PASS** (57 pages; 2 709 links, 0 broken;
+   bundle audit --public PASS; 0 test values), Playwright public 82/82 on the production dist,
+   release-verdicts --require public → **PUBLIC_WEBSITE GO**. The cloud session has no push credential, so both
+   files went up through the GitHub web upload (byte-identical, SHA-256-checked): 8cb3ff2 then 6016b8a on
+   tsx-public-site. CI on 6016b8a green; evidence 11929c9 on ci-evidence.
+4. **DNS inventory before touching anything** (masked): 9 records, all email — 3 CF Email Routing MX, CF DKIM TXT,
+   DMARC, 2 Brevo DKIM CNAMEs, brevo-code TXT, exactly one SPF. Email Routing ready, 15 rules, catch-all disabled
+   (drop). No apex/www record, no existing Pages project.
+5. **Cloudflare Pages.** Project tsxmr-public: Git-connected to AbdelkerimMahfoudh/erp-control-web only (GitHub App
+   installed for that single repository), production branch tsx-public-site, build npm ci && npm run
+   build:public-release, output dist, SKIP_DEPENDENCY_INSTALL=1, NODE_VERSION=22, preview deployments None,
+   production variables per docs/96 §6 with VITE_LEGAL_EFFECTIVE_DATE=2026-10-17. First deployment
+   b4737b88-3cc8-473f-9957-7374ce768e8f: built, passed its own gates, live on tsxmr-public.pages.dev.
+6. **Smoke test on the pages.dev preview:** 35-route status matrix as designed; headers (CSP connect-src 'self',
+   HSTS no-preload, XFO DENY, nosniff, referrer, permissions policy); robots/sitemap/security.txt; deployed
+   JS/CSS/theme-boot **byte-identical (SHA-256) to the audited local build**; EN/FR/AR render, AR RTL; legal pages
+   "Version 1.0 · Effective 17 Oct 2026"; 4 mailto + 2 tel links; operator sentence and address; no console error.
+7. **Domains.** tsxmr.com then www.tsxmr.com attached (Pages created the two proxied CNAMEs; nothing else changed in
+   DNS); redirect rule "www to apex (tsxmr.com)" exactly per docs/95 §4; Always Use HTTPS on; both domains Active
+   with certificates. Verified live: http→https; www→apex 301 preserving path+query; all 200/404s as designed;
+   language choice survives navigation; keyboard focus visible.
+8. **Found and fixed:** Cloudflare's free-zone RUM beacon (static.cloudflareinsights.com) was being auto-injected
+   into navigation responses — against the published privacy text and the no-analytics decision. RUM disabled
+   completely for the zone; verified gone. No other analytics, no cookies of the site's own.
+9. **Verdicts after deployment:** PUBLIC_WEBSITE **GO and live**. PORTAL NO-GO (25) and APP_STORE NO-GO (21)
+   unchanged — nothing of the portal, API, SMTP, WhatsApp or app was deployed or enabled.
+10. **Still open:** rotate the Brevo SMTP key before SMTP production use; docs/97 §4 counsel questions;
+    operator_registration; D180; the sale-workflow iPhone check; optionally fast-forward main from the owner's PC.
+
+Repository heads after this session: erp-control-web tsx-public-site 6016b8a (main 0417bfe untouched);
+erp-backend reports-export d0a7495 and erp-mobile reports-export e6773aa untouched; erp-docs master = this commit.
