@@ -10,8 +10,8 @@ active_phase: publishing the existing public website at https://tsxmr.com on Clo
 approves the verified build and the final screenshots. Mobile, scanner, refund and backend feature work stopped (none
 was in progress).
 
-Baseline at this takeover: backend  , mobile  , website
-  ( , 78 behind), docs  .
+Baseline at this takeover: backend `reports-export` `dc53129`, mobile `reports-export` `6609574`, website
+`tsx-public-site` `8bf6f65` (`main` `0417bfe`, 78 behind), docs `master` `65bc90d`.
 
 ## HEAD of every repository
 
