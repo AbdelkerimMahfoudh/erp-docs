@@ -751,3 +751,20 @@ Version 0.3 (مسودة ما قبل الإطلاق) · status **draft**
 
 </div>
 
+
+## Version 1.1 of privacy, terms and legal notice (2026-10-17, fourth brief; D196)
+
+Editorial only. No commitment changes: privacy, deletion, retention and liability are unchanged.
+
+- **`{operatorStatus}`** ends with a defined reference: "(“the operator”)", "(ci-après « l'exploitant »)" or
+  "ويُشار إليه فيما يلي بـ«المشغّل»".
+- **Privacy, "Who is responsible":** "…and the operator is responsible for the personal information it processes" (the
+  name is given once, in the sentence before it).
+- **Terms and legal notice, intellectual property:** "belong to the operator".
+- **Legal notice:**
+  - the "Policies" section is removed; the page's related-pages group lists every policy;
+  - the person responsible for publication stays named.
+- **The portal's draft texts** follow the same references.
+
+**Open question for counsel (D198):** whether a named publication director is required for a Mauritanian website
+published by an individual.

@@ -1,23 +1,72 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T23:13Z
-takeover: authorised by the owner's brief "update the TSX-MR website's positioning and fix the navigation defects"
-(2026-10-17). The previous phase (the 404 page in production, CLAUDE cloud) ended READY_FOR_HANDOFF; its handoff is
-complete.
-baseline (verified local = remote, all clean): web `tsx-public-site` 397ec6b (production, Pages 8a828f1b) ·
-`site-redesign` 397ec6b · `ops/verify-production` bff3143 · `main` 0417bfe · backend d3c11a8 · mobile e6773aa ·
-docs a3e6cb7.
-active_phase: on a new non-production branch `site-positioning` (from 397ec6b):
-1. reposition TSX-MR as an independent development brand (websites, mobile apps, business tools), with Dukan ERP as
-   its first own product, in EN/FR/AR;
-2. reduce repeated mentions of the operator's name, keeping legal identification where it is needed;
-3. fix the language selector's spacing;
-4. remove duplicated quick-link groups;
-5. fix destination scroll and focus.
-Not touched: production promotion, backend, mobile, hosting, DNS, Cloudflare settings, email, contact values.
-next_action: audit content, navigation and scroll handling.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), started 2026-10-17T23:13Z (claim `7eefc09`), complete.
+
+## Website repositioning and navigation fixes (2026-10-17, CLAUDE, cloud) — ready for the owner's visual approval
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-control-web` | `site-positioning` (non-production) | `a3c2a4b` | **new**: the repositioning and fixes, one commit on `397ec6b`; CI green (run 39080501681) |
+| `erp-control-web` | `tsx-public-site` (production) | `397ec6b` | **untouched**; Pages `8a828f1b` still serves tsxmr.com |
+| `erp-control-web` | `site-redesign` | `397ec6b` | untouched |
+| `erp-control-web` | `ops/verify-production` | `bff3143` | untouched |
+| `erp-control-web` | `main` | `0417bfe` | untouched |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `7eefc09`; D195–D198, `docs/74`, `docs/97`, session log |
+
+All working trees are clean and level with their remotes. The website checkout is on `site-positioning`.
+
+**What changed** (D195–D198; `docs/74` "Repositioning and navigation"):
+
+- TSX-MR is presented as an independent development brand. The home page is the brand; there is a new Services page;
+  Dukan ERP is the one own product, and its detail sits on its own page.
+- The operator's name was removed from the footer, the marketing pages and the structured data. Each legal text names the
+  operator once and then says "the operator"; the legal notice keeps the person responsible for publication. Privacy,
+  terms and legal notice are now v1.1.
+- Pages open at their top with focus on the heading. Sections, Back and Forward work.
+- The language control has equal segments, and each page has one related-pages group.
+
+**Verification (local, production build):**
+
+- vitest 489/489;
+- public Playwright 148/148;
+- full-surface Playwright 130/130;
+- links and bundle PASS; PUBLIC_WEBSITE GO.
+
+**Not verified live:** the Cloudflare preview; the container cannot reach `*.pages.dev`.
+
+**Risks:**
+
+- The legal v1.1 texts carry the effective date set in Cloudflare (`VITE_LEGAL_EFFECTIVE_DATE`). It must be set to the
+  promotion day at promotion.
+- The `/services` page is new, so production verification must include it.
+
+**Next exact action:**
+
+1. The owner reviews the screenshots and, if preview builds are on, `https://site-positioning.tsxmr-public.pages.dev`.
+   Otherwise they build locally:
+   `VITE_SITE_SURFACE=public VITE_PUBLIC_SITE_ORIGIN=https://tsxmr.com VITE_ORGANIZATION_PHONE="+222 36 96 38 39, +222 37 67 68 27" npm run build:public-release && node scripts/serve-dist.mjs`
+2. On approval:
+   - fast-forward `tsx-public-site` to `a3c2a4b`;
+   - set `VITE_LEGAL_EFFECTIVE_DATE` to that day;
+   - verify tsxmr.com with `verify-production`, adding `/services` to its page list;
+   - rollback target: `8a828f1b`.
+3. Then the next phase: hosting and backend deployment.
+
+**Owner actions still open** (D198):
+
+- Blemhader attribution permission;
+- counsel on the publication director (optional);
+- the terms' "Information on this website" scope;
+- Email Address Obfuscation off;
+- preview deployments set to None.
+
+---
+
+The previous records follow, unchanged.
 
 ## The custom 404 page in production (2026-10-17, CLAUDE, cloud)
 

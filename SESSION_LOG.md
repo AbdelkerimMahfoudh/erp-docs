@@ -12134,3 +12134,34 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   Address Obfuscation checks, every difference decoding back to the build.
 
 **Not touched:** Cloudflare settings, DNS, email, backend, mobile, legal text.
+
+## 2026-10-17 — Website repositioning and navigation fixes (CLAUDE, cloud)
+
+- **Brief:** reposition TSX-MR (development brand; Dukan ERP as its first own product), reduce the operator's name, and
+  fix the language selector, the duplicate quick links and destination scroll/focus. Non-production branch only.
+- **Takeover:** the handoff was READY_FOR_HANDOFF (owner NONE) and every HEAD matched it. Claimed at `7eefc09`,
+  2026-10-17T23:13Z.
+- **Reproduced** on the production build before changing anything:
+  - a footer link from the bottom of `/privacy` opened `/about` at its bottom;
+  - selector segments 40.1/40.0/40.4 px wide and 34 px tall;
+  - menu focus returned to the button;
+  - "Policies" followed by "Related pages" on the legal notice.
+- **Website** `erp-control-web` `site-positioning` `a3c2a4b` (pushed; CI run 39080501681 green):
+  - brand home page and a new Services page;
+  - ERP detail moved to the Dukan ERP page; About, Products, Contact, footer and metadata brand-first;
+  - the name removed from marketing, footer and structured data;
+  - legal v1.1 with "the operator" as a defined reference;
+  - `RouteScroll`; menu focus; one language control; one related-pages group.
+- **Gates:**
+  - typecheck; vitest 489/489;
+  - build:public-release (links and bundle PASS, PUBLIC_WEBSITE GO; PORTAL NO-GO unchanged);
+  - public Playwright 148/148 and full-surface 130/130.
+  - The new navigation tests ran 3 times and were stable.
+- **Two test-side issues found and fixed** while writing the new navigation tests:
+  - Playwright's click scrolls a link before clicking it, so the tests click through the DOM;
+  - the URL changes about 20 ms before the new page commits, so the tests poll.
+- **Not done:**
+  - no production promotion, no Cloudflare/DNS/email/contact changes, no backend or mobile changes;
+  - the Cloudflare preview could not be reached from the container (proxy 403), so preview evidence is the local
+    production build plus screenshots.
+- **Docs:** D195–D198; `docs/74` section; `docs/97` v1.1 section; handoff.

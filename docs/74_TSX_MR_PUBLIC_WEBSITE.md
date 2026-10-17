@@ -649,3 +649,62 @@ noindex and linked from nowhere.
 - The verifier's page check now skips every `404.html` (`bff3143`). It had asked the localized not-found files for a
   canonical, which they deliberately lack.
 
+
+## Repositioning and navigation (2026-10-17, fourth brief)
+
+Branch `site-positioning` `a3c2a4b`, from production `397ec6b`; production is unchanged. Decisions: D195–D198.
+
+**Pages**
+
+- **Home:** the brand hero, three services, the featured own product, the process and the closing call to action.
+  - Content: `src/content/brand.ts`.
+  - Hero drawing: `components/public/brand.tsx` — a website, a phone and a dashboard, with no text or figures.
+- **Services** (`/services`): the three services with what each covers, what to prepare, and the own product set apart.
+- **Dukan ERP:** now also carries the overview that was on the home page (`src/content/dukan-overview.ts`, formerly
+  `home.ts`).
+- **About, Products and Contact:** brand-first. Who operates the site is left to the legal notice. Contact shows the
+  correspondence address and the shared related-pages group.
+- **Footer:** the brand in one line, without the name; the TSX-MR column gains Services.
+
+**Head**
+
+- Home title: "TSX-MR — Websites, mobile apps and business software" (FR and AR equivalents).
+- The Services page has its own title and description.
+- JSON-LD: Organization on every page; `WebSite` with a `Person` publisher on the legal notice only.
+
+**Navigation**
+
+- `components/RouteScroll.tsx`, rendered once in `App`. It keeps positions per history entry in memory, sets
+  `history.scrollRestoration` to manual while the site is open, and hands it back on `pagehide`.
+- Table-of-contents links go through the router.
+- `LegalLinks` renders the current page as text; `RelatedPages` is the one group.
+- The language control is one CSS rule set (`public.css` `.languages`).
+
+**Root causes found by reproduction** on the production build, before any change:
+
+- From the bottom of `/privacy`, a footer link opened `/about` at `scrollY` = its maximum (1458 at 1280 px, 2530 at
+  375 px), with focus left on the footer link.
+- The language segments were 40.1/40.0/40.4 px wide and 34 px tall:
+  - in the header they were content-sized flex items;
+  - in the menu, equal grid cells held content-sized links pinned to the start of each cell;
+  - `letter-spacing` added a trailing gap.
+- The phone menu refocused its button after every choice.
+- The legal notice showed "Policies" and then "Related pages", both lists of the same pages.
+
+**Verification (local, production build, `scripts/serve-dist.mjs`):**
+
+- typecheck; vitest 489/489;
+- `build:public-release`: links and bundle PASS; PUBLIC_WEBSITE GO;
+- public Playwright 148/148, including the new checks:
+  - from the bottom of long pages at 375 and 1280 px, footer and quick links land at the top with the heading below
+    the header and focused; Back returns to the exact position and Forward to the top;
+  - section links and Back;
+  - a language switched from the bottom;
+  - menu focus;
+  - a new tab, and no JavaScript;
+  - selector geometry for every instance and all three selected states;
+  - one related-pages group on all eight pages;
+  - no overflow at 320/375 px in light and dark;
+- full-surface Playwright 130/130.
+
+Not verified live: the Cloudflare preview could not be reached from the build container.

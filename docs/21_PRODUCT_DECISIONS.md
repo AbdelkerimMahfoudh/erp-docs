@@ -7963,3 +7963,86 @@ The owner's brief of 2026-10-17. Website `erp-control-web` `site-redesign` `397e
 **D194 — promoted (2026-10-17).** The owner approved the page's appearance. It is in production: `tsx-public-site`
 `397ec6b`, Cloudflare deployment `8a828f1b`, verified on https://tsxmr.com (`docs/74`).
 
+
+
+## The website repositioned as TSX-MR, and its navigation fixed (2026-10-17, CLAUDE, cloud)
+
+The owner's brief of 2026-10-17 (fourth). Website `erp-control-web` `site-positioning` `a3c2a4b`, a non-production
+branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation".
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (branch, awaiting visual approval) — D195: TSX-MR is a development brand; Dukan ERP is its first own product
+
+- **Who TSX-MR is.** An independent Mauritanian development brand, not a registered company, managed by a Mauritanian
+  developer. Marketing wording: "An independent development brand managed by a Mauritanian developer."
+- **What the site sells.** Client work: websites, mobile applications and business tools.
+- **The home page.** It introduces the brand:
+  - "Discuss your project";
+  - three service cards;
+  - Dukan ERP as TSX-MR's own product, featured and linked;
+  - a four-step process;
+  - a final invitation.
+  The ERP detail (proofs, what it replaces, six parts, screens, languages, trust) moves to the Dukan ERP page.
+- **New page: Services** (`/services`, `/fr/services`, `/ar/services`).
+- **Navigation.** Services · Products · About · Support · Contact.
+- **Products** shows the one own product honestly, says it is not yet open, and points to the services for client work.
+- **Never stated:** a team, a client, a number, a qualification, an award, a completed project or a guarantee. No future
+  products are invented, and Dukan ERP is never called available.
+- **Blemhader.com.** It was developed for a client and is not owned. Its logo, screenshots, testimonial or a named case
+  study are published only once its owner's public-attribution permission is confirmed. **Future opportunity (owner
+  action):** obtain that permission in writing. There is no placeholder on the site.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (branch) — D196: the operator's name only where a legal text needs it
+
+- **Marketing.** The footer, About, Contact, Products, Services, the home page and their structured data no longer name
+  the person.
+- **Legal texts.** Each names the operator once, in its own `{operatorStatus}` sentence. The sentence now defines a short
+  reference ("the operator" / « l'exploitant » / «المشغّل»), which the rest of the text uses. Each document stays
+  understandable on its own.
+- **Kept:**
+  - the operator's identification in the privacy policy ("who is responsible");
+  - the identification in the terms ("who publishes");
+  - the identification in the legal notice ("publisher");
+  - the person responsible for publication, on the legal notice.
+  - Why the last one stays: whether Mauritanian law requires a named publication director is not established, so the
+    identification stays. This follows the brief: "if uncertain, retain the identification and explain".
+- **Replaced by "the operator":** the ownership of the site's texts and software (IP) and the responsibility for
+  personal information.
+- **Removed:** the "Operated by" and "Responsible for publication" rows of the details block (they repeated the
+  sentence).
+- **Structured data:** a `Person` publisher only on the legal notice.
+- **Versions.** The public privacy policy, terms and legal notice become **1.1**: editorial changes only, every privacy,
+  deletion, retention and liability commitment unchanged. TSX-MR is never described as incorporated.
+- **Owner action at promotion:** set `VITE_LEGAL_EFFECTIVE_DATE` to the promotion day (Cloudflare Pages environment).
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (branch) — D197: one quick-link group per page; every new page starts at its top
+
+- **One group.** A legal page, Support and Contact carry one "Related pages" group at their end. The page the reader is
+  on is shown as plain text marked current, never as a link to itself; the set never loses a policy.
+  - The legal notice's own "Policies" list, which repeated that group, is removed.
+  - The pages the app opens list the legal pages once, in their footer.
+- **Scroll and focus (`RouteScroll`).** The cause: the router swaps pages without a reload, so the previous scroll
+  position carried over, and footer links opened their destination near its bottom.
+  - A new page (a link, a menu choice or a **language switch**) opens at its top, with focus on its heading.
+  - **Language-switch policy:** the page in the other language starts at its top. The two languages' pages differ in
+    length, so the old position would be meaningless.
+  - A section link lands below the sticky header, with focus on the section.
+  - Back and Forward return to where the reader was.
+  - What it never uses: delays, repeated scrolling or smooth scrolling. Every link stays a real link (new tab, no
+    script).
+  - The phone menu no longer takes focus back after a navigation.
+- **The language control.** The same component everywhere, with:
+  - three equal segments, each a 44 px target;
+  - the same 4 px inset at both ends and between segments;
+  - centred codes, with no letter-spacing;
+  - the same filled background whichever language is current;
+  - accessible names that give the code and the language ("EN, English").
+
+### 🗂 RECORDED — D198: what remains the owner's
+
+1. Approve the branch's appearance (screenshots, preview) before any promotion.
+2. Set `VITE_LEGAL_EFFECTIVE_DATE` at promotion.
+3. Blemhader attribution permission (D195).
+4. Optional: counsel to confirm whether a named publication director is required (D196). Until then it stays.
+5. The terms' "Information on this website" section speaks only of Dukan ERP's descriptions. Decide whether it should
+   also cover the services' descriptions (a legal wording change, not made here).
+6. Still open from before: Email Address Obfuscation off, and preview deployments set to None (`docs/95`).
