@@ -7833,3 +7833,26 @@ The owner's brief "Final Legal, Identity, Portal and Website Production Preparat
 - **Not enabled:** paid subscriptions, payment collection and the portal itself. No payment provider exists
   (`providers/payment.ts`).
 - The backend assumes no company ("developed and operated by TSX-MR") and was not changed.
+
+## The six pre-launch legal texts, and the public website's publication (2026-10-17, CLAUDE, cloud)
+
+The owner's deployment brief of 2026-10-17. Website `erp-control-web` `tsx-public-site` `6016b8a`; live at
+https://tsxmr.com. Detail: the handoff's deployment record and the session log.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D186: the six pre-launch texts are approved at version 1.0
+
+- The owner approved the six `docs/97` v0.3 texts **as they are** (privacy, terms of use, account deletion,
+  privacy choices, legal notice, security — EN/FR/AR), and confirmed the five §3 commitments.
+- Implemented exactly as `docs/97` §1 instructs: each `status: 'approved'`, `version: '1.0'` (`8cb3ff2`;
+  tests `6016b8a`). The effective date is the deployment day, 2026-10-17, set only in Cloudflare
+  (`VITE_LEGAL_EFFECTIVE_DATE`). Counsel review stays recommended (`docs/97` §4) and remains open.
+- The four public mailboxes (contact@, support@, privacy@, security@tsxmr.com) confirmed live and read.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D187: tsxmr.com is published on Cloudflare Pages
+
+- Project `tsxmr-public`, production branch `tsx-public-site` (the documented `docs/95` §3 alternative;
+  `main` not moved — the cloud session cannot push), build `npm ci && npm run build:public-release`,
+  the `docs/96` §6 variables, preview deployments off; domains `tsxmr.com` + `www` (301 → apex, query kept),
+  Always Use HTTPS on; email DNS untouched (one SPF at the root; catch-all disabled).
+- **Cloudflare's free-zone RUM beacon was auto-injected and has been disabled completely** — the site runs no
+  analytics, as the privacy text says. PUBLIC_WEBSITE GO; PORTAL and APP_STORE stay NO-GO, nothing of them enabled.
