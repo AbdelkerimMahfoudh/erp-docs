@@ -7725,3 +7725,37 @@ binding corrections. Recorded before implementation. From this phase on, session
 10. **Scope and deployment.** Migration `0098` is verified on a disposable database only; `0092–0098` are not applied
     to the PC or live database in this phase. No real email or WhatsApp message in automated tests; no deployment, no
     live switch.
+
+## The public website's operator identity (2026-10-17, CLAUDE, cloud)
+
+The owner's brief of 2026-10-17 (third). Website `erp-control-web` `tsx-public-site` `0516a9c` (not merged). Nothing
+deployed. Detail: `docs/96` §3, §6 and §7. The texts for approval: `docs/97`.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D182: TSX-MR is an unincorporated trading name operated by an individual
+
+- **TSX-MR** is the trading and project name. It is operated by **Abdel Kerim Taleb Ould Sidi**, a natural person,
+  who is also the person responsible for publication.
+- It is not incorporated: there is **no legal form and no RCCM**. Nouakchott, Mauritania.
+- **Dukan ERP** is a product operated under the TSX-MR name.
+- **`VITE_OPERATOR_TYPE`** (`individual` by default, or `company`):
+  - an individual operator **does not need** a legal form or RCCM for the PUBLIC_WEBSITE gate, and the gate
+    **refuses** one if it is given;
+  - only `company` requires them;
+  - an unknown value fails closed.
+- **The PORTAL gate is unchanged.** It still requires a legal form and an RCCM. Whether the portal may launch under
+  an individual operator is **an open owner decision**.
+- Every text says it in one sentence per language (EN/FR/AR), with no gendered wording. Nothing is published beyond
+  the name, the city and the public contacts: no identity document, no private number.
+- **Settles** the `docs/96` §2 recommendation for the website: the legal notice names the person responsible for
+  publication. The service's `publisher` legal blocker (PORTAL) stays with counsel.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D183: public contacts
+
+- **Emails:**
+  - `contact@tsxmr.com` for general enquiries (new `VITE_CONTACT_EMAIL`);
+  - `support@`, `privacy@` and `security@tsxmr.com`.
+- **Public business numbers:** +222 36 96 38 39 and +222 37 67 68 27.
+  - They are **temporary**, so they are only ever configured, in `VITE_ORGANIZATION_PHONE` (comma-separated), and
+    **never hardcoded**.
+  - **Neither is labelled WhatsApp** until TSX-MR confirms which one is.
+- The correspondence address stays blank until TSX-MR gives it. The production build refuses until then.

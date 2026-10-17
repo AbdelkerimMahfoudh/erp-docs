@@ -187,3 +187,14 @@ The public build is now the **pre-launch** website, with its own gate (PUBLIC_WE
 - **Cloudflare build command:** `npm ci && npm run build:public-release`.
 - **The origin:** must be `https://tsxmr.com` exactly.
 - **`VITE_PORTAL_ORIGIN` must stay unset:** the gate refuses it.
+
+## Superseded in part by `docs/96` §6 (2026-10-17, CLAUDE, `0516a9c`)
+
+TSX-MR is operated by an individual (D182), so the §5.1 "legal form, registration number" and "registered address"
+no longer apply to the public website. What remains for PUBLIC_WEBSITE is:
+
+- the correspondence address;
+- the effective date;
+- the approval of the six texts (`docs/97`).
+
+The Cloudflare variables are in `docs/96` §6. The phones go in `VITE_ORGANIZATION_PHONE`.

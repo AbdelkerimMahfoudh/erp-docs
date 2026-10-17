@@ -1,17 +1,68 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session; the owner asked for a single `CLAUDE` identity from now on — no CLAUDE-A / CLAUDE-B)
-started_at_utc: 2026-10-17T03:55Z
-previous_handoff: READY_FOR_HANDOFF / NONE (the sale-workflow phase, complete).
-active_phase: finish the TSX-MR public website for production on `erp-control-web` `tsx-public-site`: natural-person
-operator identity (Abdel Kerim Taleb Ould Sidi; TSX-MR unincorporated; no legal form, no RCCM) in the schema and the
-PUBLIC_WEBSITE guard; EN/FR/AR legal, contact, footer, metadata; configurable public phones; the six legal drafts for
-approval; full public verification and screenshots. No merge, deploy, Cloudflare, SMTP or WhatsApp change.
-Baseline: backend `reports-export` `1ed6b00`, mobile `reports-export` `e6773aa`, website `tsx-public-site` `0288d8a`
-(`main` `0417bfe`), docs `0ecfe23`. Discrepancy: the cloud container's website checkout was 5 commits behind
-`origin/tsx-public-site` (at `8bf6f65`); fast-forwarded, nothing local lost.
-next_intended_action: the identity schema and the PUBLIC_WEBSITE guard, then the content.
+Two phases ran in parallel on 2026-10-17, authorised by the owner, in repositories that do not overlap. Each has its
+own status:
+
+| Phase | Repositories | Status | Owner |
+| --- | --- | --- | --- |
+| The public website (cloud session) | `erp-control-web` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
+| Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | IN_PROGRESS (see its section below) | CLAUDE (local) |
+
+**Do not take `erp-backend` while the local phase is IN_PROGRESS.** `erp-control-web` and `erp-mobile` are free.
+
+Public website phase: previous_owner CLAUDE (cloud session), 2026-10-17T03:55Z → 2026-10-17T04:55Z, complete. The
+owner asked for a single `CLAUDE` identity from now on (no CLAUDE-A / CLAUDE-B).
+
+## The public website: an individual operator (2026-10-17) — read `docs/96` §3, §6, §7, then `docs/97`
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `1ed6b00` (not touched by this phase; the local phase works there) |
+| `erp-mobile` | `reports-export` | `e6773aa` (unchanged) |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`) | `0516a9c` |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**Deployed / merged / Cloudflare / SMTP / WhatsApp:** nothing. **Database:** none touched; no migration.
+
+**What changed (D182–D183).**
+
+- TSX-MR is an unincorporated trading name operated by Abdel Kerim Taleb Ould Sidi, an individual, who is also the
+  person responsible for publication. The site says so in EN/FR/AR.
+- The PUBLIC_WEBSITE gate no longer needs a legal form or RCCM for an individual (`VITE_OPERATOR_TYPE`, default
+  `individual`), and refuses them if they are given. PORTAL is unchanged: it still needs a company (an open owner
+  decision).
+- Contacts: `contact@`, `support@`, `privacy@`, `security@tsxmr.com`. The two temporary public numbers come only from
+  `VITE_ORGANIZATION_PHONE` and are not labelled WhatsApp.
+- Still in place: coming soon, no registration, sign-in, price or trial; no portal or API code in the bundle;
+  `VITE_PORTAL_ORIGIN` unset.
+
+**Verified.**
+
+- Typecheck; Vitest 423 / 423; Playwright public 82 / 82 (EN/FR/AR, 375 px and desktop, 320 px, axe AA, RTL,
+  headers, 404s).
+- Links 2 703, 0 broken; bundle audit `--public` PASS; gitleaks clean.
+- CI run 39003461533 on `0516a9c`: **green**, every step (typecheck, tests, both builds and refusals, links, bundle audits, gitleaks, Playwright full and public, verdicts); evidence on `ci-evidence`.
+- `npm ci && npm run build:public-release` was **refused, as designed, for exactly 8 reasons**. PUBLIC_WEBSITE
+  NO-GO 8; PORTAL NO-GO 29; APP_STORE NO-GO.
+
+**The only three blockers for PUBLIC_WEBSITE:**
+
+1. the correspondence address (`VITE_ORGANIZATION_ADDRESS`);
+2. the effective date, which is the deployment date (`VITE_LEGAL_EFFECTIVE_DATE`);
+3. TSX-MR's approval of the six texts in `docs/97`.
+
+**Next exact action.**
+
+1. The owner gives the correspondence address, and approves or edits the six texts of `docs/97`.
+2. A session then, in `erp-control-web/src/content/legal-prelaunch.ts`, changes each approved document's `status` to
+   `'approved'` and its `version` to `'1.0'` (EN/FR/AR), and re-runs the verification of `docs/96` §7.
+3. Only on the owner's explicit go-ahead:
+   - fast-forward `main` to `tsx-public-site`;
+   - create the Pages project per `docs/95` §3–§4, with build `npm ci && npm run build:public-release` and the
+     variables of `docs/96` §6 (address, and the deployment date as `VITE_LEGAL_EFFECTIVE_DATE`);
+   - add the domain and the www rule.
+
+The sale-workflow device check (below) is still owed on the iPhone.
 
 
 ## Second active phase, in parallel (owner-authorised, 2026-10-17T04:30Z)

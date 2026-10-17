@@ -11666,3 +11666,88 @@ sheet. Screenshots (126 + two contact sheets) are in the cloud session's scratch
 
 **Database.** Disposable `prisma_qa_sw` created, used and dropped; its app grant revoked; mysqld stopped. No shared
 or live database touched. No migration required.
+
+## 2026-10-17T03:55Z → 2026-10-17T04:55Z — CLAUDE (cloud) — the public website: an individual operator, said truthfully (D182–D183)
+
+**Brief.** The owner's brief of 2026-10-17 (third): finish the existing TSX-MR public website for production, on
+`erp-control-web` `tsx-public-site`. A single `CLAUDE` identity from now on. Constraints:
+
+- No new design, merge, deploy, Cloudflare, SMTP or WhatsApp change.
+- `VITE_PORTAL_ORIGIN` stays unset.
+- The PORTAL and APP_STORE gates stay strict.
+
+**Takeover.** The previous handoff was `READY_FOR_HANDOFF` / `NONE`. Claim `bd85295`. Baseline:
+
+- backend `1ed6b00`, mobile `e6773aa` (both untouched);
+- website `0288d8a` (`main` `0417bfe`);
+- docs `0ecfe23`.
+
+**Discrepancy:** the container's website checkout was 5 commits behind `origin/tsx-public-site` (at `8bf6f65`). It was
+fast-forwarded; nothing local was lost.
+
+**Website `0516a9c`** (one commit, pushed):
+
+- **Schema and guard.** `VITE_OPERATOR_TYPE` is `individual` (the default) or `company`.
+  - The PUBLIC_WEBSITE gate no longer asks an individual for a legal form or RCCM, and refuses them if they are given.
+  - An unknown type fails closed.
+  - PORTAL is unchanged and still needs a company.
+  - The owner's facts are fallbacks: the operator; the person responsible for publication (new
+    `VITE_PUBLICATION_DIRECTOR`); Nouakchott; `contact@` (new `VITE_CONTACT_EMAIL`), `support@`, `privacy@` and
+    `security@tsxmr.com`.
+  - The address and the effective date are never defaulted.
+  - `.env.example` documents the new variables.
+- **Phones.** `VITE_ORGANIZATION_PHONE` is a comma-separated list, validated and env-only. Numbers show as tel links,
+  left to right inside Arabic, and are never labelled WhatsApp.
+- **Content, EN/FR/AR:**
+  - one `{operatorStatus}` sentence per language, with no gendered wording, in the legal notice, privacy, terms,
+    about and footer;
+  - the legal notice names the person responsible for publication;
+  - the operator's details have no legal-form or RCCM rows;
+  - "Dukan ERP is a product operated under the TSX-MR name";
+  - contact asks visitors to "write or call";
+  - the six drafts are now version 0.2, still DRAFT;
+  - structured data: no `legalName` for an individual, and the `WebSite` publisher is a `Person`.
+- **Fixed on the way (RTL):**
+  - the Arabic operator sentence and footer were isolated LTR, and now take the paragraph's direction;
+  - phones were misaligned in Arabic;
+  - the Arabic address separator was wrong;
+  - the Arabic grammatical agreement was corrected;
+  - the preview showed a test commercial address that is not configured.
+
+**Verification:**
+
+| Check | Result |
+| --- | --- |
+| Typecheck | clean |
+| Vitest | 23 files, 423 / 423 |
+| Public preview | 57 pages |
+| Links | 58 pages / 2 703, 0 broken |
+| Bundle audit `--public` | PASS |
+| Playwright, public | 82 / 82 (every page EN/FR/AR × 375 px and desktop, 320 px, axe AA, headers, 404s, identity) |
+| gitleaks | history, src, dist clean |
+| `npm ci && npm run build:public-release` | refused, exactly 8 reasons |
+| Verdicts | PUBLIC_WEBSITE NO-GO 8 (address, date, 6 approvals), PORTAL NO-GO 29, APP_STORE NO-GO |
+| CI run 39003461533 on `0516a9c` | green, every step |
+
+Playwright 1.64 wants chromium-1248, but the container has `/opt/pw-browsers/chromium`. It ran through a scratch
+configuration outside the repository, with `executablePath` set.
+
+**Deliverables:**
+
+- `docs/97`: the six texts in EN/FR/AR, for approval.
+- 72 screenshots and 6 contact sheets, from a marked preview, delivered to the owner (session scratch).
+- `docs/96` §3, §6 and §7; `docs/95` note; `docs/21` D182–D183.
+
+**Not done, by the brief:** no merge, deploy, Cloudflare, SMTP or WhatsApp change, and no text approved. No database
+was touched.
+
+**Concurrency, found at the push (04:55Z).** An owner-authorised local session claimed a parallel backend phase at
+04:23Z, in `cdb0cd1` (Brevo SMTP and the WhatsApp Cloud API, `erp-backend` only), and took **D181** first. Handled as
+follows:
+
+- this phase's decisions are renumbered **D182–D183**;
+- the unpushed docs commit was rebased onto `cdb0cd1`, and the other session's entries were kept intact;
+- `CURRENT_HANDOFF` now gives each phase its own status. The website phase is READY_FOR_HANDOFF / NONE; the backend
+  phase is still IN_PROGRESS under the local session.
+
+Nothing in `erp-backend` was touched here.
