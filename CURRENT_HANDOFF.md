@@ -1,8 +1,19 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE-B (cloud), 2026-10-17T02:55Z → 03:45Z — the sale workflow (complete).
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session; the owner asked for a single `CLAUDE` identity from now on — no CLAUDE-A / CLAUDE-B)
+started_at_utc: 2026-10-17T03:55Z
+previous_handoff: READY_FOR_HANDOFF / NONE (the sale-workflow phase, complete).
+active_phase: finish the TSX-MR public website for production on `erp-control-web` `tsx-public-site`: natural-person
+operator identity (Abdel Kerim Taleb Ould Sidi; TSX-MR unincorporated; no legal form, no RCCM) in the schema and the
+PUBLIC_WEBSITE guard; EN/FR/AR legal, contact, footer, metadata; configurable public phones; the six legal drafts for
+approval; full public verification and screenshots. No merge, deploy, Cloudflare, SMTP or WhatsApp change.
+Baseline: backend `reports-export` `1ed6b00`, mobile `reports-export` `e6773aa`, website `tsx-public-site` `0288d8a`
+(`main` `0417bfe`), docs `0ecfe23`. Discrepancy: the cloud container's website checkout was 5 commits behind
+`origin/tsx-public-site` (at `8bf6f65`); fast-forwarded, nothing local lost.
+next_intended_action: the identity schema and the PUBLIC_WEBSITE guard, then the content.
+
+---
 
 ## The sale workflow (2026-10-17) — read `docs/21` D178–D180 and the session log entry
 
