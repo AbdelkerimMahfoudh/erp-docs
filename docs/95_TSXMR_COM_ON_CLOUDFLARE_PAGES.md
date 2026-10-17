@@ -198,3 +198,11 @@ no longer apply to the public website. What remains for PUBLIC_WEBSITE is:
 - the approval of the six texts (`docs/97`).
 
 The Cloudflare variables are in `docs/96` §6. The phones go in `VITE_ORGANIZATION_PHONE`.
+
+## Superseded in part by `docs/96` §3, §9 and §11 (2026-10-17, CLAUDE, `ad41e4c`)
+
+- The address is given (D184), so only two things remain for PUBLIC_WEBSITE: the effective date (the publication day)
+  and the approval of the six texts (`docs/97`).
+- A production dry run found that an approved release would have failed its own bundle audit, because API code and
+  preview values were in the public bundle. That is fixed in `b7b8fc2`.
+- The deployment and rollback plan is `docs/96` §11.

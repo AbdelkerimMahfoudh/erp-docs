@@ -7759,3 +7759,44 @@ deployed. Detail: `docs/96` §3, §6 and §7. The texts for approval: `docs/97`.
     **never hardcoded**.
   - **Neither is labelled WhatsApp** until TSX-MR confirms which one is.
 - The correspondence address stays blank until TSX-MR gives it. The production build refuses until then.
+
+## Website production preparation: address, portal individual mode, legal texts v0.3 (2026-10-17, CLAUDE, cloud)
+
+The owner's brief "Final Legal, Identity, Portal and Website Production Preparation". Website `tsx-public-site`
+`b7b8fc2`, `ad41e4c`; not merged, nothing deployed. Detail: `docs/96` §3, §8–§11; the texts: `docs/97`.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D184: the correspondence address
+
+- The address is **Tevragh Zeina, Nouakchott-Ouest, Mauritania**:
+  - FR: Tevragh Zeina, Nouakchott-Ouest, Mauritanie;
+  - AR: تفرغ زينة، نواكشوط الغربية، موريتانيا.
+- There is **no street number and no postal code**, because none was given and none is invented. The same goes for
+  any RCCM, tax number, licence or company name.
+- It is the default of `VITE_ORGANIZATION_ADDRESS` (Latin script) and `VITE_ORGANIZATION_ADDRESS_AR` (Arabic), with
+  the country added in the reader's language.
+  - Changing it needs no code change: set both variables.
+  - A new Latin address with no Arabic line is shown in Latin script, never beside an outdated translation.
+- It is shown on:
+  - the legal notice, contact and about pages;
+  - the footer;
+  - the privacy policy and terms (the pre-launch texts and the service's);
+  - the structured data.
+- The person's name and address are **individual-mode defaults only**. A company must give its own registered name
+  and address.
+- **The effective date stays pending.** It is the actual publication date, set in Cloudflare that day, never a commit
+  date.
+
+### ✅ IMPLEMENTED (portal identity); ⏳ AWAITING COUNSEL (paid activity) — D185: the portal under an individual operator
+
+- **PORTAL gate, individual mode:**
+  - no legal form or RCCM is asked for, and both are refused if given;
+  - the person responsible for publication is required;
+  - a new legal blocker, **`operator_registration`**, keeps the portal closed until counsel confirms whether paid
+    access may be sold before the operator registers (for example as an individual trader at the RCCM, with a tax
+    number), and what invoices must show.
+- **Company mode** is unchanged and stays strict.
+- The service's legal notice, privacy policy, terms and about page say who operates the name, in EN/FR/AR. The service's
+  `publisher` blocker is settled by D182's designation.
+- **Not enabled:** paid subscriptions, payment collection and the portal itself. No payment provider exists
+  (`providers/payment.ts`).
+- The backend assumes no company ("developed and operated by TSX-MR") and was not changed.

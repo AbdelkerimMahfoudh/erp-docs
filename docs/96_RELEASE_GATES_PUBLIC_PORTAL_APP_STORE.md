@@ -27,17 +27,18 @@ Rules of the PUBLIC_WEBSITE gate (`schema.ts`):
   - display name `TSX-MR`; operator type `individual`;
   - operator and person responsible for publication `Abdel Kerim Taleb Ould Sidi`;
   - city `Nouakchott`, country `Mauritania`;
+  - the correspondence address `Tevragh Zeina, Nouakchott-Ouest` (Arabic `تفرغ زينة، نواكشوط الغربية`; §6). This
+    applies to an individual only: a company gives its own registered name and address;
   - `contact@`, `support@`, `privacy@` and `security@tsxmr.com`.
-- **Never defaulted:** the correspondence address, the effective date and the telephone numbers.
+- **Never defaulted:** the effective date and the telephone numbers.
 - **Forbidden** (the pre-launch site links to none of them): `VITE_PORTAL_ORIGIN`, `VITE_API_BASE`,
   `VITE_ADMIN_SITE_ORIGIN`, `VITE_APPLE_APP_STORE_URL`, `VITE_GOOGLE_PLAY_URL`.
 - **Not asked for:** the deletion channel and the support commitments (hours, languages, response time). These belong
   to the PORTAL and APP_STORE gates.
 - **Still refused:** test values, placeholders, legal blockers and drafts.
 
-The PORTAL rule is the one already in force; nothing in it was loosened. It still requires a legal form and an RCCM
-(**owner decision, open:** whether the portal may launch under an individual operator; until then, it cannot). A full
-build's refusal now names its gate.
+The PORTAL rule now has an individual mode (§8, `ad41e4c`): no legal form or RCCM, plus a registration question that
+keeps the portal closed until counsel answers it. Company mode is unchanged. A full build's refusal names its gate.
 
 ## 2. The pre-launch website
 
@@ -71,17 +72,23 @@ their code is in the bundle.
 
 ## 3. What TSX-MR still has to give (PUBLIC_WEBSITE)
 
-*Rewritten 2026-10-17 (CLAUDE, `0516a9c`). Before, it was 16 reasons on `0288d8a`, with legal form and RCCM among them.*
+*Rewritten 2026-10-17 (CLAUDE, `ad41e4c`). It was 8 reasons on `0516a9c`, and 16 on `0288d8a`.*
 
-`npm ci && npm run build:public-release` was run on `0516a9c` with the Cloudflare values of §6. It **refused for exactly
-8 reasons**, and these are the only three blockers left:
+The correspondence address is now given (D184). `npm ci && npm run build:public-release` was run on `ad41e4c` with
+the Cloudflare values of §6. It **refused for exactly 7 reasons**. These are the only two blockers left, and both are
+TSX-MR's:
 
-1. **The correspondence address:** `VITE_ORGANIZATION_ADDRESS`, which TSX-MR has not given yet. Nothing is invented in
-   its place.
-2. **The effective date:** `VITE_LEGAL_EFFECTIVE_DATE`, set to the actual deployment date.
-3. **The approval of the six texts:** privacy, terms, account deletion, privacy choices, legal notice and security.
-   They are in `docs/97`, in EN/FR/AR, at version 0.2. TSX-MR changes each `status: 'draft'` to `'approved'` (and its
-   version to `1.0`) in `legal-prelaunch.ts`. No session does that on TSX-MR's behalf.
+1. **The effective date:** `VITE_LEGAL_EFFECTIVE_DATE`, the **actual publication date**, set in Cloudflare on the day
+   of deployment. It is never a commit date. None is confirmed, so none is set.
+2. **The approval of the six texts:** privacy, terms, account deletion, privacy choices, legal notice and security.
+   - They are in `docs/97`, in EN/FR/AR, at version 0.3, with the changes, the commitments to confirm and the open legal
+     questions.
+   - On TSX-MR's explicit approval, each `status: 'draft'` becomes `'approved'` and its version `1.0`, in
+     `legal-prelaunch.ts`.
+   - No session does that on its own.
+
+Nothing else in this repository stops the public website. A production dry run with both blockers simulated
+(scratch copy only; §9) builds, prerenders and passes every audit.
 
 **Cloudflare Pages:** as `docs/95` §3–§4, with the build command **`npm ci && npm run build:public-release`** and the
 variables of §6.
@@ -148,7 +155,7 @@ The three mailboxes, and `contact@`, must exist and be read before publication.
 | `VITE_SITE_SURFACE` | `public` |
 | `VITE_PUBLIC_SITE_ORIGIN` | `https://tsxmr.com` |
 | `VITE_ORGANIZATION_PHONE` | `+222 36 96 38 39, +222 37 67 68 27` |
-| `VITE_ORGANIZATION_ADDRESS` | the correspondence address, **once TSX-MR gives it** |
+| `VITE_ORGANIZATION_ADDRESS`, `VITE_ORGANIZATION_ADDRESS_AR` | **unset**: they default to the owner's address (§1). Set both to change it without a code change. A new Latin address with no Arabic line is shown in Latin script in Arabic. |
 | `VITE_LEGAL_EFFECTIVE_DATE` | the actual deployment date, `YYYY-MM-DD` |
 | `VITE_PORTAL_ORIGIN`, `VITE_API_BASE`, `VITE_ADMIN_SITE_ORIGIN`, store URLs | **unset**; the gate refuses them |
 | `VITE_ORGANIZATION_LEGAL_FORM`, `VITE_ORGANIZATION_REGISTRATION_NUMBER` | **unset**; the gate refuses them for an individual |
@@ -175,3 +182,137 @@ switches every text to "TSX-MR is a trading name of …".
 
 In the cloud container, Playwright ran on its installed Chromium through a scratch configuration outside the
 repository. CI runs the repository's own configuration.
+
+## 8. The portal under an individual operator (2026-10-17, CLAUDE, `ad41e4c`; D185)
+
+**What the portal assumed:**
+- The PORTAL gate required a legal form and an RCCM.
+- The service's privacy policy said "{legalName}, {legalForm}, registered under number {registrationNumber}".
+- Its legal notice said "published and operated by {legalName}, trading as {displayName}". Its Arabic made the
+  operator feminine, implying a company.
+- The about page was headed "Company details".
+- **No payment provider is integrated.** Payments are confirmed by a platform administrator against a reference, and
+  every payment row carries `providerVerified: false`. There is no tax, invoice or merchant field anywhere in the
+  website.
+- The backend names the operator only as "TSX-MR" (Swagger, email footers). Nothing there assumes a company, so the
+  backend needs no change. It was read, not modified: the local phase holds it.
+
+**What changed:**
+
+| | Individual (`VITE_OPERATOR_TYPE=individual`, the default) | Company |
+| --- | --- | --- |
+| Legal form, RCCM | not asked for; **refused** if given | required (unchanged) |
+| Legal name, registered address | default to the person and the correspondence address | required; never inherited from the person |
+| Person responsible for publication | required; defaults to the operator | required |
+| Extra blocker | **`operator_registration`** (below) | none |
+| Texts | `{operatorStatus}`: "… operated by Abdel Kerim Taleb Ould Sidi, an individual" | "TSX-MR is a trading name of …" |
+
+- The service's legal notice, privacy policy, terms and about page say who operates the name, in EN/FR/AR, with the
+  correspondence address.
+- The service's **`publisher` blocker is settled** by the owner's designation and removed from the catalogue.
+- Tests cover both modes: `test/portal-operator.test.tsx` (gate rules, address, rendered pages EN/FR/AR) and
+  `test/portal-operator-company.test.tsx` (company pages).
+
+**Kept closed: `operator_registration`.** The portal sells paid access, paid to TSX-MR. Removing the company fields
+does not answer whether that may be done before the operator registers (for example as an individual trader at the
+RCCM, with a tax number), or what invoices and receipts must show. Mauritanian counsel answers it; a registration can
+also settle it. **Paid subscriptions, payment collection and the portal stay disabled** until then. Nothing was
+enabled.
+
+**PORTAL verdict:** NO-GO, 26 reasons (it was 29):
+- removed: the legal form, the RCCM, the address and `publisher`;
+- added: `operator_registration`.
+
+The other reasons stand: the API, the support commitments, the deletion channel, the date, the 11 service legal
+blockers, the 6 service drafts and the 2 external conditions.
+
+## 9. A defect found by a production dry run, and fixed (`b7b8fc2`)
+
+No production build had ever passed, so no one had run its audit. A dry run in a scratch copy, outside the repository,
+simulated both blockers: all six texts approved, and the date 2026-11-01. `build:public-release` then **failed its own
+bundle audit**:
+
+1. **The API client was in the public bundle**, with its development address `127.0.0.1:3010`. The full Dukan ERP
+   page (its price table calls `platform/plan`) and the Apply form came with it. The router picked them at runtime, so
+   the bundler kept them. The preview audit allowed `127.0.0.1:3010`, so CI never saw it.
+2. **14 test values in production:** the page read its inputs through `readInputs`, so the whole input table shipped,
+   preview values included.
+
+**The fix:**
+- A public build aliases the API client, the price table and the Apply page to stubs. It already did this for the
+  protected areas.
+- The inputs are computed at build time and inlined (`__SITE_INPUTS__`).
+- `audit-bundle --public` now refuses any API route or private address, in a preview too. It reports both findings on
+  the old build and passes on the new one.
+- Source rules pin both points.
+
+**The dry run after the fix:**
+- the release build passes: 57 pages, 2 709 links with 0 broken, 0 test values, bundle audit PASS;
+- served locally, `/`, `/privacy`, `/terms`, `/contact`, `/legal`, `/security`, `/account-deletion`, `/privacy-choices`,
+  `/fr/…`, `/ar/…`, `/sitemap.xml`, `/robots.txt` and `/.well-known/security.txt` answer 200;
+- `/apply`, `/login`, `/account` and `/admin` answer 404;
+- canonical URLs are `https://tsxmr.com/…`, with `index, follow` (`noindex` only on `/in-app/…` and 404);
+- no preview banner, draft label, test value, price, "Sign in" or apply link appears on any of the 58 pages;
+- CSP, HSTS, `X-Frame-Options: DENY` and Permissions-Policy are sent;
+- the structured data names the Organization with its address, and the publisher as a `Person`.
+
+That dry run is evidence only. Nothing from it was committed.
+
+## 10. Verification on `ad41e4c` and `b5c0328` (2026-10-17, CLAUDE)
+
+| Check | Result |
+| --- | --- |
+| Typecheck | clean |
+| Vitest | 26 files, 440 / 440 (both operator modes, the address in three languages, the stub rules, the Arabic host isolate) |
+| Full preview (CI's `VITE_API_BASE`) | links 68 pages / 3 258, 0 broken; bundle audit PASS; Playwright **126 / 126** |
+| Public preview (the §6 values) | links 58 pages / 2 709, 0 broken; bundle audit `--public` PASS (tightened); Playwright **82 / 82**: every page EN/FR/AR at 375 px and desktop, 320 px, axe WCAG 2.1 AA, RTL, no foreign request, headers, portal 404s, the identity and address check |
+| `npm ci && npm run build:public-release` | **refused**, 7 reasons (§3) |
+| Full production build | **refused** (gate PORTAL) |
+| Verdicts (`--dist --links --browser`) | PUBLIC_WEBSITE NO-GO 7 · PORTAL NO-GO 26 · APP_STORE NO-GO 21 |
+| gitleaks | history, `src` and the built site: no leaks |
+| Production dry run (scratch; §9) | PASS |
+| CI | run 39006226561 on `ad41e4c` green; run 39006514696 on `b5c0328` green (every step, evidence on `ci-evidence`) |
+
+`b5c0328` fixes one thing the Arabic screenshot showed: in Arabic, the host's Latin address moved its "101". The
+address is now a left-to-right isolate.
+
+A first local full-site run failed 70 tests because I had left out CI's `VITE_API_BASE` (CSP refusals). It was not a
+code fault: with CI's value, 126 / 126.
+
+## 11. Deployment and rollback plan (for the owner; nothing done)
+
+**Before:**
+1. TSX-MR approves the six texts (`docs/97`). A session commits the approval flags; CI must be green.
+2. TSX-MR confirms that `contact@`, `support@`, `privacy@` and `security@tsxmr.com` exist and are read.
+3. TSX-MR fixes the publication day.
+
+**Deploy, only on the owner's explicit go-ahead:**
+1. Fast-forward `main` to `tsx-public-site`. It is ahead with no divergence, so no merge commit is needed.
+2. Create the Cloudflare Pages project (`docs/95` §3):
+   - build `npm ci && npm run build:public-release`, output `dist`, Node 22;
+   - preview deployments off;
+   - the variables of §6, with `VITE_LEGAL_EFFECTIVE_DATE` set to that day.
+3. The first build must pass. If it is refused, read the reasons it prints; nothing is published.
+4. Add the custom domain `tsxmr.com`, then `www.tsxmr.com` with the 301 rule (`docs/95` §4).
+5. Run the checks of `docs/95` §4.5:
+   - `/`, `/privacy`, `/terms`, `/contact`, `/fr/privacy`, `/ar/terms` → 200;
+   - `/account`, `/admin`, `/apply` → 404;
+   - security headers present;
+   - www → apex.
+6. Give Meta (WhatsApp Business) `https://tsxmr.com/privacy`, `https://tsxmr.com/terms` and
+   `https://tsxmr.com/account-deletion` only once they answer 200.
+
+**Rollback:**
+- In Cloudflare Pages → Deployments, promote the previous deployment ("Rollback"); this is instant.
+- Or remove the custom domain.
+- A wrong text is corrected by a new commit and a redeploy. The effective date and the version change with it.
+- No database or backend is involved, so a rollback touches nothing else.
+
+## 12. Not done, by the brief
+
+- No merge, deployment, Cloudflare, DNS, SMTP or WhatsApp change.
+- No text approved; no effective date invented.
+- Nothing in `erp-backend`, which the local phase holds. Nothing in `erp-mobile`.
+- No payment or subscription enabled.
+- **The Brevo SMTP credential once shared in chat must be replaced before production.** This session never saw or
+  stored it, and gitleaks finds no credential in the website repository.

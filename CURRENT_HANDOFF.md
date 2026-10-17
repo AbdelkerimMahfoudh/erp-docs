@@ -5,28 +5,68 @@ own status:
 
 | Phase | Repositories | Status | Owner |
 | --- | --- | --- | --- |
-| Website production preparation: address, legal texts, portal individual mode (cloud session) | `erp-control-web` (+ its erp-docs entries) | **IN_PROGRESS** | CLAUDE (cloud) |
+| Website production preparation (cloud session) | `erp-control-web` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
 | Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | IN_PROGRESS (see its section below) | CLAUDE (local) |
 
-**Do not take `erp-backend` while the local phase is IN_PROGRESS, or `erp-control-web` while the cloud phase is.**
-`erp-mobile` is free.
+**Do not take `erp-backend` while the local phase is IN_PROGRESS.** `erp-control-web` and `erp-mobile` are free.
 
-**Cloud phase, claimed 2026-10-17T04:56Z** (the owner's brief "Final Legal, Identity, Portal and Website Production
-Preparation"):
+Website phase: previous_owner CLAUDE (cloud session), 2026-10-17T04:56Z → 2026-10-17T06:00Z, complete (claim
+`d92de38`).
 
-- **Status:** IN_PROGRESS. **Owner:** CLAUDE (cloud session). **started_at_utc:** 2026-10-17T04:56Z.
-- **Previous:** the public website phase, READY_FOR_HANDOFF / NONE, complete.
-- **HEADs at takeover:** backend `1ed6b00`, mobile `e6773aa`, website `tsx-public-site` `0516a9c`, docs `2fb3b91`.
-- **Scope:**
-  - `erp-control-web`: the correspondence address; the six legal texts revised (approval flags stay draft); an
-    individual-operator mode for the PORTAL gate and the portal copy; verification.
-  - erp-docs: `docs/95`, `docs/96`, `docs/97`, this file, the session log and the decisions.
-  - **`erp-backend` is not touched** (the local phase owns it); it is read only, for contracts.
-  - No merge, deploy, Cloudflare, SMTP or WhatsApp change.
-- **Next intended action:** read the portal's identity and billing assumptions, then the address configuration.
+## Website production preparation (2026-10-17) — read `docs/96` §3, §8–§11, then `docs/97`
 
-Public website phase: previous_owner CLAUDE (cloud session), 2026-10-17T03:55Z → 2026-10-17T04:55Z, complete. The
-owner asked for a single `CLAUDE` identity from now on (no CLAUDE-A / CLAUDE-B).
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-backend` | `reports-export` | `1ed6b00` (read only here; the local phase works there) |
+| `erp-mobile` | `reports-export` | `e6773aa` (unchanged) |
+| `erp-control-web` | `tsx-public-site` (**not merged**; `main` `0417bfe`) | `b5c0328` (`b7b8fc2`, `ad41e4c`, `b5c0328` this phase) |
+| `erp-docs` | `master` | the commit carrying this file |
+
+**Deployed / merged / Cloudflare / SMTP / WhatsApp:** nothing. **Database:** none touched; no migration.
+
+**What changed:**
+- **D184, the address.** The correspondence address is Tevragh Zeina, Nouakchott-Ouest (configurable in EN and AR). It
+  appears on the legal notice, contact and about pages, in the footer, in the texts and in the structured data.
+- **D185, the portal.** Individual mode needs no legal form or RCCM. The new `operator_registration` blocker keeps the
+  portal and paid access closed until counsel answers. Company mode is unchanged.
+- **The six texts, v0.3 and still DRAFT** (`docs/97`): the change summary, the 5 commitments for TSX-MR to confirm and
+  11 open legal questions.
+- **A pre-existing release defect, fixed (`b7b8fc2`).** An approved production build would have failed its own audit:
+  API code and preview values were in the public bundle. The audit is now strict in previews too.
+
+**Verified:**
+- Vitest 440; Playwright full 126 / 126 and public 82 / 82.
+- Links 0 broken; bundle audits PASS; gitleaks clean.
+- A production dry run with approval simulated in scratch: PASS.
+- CI 39006226561 on `ad41e4c` green; on `b5c0328` (run 39006514696) green.
+
+**Verdicts:**
+- PUBLIC_WEBSITE **NO-GO, 7**: the effective date and the 6 approvals. Nothing else.
+- PORTAL NO-GO, 26. APP_STORE NO-GO, 21.
+
+**The only blockers for PUBLIC_WEBSITE, both the owner's:**
+1. explicit approval of the six texts in `docs/97`, as they are or with changes, including §3's commitments;
+2. the publication date, set as `VITE_LEGAL_EFFECTIVE_DATE` in Cloudflare on that day.
+
+**Next exact action:**
+1. The owner approves the texts, or sends edits.
+2. A session then sets `status: 'approved'` and `version: '1.0'` in `erp-control-web/src/content/legal-prelaunch.ts`
+   (EN/FR/AR), commits that alone, and re-runs `docs/96` §10.
+3. Only on the owner's explicit go-ahead: fast-forward `main`, then create the Pages project with the `docs/96` §6
+   variables, the date of that day, the domain and the www rule. The steps are `docs/96` §11, including rollback.
+4. Before any production backend: **rotate the Brevo SMTP credential once shared in chat.**
+
+**Open owner or counsel questions:**
+- `docs/97` §4;
+- `operator_registration`;
+- D180;
+- the earlier records below.
+
+The sale-workflow device check (below) is still owed on the iPhone.
+
+---
+
+The previous website record follows, unchanged.
 
 ## The public website: an individual operator (2026-10-17) — read `docs/96` §3, §6, §7, then `docs/97`
 

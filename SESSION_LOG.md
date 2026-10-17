@@ -11751,3 +11751,69 @@ follows:
   phase is still IN_PROGRESS under the local session.
 
 Nothing in `erp-backend` was touched here.
+
+## 2026-10-17T04:56Z → 2026-10-17T06:00Z — CLAUDE (cloud) — website production preparation: address, portal individual mode, legal texts v0.3 (D184–D185)
+
+**Brief.** "Final Legal, Identity, Portal and Website Production Preparation". Constraints:
+- no new website, merge, deploy, Cloudflare, SMTP or WhatsApp change;
+- no approval on the owner's behalf;
+- no invented date or identifier.
+
+**Takeover.** Claim `d92de38`: the website phase was READY_FOR_HANDOFF / NONE. The local phase (Brevo SMTP + WhatsApp,
+`erp-backend`) is still IN_PROGRESS, with no new commit since `cdb0cd1`. Its repository was only read, never changed.
+
+HEADs at takeover: backend `1ed6b00`, mobile `e6773aa`, website `0516a9c`, docs `2fb3b91`. All matched their remotes.
+
+**Website** (`tsx-public-site`, all pushed):
+
+`b7b8fc2` — **a pre-existing defect, found by a production dry run.** The dry run simulated approval and a date, in a
+scratch copy only. `build:public-release` then failed its own bundle audit:
+- the public bundle held the API client, with `127.0.0.1:3010`, the price table and the Apply page;
+- it also held the input table with 14 preview values.
+
+Fixed:
+- a public build takes stubs for the API client, the price table and the Apply page;
+- the inputs are inlined at build time;
+- `audit-bundle --public` refuses API routes and private addresses even in a preview;
+- source rules pin both points.
+
+`ad41e4c` — **the identity work:**
+- **D184, address:** `Tevragh Zeina, Nouakchott-Ouest` (AR `تفرغ زينة، نواكشوط الغربية`), configurable through
+  `VITE_ORGANIZATION_ADDRESS` and `_AR`. A company never inherits the person's name or address.
+- **D185, PORTAL individual mode:** no legal form or RCCM, both refused if given. A new `operator_registration` blocker
+  keeps the portal closed. The `publisher` blocker is settled. The service texts and the about page are adapted in
+  EN/FR/AR.
+- **Six texts v0.3, still DRAFT:** the address; telephone and WhatsApp contact; the planned providers (Brevo, Meta
+  Cloud API) named as plans; identity checks; deletion confirmed; the Cloudflare cookie explained; the host's address;
+  Arabic agreement fixed.
+
+`b5c0328` — the Arabic host address made a left-to-right isolate (its "101" was misplaced).
+
+**Verification:**
+
+| Check | Result |
+| --- | --- |
+| Typecheck | clean |
+| Vitest | 440 / 440 |
+| Full preview | 126 / 126 in the browser; 3 258 links, 0 broken; bundle PASS |
+| Public preview | 82 / 82; 2 709 links, 0 broken; bundle PASS |
+| gitleaks | history, src, dist clean |
+| `npm ci && npm run build:public-release` | refused, 7 reasons: the date and 6 approvals |
+| Verdicts | PUBLIC_WEBSITE NO-GO 7 · PORTAL NO-GO 26 · APP_STORE NO-GO 21 |
+| Production dry run (scratch) | PASS: 0 test values; no banner, draft, price, sign-in or apply link; canonicals on `tsxmr.com`; headers present |
+| CI 39006226561 (`ad41e4c`), 39006514696 (`b5c0328`) | green |
+
+A first local full-site run had 70 failures because it was built without CI's `VITE_API_BASE`. This was not a code
+fault.
+
+**Docs:**
+- `docs/97`: the texts v0.3 in EN/FR/AR, the change summary, the commitments to confirm, 11 open legal questions;
+- `docs/96`: §1, §3, §6, §8–§12, including the deployment and rollback plan;
+- `docs/95`: a note;
+- `docs/21`: D184–D185.
+
+**Not done:**
+- No merge, deploy, Cloudflare, SMTP or WhatsApp change.
+- No approval; no effective date.
+- Nothing in backend or mobile; no database touched.
+- The Brevo credential shared in chat must be rotated before production. This session never saw it.
