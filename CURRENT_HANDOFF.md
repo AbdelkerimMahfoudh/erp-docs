@@ -1,15 +1,23 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-previous_owner: CLAUDE (cloud session), 2026-10-17T20:24Z → 2026-10-17T20:54Z. The phase is complete, and the handoff is complete.
-authorised by: the owner's approval of the 404 page's appearance ("Approved", 2026-10-17).
-next_action (the owner):
-1. Cloudflare → tsxmr.com → Scrape Shield → Email Address Obfuscation **Off**. Then re-run `verify-production` (push
-   `ops/verify-production` or Actions → Run workflow). It is the only remaining production failure (2 checks).
-2. Pages → `tsxmr-public` → Settings → Builds → Preview branch deployments: **None**, unless previews are wanted for
-   future reviews (`docs/95`).
-3. Staging host inputs (`docs/99` §10).
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T23:13Z
+takeover: authorised by the owner's brief "update the TSX-MR website's positioning and fix the navigation defects"
+(2026-10-17). The previous phase (the 404 page in production, CLAUDE cloud) ended READY_FOR_HANDOFF; its handoff is
+complete.
+baseline (verified local = remote, all clean): web `tsx-public-site` 397ec6b (production, Pages 8a828f1b) ·
+`site-redesign` 397ec6b · `ops/verify-production` bff3143 · `main` 0417bfe · backend d3c11a8 · mobile e6773aa ·
+docs a3e6cb7.
+active_phase: on a new non-production branch `site-positioning` (from 397ec6b):
+1. reposition TSX-MR as an independent development brand (websites, mobile apps, business tools), with Dukan ERP as
+   its first own product, in EN/FR/AR;
+2. reduce repeated mentions of the operator's name, keeping legal identification where it is needed;
+3. fix the language selector's spacing;
+4. remove duplicated quick-link groups;
+5. fix destination scroll and focus.
+Not touched: production promotion, backend, mobile, hosting, DNS, Cloudflare settings, email, contact values.
+next_action: audit content, navigation and scroll handling.
 
 ## The custom 404 page in production (2026-10-17, CLAUDE, cloud)
 
