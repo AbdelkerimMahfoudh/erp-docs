@@ -19,6 +19,11 @@ database sees it** (`docs/21`, D176).
 
 ## A. Staging — HTTPS, fictitious data only
 
+> **Superseded for staging by `docs/99` (2026-10-17, CLAUDE).** Staging now runs as the container stack in
+> `erp-backend` `deploy/` (Caddy, MySQL 8.4 on a private network, schema `phonestore_staging`), not on a bare host
+> with a process manager. Sections B and C below still apply to the live deployment; their database floors are also
+> cited by `docs/99` §8.
+
 Purpose: the first internet-reachable copy, so that an internal TestFlight build has an HTTPS API to talk to. **No
 real shop's data, ever.** Staging holds the QA boutiques (`scripts/qa-boutiques.ts`) and nothing else.
 

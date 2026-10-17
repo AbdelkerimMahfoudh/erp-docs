@@ -948,3 +948,26 @@ test the scanner actually passed.
 > `tsc -p` compiled the script without the types package, which was misleading:
 > `scripts/` is not in tsconfig's `include`, so the project build never reads
 > it. `ts-node` does, and raised TS7016 the moment the script ran.
+
+---
+
+## Superseded in part by `docs/99` (2026-10-17, CLAUDE)
+
+The internet-reachable staging API is `https://staging-api.tsxmr.com`, deployed as described in `docs/99`.
+
+- **Shape (§2).** The staging API is its own origin, behind a Caddy edge. The website is on Cloudflare Pages and is
+  not part of the stack. The "one origin" shape here described a local acceptance environment.
+- **Database.** The database is the schema `phonestore_staging` on a dedicated MySQL 8.4 server inside the stack
+  (D191). It is not `prisma_staging` beside development.
+- **Provider-neutral artifacts (§2).** The file table named a `deploy/docker-compose.staging.yml`, a
+  `deploy/nginx-site.conf` and a `backend/Dockerfile` that were never committed to `erp-backend`. The real ones are
+  `Dockerfile`, `deploy/docker-compose.staging.yml`, `deploy/staging/*` and `.env.staging.example` (`33723da`).
+- **Verification codes (§5).** The retrieval command still works, now on keyed (`OTP_PEPPER`) codes too (`0c12bf2`).
+  It runs inside the stack's `tools` container (`docs/99` §6 step 9).
+- **SQL mode.** Staging uses MySQL 8's strict default, the same as CI, rather than `STRICT_ALL_TABLES` alone.
+
+What stays:
+- fictitious data only;
+- every staging-only command guarded by `APP_ENV=staging`;
+- the `/admin` boundary of §3 for any future web console.
+

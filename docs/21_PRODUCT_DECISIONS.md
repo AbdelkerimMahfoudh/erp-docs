@@ -7881,3 +7881,61 @@ The owner's brief "focused refinement of the approved TSX-MR public-site redesig
   opens without a script.
 - Links follow one system by context (`docs/74` "Consistency pass"). Legal text and contact values are unchanged.
 - Preview only, on `site-redesign`; promotion waits for the owner.
+
+## Website production promotion and the staging API preparation (2026-10-17, CLAUDE, cloud)
+
+The owner's brief of 2026-10-17: "complete the approved TSX-MR website promotion, then prepare the ERP backend for
+staging deployment". Detail: `docs/95` "Production promotion of the redesign", `docs/99`, and the handoff.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D190: the redesign is production; staging's API sits behind its own Caddy edge, DNS only
+
+- **Website.**
+  - `tsx-public-site` was fast-forwarded to the approved `de6e6ba`. Cloudflare production deployment is `ccf9d282`;
+    the rollback target is `b4737b88`.
+  - Verified live: 103/103 browser checks, headers, redirects, 404s and email DNS unchanged.
+  - D188 and D189 are now in production, not preview only.
+  - Two Cloudflare settings are left for the owner: Email Address Obfuscation off, and preview deployments None
+    (`docs/95`). The deployment is kept because the obfuscation is zone-wide, not caused by the deployment.
+- **Staging API.**
+  - `https://staging-api.tsxmr.com`, on one Linux host the owner provides, as the container stack in `erp-backend`
+    `deploy/`.
+  - Caddy terminates TLS (automatic certificate) and forwards the client as one hop (`API_INGRESS=network`).
+  - The DNS record is **DNS only**. A Cloudflare-proxied record would add a hop the rate limits and audit IPs do not
+    trust. Changing that later is a configuration change, not a toggle (`docs/99` §2).
+- **Why.** It is the least infrastructure that gives the phone a real HTTPS API: no certbot, no process manager to
+  configure, and no proxy chain to trust. It is reproducible from the repository.
+
+### ✅ IMPLEMENTED (prepared, not deployed) — D191: staging's database is `phonestore_staging` on its own MySQL server
+
+- A dedicated MySQL 8.4 inside the staging stack, on a private network with no published port. It is **never** the
+  owner's PC database or production's server.
+- The same four identities as `deploy/mysql-identities.sql` (the audit triggers check `phonestore_app` by name),
+  granted on `phonestore_staging` by `deploy/staging/grants-staging.sql`.
+- Separate migrator and app credentials:
+  - the API never sees the migrator's URL;
+  - migrations run once per deployment, as a one-off container, after a backup.
+- Production will get its own server, schema, identities and secrets, generated separately.
+- **Consequence:** `scripts/qa-boutiques.ts` (guarded to `prisma_qa*`) cannot seed staging directly. Staging accounts
+  come from the app's sign-up with outbox codes, or from a restored `prisma_qa*` copy. The guard is not relaxed.
+
+### ✅ IMPLEMENTED — D192: readiness means every migration the build carries is applied
+
+- `/api/health/ready` is true only when the database is reachable, no migration is unfinished, and **every migration
+  directory the image carries is finished** (`0c12bf2`).
+- Before this, an image whose migrations had never run reported ready.
+- Only the names are listed, never the SQL. The deployment-contract test pins that, so the snapshot never becomes
+  runtime configuration.
+- A rollback to an older image stays ready (it carries fewer names), and that is intended.
+
+### ✅ IMPLEMENTED — D193: staging's messaging stays off until rotated credentials and provider proofs exist
+
+- `EMAIL_CHANNEL=disabled` and `WHATSAPP_CHANNEL=disabled` in the staging template.
+- WhatsApp may only ever be `cloud` in **test** mode with live sends disabled, to an E.164 allowlist (preflight).
+- **The Brevo SMTP key exposed on 2026-10-17 is never reused.** The owner rotates it and supplies the new key through
+  the host's secret store. The preflight refuses SMTP without a rotation date later than 2026-10-17.
+- Until then, staging codes are read with the shell-only retrieval command:
+  - one named contact at a time;
+  - `APP_ENV=staging` only;
+  - keyed codes supported;
+  - the log masks the contact.
+

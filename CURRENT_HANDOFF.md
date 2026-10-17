@@ -1,24 +1,124 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T14:25Z
-takeover: authorised by the owner's brief "complete the approved TSX-MR website promotion, then prepare the ERP backend
-for staging deployment" (2026-10-17). The previous phase (the consistency pass, CLAUDE cloud) ended READY_FOR_HANDOFF;
-its handoff is complete.
-baseline (verified local = remote, all clean): web `site-redesign` de6e6ba (approved; CI 39039040447 green; nothing
-after it) · production `tsx-public-site` 6016b8a (Pages b4737b88) · web `main` 0417bfe · backend `reports-export`
-d0a7495 · mobile `reports-export` e6773aa · docs 8c89bc0.
-active_phase:
-1. fast-forward `tsx-public-site` 6016b8a → de6e6ba (approved), and verify production;
-2. prepare the backend for a staging host. Repository-side only: no host, no API deploy, no migration of a real
-   database, no DNS.
-environment limits: this container cannot reach tsxmr.com, *.pages.dev or public DNS (egress policy), and holds no
-Cloudflare credential. Live verification runs from a GitHub-hosted runner; Cloudflare settings stay with the owner.
-next_action: push the fast-forward; read Cloudflare's production check run; run the live verification.
-
-previous_owner: CLAUDE (cloud session), 2026-10-17T13:40Z → 2026-10-17T14:25Z. The phase is complete, and the handoff is
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE (cloud session), 2026-10-17T14:25Z → 2026-10-17T15:10Z. The phase is complete, and the handoff is
 complete.
+authorised by: the owner's brief "complete the approved TSX-MR website promotion, then prepare the ERP backend for
+staging deployment" (2026-10-17).
+next_action (the owner):
+1. Cloudflare: Email Address Obfuscation **Off**; Pages preview branch deployments **None** (`docs/95`). Then re-run
+   `verify-production`.
+2. Provide the staging host and the inputs of `docs/99` §10. Then a session runs `docs/99` §6 on that host.
+
+## Website promotion + staging API preparation (2026-10-17, CLAUDE, cloud)
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` (production) | `de6e6ba` | fast-forwarded from `6016b8a` (5 commits, normal push) |
+| `erp-control-web` | `site-redesign` | `918b0b5` | `918b0b5`: test race fix only, not deployed |
+| `erp-control-web` | `ops/verify-production` | `afc2dad` | the live verification workflow (`175e9df`, `2ef9b34`, merge `afc2dad`) |
+| `erp-control-web` | `ci-evidence` | — | production evidence under `evidence/production/` |
+| `erp-control-web` | `main` | `0417bfe` | untouched |
+| `erp-backend` | `reports-export` | `d3c11a8` | `f8761c3`, `0c12bf2`, `33723da`, `d3c11a8`; CI green on all 5 jobs |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `65ef976`; `docs/99` new; `docs/95`, `39`, `79`, `21` (D190–D193) |
+
+All working trees are clean and level with their remotes. The website checkout is back on `site-redesign`.
+
+### 1. Website production
+
+- **Deployment:** Cloudflare production `ccf9d282-a314-4868-88ec-a31f3c25a6f8` serves tsxmr.com from `de6e6ba`.
+- **Rollback target:** `b4737b88-3cc8-473f-9957-7374ce768e8f` (the previous production, `6016b8a`). Not used: there
+  was no material defect.
+- **Verified live** from a GitHub runner (runs 39040829534 and 39041151582; evidence on `ci-evidence`):
+  - TLS on apex and www;
+  - http→https and www→apex 301 with path and query, no loop;
+  - headers equal to the build, HSTS without preload;
+  - canonicals; no tracker, RUM, preview host or plain-http resource; in-app pages noindex;
+  - 404s for `/account`, `/admin` and the rest; robots, sitemap (36 URLs) and security.txt;
+  - **email DNS unchanged** (MX, SPF, DKIM, DMARC, Brevo);
+  - **browser suite 103/103 against production.**
+- **Failed:** 2 checks, byte identity (45 pages) and "no edge rewriting". The cause is Cloudflare's zone-level
+  **Email Address Obfuscation** rewriting `mailto:` links and injecting `email-decode.min.js`.
+  - Every difference decodes back to the build: the files are the audited build.
+  - It was not caused by the deployment, and a rollback would not change it.
+  - Owner action 1.
+- **Preview deployments are still ON**: no Cloudflare access from here (owner action 1). `docs/95` records the
+  discrepancy.
+- **CI:** `tsx-public-site` `de6e6ba` run 39040460157 failed 1/103 on a test race. It was fixed in `918b0b5` on
+  `site-redesign` (CI green) and the failed job on `de6e6ba` was re-run once; the result is in the GitHub run.
+  `918b0b5` changes no shipped file and goes to production with the next approved promotion.
+- Legal text, identity, contact values and product claims were **not** changed.
+
+### 2. Backend audit
+
+The facts are in `docs/99` §1: Node 22, NestJS 10.4, Prisma 5.22, **97 migrations up to `0098_messaging_records`**,
+MySQL strict mode with `log_bin_trust_function_creators`, four guarded workers with no switch, the raw-body HMAC
+webhook, receipts in `UPLOAD_DIR`, PDFs rendered on the phone, `API_INGRESS`, the exact CORS allowlist, the production
+guard, and the email and WhatsApp switches.
+
+Found and fixed, with tests:
+- readiness ignored migrations that were never applied;
+- the outbox log carried full contacts;
+- the staging code lookup could not read keyed codes;
+- CI's secret scan was red on a fixture.
+
+### 3. Staging deployment preparation (`33723da`, `d3c11a8`)
+
+- **Image:** the `Dockerfile` has runtime and tools targets. `.dockerignore` keeps secrets out.
+- **Stack:** `deploy/docker-compose.staging.yml`:
+  - MySQL 8.4 strict/UTC on an internal network, with no published port;
+  - the API, non-root, restarted on failure;
+  - Caddy, the only service publishing 80/443;
+  - one-off `migrate` (migrator identity) and `tools` (app identity) services;
+  - log rotation on every service.
+- **Scripts:** `deploy/staging/` holds the setup, preflight, migrate, deploy, rollback, backup, restore drill and
+  smoke commands.
+- **Templates:** `.env.staging.example` is complete and holds no secret; the preflight refuses it as it stands (CI
+  proves this). `.env.example` is extended. `stack.env.example` holds the stack settings.
+- **Runbook:** `docs/99`:
+  - architecture and DNS (`staging-api` A/AAAA, **DNS only** — not added);
+  - configuration and the first-deployment checklist;
+  - backup, restore and rollback;
+  - the verification plan, automated vs device/provider;
+  - owner inputs and the **host requirements sheet** (§11).
+- **Rehearsed end to end** on a local Docker host (`docs/99` §12):
+  - setup; 97 migrations; catalogue 73/73; identities 21/21 on data;
+  - smoke 12/12;
+  - sign-up with the keyed code retrieval;
+  - backup and restore drill, empty and with data;
+  - daemon restart; rollback; `deploy.sh` on the committed tree;
+  - torn down afterwards.
+- The real Dockerfile cannot be built in this container (Debian mirrors are blocked). It is built and checked by CI,
+  in the job "staging image and stack files" (green).
+
+### 4. Not done, by the brief
+
+- No host was chosen or bought, no DNS record was added, and the API is deployed nowhere.
+- No real database was migrated: not the owner's PC database, and no live one.
+- SMTP and WhatsApp were not enabled. The mobile app was not built or submitted.
+- `main` was not moved.
+
+### 5. Blockers and inputs (owner) — `docs/99` §10
+
+- The host, the DNS record, `ACME_EMAIL` and the staging `PUBLIC_SITE_ORIGIN`.
+- Custody of the MFA key and the backup passphrase, and an off-host backup location.
+- The first platform administrator.
+- **Brevo:** rotate the SMTP key exposed on 2026-10-17 and never reuse it. Supply the new key through the host's
+  secret store; email stays `disabled` until then.
+- **WhatsApp:** the Meta proofs and test numbers; `disabled` until then.
+
+### 6. Risks
+
+- Host sizing (`docs/99` §11) is an estimate, not a measurement under load.
+- A Cloudflare-proxied staging record would break the one-hop trust: keep it DNS only.
+- Rolling the code back below `0092` or `0097` is unsafe (`docs/79` §C1).
+- The staging trial's setup links have no portal to land on until one exists.
+
+---
+
+The previous records follow, unchanged.
 
 ## The public-site consistency pass (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's review
 

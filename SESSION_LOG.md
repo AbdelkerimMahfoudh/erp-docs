@@ -11984,3 +11984,76 @@ the deployed preview was not opened here. Production `tsx-public-site` is still 
 
 **Not touched:** production, Cloudflare settings and the preview restriction, DNS, email routing, backend, mobile,
 SMTP, WhatsApp.
+
+## 2026-10-17T14:25Z → 2026-10-17T15:10Z — CLAUDE (cloud) — website production promotion; staging API preparation (D190–D193)
+
+**Takeover.** The handoff was READY_FOR_HANDOFF with no owner, and every HEAD matched it, local and remote: web
+`site-redesign` de6e6ba, `tsx-public-site` 6016b8a, `main` 0417bfe, backend d0a7495, mobile e6773aa, docs 8c89bc0.
+All trees were clean, and nothing came after `de6e6ba` on the approved branch. The claim is `65ef976`.
+
+**Website promotion.**
+- `tsx-public-site` was fast-forwarded `6016b8a → de6e6ba` (5 commits) by a normal push. Cloudflare built production
+  `ccf9d282-a314-4868-88ec-a31f3c25a6f8`; the rollback target is `b4737b88-3cc8-473f-9957-7374ce768e8f`.
+- This container cannot reach tsxmr.com, so verification runs from GitHub: the `verify-production` workflow on
+  `ops/verify-production` (`175e9df`, `2ef9b34`, `afc2dad`), with evidence on `ci-evidence`.
+- Results of runs 39040829534 and 39041151582:
+  - TLS, redirects (no loop), headers equal to the build, canonicals, no trackers/RUM/preview host, 404s, sitemap 36,
+    robots and security.txt: pass;
+  - email DNS unchanged;
+  - Playwright public suite against production 103/103.
+- Two checks failed, on byte identity: Cloudflare Email Address Obfuscation rewrites `mailto:` on 45 pages.
+  - A decode-back proof shows every difference is that rewrite alone, and the setting is zone-wide.
+  - The deployment was kept, and the setting is the owner's to switch off.
+- Preview deployments are still on. There is no Cloudflare access here; both are owner actions (`docs/95`).
+- The `tsx-public-site` CI failed 1/103 (run 39040460157) on a language-switch test race. It was fixed with
+  `expect.poll` in `918b0b5` on `site-redesign` (45/45 local repeats, CI green; test only, not deployed). The failed
+  job on `de6e6ba` was re-run once.
+
+**Backend audit** (`docs/99` §1).
+- Node 22, NestJS 10.4, Prisma 5.22, 97 migrations up to `0098`.
+- Four lease-guarded workers with no switch; raw-body HMAC webhook (404 until configured); receipts on disk; PDFs on
+  the phone; one-hop `API_INGRESS`; exact CORS allowlist; production guard under `NODE_ENV=production`; email and
+  WhatsApp switches.
+- Found and fixed (`0c12bf2`):
+  - `/health/ready` reported ready with migrations never applied; it now compares the carried names (never the SQL)
+    with the finished ones;
+  - the outbox log printed full contacts; they are now masked;
+  - the staging code lookup could not read keyed (`OTP_PEPPER`) codes; it now shares `otpHash`.
+- `f8761c3`: CI's full-history secret scan had been red since `d0a7495` on the `EAAG-real-token` fixture, now
+  allowlisted.
+
+**Staging preparation** (`33723da`, `d3c11a8`).
+- Dockerfile runtime and tools targets; `.dockerignore`.
+- `deploy/docker-compose.staging.yml`: MySQL 8.4 internal-only, the API, Caddy as the only published service,
+  one-off migrate and tools services, log rotation.
+- `deploy/staging/*`: setup with generated passwords, the staging grants overlay, preflight, migrate (backup first,
+  migrator identity, catalogue, identities), deploy (committed tree, per-commit images, recorded), rollback, backup,
+  restore drill, smoke.
+- Complete `.env.staging.example` with no secret and email and WhatsApp disabled; `.env.example` extended.
+- CI job "staging image and stack files". Runbook, verification plan and host sheet: `docs/99`.
+
+**Rehearsal** (local Docker, throwaway secrets, `staging-api.localhost`):
+- MySQL strict/UTC/trust-creators; 97 migrations; catalogue 73/73; identities 16 empty, then 21 on data;
+- smoke 12/12;
+- register → outbox (masked log) → keyed code retrieval → confirm 200;
+- encrypted backup and restore drill, empty and with 2 companies (118 tables, 53 triggers, all CHECKSUMs);
+- dockerd restart survival; rollback to a previous image; `deploy.sh SKIP_BUILD=1` on the committed tree.
+
+It found two script defects, both fixed:
+- the CORS smoke check passed when the host was unreachable;
+- post-deploy commands would rebuild from the checkout (`current-images.env`).
+
+The stack was torn down (`down -v`) and the scratch secrets deleted.
+
+**Gates (backend `d3c11a8`):** `prisma validate`; `tsc`; jest 4 669 passed / 0 failed (257 suites); scan-secrets
+history and worktree clean. CI is green on all 5 jobs, including the real Dockerfile build.
+
+**Docs:** `docs/99` (new); `docs/95` (production promotion, obfuscation, previews); `docs/39` and `docs/79`
+(superseded in part); `docs/21` D190–D193; the handoff is READY_FOR_HANDOFF with owner NONE.
+
+**Not done, by the brief:**
+- no host, no DNS, no API deploy, no real database migrated;
+- no SMTP or WhatsApp enabled;
+- no app build or submission;
+- `main` not moved;
+- Cloudflare settings untouched.

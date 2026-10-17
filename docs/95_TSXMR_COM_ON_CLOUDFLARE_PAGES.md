@@ -206,3 +206,58 @@ The Cloudflare variables are in `docs/96` §6. The phones go in `VITE_ORGANIZATI
 - A production dry run found that an approved release would have failed its own bundle audit, because API code and
   preview values were in the public bundle. That is fixed in `b7b8fc2`.
 - The deployment and rollback plan is `docs/96` §11.
+
+## Production promotion of the redesign (2026-10-17, CLAUDE, cloud)
+
+The owner approved the redesign (`site-redesign` `de6e6ba`) for production.
+
+**Promotion:**
+- `tsx-public-site` was fast-forwarded `6016b8a → de6e6ba` by a normal push. It took 5 commits, `c45de29` …
+  `de6e6ba`, with no force, squash or recreation, and nothing after `de6e6ba`.
+- Cloudflare built production deployment **`ccf9d282-a314-4868-88ec-a31f3c25a6f8`**.
+- **Rollback target:** the previous production deployment, **`b4737b88-3cc8-473f-9957-7374ce768e8f`** (Cloudflare
+  dashboard → `tsxmr-public` → Deployments → that deployment → "Rollback to this deployment").
+
+**Live verification.**
+- It runs from a GitHub runner, because this container cannot reach tsxmr.com.
+- The workflow is `.github/workflows/verify-production.yml` on the `ops/verify-production` branch: the script
+  `scripts/verify-production.mjs` plus the Playwright public suite pointed at `https://tsxmr.com`.
+- Evidence is on the `ci-evidence` branch under `evidence/production/`. Runs: 39040829534, then 39041151582
+  (`afc2dad`).
+
+| Check | Result |
+| --- | --- |
+| TLS (apex and www) | valid, Google Trust Services, 90 days |
+| Redirects | http→https 301; www→apex 301 with path and query; no loop |
+| Headers | equal to the build's `_headers` (CSP, HSTS without preload, nosniff, frame, referrer, permissions, COOP) |
+| Pages | canonicals on `https://tsxmr.com`; no preview host, tracker, RUM or plain-http resource; in-app pages noindex |
+| 404 | `/account`, `/account/trial`, `/admin`, `/admin/businesses`, `/apply`, `/login`, `/application-status`, `/app-shell.html`, unknown |
+| robots, sitemap, security.txt | as built; the sitemap has 36 URLs, with no in-app or protected page |
+| Email DNS | **unchanged**: MX route1/2/3.mx.cloudflare.net; one SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`; DMARC `p=none`; DKIM `cf2024-1`; Brevo code TXT and `brevo1`/`brevo2` CNAMEs |
+| Browser suite against production | **103/103** (hamburger, EN/FR/AR, toggle and persistence, cards, reduced motion, RTL, no overflow at 320/375) |
+| Byte identity with the build | **failed on 45 pages**: see below |
+
+**The finding: Cloudflare Email Address Obfuscation (zone setting, not the deployment).**
+- Cloudflare rewrites every `mailto:` link into `/cdn-cgi/l/email-protection#…` and injects `email-decode.min.js`.
+- The verifier decoded every rewrite back. Each difference from the build is that rewrite and nothing else, so the
+  deployed files are the audited build.
+- It is not material to the design or the content, and a rollback would not change it: the setting is zone-wide, so it rewrites
+  every deployment. **The deployment was kept.**
+- It still contradicts "no third-party script beyond the build" and breaks the links without JavaScript.
+- **Owner action:** Cloudflare → tsxmr.com → Scrape Shield → **Email Address Obfuscation: Off**. Then re-run the
+  workflow (push to `ops/verify-production` or run it manually); every check should pass.
+
+**Preview deployments are still ON (open discrepancy).**
+- This document and D187 say "preview deployments: None", but `site-redesign` previews exist:
+  - one at `https://site-redesign.tsxmr-public.pages.dev`, marked noindex, with a canonical on tsxmr.com;
+  - the production alias `tsxmr-public.pages.dev`, with no robots header and a canonical on tsxmr.com.
+- The brief says to set them back to None after verification. This session has no Cloudflare access.
+- **Owner action:** Pages → `tsxmr-public` → Settings → Builds → Preview branch deployments: **None**.
+
+**Website CI:**
+- `tsx-public-site` `de6e6ba` failed once (run 39040460157, 1/103) on a test race: the language was read before
+  render.
+- Fixed in the test only, `site-redesign` `918b0b5` (CI green). That commit is not deployed and changes no shipped
+  file; it reaches production with the next approved promotion.
+- The failed job on `de6e6ba` was re-run once, to confirm.
+
