@@ -1,15 +1,18 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-previous_owner: CLAUDE (cloud session), 2026-10-17T14:25Z → 2026-10-17T15:10Z. The phase is complete, and the handoff is
-complete.
-authorised by: the owner's brief "complete the approved TSX-MR website promotion, then prepare the ERP backend for
-staging deployment" (2026-10-17).
-next_action (the owner):
-1. Cloudflare: Email Address Obfuscation **Off**; Pages preview branch deployments **None** (`docs/95`). Then re-run
-   `verify-production`.
-2. Provide the staging host and the inputs of `docs/99` §10. Then a session runs `docs/99` §6 on that host.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T15:20Z
+takeover: authorised by the owner's brief "implement a polished custom 404 page for the TSX-MR public website"
+(2026-10-17). The previous phase (website promotion + staging preparation, CLAUDE cloud) ended READY_FOR_HANDOFF;
+its handoff is complete.
+baseline (verified local = remote, all clean): web `tsx-public-site` de6e6ba (production, Pages ccf9d282; CI re-run
+39040460157 attempt 2 green) · web `site-redesign` 918b0b5 · web `main` 0417bfe · web `ops/verify-production` afc2dad ·
+backend `reports-export` d3c11a8 · mobile `reports-export` e6773aa · docs 8f94995.
+active_phase: a custom "Page not found" page for the public site (EN/FR/AR, light/dark, real HTTP 404 on Cloudflare
+Pages), on `site-redesign` only. Not promoted to production without the owner's approval of its appearance. No DNS,
+email, backend, mobile, legal-text or Cloudflare-setting change.
+next_action: inspect routing, build output, existing 404 handling and the Pages configuration.
 
 ## Website promotion + staging API preparation (2026-10-17, CLAUDE, cloud)
 
