@@ -11941,3 +11941,46 @@ Production `tsx-public-site` is still `6016b8a` (Pages `b4737b88`).
 
 **Not touched:** production branch, Cloudflare settings, DNS, email routing, RUM (still off), backend, mobile, SMTP,
 WhatsApp, Apple.
+
+## 2026-10-17T13:40Z → 2026-10-17T14:25Z — CLAUDE (cloud) — public-site consistency pass: links, phone menu, EN/FR/AR codes (D189)
+
+**Takeover.** The handoff was READY_FOR_HANDOFF with no owner, and every HEAD matched it, local and remote: web
+`site-redesign` 0b7fb52, `tsx-public-site` 6016b8a, `main` 0417bfe, backend d0a7495, mobile e6773aa, docs 2b78b60. All
+trees were clean. The claim is `bc79796`.
+
+**Audit.** A browser script read every `<a>` on the 57 built public pages (public, legal and `/in-app/`, EN/FR/AR) and
+grouped them by context and computed style: 25 families. Five still rendered as browser-default anchors:
+- tables of contents (216 links);
+- related legal pages (252, plus 42 in the legal notice and 147 in the `/in-app/` footers);
+- running-text links (54);
+- the operator telephones (24).
+
+The language controls showed full names.
+
+**Website `de6e6ba` on `site-redesign`** (one commit; detail in `docs/74` "Consistency pass"):
+- **Links:** one system by context — running text, contents rows, related-page pills, operator telephone rows, a text
+  action for links that stand alone, footer columns. Legal text and contact values are unchanged.
+- **Phone menu:** a 44 px hamburger/close button with localized names, `aria-expanded` and `aria-controls`.
+  - Escape and choosing a destination close it and return focus; an outside press or Tab out closes it.
+  - Hidden links take no focus.
+  - The native `<details>` is kept before hydration, so the existing no-JS test still passes.
+- **Languages:** EN/FR/AR wherever chosen, with the full names as accessible names (D189).
+
+**Verification** (working tree = `de6e6ba`, run twice: before and after the last CSS change):
+- `npm ci`, typecheck, vitest 468/468 (27 files, 16 new) and both production refusals.
+- Full preview: Playwright 126/126, links 3 400/0, bundle PASS.
+- Public preview: Playwright 103/103 (12 new), links 2 753/0, bundle PASS. Also run with both numbers: 103/103.
+- `build:public-release` with the production variables: links 2 831/0, `--public` PASS, 0 test values; Playwright
+  103/103 on that dist; PUBLIC_WEBSITE GO (PORTAL 25, APP_STORE 21 NO-GO, unchanged).
+- gitleaks clean on history, src and dists.
+- Served-build checks: `_headers` and robots unchanged; sitemap 36; canonical correct; `/account`, `/admin`,
+  `/apply`, `/login` 404; no analytics. The re-run link audit leaves only running-text links underlined, as designed.
+- CI run 39039040447 green on `de6e6ba` (468 + 126 + 103); evidence `bb8f668`.
+
+**Deployment.** Cloudflare's check run on `de6e6ba` reports preview deployment
+`33188307-02ee-4ba0-a006-55624372c3be` (https://33188307.tsxmr-public.pages.dev and
+https://site-redesign.tsxmr-public.pages.dev). The container's egress proxy refuses `*.pages.dev` and tsxmr.com, so
+the deployed preview was not opened here. Production `tsx-public-site` is still `6016b8a`.
+
+**Not touched:** production, Cloudflare settings and the preview restriction, DNS, email routing, backend, mobile,
+SMTP, WhatsApp.

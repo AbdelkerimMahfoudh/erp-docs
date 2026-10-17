@@ -1,23 +1,58 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T13:40Z
-takeover: authorised by the owner's brief "finish the visual consistency work on the TSX-MR website" (2026-10-17). The
-previous phase (the refinement, CLAUDE cloud, 11:55Z → 12:50Z) ended READY_FOR_HANDOFF; its handoff is complete.
-baseline (verified local = remote, all clean): web `site-redesign` 0b7fb52 · production `tsx-public-site` 6016b8a
-(untouched) · web `main` 0417bfe · backend `reports-export` d0a7495 · mobile `reports-export` e6773aa · docs 2b78b60.
-active_phase: on `site-redesign` in erp-control-web only:
-1. one link system across every public and `/in-app/` page (tables of contents, contact and operator details, prose,
-   navigation, footer);
-2. a hamburger/close icon button for the mobile menu;
-3. EN/FR/AR language labels with full names kept for assistive technology.
-Then the gates, a push to `site-redesign` (preview only), evidence, docs.
-not authorised: production promotion, Cloudflare settings, DNS, email, backend, mobile, SMTP, WhatsApp.
-next_action: audit every link family in the built public site; implement; run the gates.
-
-previous_owner: CLAUDE (cloud session), 2026-10-17T11:55Z → 2026-10-17T12:50Z. The phase is complete, and the handoff is
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE (cloud session), 2026-10-17T13:40Z → 2026-10-17T14:25Z. The phase is complete, and the handoff is
 complete.
+
+## The public-site consistency pass (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's review
+
+| Repository | Branch | HEAD |
+| --- | --- | --- |
+| `erp-control-web` | `site-redesign` (preview only; **not merged**) | `de6e6ba` (from `0b7fb52`). CI run 39039040447 green; evidence `bb8f668` |
+| `erp-control-web` | `tsx-public-site` (production) | `6016b8a`, **untouched** (Pages `b4737b88` still serves tsxmr.com) |
+| `erp-backend` | `reports-export` | `d0a7495` (untouched) |
+| `erp-mobile` | `reports-export` | `e6773aa` (untouched) |
+| `erp-docs` | `master` | the commit carrying this file (claim `bc79796`) |
+
+**Changed (website `de6e6ba`, one commit).** Detail is in `docs/74` "Consistency pass" and D189.
+- Files: `src/components/Chrome.tsx`, `src/components/public/{blocks,icons}.tsx`, `src/pages/public/Legal.tsx`,
+  `src/i18n/{languages.ts,index.tsx,en.ts,fr.ts,ar.ts}`, `src/theme/{public,tokens}.css`, `e2e/{public-site,site}.spec.ts`,
+  and the new `test/site-navigation.test.tsx`.
+- **Links:** one system by context — running text, contents rows, related-page pills, operator telephone rows, a text
+  action, footer columns.
+- **Phone menu:** a hamburger/close icon button. It is still a native disclosure before the script runs.
+- **Languages:** EN/FR/AR with the full names as accessible names.
+- No dependency, CSP, route, SEO or content change.
+
+**Verified.**
+- vitest 468/468. Full preview: Playwright 126/126. Public preview: 103/103, also with both numbers.
+- Production-variable `build:public-release`: PASS, 2 831 links, 0 broken, 0 test values; Playwright 103/103 on it;
+  PUBLIC_WEBSITE GO.
+- gitleaks clean; headers, robots, sitemap and canonical unchanged; `/account` and `/admin` 404.
+- CI green on `de6e6ba`.
+
+**Deployment.**
+- Cloudflare preview deployment `33188307-02ee-4ba0-a006-55624372c3be`.
+- URLs: https://33188307.tsxmr-public.pages.dev and https://site-redesign.tsxmr-public.pages.dev. The source is
+  Cloudflare's GitHub check run on `de6e6ba`.
+- This container cannot reach `*.pages.dev` or tsxmr.com, so the deployed preview was not opened here.
+
+**Known discrepancy, still open.** `docs/95` and D187 still say "preview deployments: None" while `site-redesign`
+previews are on. This is to be recorded once the owner decides whether previews stay on.
+
+**Next exact action (the owner).**
+1. Review https://site-redesign.tsxmr-public.pages.dev: the legal pages' contents and links, the phone menu at 320–375
+   px, EN/FR/AR, light and dark.
+2. Approve or reject promotion.
+   - On approval, the next session fast-forwards `tsx-public-site` to `site-redesign`, normal push, no force. Before
+     that, run the full gates on that head and confirm CI.
+   - Then verify tsxmr.com.
+   Do **not** promote without that approval.
+
+---
+
+The previous records follow, unchanged.
 
 ## The public-site redesign refinement (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's decision
 

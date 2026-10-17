@@ -7871,3 +7871,13 @@ The owner's brief "focused refinement of the approved TSX-MR public-site redesig
 - Contact methods are cards that are the links, and every principal card family shares one elevation and motion system.
   Neither invents a fact: the addresses and numbers are unchanged, and no telephone purpose or WhatsApp label is added.
 - Preview only, on `site-redesign`. Promotion to `tsx-public-site` waits for the owner's explicit approval.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (preview) — D189: language controls show EN, FR, AR; the phone menu is an icon
+
+- Every language control on the website shows the short code (EN, FR, AR) and keeps the full name (English, Français,
+  العربية) as its accessible name. Flags are never used: a flag is a country, not a language. Content about the
+  languages, such as the home page's three-languages cards, keeps the full names.
+- The phone menu is a hamburger/close icon button with a localized name, replacing the visible word "Menu". It still
+  opens without a script.
+- Links follow one system by context (`docs/74` "Consistency pass"). Legal text and contact values are unchanged.
+- Preview only, on `site-redesign`; promotion waits for the owner.

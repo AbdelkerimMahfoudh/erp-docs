@@ -502,3 +502,52 @@ Production is unchanged.
   - `e2e/public-site.spec.ts` gains 3 browser tests per language: contact cards at 320/375/1280; the toggle by
     keyboard and click, persisting across navigation and reload; the Launch cards at rest, on hover and under reduced
     motion.
+
+### Consistency pass: links, phone menu, language codes (2026-10-17, CLAUDE, cloud)
+
+The owner's brief "finish the visual consistency work". `site-redesign` only; production unchanged.
+
+- **One link system, by context** (`theme/public.css`, "Links, by context"). An audit of all 57 built pages (public,
+  legal and `/in-app/`, EN/FR/AR) found 25 link families; five still rendered as browser-default anchors. Each now has
+  a treatment:
+  - **Running text** (`p`, `li`, `dd` without a class): the brand colour with a set 1 px underline (`--link-line`),
+    which thickens and darkens on hover and focus. Long addresses wrap.
+  - **Tables of contents** (`.toc-link`): rows of at least 44 px, with the section number in a marker. Long titles
+    wrap beside their marker. Hover and keyboard focus share a tint, and Arabic puts the marker on the right.
+    - The anchors and the `ol` are kept (`role="list"`, since Safari drops the role when bullets are removed), and the
+      marker is `aria-hidden`.
+    - The jump is instant, not smooth, so nothing moves for reduced motion. `scroll-padding-top` lands each heading
+      below the sticky header, and a test verifies it.
+  - **Related pages** (`.related-link`, the legal pages' footer, the legal notice's policies and the `/in-app/`
+    footer): compact pills. The page the reader is on is marked `aria-current="page"` and drawn quiet.
+  - **Operator telephones** (`.org-phone`): compact contact rows in the contact cards' family — a call icon and the
+    number. The values and `tel:` links are unchanged, and each is named "Call +222 …". The operator rows gain
+    hairline separators.
+  - **A link standing alone under a section** (Support's "Account deletion" and "Reporting a security problem"):
+    a text action (`.text-action`) in the brand colour with an arrow that steps forward on hover. The step follows
+    `--nudge`, so it is off under reduced motion.
+  - **Footer columns:** a slightly larger hit area and an offset underline on hover and focus.
+  - Contact cards, buttons and header navigation are unchanged.
+- **Phone menu** (`PhoneMenu`, `components/Chrome.tsx`): a 44 px icon button, showing three lines when closed and a
+  cross when open, with no visible word.
+  - The prerendered page carries a native `<details>` disclosure, so the menu still opens without a script (the
+    existing no-JS browser test).
+  - Once the script runs, it becomes a `<button>` with `aria-expanded`, `aria-controls="site-menu"` and a localized
+    name ("Open menu"/"Close menu", EN/FR/AR). The panel is `hidden` while closed, so its links take no focus.
+  - Escape closes it and returns focus to the button, as does choosing a destination. A press outside it, or Tab past
+    its last link, closes it where the reader is.
+  - It is a disclosure, not a modal, so it traps no focus. A short screen scrolls the panel, not the page.
+- **Language controls** (D189): EN, FR and AR everywhere a language is chosen — the header, the phone menu (a
+  segmented row of three 44 px cells), the `/in-app/` header and the protected areas' switch.
+  - Each keeps its full name (English, Français, العربية) as its accessible name, in its own `lang`.
+  - Current-page switching, the stored choice, the current mark, `lang`/`dir` and the theme are unchanged.
+  - No flags.
+- **Tests:**
+  - `test/site-navigation.test.tsx` (16): the menu's states, names, Escape and focus return, destination and outside
+    press; the codes and names in all three languages; the language and theme kept; `/in-app/` codes without a menu; the
+    contents against the sections; the current related page; the operator telephones' exact values.
+  - `e2e/public-site.spec.ts`, four per language:
+    - the phone menu at 320 and 375 px by keyboard;
+    - a language chosen from the menu keeps the page and dark mode across a reload;
+    - no link on any public or `/in-app/` page keeps the browser's default style;
+    - contents rows of at least 44 px land every section below the header at 375 and 1280 px.
