@@ -1,7 +1,15 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-17T08:32Z
+active_phase: the tsxmr.com redesign — the owner's brief of 2026-10-17: implement the approved dark Dukan ERP direction in
+erp-control-web on every public page (EN/FR/AR, RTL), verify through the repository's gates, preview, then promote.
+scope: erp-control-web only, on a new branch from tsx-public-site 6016b8a; production stays on 6016b8a (Pages deployment
+b4737b88, the rollback point) until the promotion step. erp-docs for the record. Backend, mobile, DNS, email, SMTP,
+WhatsApp, Meta, App Store: untouched.
+baseline: web tsx-public-site 6016b8a · backend reports-export d0a7495 · mobile reports-export e6773aa · docs deef5d5.
+next_action: read the site's chrome, styles, routes and gates; build the design tokens and components; then the pages.
 
 **The public website is LIVE at https://tsxmr.com (2026-10-17).** Every repository is clean and level with its remote.
 
