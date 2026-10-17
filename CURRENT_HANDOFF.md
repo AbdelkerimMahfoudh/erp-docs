@@ -1,7 +1,22 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-17T14:25Z
+takeover: authorised by the owner's brief "complete the approved TSX-MR website promotion, then prepare the ERP backend
+for staging deployment" (2026-10-17). The previous phase (the consistency pass, CLAUDE cloud) ended READY_FOR_HANDOFF;
+its handoff is complete.
+baseline (verified local = remote, all clean): web `site-redesign` de6e6ba (approved; CI 39039040447 green; nothing
+after it) · production `tsx-public-site` 6016b8a (Pages b4737b88) · web `main` 0417bfe · backend `reports-export`
+d0a7495 · mobile `reports-export` e6773aa · docs 8c89bc0.
+active_phase:
+1. fast-forward `tsx-public-site` 6016b8a → de6e6ba (approved), and verify production;
+2. prepare the backend for a staging host. Repository-side only: no host, no API deploy, no migration of a real
+   database, no DNS.
+environment limits: this container cannot reach tsxmr.com, *.pages.dev or public DNS (egress policy), and holds no
+Cloudflare credential. Live verification runs from a GitHub-hosted runner; Cloudflare settings stay with the owner.
+next_action: push the fast-forward; read Cloudflare's production check run; run the live verification.
+
 previous_owner: CLAUDE (cloud session), 2026-10-17T13:40Z → 2026-10-17T14:25Z. The phase is complete, and the handoff is
 complete.
 
