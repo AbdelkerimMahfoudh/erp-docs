@@ -395,3 +395,5 @@ Not done, in order:
    320/375/393/768/1280/1600 x EN/FR/AR x light/dark x reduced motion, fix, repeat.
 4. Owner decision: enable a Pages preview for site-redesign (plus Preview env vars) or approve promotion by fast-forwarding
    tsx-public-site; verify production; keep b4737b88 as rollback. Then docs/21, session log, READY_FOR_HANDOFF / NONE.
+
+Update (same session, minutes later): the one tsc error (ProductVisual.tsx, row.imei on a union) is fixed; npx tsc --noEmit now passes on the uncommitted site-redesign state. public.css and everything after it remain to do.
