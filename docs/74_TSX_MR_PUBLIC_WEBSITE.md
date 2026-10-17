@@ -427,3 +427,34 @@ business-account or console code. The business account later goes to its own ori
 
 The settings, the variables, the domain steps, the www → apex redirect and the blockers are in **`docs/95`**. Nothing is
 deployed, and `tsx-public-site` stays unmerged until the owner approves.
+
+## Redesign (2026-10-17)
+
+The owner approved the dark "Dukan ERP" direction (navy hero, the product drawn as a phone, purple for what can be
+acted on, amber only as a highlight) and asked for it to be written into the real public site. Branch `site-redesign`
+(from `tsx-public-site` `6016b8a`); production stays on `6016b8a` (Pages deployment `b4737b88`) until promotion.
+
+**Design system** (all in `src/theme/`; every colour a token in `tokens.css`, each with a dark counterpart):
+- Type: Bricolage Grotesque (display, Latin), IBM Plex Sans (text), IBM Plex Sans Arabic (Arabic headings and text),
+  self-hosted in `public/fonts/` (woff2, OFL, `LICENSE.txt`), `font-display: swap`, two preloads; `/fonts/*` cached as
+  immutable. No third-party font call; the CSP is unchanged (`font-src 'self'`).
+- Surfaces: full-width bands in three tones — navy (`--ink`, hero, "how it works", call to action, page intros),
+  white and tinted — with their content constrained to 1088 px (text pages 80ch). Navy header (segmented language
+  control, amber underline on the current page, the phone menu as a navy panel) and navy footer. One card, one radius
+  scale (10/14/20/28), one shadow scale.
+- Components: `Band`, `SectionHead`, `PageIntro` (navy band; plain and light inside `/in-app/`), `Icon` (inline SVG
+  set, `components/public/icons.tsx`), `ProductVisual` (the phone and two cards in markup — demo values labelled as
+  such, no currency, no provider, `aria-hidden`; on phones the cards follow the phone instead of covering it).
+- Motion (`lib/reveal.ts`, `public.css`): one hero entrance; sections rise as they are reached, by position only —
+  no text ever fades, so contrast holds at every instant (the first CI run caught axe measuring text mid-fade) — and
+  only once a script runs (`html.js`); everything is shown after 700 ms whatever the observer
+  saw, so background tabs and screenshot tools see the whole page; bars grow once, the scan line passes twice; nothing
+  loops; all of it is off under `prefers-reduced-motion`. No animation dependency.
+
+**Pages:** the home page follows the brief's ten steps (hero and the three proofs in one row at desktop width; what it
+replaces; six capabilities as a bento; the two activities; how it works; screen previews; three languages; trust,
+privacy and support; one call to action). The Dukan ERP page carries the same hero visual; Products lists the six
+capabilities; About gains "The publisher and the product" (TSX-MR publishes and operates; Dukan ERP is the software —
+no claim of a company). Legal texts, URLs, versions and the effective date are unchanged; only their typography moved.
+The pre-launch wording (docs/96) is kept: the coming-soon badge on the home, Dukan ERP and Products pages, no price, no
+trial claim, no account link.

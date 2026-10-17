@@ -397,3 +397,12 @@ Not done, in order:
    tsx-public-site; verify production; keep b4737b88 as rollback. Then docs/21, session log, READY_FOR_HANDOFF / NONE.
 
 Update (same session, minutes later): the one tsc error (ProductVisual.tsx, row.imei on a union) is fixed; npx tsc --noEmit now passes on the uncommitted site-redesign state. public.css and everything after it remain to do.
+
+## Checkpoint 2026-10-17 — redesign implemented and green in CI (CLAUDE)
+
+erp-control-web `site-redesign` = f719617 (c45de29, 8df952d, f719617), pushed; fast-forward of tsx-public-site 6016b8a.
+CI run 39027574766 success: typecheck; Vitest 25 files / 440 tests; Playwright 126 (full) + 82 (public surface);
+links 58 pages / 2753 checked / 0 broken; bundle audit PASS; gitleaks history + dist no leaks. Local review of the CI
+dist-public: 28 captures (320/375/393/768/1280/1600, EN/FR/AR, light/dark, reduced motion), no overflow, one h1, no
+console error, no foreign request, axe 0 violations at load (light/dark, 375/1280). Production untouched: still
+6016b8a / Pages deployment b4737b88 (rollback point). Next: owner's choice of Cloudflare preview vs direct promotion.
