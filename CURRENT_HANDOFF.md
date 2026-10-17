@@ -5,10 +5,25 @@ own status:
 
 | Phase | Repositories | Status | Owner |
 | --- | --- | --- | --- |
-| The public website (cloud session) | `erp-control-web` (+ its erp-docs entries) | **READY_FOR_HANDOFF** | **NONE** |
+| Website production preparation: address, legal texts, portal individual mode (cloud session) | `erp-control-web` (+ its erp-docs entries) | **IN_PROGRESS** | CLAUDE (cloud) |
 | Brevo SMTP + WhatsApp Cloud API (local session, the owner's PC) | `erp-backend` (+ its erp-docs entries) | IN_PROGRESS (see its section below) | CLAUDE (local) |
 
-**Do not take `erp-backend` while the local phase is IN_PROGRESS.** `erp-control-web` and `erp-mobile` are free.
+**Do not take `erp-backend` while the local phase is IN_PROGRESS, or `erp-control-web` while the cloud phase is.**
+`erp-mobile` is free.
+
+**Cloud phase, claimed 2026-10-17T04:56Z** (the owner's brief "Final Legal, Identity, Portal and Website Production
+Preparation"):
+
+- **Status:** IN_PROGRESS. **Owner:** CLAUDE (cloud session). **started_at_utc:** 2026-10-17T04:56Z.
+- **Previous:** the public website phase, READY_FOR_HANDOFF / NONE, complete.
+- **HEADs at takeover:** backend `1ed6b00`, mobile `e6773aa`, website `tsx-public-site` `0516a9c`, docs `2fb3b91`.
+- **Scope:**
+  - `erp-control-web`: the correspondence address; the six legal texts revised (approval flags stay draft); an
+    individual-operator mode for the PORTAL gate and the portal copy; verification.
+  - erp-docs: `docs/95`, `docs/96`, `docs/97`, this file, the session log and the decisions.
+  - **`erp-backend` is not touched** (the local phase owns it); it is read only, for contracts.
+  - No merge, deploy, Cloudflare, SMTP or WhatsApp change.
+- **Next intended action:** read the portal's identity and billing assumptions, then the address configuration.
 
 Public website phase: previous_owner CLAUDE (cloud session), 2026-10-17T03:55Z → 2026-10-17T04:55Z, complete. The
 owner asked for a single `CLAUDE` identity from now on (no CLAUDE-A / CLAUDE-B).
