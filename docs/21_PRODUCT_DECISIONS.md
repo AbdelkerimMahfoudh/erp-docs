@@ -7939,3 +7939,23 @@ staging deployment". Detail: `docs/95` "Production promotion of the redesign", `
   - keyed codes supported;
   - the log masks the contact.
 
+
+## The public site's "Page not found" (2026-10-17, CLAUDE, cloud)
+
+The owner's brief of 2026-10-17. Website `erp-control-web` `site-redesign` `397ec6b`, preview only. Detail: `docs/74`
+"Page not found".
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (preview) — D194: an unknown address is a real 404, in its own language, never a redirect
+
+- **Status.** Every address the site has no page for answers with an HTTP **404**: the host's nearest `404.html`, one
+  per language directory (`/`, `/fr/`, `/ar/`).
+- **No redirect.** Unknown addresses are never redirected to the home page, and never turned into a 200 by a
+  single-page-app fallback. `/account` and `/admin` stay unknown on the public site.
+- **The app's pages.** Under `/in-app/` (every language), an unknown address keeps the app's frame: the help and legal
+  pages only, nothing that leads to buying.
+- **What the page offers.** The page is in the approved design. It has one heading, "Back to home", "Contact us" and
+  the most-asked pages, in EN/FR/AR, light/dark and RTL.
+- **Indexing and content.** It is never indexed, never in the sitemap, and shows nothing from the address.
+- **Language links.** On a 404 they lead to each language's home page. A stored language never moves a reader off an
+  unknown address.
+- **Status.** Preview only. Promotion to `tsx-public-site` waits for the owner's approval of its appearance.

@@ -1,18 +1,78 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-17T15:20Z
-takeover: authorised by the owner's brief "implement a polished custom 404 page for the TSX-MR public website"
-(2026-10-17). The previous phase (website promotion + staging preparation, CLAUDE cloud) ended READY_FOR_HANDOFF;
-its handoff is complete.
-baseline (verified local = remote, all clean): web `tsx-public-site` de6e6ba (production, Pages ccf9d282; CI re-run
-39040460157 attempt 2 green) · web `site-redesign` 918b0b5 · web `main` 0417bfe · web `ops/verify-production` afc2dad ·
-backend `reports-export` d3c11a8 · mobile `reports-export` e6773aa · docs 8f94995.
-active_phase: a custom "Page not found" page for the public site (EN/FR/AR, light/dark, real HTTP 404 on Cloudflare
-Pages), on `site-redesign` only. Not promoted to production without the owner's approval of its appearance. No DNS,
-email, backend, mobile, legal-text or Cloudflare-setting change.
-next_action: inspect routing, build output, existing 404 handling and the Pages configuration.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+previous_owner: CLAUDE (cloud session), 2026-10-17T15:39Z → 2026-10-17T16:40Z. The phase is complete, and the handoff is
+complete. (The claim `58d315d` wrote `started_at_utc: 15:20Z`; the true time was 15:39Z.)
+authorised by: the owner's brief "implement a polished custom 404 page for the TSX-MR public website" (2026-10-17).
+next_action (the owner):
+1. Review the page on the preview: https://site-redesign.tsxmr-public.pages.dev/any-missing-page (and `/fr/…`,
+   `/ar/…`, `/in-app/…`), in light and dark, on a phone. Approve or reject its appearance.
+2. On approval, a session fast-forwards `tsx-public-site` `de6e6ba` → `site-redesign` (`397ec6b` or later), normal push,
+   after the full gates and green CI on that head. Then run `verify-not-found` against https://tsxmr.com (Actions →
+   verify-not-found → Run workflow → origin), and merge `site-redesign` into `ops/verify-production` so its copy of the
+   browser suite gains the 404 checks. Do **not** merge it there before the promotion: that suite also runs against
+   production, which does not have the page yet.
+3. Still open from before: Cloudflare Email Address Obfuscation **Off**; staging host inputs (`docs/99` §10).
+   Preview deployments: still on. The 404 preview depends on them; switch them to None only after the review.
+
+## The public site's custom "Page not found" (2026-10-17, CLAUDE, cloud): a preview awaiting the owner's approval
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-control-web` | `site-redesign` (preview only; **not promoted**) | `397ec6b` | the page, one commit on `918b0b5` |
+| `erp-control-web` | `tsx-public-site` (production) | `de6e6ba` | **untouched**; Pages `ccf9d282` still serves tsxmr.com |
+| `erp-control-web` | `ops/verify-production` | `a86b26e` | the `verify-not-found` workflow and script |
+| `erp-control-web` | `main` | `0417bfe` | untouched |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `58d315d`; `docs/74`, `docs/21` D194, session log |
+
+All working trees are clean and level with their remotes. The website checkout is on `site-redesign`.
+
+**Implementation** (detail in `docs/74` "Page not found", D194).
+- `src/pages/public/NotFound.tsx` (new):
+  - the navy band with "Error 404", one heading, one sentence, "Back to home" and "Contact us";
+  - a typographic 404 in inline SVG (purple ring, amber point, aria-hidden);
+  - a row of the most-asked pages.
+- Under `/in-app/` it keeps the app's frame: help and legal pages only.
+- Six prerendered `404.html` files: `/`, `/fr/`, `/ar/`, plus `in-app/` in each. Each has its own lang/dir, title,
+  noindex, no canonical, and is not in the sitemap.
+- Cloudflare serves the nearest one with a **404** status. There is no rewrite and no redirect.
+- The router shows the same page after a link inside the site, and the head is reset to noindex.
+- On a 404, the language links lead to each language's home page. A stored language never redirects a 404.
+- Theme preference is kept. Nothing from the address is shown back.
+- Changed:
+  - `src/app.tsx`, `src/components/Chrome.tsx`, `src/site/{routes,head}.ts`;
+  - `src/i18n/{en,fr,ar}.ts`, `src/theme/public.css`, `src/pages/public/Legal.tsx` (old NotFound removed);
+  - `scripts/{prerender,serve-dist}.mjs`;
+  - `e2e/public-site.spec.ts`, `test/not-found.test.tsx` (new), `test/public-pages.test.tsx`.
+
+**Verified.**
+- Local, production-variable `build:public-release`:
+  - vitest 483/483; public Playwright 127/127 (24 new); full-site suite 126/126;
+  - links 2,982/0 broken; bundle PASS; PUBLIC_WEBSITE GO.
+- HTTP status matrix on the local Cloudflare emulation:
+  - every unknown root, deep, FR, AR, `/account`, `/admin` → 404 in its language;
+  - `/in-app/*` → 404 in the app's frame;
+  - known pages → 200.
+- A 36-case browser probe found no overflow at 320 px, no failed file and no hydration error.
+- **On Cloudflare itself:**
+  - preview deployment `d5a0d716-5bf0-497c-acc2-4cdb52017435`, checked from GitHub (`verify-not-found` run
+    39047362786): **25/25**, the same as locally;
+  - evidence on `ci-evidence` `evidence/not-found/`.
+- CI on `397ec6b` (run 39047253429): in progress when this file was written. Every step through the full-site
+  browser suite had passed; the public browser suite was running. Read the final result on the commit's checks.
+
+**Known, by the host's design.** `/404`, the error page's own address, answers 200 (the file exists). It is noindex and
+linked from nowhere.
+
+**Not done, by the brief:** no promotion to production; no change to Cloudflare settings, DNS, email, backend, mobile
+or legal text.
+
+---
+
+The previous records follow, unchanged.
 
 ## Website promotion + staging API preparation (2026-10-17, CLAUDE, cloud)
 

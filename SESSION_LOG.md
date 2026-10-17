@@ -12057,3 +12057,49 @@ history and worktree clean. CI is green on all 5 jobs, including the real Docker
 - no app build or submission;
 - `main` not moved;
 - Cloudflare settings untouched.
+
+## 2026-10-17T15:39Z → 2026-10-17T16:40Z — CLAUDE (cloud) — the public site's custom "Page not found" (D194, preview)
+
+**Takeover.** The handoff was READY_FOR_HANDOFF with no owner, and every HEAD matched it, local and remote: web
+`tsx-public-site` de6e6ba, `site-redesign` 918b0b5, `main` 0417bfe, `ops/verify-production` afc2dad; backend d3c11a8;
+mobile e6773aa; docs 8f94995. The re-run of the production commit's CI (39040460157, attempt 2) was green. The claim
+is `58d315d`; its `started_at_utc` says 15:20Z, but the true time was 15:39Z.
+
+**Inspected.**
+- A plain English `404.html` already existed. The host (Cloudflare Pages) serves the nearest `404.html` with a 404,
+  and the public build has no rewrite.
+- The language links on an unknown page already lead to each language's home.
+- An unknown `/in-app/` address fell through to the full public frame (fixed).
+- The local server knew only the top-level `404.html` (fixed).
+
+**Website `397ec6b` on `site-redesign`** (one commit; detail in `docs/74` "Page not found"):
+- `NotFound.tsx` is the navy band:
+  - "Error 404" label, one heading, one sentence, "Back to home" and "Contact us";
+  - a typographic 404: two fours around a purple ring with one amber point, inline SVG, aria-hidden;
+  - a row of the most-asked pages below.
+- The in-app variant keeps the app's frame.
+- Six prerendered 404 files: `/`, `/fr/`, `/ar/`, each with an `in-app/` copy.
+- The client head is reset to noindex after a link inside the site.
+- `isInAppPath` decides the frame, and `serve-dist` uses the host's nearest-404 rule.
+- EN/FR/AR copy. "Go to the home page" became "Back to home". No legal text changed.
+
+**Verified locally** (production-variable `build:public-release`):
+- typecheck clean; vitest 483/483, 15 of them new;
+- public Playwright 127/127, 24 of them new, with axe; full-site suite 126/126;
+- links 2,982/0 broken, bundle audit PASS, PUBLIC_WEBSITE GO, and the production build still refuses without its
+  inputs;
+- status matrix: unknown root, deep, FR, AR and Arabic-script addresses, `/account*`, `/admin*` → 404 in their
+  language; `/in-app/*` in three languages → 404 in the app's frame; known pages → 200; the query is not shown back;
+- browser probe of 36 cases (light/dark × 320/desktop): one h1, 0 overflow, no failed file, no hydration error;
+- interaction checks: client navigation (noindex, canonical and alternates removed), back home, contact, language
+  switch to home with one navigation, a stored language does not redirect a 404, theme carried over, keyboard focus
+  3 px, phone menu, 44–51 px targets.
+
+**Verified on Cloudflare.**
+- Preview deployment `d5a0d716-5bf0-497c-acc2-4cdb52017435` (https://site-redesign.tsxmr-public.pages.dev), checked
+  from GitHub by the new `verify-not-found` workflow (`ops/verify-production` `a86b26e`, run 39047362786).
+- Result: 25/25 passed, and the three recorded-only rows match the local build (`/404` → 200 by the host's design).
+- Evidence is on `ci-evidence` under `evidence/not-found/`.
+
+**Not touched:** production (`tsx-public-site` de6e6ba), Cloudflare settings (preview deployments remain on — the
+preview above depends on them), DNS, email, backend, mobile, legal text.

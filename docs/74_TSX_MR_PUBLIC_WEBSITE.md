@@ -551,3 +551,85 @@ The owner's brief "finish the visual consistency work". `site-redesign` only; pr
     - a language chosen from the menu keeps the page and dark mode across a reload;
     - no link on any public or `/in-app/` page keeps the browser's default style;
     - contents rows of at least 44 px land every section below the header at 375 and 1280 px.
+
+### Page not found (2026-10-17, CLAUDE, cloud) — preview, awaiting the owner
+
+The owner's brief of 2026-10-17 asked for a custom "Page not found" page in the approved design, served as a real HTTP 404.
+Website `site-redesign` `397ec6b`, preview only. Production (`tsx-public-site` `de6e6ba`) is unchanged. Decision: D194.
+
+**Routing.** Cloudflare Pages answers an address it has no file for with a **404 status** and the **nearest `404.html`**
+up the address's directories (`/fr/a/b` → `fr/404.html`, then `404.html`). Because a top-level `404.html` exists, the
+host never falls back to a single-page-app 200. No rewrite and no redirect are involved, and `_redirects` is
+unchanged (empty in the public build).
+
+- **The prerenderer writes six files.**
+  - `404.html`, `fr/404.html` and `ar/404.html`: the page in that language, with the site's header, phone menu,
+    EN/FR/AR codes, theme toggle and footer.
+  - `in-app/404.html`, `fr/in-app/404.html` and `ar/in-app/404.html`: the app's frame. These show only the help and
+    legal pages; the one action is the in-app Support page, and there is no home, product or contact link.
+  - Each file has its own `lang`/`dir`, a localized `<title>`, `noindex, nofollow` and no canonical. Assets are
+    referenced from the root (`/assets/…`), so they load at any depth. None is in the sitemap.
+- **The router.** The router renders the same page wherever a file is missing, whether the browser hydrates a 404
+  file or follows a link inside the site. On a link inside the site, the head is reset (`applyNotFoundHead`): the
+  previous page's canonical, alternates and description are removed, and robots is set to noindex.
+- **Status codes.** The status comes only from the host; the router cannot set one. A direct request gets the host's
+  404. A link inside the site never makes a request.
+- **Frame for `/in-app/` addresses.** `isInAppPath` decides when an address under `/in-app/` (any language, trailing
+  slash included) gets the app's frame. It matches the host's directory rule, so the hydrated page and the served file
+  agree.
+- **Language links.** On a 404, the language links lead to each language's home page. They never lead to another
+  404, and they never redirect. A stored language choice never moves a reader off an unknown address
+  (`PreferredLanguage` only acts on known pages).
+- **Nothing is echoed.** The page shows nothing from the address or the query.
+
+**Design.**
+- The navy band shows an amber "Error 404" label, one heading, one sentence of explanation, and two buttons:
+  "Back to home" (primary) and "Contact us" (secondary).
+- A typographic 404 sits beside the text, or above it on a phone. The two fours are set around a purple ring with
+  one amber point, drawn as inline SVG and hidden from assistive technology.
+- Below the band, a row of pills offers the most-asked pages: Dukan ERP, Support, Privacy, Terms.
+- Light and dark, RTL, reduced motion and 44 px targets are covered. There are no images, fonts or dependencies of
+  its own.
+
+**Copy (EN/FR/AR).** These keys are new or changed: `notFound.eyebrow`, `title`, `body`, `home`, `contact`,
+`suggestions`, `inApp.body` and `inApp.support`. "Go to the home page" became "Back to home". No legal text changed.
+
+**Files.**
+- New: `src/pages/public/NotFound.tsx` (it replaces the old `NotFound` in `Legal.tsx`) and `test/not-found.test.tsx`.
+- Changed: `src/app.tsx` and `src/components/Chrome.tsx` (`InAppChrome` no longer needs a page id).
+- Changed: `src/site/{routes,head}.ts`, `src/i18n/{en,fr,ar}.ts` and `src/theme/public.css`.
+- Changed: `scripts/prerender.mjs` and `scripts/serve-dist.mjs`. The local server now uses the same nearest-404 rule,
+  which is local emulation only and not proof of what the host does.
+- Changed: `e2e/public-site.spec.ts` and `test/public-pages.test.tsx` (the Arabic label).
+
+**Verified locally** (production-variable `build:public-release`, served by `serve-dist`).
+- Gates:
+  - typecheck clean; vitest 483/483, 15 of them new;
+  - public Playwright 127/127, 24 of them new: status, language, files at depth, axe, 320 px, client navigation,
+    language switch, stored language, theme;
+  - full-site preview suite 126/126.
+- Links 2,982 checked, 0 broken; bundle audit PASS; PUBLIC_WEBSITE GO.
+- Status matrix:
+  - 404, in the page's language: `/qx7-missing`, `/a/b/c/d/e/missing-deep`, `/fr/inexistante`, `/fr/a/b/c`,
+    `/ar/x/y/z`, an Arabic-script address, `/account`, `/account/trial`, `/admin`, `/admin/businesses`;
+  - 404 with the app's frame: `/in-app/nope`, `/in-app/a/b`, `/fr/in-app/nope`, `/ar/in-app/nope`;
+  - 200: every known public, legal and in-app page;
+  - a query carrying markup is not shown back.
+- A browser probe covered 36 cases (9 addresses × phone/desktop × light/dark): one h1, no overflow at 320 px, no
+  failed file, no script or hydration error.
+
+**Known, by the host's design.** The error page's own address (`/404`) answers 200, because the file exists. It is
+noindex and linked from nowhere.
+
+**Cloudflare preview.**
+- Deployment `d5a0d716-5bf0-497c-acc2-4cdb52017435` serves https://d5a0d716.tsxmr-public.pages.dev and
+  https://site-redesign.tsxmr-public.pages.dev.
+- It is checked from GitHub's network by `verify-not-found` (branch `ops/verify-production`, `a86b26e`), with
+  evidence on `ci-evidence` under `evidence/not-found/a86b26e…-39047362786/`.
+- Run 39047362786 passed 25 of 25 checks, and recorded three rows without judging them. **The real host behaves as
+  the local build does:**
+  - every unknown address, root, deep, FR, AR, `/account`, `/admin` and `/in-app/` in three languages, answers
+    **404** with the page in its language and frame;
+  - every referenced file answers 200 from every depth;
+  - every known page answers 200.
+- The recorded rows are `/in-app/` → 404 in the app's frame, `/fr/in-app` → 404 in public French, and `/404` → 200.
