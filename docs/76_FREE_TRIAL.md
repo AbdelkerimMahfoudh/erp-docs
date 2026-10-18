@@ -372,6 +372,11 @@ The MySQL spec's other tests support numbers 6 and 9:
 
 ## 8. Setup instructions
 
+> **Retired (2026-10-18, D204).** The setup links, their tokens, `PUBLIC_SITE_ORIGIN` and `WHATSAPP_TEMPLATE_TRIAL_SETUP`
+> are gone. One message (`portal.instructions`, WhatsApp first) names the generic `https://dukan.tsxmr.com/subscription`.
+> The claim is made there, signed in, with an explicit confirmation (`docs/101` §3, §6). This section records the 0095
+> design.
+
 **The automatic send.** Once every required contact is verified, while the business is `trial_available`, the server
 sends the setup instructions **once**. The trigger is the registration's confirmation, or the app's WhatsApp
 confirmation for a both-contacts Owner.
@@ -663,6 +668,10 @@ payment, one activation and one record.
 before and after the trials' end (§9). The console's business page scrolled sideways at 375 px; fixed (`8efa902`).
 
 ## 15. Configuration and operations
+
+> **Updated (2026-10-18).** `PUBLIC_SITE_ORIGIN` and `WHATSAPP_TEMPLATE_TRIAL_SETUP` are replaced by:
+> - `PORTAL_ORIGIN`;
+> - the eight `WHATSAPP_TEMPLATE_*` subscription templates (`docs/101` §9, §11).
 
 | Variable | Required | Meaning |
 | --- | --- | --- |

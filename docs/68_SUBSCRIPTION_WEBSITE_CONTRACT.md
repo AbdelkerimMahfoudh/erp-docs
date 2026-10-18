@@ -181,6 +181,14 @@ timeline holds one decision (the 2026-10-05 matrix). A retry of the same decisio
   non-enumerating.
 - **CSRF**: cookie-authenticated mutations carry `x-requested-with`; cookies are `SameSite=Lax`; the API's CORS grant
   names only the website's HTTPS origin, with credentials.
+  > **Corrected (2026-10-18, D210).** The API never checked `x-requested-with`. The Owner's area is now the Dukan ERP
+  > portal at `https://dukan.tsxmr.com/subscription` (`docs/101`). It is held by:
+  > - its own cookie session, `HttpOnly` and `SameSite=Strict`, accepted only on the portal's routes;
+  > - a session-bound CSRF token in `x-csrf-token` on every unsafe request;
+  > - for the trial's claim and resend, the portal session itself (D211).
+  >
+  > `SameSite` alone is no boundary: `tsxmr.com`'s subdomains are one site. The administrator console's session is
+  > unchanged.
 - **Strict rate limiting** on sign-in, request, verification and invitation routes (server-side; a 429 is rendered, not
   retried in a loop).
 - **Recent re-authentication for sensitive actions**: every administrator mutation re-asks the password

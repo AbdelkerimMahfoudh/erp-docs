@@ -92,6 +92,13 @@ phone ──https──▶ api.tsxmr.com : 443   (DNS only, A → the host; crea
 - `ACME_EMAIL=developer@tsxmr.com`;
 - `CORS_ORIGINS` empty (the app is native).
 
+> **When `dukan-portal-lifecycle` is merged (2026-10-18, D202; not yet, and only on the owner's approval).**
+> - `PUBLIC_SITE_ORIGIN` gives way to `PORTAL_ORIGIN=https://dukan.tsxmr.com`, which the preflight requires.
+> - `CORS_ORIGINS` names `https://dukan.tsxmr.com`.
+> - The eight `WHATSAPP_TEMPLATE_*` subscription templates are configured as Meta approves them.
+> - Migration `0099` is applied after the encrypted backup and its check (`docs/22`, `docs/101` §13).
+> - Every API process runs the minute worker; the outbox lease makes that safe.
+
 ---
 
 ## 4. Secrets (D200)

@@ -12273,3 +12273,90 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Not done (by instruction):** no promotion to tsxmr.com; no change to production, DNS, the server, databases,
   `erp-backend` or `erp-mobile`.
 
+## 2026-10-18 — The Dukan ERP portal, web-only trial claiming, limited grace and prioritized messaging; D202–D212 (CLAUDE, cloud)
+
+- **Instruction:** the owner's brief of 2026-10-18 under the single-session convention. Seven phases; nothing deployed,
+  no live messaging, no production change.
+- **Claim** `a7260b9` at 09:26Z. It was rebased once on the concurrent website session's `910c732`; nothing forced.
+  Checkpoints `e1e865b`, `00dbac4`, `9b3d57a`. Released by the commit carrying this entry, at 13:49Z.
+- **Discrepancies reported at takeover:** seven, recorded in `CURRENT_HANDOFF.md` at the claim. Among them:
+  - `docs/68`'s claimed `x-requested-with` CSRF check, which the API never made — now corrected (D210);
+  - the read-only reading of a trial's end, put to the owner (D212).
+
+**Branches**
+- **erp-backend `dukan-portal-lifecycle`**, from `production-deploy` `644f4f5`:
+  - `0d6f27d` migration `0099`;
+  - `256f1e4` lifecycle and messaging;
+  - `9efe584` the portal session;
+  - `ff619dd` console oversight;
+  - `479cf8e` the claim and resend need the portal session (D211);
+  - `bbca6c3` the Owner-facing mask;
+  - `3b8d144` the real-MySQL gate in CI;
+  - `17ea84b` a comment corrected.
+- **erp-control-web `dukan-portal`**, from `tsx-public-site` `e953c58`:
+  - `feca99a` the portal surface;
+  - `99f612d` the console pages;
+  - `e020215` grace in the history, and paid-end message names.
+- **erp-mobile `dukan-portal-lifecycle`**, from `reports-export` `e6773aa`: `de40f72` the display-only status.
+- No production branch moved.
+
+**Gates at the final commits**
+- **Backend:** `tsc` clean; Jest 266 suites passed (2 env-gated skipped), 4 793 tests passed, 0 failed.
+- **CI database gate** on a fresh MySQL 8.4.11:
+  - identity probes 23/0, the two new `grace_episodes` probes included;
+  - `trial-addons.mysql` 21/21;
+  - the new `lifecycle.mysql` 10/10.
+- **Website:** Vitest 534/534; three production builds refused without their inputs; previews with 0 broken links and
+  the audits passing; Playwright full 138, public 148, portal 34.
+- **Mobile:** `tsc`; lint 0 errors; 115 pure files; Jest 313/313; release configuration sound; web and iOS bundle
+  audits PASS.
+
+**Migration rehearsal (E.6)**
+- `prisma_qa_dk` was built at `0098` by the `0098` code, through its own API: 20 companies, 800 units.
+- Steps:
+  - a verified `--hex-blob` backup (sha256 `f475ed3a…`);
+  - `0099` applied, every pre-existing table identical;
+  - `prisma migrate diff` adds no drift;
+  - the Path-2 restore identical to the fingerprint;
+  - the reverse SQL proved: data identical; DDL byte-identical with the explicit `CHARACTER SET` (`docs/22`,
+    `docs/101` §13).
+
+**Real-HTTP journey**
+- 48 distinct checks pass in their final runs, on the branch API with development-log channels (`docs/101` §10.3).
+- **Product defect found and fixed:** an app session could start the trial or ask for the instructions again → D211,
+  `479cf8e`.
+- **Found on the screenshots and fixed:**
+  - one number masked two ways → `bbca6c3`;
+  - grace events shown as "Change recorded" with an English note, and paid-end messages that did not say whether grace
+    started → `e020215`.
+- **Script errors, rerun green:**
+  - phase A's step-up and expectations (11 checks);
+  - an expired token;
+  - one wrong expectation (the up-front opt-out refusal);
+  - a client charset.
+- **Not provable on a development server:** B1, the dev outbox. It is `registration-flow.spec`'s.
+
+**Screenshots**
+- 36, against the real API: 23 portal, 4 console, 9 app (web export).
+- Desktop Chromium only, not a device. Session evidence, not committed.
+
+**Cleanup**
+- The disposable databases were dropped; both scratch MySQL servers stopped and deleted.
+- The passwords, keys, option files, dumps and session state were deleted.
+- The build outputs created inside the repositories were removed.
+- No cookie or authorization header reached the API logs.
+
+**Not done (by instruction)**
+- deployment;
+- the merge;
+- DNS and Cloudflare (no Pages project for `dukan.tsxmr.com`);
+- `0099` on any persistent database;
+- SMTP or WhatsApp activation;
+- template submission;
+- any message to a real person.
+
+**Observations**
+- The socket form of `deploy/ci-database-gates.sh` failed here at step 2 (Prisma could not authenticate the migrator
+  over the Unix socket); the TCP form, which CI uses, passed.
+- On the portal, a business that has not started shows the requests section's refusal in a red notice. Pre-existing
+  (`0eedfaa`), left as it was.

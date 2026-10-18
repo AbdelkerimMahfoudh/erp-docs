@@ -319,3 +319,31 @@ code fault: with CI's value, 126 / 126.
 - No payment or subscription enabled.
 - **The Brevo SMTP credential once shared in chat must be replaced before production.** This session never saw or
   stored it, and gitleaks finds no credential in the website repository.
+
+## 9. The PORTAL gate for `dukan.tsxmr.com` (2026-10-18, CLAUDE, `erp-control-web` `dukan-portal`; D202)
+
+The portal now builds on its own: `VITE_SITE_SURFACE=portal` serves only the Owner's `/subscription` and the console
+`/admin`.
+
+**What the build makes:**
+- `/` answers `302 /subscription`, and the retired `/account/*` answers `301 /subscription`;
+- every response is `noindex`, and `robots.txt` is `Disallow: /`;
+- no public page is prerendered (the not-found page only).
+
+**What its production build refuses** (gate PORTAL), beside the existing inputs:
+- anything but `VITE_PORTAL_ORIGIN=https://dukan.tsxmr.com`;
+- anything but `VITE_PUBLIC_SITE_ORIGIN=https://tsxmr.com`;
+- a `VITE_API_BASE` outside `https://api.tsxmr.com`.
+
+The bundle audit's `--portal` mode refuses `portal.tsxmr.com`, a setup link or token, and any public page's code.
+
+CI builds and audits it beside the full and public builds, and runs `e2e/portal.spec.ts`: EN/FR/AR at 375 px and
+desktop, axe, host headers, and the confirmed claim with its CSRF token.
+
+**Verified 2026-10-18 at `e020215`:**
+- every production build refused without its inputs;
+- previews with 0 broken links and the audits passing;
+- Playwright full 138/138, public 148/148, portal 34/34.
+
+`VITE_PORTAL_ORIGIN` stays unset everywhere real: no Pages project or DNS record exists for `dukan.tsxmr.com`
+(`docs/101` §12).

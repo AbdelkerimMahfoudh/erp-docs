@@ -302,6 +302,27 @@ source that has not moved since the backup: run it in the quiet window right aft
 (`docs/67` §7). On a server with the binary log on, creating the dump's triggers needs
 `log_bin_trust_function_creators=1` (ERROR 1419 otherwise).
 
+### Drill record — 2026-10-18 (E.6, the rehearsal of 0098 → 0099, `docs/101` §10.2)
+
+Run in a throwaway MySQL 8.4.11 on `127.0.0.1:3307` in the cloud session's scratch directory, configured like production
+(strict `sql_mode`, UTC, `utf8mb4_0900_ai_ci`, binary log off, `log_bin_trust_function_creators=1`), with the four
+identities created by `deploy/mysql-identities.sql` (schema names adapted to the rehearsal; passwords from files, on
+standard input) — **not live, not shared**. Every database below was dropped and the server stopped at the end.
+
+| Check | Result |
+| --- | --- |
+| Source | `prisma_qa_dk` built at 0098 by the 0098 code (backend `644f4f5`) through its own API. The ten QA boutiques. Six administrator-created paid businesses (a month; ending in 60 h; ended 30 h, 5 days, 40 days ago; suspended). Four app registrations (two waiting, two claimed, one claim aged 8 days by root SQL). 118 tables, 53 triggers, 20 companies, 800 units, 320 products, 1 243 audit rows, 73 subscription events |
+| Dump before (migrator, canonical command) | `prisma_qa_dk-before-0099-20261018-122821.sql`, 1 981 668 bytes, trailer present, 118 `CREATE TABLE`, 53 triggers (definer: the migrator, which applied the migrations), 0 raw `_binary`, 26 503 hex keys, sha256 `f475ed3acf9c1932…` |
+| Fingerprint before | every table's row count and `CHECKSUM TABLE`, every trigger body's MD5, `HEX(id)` MD5 of `companies`, `users`, `subscriptions`, `units`, `products`, `audit_logs`, `subscription_events`, `trial_claims` |
+| `prisma migrate deploy` (branch `dukan-portal-lifecycle`) | `0099_grace_and_notices` applied; status up to date |
+| After | 120 tables (`grace_episodes`, `subscription_notices`), 55 triggers (the two immutability triggers), `ix_subscriptions_period_end`, the two event kinds. **Every pre-existing table identical by row count and `CHECKSUM`** except `_prisma_migrations` (97 → 98); no trigger body changed |
+| `prisma migrate diff` (database → schema) | 546 statements, byte-identical to the same diff at 0098 (the older hand-written migrations' known drift): 0099 adds none, and none names a 0099 object |
+| Dump after | `prisma_qa_dk-after-0099-20261018-122917.sql`, 1 989 663 bytes, trailer, 120 tables, sha256 `efa2e68c6cfd25ee…`, restored for the real-MySQL spec |
+| Path 2 (53 definers stripped, `--comments`) of the dump before, into a new database | **identical to the fingerprint before** — rows, `CHECKSUM`, trigger bodies, `HEX(id)`. Here the original dump restored too, its definer being the migrator itself |
+| Reverse SQL (the migration header's) on a restored copy of the dump after | data **identical to the fingerprint before**, `_prisma_migrations` included. DDL identical except `subscription_events.kind`, which printed without its redundant `CHARACTER SET utf8mb4` (`information_schema`: utf8mb4 / utf8mb4_unicode_ci in both). With the explicit `CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci` (`docs/101` §13), DDL byte-identical |
+| Real-MySQL spec | `src/notices/lifecycle.mysql.spec.ts` on a restored copy (`grace_rehearsal`): 10/10, twice; in the CI database gate on a fresh server: 10/10 beside `trial-addons.mysql` 21/21 and identity probes 23/0 |
+| Cleanup | the rehearsal databases dropped, the throwaway servers stopped, the dumps and the passwords deleted with the scratch directory |
+
 ### Drill record — 2026-10-10 (E.5, the rehearsal of 0088 → 0091, `docs/73` §8.3)
 
 Run in a throwaway MySQL 8.0.46 on `127.0.0.1:3310` in the OS temporary directory, on synthetic QA data (`prisma_qa_st`:

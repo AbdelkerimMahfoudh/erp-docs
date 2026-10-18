@@ -163,6 +163,12 @@ CI requires the preflight to refuse it. Explicit values are required for these:
 | `CORS_ORIGINS` | **empty** (stated). The app is native and needs no CORS. A future staging portal adds its exact origin, never `*`. |
 | `COOKIE_SECURE=true`, `SWAGGER_ENABLED=false`, `SEED_DEMO=false`, `LOG_LEVEL=info`, `PLATFORM_ADMIN_KEY=` (empty) | as written |
 | `THROTTLE_*`, `AUTH_THROTTLE_LIMIT`, `ACCOUNT_THROTTLE_LIMIT` | the template's values, stated |
+
+> **When `dukan-portal-lifecycle` is merged (2026-10-18, D202; not yet).**
+> - `PUBLIC_SITE_ORIGIN` is replaced by `PORTAL_ORIGIN`: staging's own HTTPS portal origin. The staging preflight
+>   refuses the production portal `https://dukan.tsxmr.com`: staging messages would send Owners there.
+> - `CORS_ORIGINS` must then name that portal's exact origin.
+> - Migration `0099` is applied after a verified backup (`docs/22`, `docs/101` §13).
 | `STAGING_CONTACT_OUTBOX` | `enabled` (codes retrievable from the shell) — must be stated either way |
 | `EMAIL_CHANNEL` | **`disabled`** until §4.3 |
 | `WHATSAPP_CHANNEL` | **`disabled`**, or `cloud` with `WHATSAPP_MODE=test`, `WHATSAPP_LIVE_SENDS=disabled` and the approved test numbers |

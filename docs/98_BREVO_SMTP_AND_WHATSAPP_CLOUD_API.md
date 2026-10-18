@@ -154,7 +154,8 @@ the API on it (§7).
 2. In Brevo: authenticate `tsxmr.com` (SPF, DKIM, DMARC — DNS records are the owner's to add); create the senders
    `verification@`, `notifications@`, `no-reply@` (and `reports@`, `receipts@` if wanted); make `support@` a read
    mailbox; **check open and click tracking for transactional email and turn them off** — click tracking would rewrite
-   the trial setup link, which carries a one-time token.
+   the trial setup link, which carries a one-time token. *(2026-10-18: the setup link is retired; every message now
+   carries the generic `https://dukan.tsxmr.com/subscription`, and tracking should stay off all the same — D204.)*
 3. Meta: publish the app (needs the privacy policy URL, §4); register the real number; permanent system-user token;
    approve the templates (no session submits them); set the webhook (§4).
 4. Choose the API host and its HTTPS certificate (§4).
@@ -185,3 +186,23 @@ WhatsApp to the allowlist only, with the signed webhook, the proof, consent and 
 **Not ready for live WhatsApp**: the clients do not yet send the consent (§8.5), the Meta app is unpublished, the real
 number is not registered, no template is approved, and no delivery is proven. Every one of these is refused by the
 code, not merely documented.
+
+## 11. Subscription messages (2026-10-18; D204, D208, D209; `docs/101` §6, §9)
+
+**Eight more utility templates to approve**, configured by name:
+- `WHATSAPP_TEMPLATE_PORTAL_INSTRUCTIONS`;
+- `…_TRIAL_REMINDER`, `…_TRIAL_EXPIRED`;
+- `…_PAID_REMINDER`;
+- `…_GRACE_STARTED`, `…_NO_GRACE`, `…_GRACE_REMINDER`, `…_GRACE_ENDED`.
+
+They replace `WHATSAPP_TEMPLATE_TRIAL_SETUP`. The proposed EN/FR/AR copy and the variables in order are in `docs/101`
+§9. Each carries the portal's address as fixed text, so no template needs a URL button or a dynamic suffix.
+
+**Email is the recorded fallback only.**
+- WhatsApp goes first.
+- The email (`notifications@` sender) is sent only for a stated reason, and only to a verified address.
+- Never after an opt-out or a missing live-mode consent.
+
+The records gain a table of their own, `subscription_notices`: the channel, the reason, each channel's outcome, a
+masked destination and a keyed hash. Nothing about the send policy of §4 changes. Test mode still reaches the allowlist
+only, and live sends stay disabled until the owner enables them.

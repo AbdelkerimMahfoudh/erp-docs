@@ -1974,6 +1974,9 @@ spreadsheet bytes are exactly what must never be persisted.
 
 ## Milestone K — subscription entitlement
 
+> **Superseded in part (2026-10-18) by D206/D207:** grace is no longer derived for every paid end — it is three 72-hour activations
+> per company in any rolling 12 months, each decided once and recorded; a renewal during grace counts from the original end.
+
 *Approved and implemented. Schema `0052`. 59 live checks, green.*
 
 ### One plan, no tiers
@@ -7273,6 +7276,10 @@ made. *As built:* mobile `db67298`, backend `2bb5130`, website `fa3c3fe`.
 
 ### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's brief, 2026-10-13) — D169: one seven-day free trial per self-registered business, claimed on the website
 
+> **Superseded in part (2026-10-18) by D204/D205:** the 24-hour setup links and their tokens are retired; one message carries the generic
+> `https://dukan.tsxmr.com/subscription`, and the trial is claimed on the Dukan ERP portal with an explicit confirmation. The trial's
+> length, states and "one per business" stand.
+
 **The trial.** A business created through the public sign-up may claim **one** free trial. It lasts exactly 168 hours,
 measured from the server's instant of its Owner's explicit confirmation on the website.
 
@@ -7299,6 +7306,9 @@ approval.
 
 ### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's decision Q1, 2026-10-13) — D170: business sign-up returns to the app
 
+> **Superseded in part (2026-10-18) by D203:** sign-up stays in the app, but the WhatsApp number is now mandatory and the email
+> address optional (it was "email or phone").
+
 **This reverses D117.** The app's sign-up uses `auth/register`, `auth/register/verify/start` and
 `auth/register/verify/confirm`. Those aliases share one flow, one throttle budget and one set of refusals with the
 website's `platform/register*`. Creating an account never starts a trial.
@@ -7317,6 +7327,9 @@ The trial facts are never written by a lifecycle action. Every decision that giv
 eligibility under the subscription lock, which serialises it with claims.
 
 ### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's correction, 2026-10-13) — D173: the app is display-only for the trial
+
+> **Refined (2026-10-18) by D205/D211:** still display-only; the card now names the channel, the masked contact and the day, the
+> "link no longer works" and "unavailable" lines left with the links, and the server refuses a claim or resend from the app's session.
 
 **No trial-related action button, of any kind.** That excludes:
 
@@ -7349,6 +7362,8 @@ on the website, or through support.
 zone's name. No zone is ever hardcoded.
 
 ### ✅ APPROVED AND IMPLEMENTED, REVIEWED (the owner's clarification, 2026-10-13) — D175: website sign-in works without the message link
+
+> **Superseded (2026-10-18) by D204:** there is no message link any more; every Owner signs in on the portal with the app's identity.
 
 An eligible Owner who signs in on the website independently sees the same trial card and can start the trial after
 explicit confirmation. This holds whatever happened to the message: lost, failed, expired, consumed, or the device
@@ -7387,6 +7402,9 @@ transaction per business that never waits on a lock, a sweeper within a minute, 
 (59 unit tests, 21 on real MySQL, the real-HTTP sections AO-A, AO-K and AO-END).
 
 ### ✅ APPROVED AND IMPLEMENTED, REVIEWED (confirmed by the owner, 2026-10-15) — D177: every contact given at registration must be verified
+
+> **Superseded (2026-10-18) by D203:** the mandatory WhatsApp number is verified at registration; an email address given beside it
+> is optional, verified later on the portal, and needed only to carry a message WhatsApp cannot.
 
 **The rule.** A business that gave an email and a WhatsApp number must verify both before its trial can be claimed.
 
@@ -7667,6 +7685,9 @@ binding corrections. Recorded before implementation. From this phase on, session
 **`CLAUDE`** (no CLAUDE-A / CLAUDE-B). Nothing is deployed, no live switch is turned on, no real message is sent.
 
 ### ✅ APPROVED — D181: Brevo SMTP and the WhatsApp Cloud API, with the owner's binding corrections
+
+> **Refined (2026-10-18) by D209:** subscription messages go by WhatsApp first and fall back to email only for a recorded reason
+> and only to a verified address — never after an opt-out or a missing live-mode consent. Everything else here stands.
 
 1. **Dependency.** `nodemailer` and `@types/nodemailer`, exact versions pinned by the lockfile, with the dependency
    and security audit run. SMTP on port 587 with STARTTLS **required**, TLS 1.2 minimum, finite connection, greeting
@@ -8142,3 +8163,106 @@ branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation
   - browser tests check that legal, `/in-app/` and 404 pages carry neither the illustration nor the entrance.
 - **Also decided for the review:** keep the illustration's current height. It reserves the taller of its two
   walkthroughs, so nothing below it moves.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches, not deployed) — D202: the Dukan ERP portal at `dukan.tsxmr.com/subscription`
+
+- `https://tsxmr.com` stays the public company site; `https://dukan.tsxmr.com` is the authenticated portal (canonical
+  `/subscription`, the root redirecting there, not indexed); `https://api.tsxmr.com` is the API. Never
+  `portal.tsxmr.com`.
+- The website's own account area `/account` is retired (301 to `/subscription`); the console is `/admin` on the portal
+  build.
+- Held by the PORTAL release gate (`VITE_PORTAL_ORIGIN=https://dukan.tsxmr.com`) and, on the API, `PORTAL_ORIGIN`
+  (production refuses any other value). *As built:* `docs/101` §2.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D203: WhatsApp mandatory at sign-up, email optional
+
+- The app's registration requires the WhatsApp number and verifies it with the one code; an email address is optional.
+- The email address is verified later on the portal, from the address already on the account, and only then can it
+  carry a message WhatsApp cannot. Supersedes D177; refines D170.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D204: one portal-instructions message, generic address, no token
+
+- Once the number is verified, the server sends **one** message: eligible for one 7-day trial, not started, and the
+  portal's address `https://dukan.tsxmr.com/subscription` — the same for everyone, fixed in the approved template, no
+  token, query or identifier.
+- Again only when the Owner, signed in on the portal, asks (throttled: 1 a minute, 3 per 15 minutes, 10 per 24 hours,
+  audited), or through support.
+- Supersedes the setup links of D169/D173/D175.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D205: the trial is claimed on the portal only; the app shows, never acts
+
+- The claim is made on the portal with an explicit confirmation: it starts immediately, lasts exactly 7 days (168
+  hours), and cannot be paused or restarted.
+- Only the server decides eligibility and the instant; a second attempt cannot restart it.
+- The app shows the server's state (eligible, not started, contacts and delivery masked, the trial's end, the grace
+  deadline and allowance) with no claim, renew or pay action, no website address, QR code, web view, price or token.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D206: three 72-hour grace periods per company in any rolling 12 months
+
+- 72 hours after a paid period end, at most three granted activations per company in any rolling 12 months.
+- Each end decided once by the server and recorded (`grace_episodes`, migration `0099`): immutable, consumed when it
+  starts, never restored by a renewal, never replayable by editing an expiry.
+- No grace after a free trial; no grace for a platform grant. Supersedes Milestone K's derived grace.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D207: renewal timing
+
+- Before the expiry: from the current expiry.
+- During grace: from the original paid expiry (not from the confirmation).
+- After the expiry: from the confirmation.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D208: subscription reminders, deduplicated, no backlog burst
+
+- Trial and paid: 72, 48 and 24 hours before the end, and the end. Paid only: grace started (or that none is left),
+  48 and 24 hours of grace left, grace ended.
+- One message per company + period + kind + threshold (`subscription_notices`, UNIQUE identity, leased delivery).
+- Only the slot that applies now is created; a waiting earlier one is superseded; an end is announced within 7 days.
+- A renewal, suspension, cancellation, closure or claim retires what it made obsolete.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D209: WhatsApp first; email only for a recorded reason
+
+- WhatsApp first, to the first active Owner's verified number.
+- Email only for: WhatsApp disabled, template not approved, number not verified, undeliverable, refused, retries
+  exhausted, an asynchronous failure — and only to a verified address.
+- Never after an opt-out or a missing live-mode consent.
+- The channel, the reason, each channel's outcome and a masked destination are recorded, with a keyed hash; never a
+  number, address, body or code. Refines D181.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-18) AND IMPLEMENTED (branches) — D210: the portal's security, and the console's oversight
+
+- Sign-in with the app's identity.
+- HttpOnly `SameSite=Strict` cookies, accepted only on the portal's routes, and a session-bound CSRF token on every
+  unsafe request (corrects `docs/68` §5, which described an `x-requested-with` check the API never made).
+- Owner only. No enumeration. Rate limits. Audit. `noindex`. The company from the session alone. Nothing rests on
+  `Origin` or `Referer`.
+- The console gains read-only views of the messages, the grace decisions and the trials claimed, under the existing
+  administrator MFA.
+
+### ✅ IMPLEMENTED (branch; within the brief, owner to confirm) — D211: the claim and the resend require the portal's own session
+
+- `POST platform/my-subscription/trial/claim` and `…/trial/setup/resend` refuse a bearer-authenticated request — the
+  app's session, kept for months on a phone — with 403 `portal_session_required`.
+- They accept only the session the portal's sign-in opened.
+- The check reads which server-issued credential authenticated the request, never where the request says it comes
+  from, so the owner's correction of 2026-10-13 (no Origin or Referer rule) stands.
+- Found by the real-HTTP rehearsal, where an app session could start the trial. Backend `479cf8e`.
+
+### ⏳ AWAITING THE OWNER — D212: questions from the portal phase
+
+`docs/101` §14 lists twelve questions. The first is the one that changes behaviour if answered otherwise:
+
+1. A trial's end keeps **read-only** access (records readable and exportable). The brief's "stops operational access"
+   is read that way, not as a stricter lock.
+
+The others ask the owner to confirm, as built:
+
+- no email fallback after an opt-out;
+- an unverified number falls back to a verified email;
+- grants send no lifecycle messages;
+- the first active Owner is the recipient;
+- the 7-day announcement window;
+- pre-rollout ends decided lazily and counted;
+- changing the email address is left out of this phase;
+- the old handoff routes are left unused;
+- at most one current-slot message per business at deployment;
+- the app's WhatsApp consent capture is needed before live WhatsApp;
+- D211.

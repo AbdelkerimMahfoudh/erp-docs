@@ -1,80 +1,81 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE
-started_at_utc: 2026-10-18T08:54Z (cloud session start; this claim written at 09:26Z, before any change)
-session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-previous: `READY_FOR_HANDOFF` / owner `NONE` — CLAUDE (cloud, website preview), docs only (D201), complete at 09:26Z (docs
-`910c732`); before it, CLAUDE (local), the production API package phase, complete (docs `5ed2849`).
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-18T08:54Z (claim
+`a7260b9` at 09:26Z), complete at 13:49Z.
 
-## Active phase: the Dukan ERP portal, web-only trial claiming, the subscription lifecycle, limited grace and prioritized messaging (the owner's brief of 2026-10-18)
+## The Dukan ERP portal, web-only trial claiming, limited grace and prioritized messaging — on branches, verified, not deployed (2026-10-18, CLAUDE, cloud)
 
-| Repository | Branch at takeover | HEAD at takeover | This phase |
-| --- | --- | --- | --- |
-| `erp-backend` | `production-deploy` | `644f4f5` | new branch `dukan-portal-lifecycle` from `644f4f5`; `production-deploy` is not moved |
-| `erp-mobile` | `reports-export` | `e6773aa` | new branch `dukan-portal-lifecycle` from `e6773aa` |
-| `erp-control-web` | `tsx-public-site` (production) | `e953c58` | new branch `dukan-portal` from `e953c58`; `tsx-public-site` and `main` (`0417bfe`) are not moved |
-| `erp-docs` | `master` | `910c732` | this claim; the phase's documents last |
+| Repository | Branch | HEAD (pushed) | Base (unmoved) | This phase |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `dukan-portal-lifecycle` | `17ea84b` | `production-deploy` `644f4f5` | migration `0099`, the lifecycle and messages, the portal session, console oversight, D211, the Owner-facing mask, the real-MySQL gate in CI (`docs/101` §1) |
+| `erp-control-web` | `dukan-portal` | `e020215` | `tsx-public-site` `e953c58` (`main` `0417bfe`) | the portal surface for `dukan.tsxmr.com/subscription`, the console pages, grace in the history |
+| `erp-mobile` | `dukan-portal-lifecycle` | `de40f72` | `reports-export` `e6773aa` | the display-only status, WhatsApp required at sign-up |
+| `erp-docs` | `master` | the commit carrying this file | `910c732` | `docs/101`, D202–D212, `docs/22` drill E.6, notes in 68/76/96/98/99/100, the session log |
 
-All four trees were cloned fresh, are clean and level with their remotes, and the branch HEADs above match the previous
-record. Baselines on the untouched trees: backend `prisma validate`, `tsc` clean, Jest 260 suites passed (1 env-gated
-skipped), 4 785 tests passed, 24 skipped, 0 failed; website typecheck clean, Vitest 28 files, 490/490.
+All four trees are clean and level with their remotes. The concurrent website session's branches
+(`website-balanced-motion`, `ops/verify-preview`, `ci-evidence`) were not touched.
 
-**Scope (authorised by the brief):** the authenticated portal at `https://dukan.tsxmr.com` (canonical
-`/subscription`) with its own sign-in on the app's identity; web-only trial claiming; three 72-hour paid grace periods
-per company per rolling 12 months; renewal timing; trial and paid reminders; WhatsApp-first portal instructions and
-lifecycle messages with a recorded email fallback; the platform administration views; the mobile app's display-only
-status; tests, a real-MySQL rehearsal and real-HTTP verification on disposable data; documentation.
+**The record:** `docs/101`, the contract as built. The decisions are D202–D212 in `docs/21`. The superseded parts of
+D169, D170, D173, D175, D177, D181 and Milestone K are marked in place.
 
-**Not in scope and not to be touched:** DNS, Cloudflare, production data, SMTP or WhatsApp activation, the Hetzner host
-and its stack, any deployment, any migration on a persistent database, `production-deploy`, `tsx-public-site`, `main`,
-and the concurrent session's branch `website-balanced-motion`.
+**Migration:**
+- `0099_grace_and_notices` (additive) is the branch's head.
+- It was applied only to disposable databases on throwaway MySQL 8.4.11 servers in the session's scratch directory:
+  - `prisma_qa_dk`, its restore and reverse copies;
+  - `grace_rehearsal`;
+  - the CI gate's `phonestore`, `addon_ci` and `grace_ci`.
+- Every one was dropped; both servers were stopped and deleted.
+- Never applied to staging or production. A Git rollback would not undo it on a database. The exact reverse is in
+  `docs/101` §13.
+- Rehearsal backups (deleted with the scratch directory): before `f475ed3acf9c1932…`, after `efa2e68c6cfd25ee…`.
 
-**Discrepancies found at takeover (reported before any change):**
-1. `erp-control-web` `website-balanced-motion` (`1b9c448`) was not recorded here when this session cloned the
-   repositories (08:56Z). A concurrent cloud session (website preview) then claimed and released `erp-docs` at
-   09:25–09:26Z (`bae81af`, `910c732`), recording **D201**, while this claim was being written; the first push of this
-   claim was refused as non-fast-forward, and the claim was rebased on `910c732` (nothing forced). That session says it
-   continues, without a claim, on `erp-control-web` `website-balanced-motion` (notes only), a new tooling branch
-   `ops/verify-preview` and `ci-evidence`. This phase touches none of those branches and none of the public pages.
-   D201 is taken, so this phase's decisions start at **D202**.
-2. The previous record says `production-deploy` is 13 commits ahead of `reports-export`; Git shows 12.
-3. `docs/68` §5 says cookie-authenticated mutations "carry `x-requested-with`" as the CSRF defence, but the backend
-   checks no CSRF header at all; only `SameSite=Lax` stands, and `dukan.tsxmr.com`, `api.tsxmr.com` and `tsxmr.com` are
-   one site. To be fixed in this phase for the portal's cookie session.
-4. `GET platform/my-subscription` still answers any tenant session (D132 left the Owner-only rule to the website phase).
-5. The brief supersedes recorded decisions, which will be marked superseded in `docs/21`, never silently: the setup
-   instructions' 24-hour token links (D169, D173, D175) become the generic `https://dukan.tsxmr.com/subscription`;
-   "every contact given must be verified" (D177) becomes "the mandatory WhatsApp number must be verified, email
-   optional"; email-or-phone sign-up (D170) becomes WhatsApp-mandatory; the parallel send to every verified contact
-   becomes WhatsApp-first with a conditional, recorded email fallback (refining D181's "never a fallback"); the derived,
-   unlimited 72-hour grace (Milestone K) becomes three per company per rolling 12 months, recorded; an extension during
-   grace, which today starts from the moment of the extension, starts from the original paid expiry.
-6. The brief says the trial's end stops "operational access" and the Owner keeps only sign-in, subscription, support,
-   legal pages and deletion; the recorded rule, the service terms draft and the live public pages say an expired
-   business stays read-only ("records can be read and reports shared"). Read-only is kept (no business operation is
-   possible) and the reading is put to the owner.
-7. After sign-up there is no route to verify an email address (only `account/whatsapp/verify/*`), so with WhatsApp
-   verified at sign-up an optional email could never become a usable fallback. An Owner-only email verification is
-   added.
+**Verification at the final commits**
 
-**Checkpoint (2026-10-18, CLAUDE):** Phases 1–5 committed and pushed; nothing deployed, no persistent database touched.
+| Area | Result |
+| --- | --- |
+| backend | `tsc` clean; Jest 266 suites, 4 793 passed, 0 failed (2 env-gated skipped) |
+| CI database gate (fresh server) | identities 23/0; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10 |
+| website | Vitest 534/534; three production builds refused without their inputs; previews 0 broken links, audits passing; Playwright full 138, public 148, portal 34 |
+| mobile | `tsc`; lint 0 errors; 115 pure files; Jest 313/313; bundle audits PASS |
+| real-HTTP journey | 48 checks passing in their final runs (`docs/101` §10.3) |
+| screenshots | 36 against the real API (23 portal, 4 console, 9 app); not committed |
 
-| Repository | Branch | Pushed HEAD | Commits of this phase |
-| --- | --- | --- | --- |
-| `erp-backend` | `dukan-portal-lifecycle` | `ff619dd` | `0d6f27d` migration `0099_grace_and_notices` (additive: `grace_episodes`, `subscription_notices`, an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in the scratch directory) · `256f1e4` WhatsApp-first subscription notices with a recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, token links retired, WhatsApp mandatory at self-registration · `9efe584` the portal's own sign-in: HttpOnly SameSite=Strict cookies, a session-bound CSRF token, the cookie limited to the portal's routes, Owner only; the Owner's status, email verification · `ff619dd` read-only console oversight: every subscription message, grace decisions and usage, trials claimed, a business's messages |
-| `erp-control-web` | `dukan-portal` | `99f612d` | `feca99a` the `portal` surface (dukan.tsxmr.com/subscription): cookie session + CSRF, confirmed trial claim, status panel (access, grace and allowance, renewal timing, messages), portal instructions, email verification, server payment instructions; setup-link landing removed; Apply requires WhatsApp; EN/FR/AR · `99f612d` console pages: messages, grace, trials claimed; a business's grace and messages |
-| `erp-mobile` | `dukan-portal-lifecycle` | `de40f72` | `de40f72` display-only status: WhatsApp required at sign-up (email optional), the trial card names the channel, masked contact and day, the grace deadline on the business's clock with the allowance as the server counts it; every host under tsxmr.com barred from the bundles |
+**Known risks and limits:**
+- Nothing ran on a device, on the real WhatsApp Cloud API or SMTP, or on the production stack.
+- B1 (registration refused when the code cannot go) is unit-proven only: a development server's dev outbox takes every
+  channel.
+- Live WhatsApp needs consent capture in the app first. Live mode refuses a registration without it.
+- The socket form of `deploy/ci-database-gates.sh` fails at step 2 here; the TCP form passes.
 
-Gates at `de40f72` (mobile): `tsc` clean; `expo lint` 0 errors (28 pre-existing warnings, cap 40); 115 pure test files
-pass; Jest 33 suites / 313 tests pass; release configuration sound; web export carries no server secret names; web and
-iOS bundle audit PASS. Backend at `9efe584` and website at `feca99a` as recorded in `e1e865b`/`00dbac4`; the full
-backend, website and mobile gates are re-run at the final HEADs in Phase 6 and recorded here then.
+**Not done (by instruction):**
+- deployment and the merge;
+- DNS and Cloudflare: no Pages project or record for `dukan.tsxmr.com`;
+- production data;
+- SMTP or WhatsApp activation;
+- template submission;
+- `0099` on any persistent database;
+- any message to a real person.
 
-**Next intended action:** Phase 6 — a realistic database at `0098`, a verified backup and restore, `0099` applied and
-its reverse SQL proved on disposable MySQL 8.4.11 (scratch directory, port 3307, never a persistent database); the
-real-MySQL concurrency spec; a real-HTTP journey with test channels; full gates; screenshots. Then Phase 7
-(documentation, session log, `READY_FOR_HANDOFF`).
+**Waiting on the owner:**
+1. The twelve questions of D212 (`docs/101` §14). The first, read-only after a trial's end, is the one that would change
+   behaviour.
+2. Explicit approval, or not, to deploy:
+   - the Pages project and DNS for `dukan.tsxmr.com`;
+   - the merge of the three branches;
+   - `0099` on production after a verified backup (`docs/22`);
+   - `CORS_ORIGINS` and `PORTAL_ORIGIN`;
+   - template submission;
+   - live messaging.
+3. Provider work, in Meta and Brevo: the eight templates; the notifications sender.
+4. The app's WhatsApp consent capture: approve the work before any live WhatsApp.
+
+**Next exact action:** none until the owner answers. On an explicit rollout approval, the next session:
+1. claims this file;
+2. re-runs the four repositories' gates at these HEADs;
+3. takes the production backup and checks it (`docs/22`);
+4. follows `docs/101` §12 in order.
 
 The previous records follow, unchanged.
 
