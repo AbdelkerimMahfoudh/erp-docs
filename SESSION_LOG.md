@@ -12185,3 +12185,27 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - verify-not-found passed.
 - **Not touched:** Cloudflare settings, DNS, email, contact values, backend, mobile. The Pages deployment ID was not
   readable from this environment.
+
+## 2026-10-18 — Hardening of the Hetzner server tsxmr-app-01 (CLAUDE, local)
+
+- **Instruction:** the owner's hardening brief: no deployment, database, migration, DNS or messaging. The owner chose
+  trust-on-first-use for the host key: Hetzner exposes no independent fingerprint.
+- **Claim:** `a3afeeb`, 05:05Z. Local `erp-docs` and `erp-backend` were behind GitHub and were fast-forwarded first.
+- **Local setup:**
+  - dedicated key `tsxmr-production-admin` (Ed25519, passphrase, user-only ACL), loaded in the Windows agent for this
+    session only;
+  - a private `~/.ssh/config`, so the address never appears on a command line;
+  - `known_hosts` written only after the owner typed the approved fingerprint;
+  - the fingerprint matched `/etc/ssh/ssh_host_ed25519_key.pub` on the host.
+- **Server:**
+  - read-only audit first: Ubuntu 24.04.4, 2 vCPU, 3.7 GiB, 38 GB, cloud-init done, only :22 public;
+  - `tsxmr-admin` created and proven on a separate connection while a root session stayed open;
+  - SSH drop-in (no passwords, no root), checked with `sshd -t` and reloaded; a fresh admin login was then proven and
+    root refused;
+  - 123 updates (98 security) and the kernel metapackage;
+  - journald limits, swap, swappiness 10;
+  - Docker 29.9.1 and Compose v5.6.0 from the verified apt repository;
+  - one reboot. After it: admin login and sudo work, root refused, NTP synced, swap on, no failed unit, only :22
+    listening, 80/443/2375/3306/3010 closed from outside, host key unchanged.
+- **Kept out of Git:** the address and the host-key fingerprint, which live in the owner's private provisioning file.
+- **Docs:** `docs/99` §13.

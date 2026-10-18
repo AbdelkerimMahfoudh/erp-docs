@@ -1,19 +1,43 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-18T05:05Z
-active_phase: hardening the new Hetzner CX23 server `tsxmr-app-01` (project TSX-MR, nbg1, role
-production-preparation) — the owner's brief of 2026-10-18: SSH key access, admin user `tsxmr-admin`, key-only SSH,
-root login off, updates, unattended upgrades, journald/logrotate, swap, Docker Engine + Compose (docs/99 §6.1/§11),
-reboot check.
-scope: the server only. No ERP deployment, no database, no migration, no DNS, no SMTP/WhatsApp. No repository change
-except this handoff and the session log. The server address and host-key fingerprint are kept only in the owner's
-private provisioning file, never in Git.
-baseline: backend reports-export d3c11a8 · mobile reports-export e6773aa · web tsx-public-site e953c58 · docs cea58ba.
-next_action: trust-on-first-use host-key acceptance (owner-approved), then the read-only audit.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (local session, the owner's PC), started 2026-10-18T05:05Z (claim `a3afeeb`), complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE, last session CLAUDE (cloud).
+## The Hetzner server tsxmr-app-01 hardened (2026-10-18, CLAUDE, local) — no ERP on it
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-control-web` | `tsx-public-site` | `e953c58` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `a3afeeb`; `docs/99` §13; session log |
+
+**Server** (address and host-key fingerprint only in the owner's private `.tsxmr/provisioning.txt`):
+- CX23, nbg1, role **production-preparation**: Ubuntu 24.04.4, kernel 6.8.0-147;
+- 2 vCPU, 3.7 GiB RAM, 38 GB disk (12 % used), 2 GB swap at swappiness 10.
+
+**State:**
+- SSH is key-only with root login off. Admin `tsxmr-admin` has `sudo` (no password) and `docker`
+  (root-equivalent).
+- Every update is installed and the server was rebooted once; unattended security upgrades are on.
+- Persistent journal capped at 500 MB; NTP synced.
+- Docker 29.9.1 and Compose v5.6.0 (Unix socket only, no container).
+- Only :22 listens publicly. Full record: `docs/99` §13.
+
+**Not done (by instruction):** no ERP checkout, `/srv` layout, env file, database, migration, DNS, SMTP or WhatsApp.
+
+**Open for the owner:**
+1. Decide whether this host receives the staging stack (`docs/99` as written) or production. Never both (`docs/99` §11).
+2. The `docs/99` §10 inputs.
+3. After the deployment session, clear the local SSH agent (`ssh-add -D`) and stop the `ssh-agent` service (an
+   administrator step).
+
+**Next phase:** backend deployment, once the role and the §10 inputs exist.
+
+---
+
+The previous records follow, unchanged.
 last_session: CLAUDE (cloud), started 2026-10-18T02:06Z (claim `abd18d2`), complete.
 
 ## The repositioned website in production (2026-10-18, CLAUDE, cloud)

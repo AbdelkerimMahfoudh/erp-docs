@@ -446,3 +446,39 @@ The rehearsal found and fixed three things:
 - commands after a deploy or rollback would have rebuilt from the checkout instead of using the deployed images
   (`current-images.env`, `33723da`);
 - the readiness gap (§1).
+
+---
+
+## 13. The host as prepared (2026-10-18, CLAUDE, local)
+
+The owner provisioned a Hetzner Cloud **CX23** `tsxmr-app-01` (project TSX-MR, `nbg1`, role
+**production-preparation**) and asked for hardening only. **Nothing of the ERP is on it**: no checkout, no
+`/srv/erp-*`, no `api.env`, no database, no container, no DNS record.
+
+The address and the host-key fingerprint are kept only in the owner's private provisioning file, never in Git.
+**Role note:** this document describes a *staging* stack, and §11 says staging and production never share a host. The
+server's role is recorded as `production-preparation`, so the owner decides which stack it receives before the first
+deployment. It must not receive both.
+
+| Item | State |
+| --- | --- |
+| OS | Ubuntu 24.04.4 LTS, x86-64, kernel 6.8.0-147 after updates (6.8.0-138 kept as a fallback) |
+| Resources | 2 vCPU, 3.7 GiB RAM, 38 GB ext4 root (12 % used after setup), 2 GB swap file, `vm.swappiness=10` |
+| Network boundary | the Hetzner Cloud firewall: 22 from the owner's /32 only, 80/443 public, ICMP; nothing else. **No host firewall** (`ufw` inactive): Docker publishes ports around `ufw`, so it would protect nothing the cloud firewall does not, and could mislead. |
+| SSH | host key ED25519 accepted trust-on-first-use with the owner's approval and matched on the host. Drop-in `/etc/ssh/sshd_config.d/00-tsxmr-hardening.conf`: no passwords, no keyboard-interactive, no empty passwords, **no root login**, public keys only, port 22. Only `publickey` is offered. |
+| Administrator | `tsxmr-admin` (uid 1000), key `tsxmr-production-admin` only, password locked. Groups `sudo` and `docker`. Sudo without a password (`/etc/sudoers.d/90-tsxmr-admin`, validated), because there is no password to type and **`docker` membership is root-equivalent anyway**. This is also §11's deploy user. |
+| Updates | every update installed (98 security) and rebooted. `unattended-upgrades` on for the security origin, with no automatic reboot: a reboot stays an operator decision. |
+| Time | `systemd-timesyncd` against ntp.hetzner.com, UTC |
+| Logs | persistent journal capped at 500 MB, 2 GB kept free, one month (`/etc/systemd/journald.conf.d/50-tsxmr.conf`); `logrotate.timer` active |
+| Docker | Engine 29.9.1 and Compose v5.6.0 from Docker's apt repository (signing key fingerprint `9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88` checked before use). Enabled at boot. **Unix socket only, no TCP**. Default log rotation 10 MB × 3 (`/etc/docker/daemon.json`); the compose file's own 10 MB × 5 applies to the stack. No container and no image. |
+| Listening after reboot | `sshd` :22 only, plus the local resolver and DHCP client. From outside: 22 open; 80, 443, 2375, 3306 and 3010 closed (nothing serves 80/443 yet). |
+
+**Before the first deployment** (§6):
+- the owner's role decision above;
+- the §10 inputs;
+- the `staging-api` or `api` DNS record (DNS only);
+- `ACME_EMAIL`;
+- then §6 step 3 onward as `tsxmr-admin`.
+
+Re-check the owner's address if SSH stops connecting: a home address can change, and the firewall's /32 must then be
+updated in Hetzner.
