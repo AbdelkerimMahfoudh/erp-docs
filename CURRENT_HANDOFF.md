@@ -58,23 +58,23 @@ and the concurrent session's branch `website-balanced-motion`.
    verified at sign-up an optional email could never become a usable fallback. An Owner-only email verification is
    added.
 
-**Checkpoint (2026-10-18, CLAUDE):** branches created as above; nothing deployed, no persistent database touched.
+**Checkpoint (2026-10-18, CLAUDE):** Phases 1–5 committed and pushed; nothing deployed, no persistent database touched.
 
 | Repository | Branch | Pushed HEAD | Commits of this phase |
 | --- | --- | --- | --- |
-| `erp-backend` | `dukan-portal-lifecycle` | `9efe584` | `0d6f27d` migration `0099_grace_and_notices` (additive: `grace_episodes`, `subscription_notices`, an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in the scratch directory) · `256f1e4` WhatsApp-first subscription notices with a recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, token links retired, WhatsApp mandatory at self-registration · `9efe584` the portal's own sign-in: HttpOnly SameSite=Strict cookies, a session-bound CSRF token, the cookie limited to the portal's routes, Owner only; the Owner's status, email verification |
-| `erp-control-web` | `dukan-portal` | `feca99a` | the `portal` surface (dukan.tsxmr.com/subscription): cookie session + CSRF, confirmed trial claim, status panel (access, grace and allowance, renewal timing, messages), portal instructions, email verification, server payment instructions; setup-link landing removed; Apply requires WhatsApp; EN/FR/AR |
-| `erp-mobile` | `dukan-portal-lifecycle` | `e6773aa` (unchanged) | — |
+| `erp-backend` | `dukan-portal-lifecycle` | `ff619dd` | `0d6f27d` migration `0099_grace_and_notices` (additive: `grace_episodes`, `subscription_notices`, an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in the scratch directory) · `256f1e4` WhatsApp-first subscription notices with a recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, token links retired, WhatsApp mandatory at self-registration · `9efe584` the portal's own sign-in: HttpOnly SameSite=Strict cookies, a session-bound CSRF token, the cookie limited to the portal's routes, Owner only; the Owner's status, email verification · `ff619dd` read-only console oversight: every subscription message, grace decisions and usage, trials claimed, a business's messages |
+| `erp-control-web` | `dukan-portal` | `99f612d` | `feca99a` the `portal` surface (dukan.tsxmr.com/subscription): cookie session + CSRF, confirmed trial claim, status panel (access, grace and allowance, renewal timing, messages), portal instructions, email verification, server payment instructions; setup-link landing removed; Apply requires WhatsApp; EN/FR/AR · `99f612d` console pages: messages, grace, trials claimed; a business's grace and messages |
+| `erp-mobile` | `dukan-portal-lifecycle` | `de40f72` | `de40f72` display-only status: WhatsApp required at sign-up (email optional), the trial card names the channel, masked contact and day, the grace deadline on the business's clock with the allowance as the server counts it; every host under tsxmr.com barred from the bundles |
 
-Gates: backend at `9efe584` — `tsc` clean, Jest 264 suites passed (1 env-gated skipped), 4 775 passed, 24 skipped, 0
-failed; `prisma validate`. Website at `feca99a` — typecheck clean, Vitest 32 files 524/524; full preview build, public
-preview build and portal preview build each prerendered, link-audited (0 broken) and bundle-audited (PASS, `--portal`
-for the portal); the portal's production build refused without `VITE_PORTAL_ORIGIN` (gate PORTAL). Playwright
-(Chromium, local binary): full site 124/124, public site 148/148, portal 34/34 (EN/FR/AR at 375 px and desktop, axe
-WCAG 2.1 AA, host headers, the confirmed claim with its CSRF token).
+Gates at `de40f72` (mobile): `tsc` clean; `expo lint` 0 errors (28 pre-existing warnings, cap 40); 115 pure test files
+pass; Jest 33 suites / 313 tests pass; release configuration sound; web export carries no server secret names; web and
+iOS bundle audit PASS. Backend at `9efe584` and website at `feca99a` as recorded in `e1e865b`/`00dbac4`; the full
+backend, website and mobile gates are re-run at the final HEADs in Phase 6 and recorded here then.
 
-**Next intended action:** Phase 4 — the platform administration views (grace usage, message delivery, trial claims,
-plan versions, audit) on the backend and the console, then Phase 5 (mobile display-only).
+**Next intended action:** Phase 6 — a realistic database at `0098`, a verified backup and restore, `0099` applied and
+its reverse SQL proved on disposable MySQL 8.4.11 (scratch directory, port 3307, never a persistent database); the
+real-MySQL concurrency spec; a real-HTTP journey with test channels; full gates; screenshots. Then Phase 7
+(documentation, session log, `READY_FOR_HANDOFF`).
 
 The previous records follow, unchanged.
 
