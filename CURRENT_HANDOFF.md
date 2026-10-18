@@ -1,8 +1,21 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE (cloud), started 2026-10-17T23:13Z (claim `7eefc09`), complete.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud session)
+started_at_utc: 2026-10-18T02:06Z
+takeover: authorised by the owner's message of 2026-10-18 ("serve it and deploy it towards tsxmr.com"; Blemhader
+attribution confirmed by its owner, no numbers or secrets). The previous phase ended READY_FOR_HANDOFF; its handoff is
+complete.
+baseline (verified local = remote, all clean): web `site-positioning` a3c2a4b · `tsx-public-site` 397ec6b (production,
+Pages 8a828f1b) · `site-redesign` 397ec6b · `ops/verify-production` bff3143 · backend d3c11a8 · mobile e6773aa ·
+docs b9a8a94.
+active_phase:
+1. add Blemhader.com as client work: the attribution only, with no logo, screenshot, figure or detail of the site;
+2. date the v1.1 legal texts from their own publication day;
+3. promote `site-positioning` to production (`tsx-public-site` → Cloudflare Pages);
+4. verify tsxmr.com from GitHub (`ops/verify-production`, `/services` added).
+Not touched: backend, mobile, DNS, Cloudflare settings, email, contact values.
+next_action: Blemhader content on `site-positioning`.
 
 ## Website repositioning and navigation fixes (2026-10-17, CLAUDE, cloud) — ready for the owner's visual approval
 
