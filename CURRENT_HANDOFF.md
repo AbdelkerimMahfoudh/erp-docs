@@ -1,7 +1,70 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE
+started_at_utc: 2026-10-18T08:54Z (cloud session start; this claim written at 09:26Z, before any change)
+session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+previous: `READY_FOR_HANDOFF` / owner `NONE` — CLAUDE (cloud, website preview), docs only (D201), complete at 09:26Z (docs
+`910c732`); before it, CLAUDE (local), the production API package phase, complete (docs `5ed2849`).
+
+## Active phase: the Dukan ERP portal, web-only trial claiming, the subscription lifecycle, limited grace and prioritized messaging (the owner's brief of 2026-10-18)
+
+| Repository | Branch at takeover | HEAD at takeover | This phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `production-deploy` | `644f4f5` | new branch `dukan-portal-lifecycle` from `644f4f5`; `production-deploy` is not moved |
+| `erp-mobile` | `reports-export` | `e6773aa` | new branch `dukan-portal-lifecycle` from `e6773aa` |
+| `erp-control-web` | `tsx-public-site` (production) | `e953c58` | new branch `dukan-portal` from `e953c58`; `tsx-public-site` and `main` (`0417bfe`) are not moved |
+| `erp-docs` | `master` | `910c732` | this claim; the phase's documents last |
+
+All four trees were cloned fresh, are clean and level with their remotes, and the branch HEADs above match the previous
+record. Baselines on the untouched trees: backend `prisma validate`, `tsc` clean, Jest 260 suites passed (1 env-gated
+skipped), 4 785 tests passed, 24 skipped, 0 failed; website typecheck clean, Vitest 28 files, 490/490.
+
+**Scope (authorised by the brief):** the authenticated portal at `https://dukan.tsxmr.com` (canonical
+`/subscription`) with its own sign-in on the app's identity; web-only trial claiming; three 72-hour paid grace periods
+per company per rolling 12 months; renewal timing; trial and paid reminders; WhatsApp-first portal instructions and
+lifecycle messages with a recorded email fallback; the platform administration views; the mobile app's display-only
+status; tests, a real-MySQL rehearsal and real-HTTP verification on disposable data; documentation.
+
+**Not in scope and not to be touched:** DNS, Cloudflare, production data, SMTP or WhatsApp activation, the Hetzner host
+and its stack, any deployment, any migration on a persistent database, `production-deploy`, `tsx-public-site`, `main`,
+and the concurrent session's branch `website-balanced-motion`.
+
+**Discrepancies found at takeover (reported before any change):**
+1. `erp-control-web` `website-balanced-motion` (`1b9c448`) was not recorded here when this session cloned the
+   repositories (08:56Z). A concurrent cloud session (website preview) then claimed and released `erp-docs` at
+   09:25–09:26Z (`bae81af`, `910c732`), recording **D201**, while this claim was being written; the first push of this
+   claim was refused as non-fast-forward, and the claim was rebased on `910c732` (nothing forced). That session says it
+   continues, without a claim, on `erp-control-web` `website-balanced-motion` (notes only), a new tooling branch
+   `ops/verify-preview` and `ci-evidence`. This phase touches none of those branches and none of the public pages.
+   D201 is taken, so this phase's decisions start at **D202**.
+2. The previous record says `production-deploy` is 13 commits ahead of `reports-export`; Git shows 12.
+3. `docs/68` §5 says cookie-authenticated mutations "carry `x-requested-with`" as the CSRF defence, but the backend
+   checks no CSRF header at all; only `SameSite=Lax` stands, and `dukan.tsxmr.com`, `api.tsxmr.com` and `tsxmr.com` are
+   one site. To be fixed in this phase for the portal's cookie session.
+4. `GET platform/my-subscription` still answers any tenant session (D132 left the Owner-only rule to the website phase).
+5. The brief supersedes recorded decisions, which will be marked superseded in `docs/21`, never silently: the setup
+   instructions' 24-hour token links (D169, D173, D175) become the generic `https://dukan.tsxmr.com/subscription`;
+   "every contact given must be verified" (D177) becomes "the mandatory WhatsApp number must be verified, email
+   optional"; email-or-phone sign-up (D170) becomes WhatsApp-mandatory; the parallel send to every verified contact
+   becomes WhatsApp-first with a conditional, recorded email fallback (refining D181's "never a fallback"); the derived,
+   unlimited 72-hour grace (Milestone K) becomes three per company per rolling 12 months, recorded; an extension during
+   grace, which today starts from the moment of the extension, starts from the original paid expiry.
+6. The brief says the trial's end stops "operational access" and the Owner keeps only sign-in, subscription, support,
+   legal pages and deletion; the recorded rule, the service terms draft and the live public pages say an expired
+   business stays read-only ("records can be read and reports shared"). Read-only is kept (no business operation is
+   possible) and the reading is put to the owner.
+7. After sign-up there is no route to verify an email address (only `account/whatsapp/verify/*`), so with WhatsApp
+   verified at sign-up an optional email could never become a usable fallback. An Owner-only email verification is
+   added.
+
+**Next intended action:** create the three branches; design and rehearse backend migration `0099` (grace episodes and
+the notice outbox) on a disposable MySQL 8.4.11 in the scratch directory after a backup and a proven restore.
+
+The previous records follow, unchanged.
+
+---
+
 last_session: CLAUDE (cloud session, website preview), started 2026-10-18T09:25Z (claim `bae81af`), complete (docs
 only).
 
