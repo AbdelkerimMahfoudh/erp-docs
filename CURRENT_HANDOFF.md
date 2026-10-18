@@ -58,8 +58,16 @@ and the concurrent session's branch `website-balanced-motion`.
    verified at sign-up an optional email could never become a usable fallback. An Owner-only email verification is
    added.
 
-**Next intended action:** create the three branches; design and rehearse backend migration `0099` (grace episodes and
-the notice outbox) on a disposable MySQL 8.4.11 in the scratch directory after a backup and a proven restore.
+**Checkpoint (2026-10-18, CLAUDE):** branches created as above. `erp-backend` `dukan-portal-lifecycle` is pushed at
+`256f1e4` — commit 1 `0d6f27d` (migration `0099_grace_and_notices`, additive: `grace_episodes`, `subscription_notices`,
+an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in
+the scratch directory, never to a persistent one) and commit 2 `256f1e4` (WhatsApp-first subscription notices with a
+recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, the token
+links retired, WhatsApp mandatory at self-registration). Gates at `256f1e4`: `prisma validate`, `tsc`, Jest 262 suites
+passed (1 env-gated skipped), 4 757 passed, 24 skipped, 0 failed; `nest build`. No other repository changed yet.
+
+**Next intended action:** the portal's cookie session with a session-bound CSRF token and the Owner-only portal routes
+(backend), then the `portal` surface of `erp-control-web` on branch `dukan-portal`.
 
 The previous records follow, unchanged.
 
