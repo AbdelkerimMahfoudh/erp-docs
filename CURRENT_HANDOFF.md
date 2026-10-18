@@ -1,22 +1,59 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-18T05:53Z
-active_phase: production deployment package for tsxmr-app-01 (api.tsxmr.com) and ONE disposable production rehearsal
-(project erp-rehearsal) — the owner's brief of 2026-10-18. Implementation on a new erp-backend branch from
-reports-export d3c11a8; CI green on the exact commit before the server is touched; rehearsal fully torn down afterwards.
-scope: erp-backend (deploy package, _FILE secrets, guard/preflight refusals, SMTP proof template and script, CI),
-erp-docs (runbook, decisions, handoff, session log). Server: rehearsal only. NOT in scope: the clean production
-deployment, DNS (no api record), public API traffic, real data, trials, onboarding, WhatsApp, Storage Box, website,
-mobile.
-baseline: backend reports-export d3c11a8 · mobile reports-export e6773aa · web tsx-public-site e953c58 · docs 58106ff.
-checkpoint: erp-backend production-deploy d410c4b (0f0ff9b, 2944260, e3555c7, fe08fb4, 1f73e22, d410c4b) pushed; CI run
-39106054365 green on d410c4b (6/6 jobs). Owner decisions this session: old Brevo key deleted; Brevo tracking cannot be
-turned off on the plan -> the SMTP proof is plain text only. Server untouched since the hardening.
-next_action: the disposable rehearsal (erp-rehearsal) of d410c4b on tsxmr-app-01, then teardown, docs/100, handoff.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (local session, the owner's PC), started 2026-10-18T05:53Z (claim `23f93f6`), complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE, last session CLAUDE (local, server hardening).
+## The production API package, rehearsed once on tsxmr-app-01 and torn down (2026-10-18, CLAUDE, local)
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `production-deploy` (new, pushed) | `644f4f5` | 13 commits from `reports-export` `d3c11a8`; CI run 39109070367 green (6/6) |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched (merging `production-deploy` is a later decision) |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-control-web` | `tsx-public-site` | `e953c58` | untouched (local `site-redesign` fast-forwarded to it) |
+| `erp-docs` | `master` | the commit carrying this file | `docs/100` (new), D200, session log |
+
+**The package (`docs/100`, D200):**
+- `deploy/docker-compose.production.yml` and `deploy/production/`: profiles `production` and `rehearsal`, strict
+  separation, `--confirm <host>`, interruption marker.
+- Secrets as read-only files (`NAME_FILE`): the API's `docker inspect` shows no secret.
+- age backups to off-server keys.
+- The customer-data gate: email and WhatsApp stay closed until a Storage Box restore is proven.
+- Pinned MySQL 8.4.11 and Caddy 2.11.7; CX23 sizing.
+- A plain-text SMTP delivery proof.
+
+**Rehearsal (`docs/100` §13):**
+- 97/97 migrations; smoke 13/13; identities 21/21; sign-up refused with nothing saved;
+- backup → laptop → back → restore PASSED; a tampered copy refused;
+- rollback and forward; restart recovery; isolation;
+- plain-text SMTP proof delivered and owner-confirmed;
+- WhatsApp disabled throughout.
+- Five defects the rehearsal found were fixed, each with a test.
+- **Torn down and verified:** only :22 public, root refused, Docker empty, structural secret checks 0. `/srv` holds only
+  `erp-production/secrets/api/smtp_{username,password}` (the owner's, mode 600). Laptop rehearsal copies deleted.
+
+**Production is NOT deployed.** The next phase starts only on the owner's explicit approval of the clean deployment.
+
+**Then, in order (`docs/100` §6, §12):**
+1. DNS `api` → A → the host, DNS only.
+2. The production age identity: generated in memory, copied to the owner's password manager and `.tsxmr`, removed from
+   the server.
+3. Clone `644f4f5` (or later, CI-green) to `/srv/erp-production`; `stack.env`; `api.env` with email and WhatsApp
+   disabled.
+4. `deploy.sh --confirm api.tsxmr.com`.
+5. The first platform administrator, through hidden prompts.
+
+**Before any external test, trial or customer:**
+- the Storage Box: bought, a sub-account, push and verify, **a restore from it**;
+- the email-tracking decision (Brevo tracking cannot be turned off on the plan);
+- only then `EMAIL_CHANNEL=smtp`.
+
+**Owner reminder:** after the server setup and backend deployment, run `ssh-add -D` and stop the `ssh-agent` service
+(administrator).
+
+---
+
 last_session: CLAUDE (local session, the owner's PC), started 2026-10-18T05:05Z (claim `a3afeeb`), complete.
 
 ## The Hetzner server tsxmr-app-01 hardened (2026-10-18, CLAUDE, local) — no ERP on it

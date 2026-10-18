@@ -12209,3 +12209,36 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
     listening, 80/443/2375/3306/3010 closed from outside, host key unchanged.
 - **Kept out of Git:** the address and the host-key fingerprint, which live in the owner's private provisioning file.
 - **Docs:** `docs/99` §13.
+
+## 2026-10-18 — Production API package and its disposable rehearsal on tsxmr-app-01 (CLAUDE, local)
+
+- **Instruction:** the owner's implementation and rehearsal brief. The final deployment needs separate approval. No DNS,
+  public traffic, real data, WhatsApp or Storage Box.
+- **Claim:** `23f93f6`; checkpoint `764cbd7`.
+- **erp-backend `production-deploy`** (from `reports-export` `d3c11a8`):
+  - `0f0ff9b` secrets as files and the production refusals;
+  - `2944260` the SMTP delivery proof;
+  - `e3555c7` the production package;
+  - `fe08fb4` CI;
+  - fixes `1f73e22`, `d410c4b`, `d5be850`, `411f17b`, `8fcac7b`, `4eed21d`, `53ff5a6`, `644f4f5`.
+  - CI green on every commit the server ran (6/6 jobs each).
+- **Owner decisions this session:**
+  - the old Brevo key was deleted;
+  - Brevo's transactional tracking cannot be turned off on the plan, so the proof is plain text;
+  - the host is production, not staging.
+- **Rehearsal** (`erp-rehearsal`, 06:55–07:50 UTC): see `docs/100` §13. Highlights:
+  - 97/97 migrations; smoke 13/13; identities 21/21; sign-up refused with nothing saved;
+  - backup → laptop → back → restore PASSED; a tampered copy refused;
+  - rollback and forward; restart recovery; isolation;
+  - plain-text SMTP proof delivered (owner-confirmed: inbox, plain, SPF/DKIM/DMARC pass);
+  - WhatsApp disabled throughout.
+  - Five defects were found by the rehearsal and fixed with tests: script modes, the HSTS regex, `wait $!`, the
+    orphan drill copy, and the teardown's `rmdir`.
+- **Teardown:**
+  - everything of the rehearsal removed;
+  - structural secret checks 0;
+  - the server back to its hardened baseline, only :22 public;
+  - `/srv/erp-production/secrets/api` holds the owner's SMTP login and key;
+  - laptop copies deleted.
+- **Not done:** the clean production deployment (awaits the owner's approval after this report), the `api` DNS record,
+  the production backup key, and the Storage Box.

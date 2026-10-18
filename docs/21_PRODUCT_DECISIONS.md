@@ -8073,3 +8073,40 @@ branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation
     - the public browser suite 148/148 against the live domain.
   - Attempt 1 compared files before the Cloudflare build had finished (`/ar/services` 404); it was re-run once.
   - `verify-not-found` passed.
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED (rehearsed, not deployed) — D200: the production API package for tsxmr-app-01
+
+- **Host role (the owner, 2026-10-18).** `tsxmr-app-01` is the future production host for `api.tsxmr.com`, never a
+  persistent staging host.
+  - Production lives under `/srv/erp-production`, Compose project `erp-production`, schema `phonestore`.
+  - Nothing of staging is used there: no names, secrets, volumes or networks.
+- **One compose file, two profiles** (`deploy/docker-compose.production.yml`, `deploy/production/`).
+  - `production`: `api.tsxmr.com`, the edge on 80/443.
+  - `rehearsal`: `erp-rehearsal`, a `*.localhost` host, the edge on 127.0.0.1 only. A disposable rehearsal of the same
+    file, removed after use.
+  - `lib.sh` holds each profile to its project, host, paths and binding, and refuses to run beside another stack
+    (staging, rehearsal or production). Every changing command needs `--confirm <host>`.
+- **Secrets as files.** `NAME_FILE` is read into `NAME` before the configuration is validated (`secret-files.ts`).
+  - Covered: the API's database URL, its four keys, and the SMTP login and key.
+  - So no secret is in `docker inspect`, the env file or `compose config`.
+  - `APP_ENV=production` requires the SMTP key as a file and refuses the staging outbox flag.
+  - Every production process refuses a CORS wildcard and `NODE_DEBUG`.
+- **Backups with age**, authenticated, to off-server public keys. The server writes backups it cannot read; the
+  identity is held by the owner.
+  - **Customer-data gate:** the production preflight keeps every messaging channel (sign-ups) closed until a backup
+    has been restored from the Storage Box (`offsite-restore-proof kind=storage-box`).
+- **Pinned images:** MySQL 8.4.11 and Caddy 2.11.7, by digest.
+- **Sizing for a CX23:** memory and CPU limits; a 768 MB buffer pool; binary logs kept 7 days; log rotation.
+- **WhatsApp** stays disabled. The production preflight refuses any other value: opening it is a reviewed change.
+- **Brevo (the owner, 2026-10-18).**
+  - The key exposed on 2026-10-17 was deleted in Brevo, and the replacement entered directly on the server through a
+    hidden prompt.
+  - Transactional open and click tracking cannot be turned off on the account's plan. So the owner chose a
+    **plain-text** delivery proof: no HTML part for a pixel, no link to rewrite.
+  - It was delivered to the owner's test inbox, with SPF, DKIM and DMARC passing and nothing added.
+  - How production email avoids the provider's tracking is an open owner decision **before onboarding** (`docs/100`
+    §12).
+- **Rehearsed** once, on 2026-10-18 (`docs/100` §13), and torn down. Five defects the rehearsal found were fixed, each
+  with a test.
+- **Not done (by instruction):** the clean production deployment, the `api` DNS record, public traffic, real data,
+  trials, onboarding, WhatsApp and the Storage Box.
