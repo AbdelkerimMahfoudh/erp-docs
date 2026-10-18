@@ -8110,3 +8110,35 @@ branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation
   with a test.
 - **Not done (by instruction):** the clean production deployment, the `api` DNS record, public traffic, real data,
   trials, onboarding, WhatsApp and the Storage Box.
+
+### ✅ DECIDED BY THE OWNER (implemented on a branch, awaiting visual review) — D201: the Dukan ERP illustration may show fictional MRU amounts and Bankily and Sedad as plain-text examples — nowhere else
+
+- **Context.** The owner approved the Balanced motion treatment and a dual-mode Dukan ERP product illustration
+  (electronics store; money-service agent) for the website on 2026-10-18. It is implemented on `erp-control-web`
+  `website-balanced-motion` (code `12f2f3f`, CI green; branch notes `notes/website-balanced-motion.md`). It is **not in
+  production**: promotion waits for the owner's review of a preview on an iPhone.
+- **Exception 1 — fictional MRU amounts (the owner, 2026-10-18).** Inside the interactive illustration only, the site
+  may show its clearly labelled fictional amounts:
+  - a phone sold at 20,000 MRU, paid in full;
+  - a 1,000 MRU exchange with a 20 MRU commission, marked "Example figures, not a tariff";
+  - all under "Interactive illustration · fictional data · no real transactions" (EN/FR/AR).
+  - This does **not** authorise subscription prices, or any price of Dukan ERP, anywhere: `docs/96` §2 ("nothing on
+    sale, no prices") still holds everywhere outside the illustration.
+- **Exception 2 — provider names (the owner, 2026-10-18).** Bankily and Sedad may appear inside the illustration as
+  plain-text provider examples:
+  - no logo, link, colour or mark of either provider;
+  - nothing that implies a partnership, an endorsement, an integration, or the confirmation of a real transfer: the
+    illustration says "Transaction recorded" and that Dukan ERP does not send or receive money; never "transfer sent";
+  - the product page's existing statement that no provider is connected, has approved or endorses Dukan ERP stays.
+- **Unchanged outside the illustration:**
+  - every other page and section names no amount and no provider;
+  - the legal pages and the `/in-app/` pages carry no illustration, no amount and no entrance animation;
+  - the terms' existing denial ("not a bank, not Bankily, not Sedad") stays the only provider mention in a legal text.
+- **How it is held** (`website-balanced-motion`):
+  - the provider names live on one exempt source line (`DEMO_PROVIDERS` in `content/dukan-demo.ts`), and a test pins
+    the only component allowed to read it;
+  - the "no price" checks (unit and browser) still refuse "MRU" everywhere outside the illustration, and hold the
+    illustration to exactly its three fictional figures under its disclosure;
+  - browser tests check that legal, `/in-app/` and 404 pages carry neither the illustration nor the entrance.
+- **Also decided for the review:** keep the illustration's current height. It reserves the taller of its two
+  walkthroughs, so nothing below it moves.

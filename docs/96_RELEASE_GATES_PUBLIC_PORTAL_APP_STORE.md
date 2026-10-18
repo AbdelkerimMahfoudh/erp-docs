@@ -48,6 +48,9 @@ keeps the portal closed until counsel answers it. Company mode is unchanged. A f
   Dukan ERP pages.
 - **Nothing on sale:** no subscription section, no prices, no trial, no registration or sign-in link. The "Launch"
   section says terms will be published before launch and points to the contact page.
+  - **Exception (D201, 2026-10-18):** the Dukan ERP interactive illustration may show its labelled fictional MRU
+    amounts, and Bankily and Sedad as plain-text examples. Nowhere else; no subscription price anywhere. (Branch
+    `website-balanced-motion`; not in production yet.)
 - **Pre-launch versions** of privacy, terms (now "terms of use of this website"), account deletion, privacy choices,
   legal notice, security, support, about and contact.
   - They describe what **this website** does, from its code: no account, no form, no request to any service, no

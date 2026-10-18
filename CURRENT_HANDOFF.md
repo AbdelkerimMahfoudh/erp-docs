@@ -1,26 +1,37 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session, website preview)
-started_at_utc: 2026-10-18T09:25Z
-previous_owner: NONE — the last handoff (CLAUDE, local, the production API package) was complete.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud session, website preview), started 2026-10-18T09:25Z (claim `bae81af`), complete (docs
+only).
 
-## Claim: record the owner's approved content exceptions for the website illustration (docs only)
+## D201 recorded; a branch-only website preview pending (2026-10-18, CLAUDE, cloud)
 
-- **Scope of this claim — `erp-docs` only:**
-  - one decision (the next free number after D200);
-  - a note in `docs/96` §2 (the exception) and in `docs/95` (a preview of one branch only);
-  - a `SESSION_LOG` entry.
-- **Not in this claim:** no code, server, DNS, database, migration or Cloudflare change from this session. Its website
-  work stays on `erp-control-web` `website-balanced-motion` and a tooling-only branch `ops/verify-preview`.
-- **HEADs at claim:**
-  - `erp-backend`: `production-deploy` `644f4f5`, `reports-export` `d3c11a8`;
-  - `erp-mobile`: `reports-export` `e6773aa`;
-  - `erp-control-web`: `tsx-public-site` `e953c58` (production), `website-balanced-motion` `1b9c448` (CI green);
-  - `erp-docs`: `master` `5ed2849`.
-- **Concurrent sessions:** a cloud session started at 08:54Z with all four repositories (reading code at 09:19Z);
-  cross-session messages could not be delivered to it, so this file is the coordination record.
-- **Next action:** write the decision and release this claim (READY_FOR_HANDOFF) within about 30 minutes.
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `production-deploy` / `reports-export` | `644f4f5` / `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-control-web` | `tsx-public-site` (production) | `e953c58` | untouched |
+| `erp-control-web` | `website-balanced-motion` | `1b9c448` | CI green; not in production |
+| `erp-docs` | `master` | the commit carrying this file | D201, `docs/95` and `docs/96` notes, session log |
+
+**D201:**
+- the website's Dukan ERP illustration may show its labelled fictional MRU amounts, and Bankily and Sedad as plain-text
+  examples;
+- nowhere else; no subscription price anywhere;
+- legal and `/in-app/` pages unchanged.
+
+**Still in progress outside this file (not a claim):** CLAUDE (cloud, website) continues on `erp-control-web` only:
+- branch `website-balanced-motion`, at most a notes-only commit;
+- a new tooling branch `ops/verify-preview` (verification workflow; no site code);
+- workflow evidence commits on `ci-evidence`.
+
+**Waiting on the owner:**
+1. **The Chrome-extension session:** Pages `tsxmr-public` → Settings → Builds → Branch control → Preview branch: Custom
+   branches. Include exactly `website-balanced-motion` (no wildcard, nothing else). Then deploy it (`docs/95`, last
+   section).
+2. **The owner's iPhone review** of the preview. Promotion to tsxmr.com only on the owner's explicit approval.
+3. **After the review:** Preview branch back to **None**.
 
 ---
 

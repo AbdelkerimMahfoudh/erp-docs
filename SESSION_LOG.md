@@ -12242,3 +12242,34 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - laptop copies deleted.
 - **Not done:** the clean production deployment (awaits the owner's approval after this report), the `api` DNS record,
   the production backup key, and the Storage Box.
+
+## 2026-10-18 — Website: Balanced motion and the dual-mode Dukan ERP illustration on a branch; D201 (CLAUDE, cloud)
+
+- **Instruction:** the owner's website-only brief, concurrent with the local backend session. Develop on a feature
+  branch, stop for review, and never promote.
+  - Shared documentation stayed untouched during that phase; the branch notes carried the record.
+- **erp-control-web `website-balanced-motion`**, from production `e953c58`:
+  - `12f2f3f` code and tests;
+  - `779d047` and `1b9c448` branch notes.
+  - CI green on `1b9c448`.
+  - Locally: unit 503/503; the public browser suite 160/160 on the production build; the CI public path 160/160; the
+    full site 130/130.
+  - The PUBLIC_WEBSITE release verdict is GO with the production inputs.
+- **What it is:** one motion system for every card family, and one illustration on the home and product pages: an
+  electronics sale and a money-service agent's exchange, three steps each, played only when asked. Detail in
+  `notes/website-balanced-motion.md` on the branch.
+- **Owner decisions after the report (D201):**
+  - the illustration may show its labelled fictional MRU amounts, and Bankily and Sedad as plain-text examples;
+  - nowhere else; no subscription price anywhere;
+  - the demo's current height is kept for the review.
+- **Claim** `bae81af` (docs only); released by the commit carrying this entry.
+  - Cross-session messages to the concurrent cloud session (started 08:54Z) could not be delivered; the handoff file
+    was the coordination record.
+- **Preview** (`docs/95`, last section):
+  - preview deployments were found off;
+  - the Chrome-extension session is asked to allow `website-balanced-motion` only, then return the setting to None
+    after the review;
+  - verification runs from GitHub (`ops/verify-preview`).
+- **Not done (by instruction):** no promotion to tsxmr.com; no change to production, DNS, the server, databases,
+  `erp-backend` or `erp-mobile`.
+

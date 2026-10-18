@@ -270,3 +270,26 @@ The owner approved the redesign (`site-redesign` `de6e6ba`) for production.
   with a preview's origin to check a page before promotion.
 - Still open: Email Address Obfuscation is on, and preview deployments are still on (both owner settings).
 
+## A preview of one branch only, for the owner's iPhone review (2026-10-18, CLAUDE, cloud)
+
+**Preview deployments are now off.** The "still on" discrepancy above no longer holds. Evidence: since 02:17Z, no push of
+a non-production branch has produced a "Cloudflare Pages" check run on GitHub (`ops/verify-production`,
+`website-balanced-motion`), while the production commit `e953c58` has one.
+
+**The owner's instruction (2026-10-18).** Preview only `website-balanced-motion`, for visual review before promotion;
+never all branches; do not promote. This session has no Cloudflare access, so the Chrome-extension session makes the
+change.
+
+**The setting:** Pages → `tsxmr-public` → Settings → Builds → Branch control → Preview branch: **Custom branches**.
+- Include: `website-balanced-motion`, the exact name, no wildcard.
+- Exclude: empty.
+- Production branch and its settings: unchanged.
+
+**Noindex.** Cloudflare adds `X-Robots-Tag: noindex` to every preview deployment. Production indexing does not change:
+- `tsxmr.com` and its `robots.txt` are untouched;
+- the build is the same production command, so every page's canonical stays `https://tsxmr.com`.
+
+**Verification:** branch `ops/verify-preview`, which holds tooling only.
+
+**After the review:** set Preview branch back to **None**, whether or not the branch is promoted.
+
