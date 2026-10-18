@@ -58,16 +58,23 @@ and the concurrent session's branch `website-balanced-motion`.
    verified at sign-up an optional email could never become a usable fallback. An Owner-only email verification is
    added.
 
-**Checkpoint (2026-10-18, CLAUDE):** branches created as above. `erp-backend` `dukan-portal-lifecycle` is pushed at
-`256f1e4` — commit 1 `0d6f27d` (migration `0099_grace_and_notices`, additive: `grace_episodes`, `subscription_notices`,
-an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in
-the scratch directory, never to a persistent one) and commit 2 `256f1e4` (WhatsApp-first subscription notices with a
-recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, the token
-links retired, WhatsApp mandatory at self-registration). Gates at `256f1e4`: `prisma validate`, `tsc`, Jest 262 suites
-passed (1 env-gated skipped), 4 757 passed, 24 skipped, 0 failed; `nest build`. No other repository changed yet.
+**Checkpoint (2026-10-18, CLAUDE):** branches created as above; nothing deployed, no persistent database touched.
 
-**Next intended action:** the portal's cookie session with a session-bound CSRF token and the Owner-only portal routes
-(backend), then the `portal` surface of `erp-control-web` on branch `dukan-portal`.
+| Repository | Branch | Pushed HEAD | Commits of this phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `dukan-portal-lifecycle` | `9efe584` | `0d6f27d` migration `0099_grace_and_notices` (additive: `grace_episodes`, `subscription_notices`, an index on `subscriptions.current_period_end`, two event kinds; applied only to disposable MySQL 8.4.11 databases in the scratch directory) · `256f1e4` WhatsApp-first subscription notices with a recorded email fallback, grace recorded by the lifecycle, renewal from the original expiry during grace, token links retired, WhatsApp mandatory at self-registration · `9efe584` the portal's own sign-in: HttpOnly SameSite=Strict cookies, a session-bound CSRF token, the cookie limited to the portal's routes, Owner only; the Owner's status, email verification |
+| `erp-control-web` | `dukan-portal` | `feca99a` | the `portal` surface (dukan.tsxmr.com/subscription): cookie session + CSRF, confirmed trial claim, status panel (access, grace and allowance, renewal timing, messages), portal instructions, email verification, server payment instructions; setup-link landing removed; Apply requires WhatsApp; EN/FR/AR |
+| `erp-mobile` | `dukan-portal-lifecycle` | `e6773aa` (unchanged) | — |
+
+Gates: backend at `9efe584` — `tsc` clean, Jest 264 suites passed (1 env-gated skipped), 4 775 passed, 24 skipped, 0
+failed; `prisma validate`. Website at `feca99a` — typecheck clean, Vitest 32 files 524/524; full preview build, public
+preview build and portal preview build each prerendered, link-audited (0 broken) and bundle-audited (PASS, `--portal`
+for the portal); the portal's production build refused without `VITE_PORTAL_ORIGIN` (gate PORTAL). Playwright
+(Chromium, local binary): full site 124/124, public site 148/148, portal 34/34 (EN/FR/AR at 375 px and desktop, axe
+WCAG 2.1 AA, host headers, the confirmed claim with its CSRF token).
+
+**Next intended action:** Phase 4 — the platform administration views (grace usage, message delivery, trial claims,
+plan versions, audit) on the backend and the console, then Phase 5 (mobile display-only).
 
 The previous records follow, unchanged.
 
