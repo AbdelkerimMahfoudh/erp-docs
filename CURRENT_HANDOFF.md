@@ -11,7 +11,10 @@ erp-docs (runbook, decisions, handoff, session log). Server: rehearsal only. NOT
 deployment, DNS (no api record), public API traffic, real data, trials, onboarding, WhatsApp, Storage Box, website,
 mobile.
 baseline: backend reports-export d3c11a8 · mobile reports-export e6773aa · web tsx-public-site e953c58 · docs 58106ff.
-next_action: audit the remaining backend files (Dockerfile, CI, SMTP channel, health, log redaction), then branch.
+checkpoint: erp-backend production-deploy d410c4b (0f0ff9b, 2944260, e3555c7, fe08fb4, 1f73e22, d410c4b) pushed; CI run
+39106054365 green on d410c4b (6/6 jobs). Owner decisions this session: old Brevo key deleted; Brevo tracking cannot be
+turned off on the plan -> the SMTP proof is plain text only. Server untouched since the hardening.
+next_action: the disposable rehearsal (erp-rehearsal) of d410c4b on tsxmr-app-01, then teardown, docs/100, handoff.
 
 Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE, last session CLAUDE (local, server hardening).
 last_session: CLAUDE (local session, the owner's PC), started 2026-10-18T05:05Z (claim `a3afeeb`), complete.
