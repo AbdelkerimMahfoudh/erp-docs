@@ -1,7 +1,19 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-18T05:53Z
+active_phase: production deployment package for tsxmr-app-01 (api.tsxmr.com) and ONE disposable production rehearsal
+(project erp-rehearsal) — the owner's brief of 2026-10-18. Implementation on a new erp-backend branch from
+reports-export d3c11a8; CI green on the exact commit before the server is touched; rehearsal fully torn down afterwards.
+scope: erp-backend (deploy package, _FILE secrets, guard/preflight refusals, SMTP proof template and script, CI),
+erp-docs (runbook, decisions, handoff, session log). Server: rehearsal only. NOT in scope: the clean production
+deployment, DNS (no api record), public API traffic, real data, trials, onboarding, WhatsApp, Storage Box, website,
+mobile.
+baseline: backend reports-export d3c11a8 · mobile reports-export e6773aa · web tsx-public-site e953c58 · docs 58106ff.
+next_action: audit the remaining backend files (Dockerfile, CI, SMTP channel, health, log redaction), then branch.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE, last session CLAUDE (local, server hardening).
 last_session: CLAUDE (local session, the owner's PC), started 2026-10-18T05:05Z (claim `a3afeeb`), complete.
 
 ## The Hetzner server tsxmr-app-01 hardened (2026-10-18, CLAUDE, local) — no ERP on it
