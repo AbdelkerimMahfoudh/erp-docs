@@ -708,3 +708,18 @@ Branch `site-positioning` `a3c2a4b`, from production `397ec6b`; production is un
 - full-surface Playwright 130/130.
 
 Not verified live: the Cloudflare preview could not be reached from the build container.
+
+### Promotion (2026-10-18)
+
+`e953c58` adds two things:
+
+- **Client work:** Blemhader.com, as an attribution only (D199), shown under the services on the home and Services
+  pages (`ClientWork` in `components/public/brand.tsx`, `brand.work`).
+- **Per-document effective dates** for legal texts (`LegalDocument.effective`).
+
+It was fast-forwarded to `tsx-public-site` at 02:17Z. The live check is `ops/verify-production` `86e5576`, a merge of
+`e953c58` and the verifier, which triggered `verify-production` and `verify-not-found`.
+
+- **verify-production** (run 39089584510, attempt 2): 60 pages; every built file is served as built, apart from Email
+  Address Obfuscation; browser 148/148 live.
+- **verify-not-found:** passed.

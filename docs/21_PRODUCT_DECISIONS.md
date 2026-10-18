@@ -8046,3 +8046,30 @@ branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation
 5. The terms' "Information on this website" section speaks only of Dukan ERP's descriptions. Decide whether it should
    also cover the services' descriptions (a legal wording change, not made here).
 6. Still open from before: Email Address Obfuscation off, and preview deployments set to None (`docs/95`).
+
+### ✅ DECIDED BY THE OWNER AND IMPLEMENTED — D199: Blemhader.com named as client work; v1.1 texts dated from their publication; promoted (2026-10-18)
+
+- **Blemhader attribution.** On 2026-10-18 the owner stated that Blemhader.com's owner confirmed TSX-MR may show that it
+  developed the site, without numbers or secrets of the site. This supersedes D195's "only once confirmed" line.
+  - What the site says, on the home and Services pages, in EN/FR/AR: "Blemhader.com — a website designed and built by
+    TSX-MR for a client. The site and its content belong to its owner."
+  - What it does not include: no logo, no screenshot, no figure, no description of the client's business and no link.
+  - Why no link or description: the domain did not resolve from the build environment on 2026-10-18, and nothing on
+    record says what the business does, so nothing was invented. A link or a one-line description needs the owner to
+    supply them.
+  - A test keeps the entry free of digits and addresses.
+- **Effective dates.** A legal text may carry its own `effective` date.
+  - Privacy, terms and legal notice v1.1 take effect on 2026-10-18, the day they were published.
+  - The three unchanged v1.0 texts keep the site's date (`VITE_LEGAL_EFFECTIVE_DATE` = 2026-10-17).
+  - So no Cloudflare variable needed changing for this promotion.
+- **Promotion (owner's instruction of 2026-10-18).**
+  - `site-positioning` `e953c58` was fast-forwarded to `site-redesign` and `tsx-public-site` (production) at 02:17Z.
+  - Rollback target: Pages deployment `8a828f1b` (= `397ec6b`).
+- **Verified on https://tsxmr.com from GitHub** (`ops/verify-production` `86e5576`):
+  - `verify-production` run 39089584510, attempt 2:
+    - every built file is served as built; the only differences are Cloudflare's Email Address Obfuscation rewrite (the
+      known owner setting);
+    - 60 pages with their canonicals; a sitemap of 39 URLs; 404s, TLS, redirects, headers and email DNS unchanged;
+    - the public browser suite 148/148 against the live domain.
+  - Attempt 1 compared files before the Cloudflare build had finished (`/ar/services` 404); it was re-run once.
+  - `verify-not-found` passed.

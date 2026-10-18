@@ -1,21 +1,53 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session)
-started_at_utc: 2026-10-18T02:06Z
-takeover: authorised by the owner's message of 2026-10-18 ("serve it and deploy it towards tsxmr.com"; Blemhader
-attribution confirmed by its owner, no numbers or secrets). The previous phase ended READY_FOR_HANDOFF; its handoff is
-complete.
-baseline (verified local = remote, all clean): web `site-positioning` a3c2a4b · `tsx-public-site` 397ec6b (production,
-Pages 8a828f1b) · `site-redesign` 397ec6b · `ops/verify-production` bff3143 · backend d3c11a8 · mobile e6773aa ·
-docs b9a8a94.
-active_phase:
-1. add Blemhader.com as client work: the attribution only, with no logo, screenshot, figure or detail of the site;
-2. date the v1.1 legal texts from their own publication day;
-3. promote `site-positioning` to production (`tsx-public-site` → Cloudflare Pages);
-4. verify tsxmr.com from GitHub (`ops/verify-production`, `/services` added).
-Not touched: backend, mobile, DNS, Cloudflare settings, email, contact values.
-next_action: Blemhader content on `site-positioning`.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), started 2026-10-18T02:06Z (claim `abd18d2`), complete.
+
+## The repositioned website in production (2026-10-18, CLAUDE, cloud)
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` (production) | `e953c58` | fast-forwarded from `397ec6b` (`a3c2a4b`, `e953c58`) at 02:17Z |
+| `erp-control-web` | `site-redesign` | `e953c58` | fast-forwarded, equal to production |
+| `erp-control-web` | `site-positioning` | `e953c58` | `e953c58`: Blemhader attribution, per-document effective dates |
+| `erp-control-web` | `ops/verify-production` | `86e5576` | merge of `e953c58` into the verifier |
+| `erp-control-web` | `main` | `0417bfe` | untouched |
+| `erp-backend` | `reports-export` | `d3c11a8` | untouched |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | claim `abd18d2`; D199, `docs/74`, `docs/97`, session log |
+
+All working trees are clean and level with their remotes. The website checkout is on `site-positioning`.
+
+**Live on https://tsxmr.com:**
+- the TSX-MR brand home page and Services page;
+- Dukan ERP as the own product;
+- Blemhader.com as client work (name and sentence only);
+- the operator's name only in the legal texts;
+- the navigation fixes;
+- legal v1.1 (privacy, terms, legal notice), effective 2026-10-18.
+
+**Verified from GitHub:**
+- `verify-production` run 39089584510, attempt 2:
+  - 60 pages; every built file is served as built, apart from Email Address Obfuscation;
+  - TLS, redirects, headers, 404s, sitemap (39 URLs) and email DNS pass;
+  - browser 148/148 live.
+- `verify-not-found` passed.
+
+**Rollback:** Pages deployment `8a828f1b` (= `397ec6b`). The new deployment's ID was not readable from this environment.
+
+**Owner actions still open:**
+1. Turn off Email Address Obfuscation (the two remaining verify-production failures).
+2. Set preview deployments to None.
+3. Optional, for Blemhader: supply a link and a one-line description of the business.
+4. Optional: counsel on the publication director.
+5. Decide the scope of the terms' "Information on this website".
+
+**Next phase:** hosting and backend deployment.
+
+---
+
+The previous records follow, unchanged.
 
 ## Website repositioning and navigation fixes (2026-10-17, CLAUDE, cloud) — ready for the owner's visual approval
 

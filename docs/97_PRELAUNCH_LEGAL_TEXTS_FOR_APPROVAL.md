@@ -768,3 +768,6 @@ Editorial only. No commitment changes: privacy, deletion, retention and liabilit
 
 **Open question for counsel (D198):** whether a named publication director is required for a Mauritanian website
 published by an individual.
+
+**Effective date of v1.1 (D199):** 2026-10-18, set in each revised document (`effective`), so the page reads "Version
+1.1 · Effective 18 Oct 2026". The unchanged v1.0 texts keep 17 Oct 2026.

@@ -12165,3 +12165,23 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - the Cloudflare preview could not be reached from the container (proxy 403), so preview evidence is the local
     production build plus screenshots.
 - **Docs:** D195–D198; `docs/74` section; `docs/97` v1.1 section; handoff.
+
+## 2026-10-18 — Promotion of the repositioned website to tsxmr.com, with the Blemhader attribution (CLAUDE, cloud)
+
+- **Instruction:** the owner said to "serve it and deploy it towards tsxmr.com". Blemhader.com's owner confirmed that
+  TSX-MR may show it developed the site, with no numbers or secrets.
+- **Claim:** `abd18d2`, 2026-10-18T02:06Z. Every HEAD matched the handoff.
+- **Website `e953c58`** (on `a3c2a4b`):
+  - Blemhader.com as client work, on the home and Services pages, EN/FR/AR: name and sentence only, with no logo,
+    screenshot, figure or link. The domain did not resolve from the environment, and nothing on record describes the
+    business, so nothing was invented (D199).
+  - Per-document effective dates: the v1.1 texts take effect 2026-10-18; the v1.0 texts keep 2026-10-17. No Cloudflare
+    variable changed.
+  - Gates: vitest 490, public Playwright 148, full-surface Playwright 130, CI green.
+- **Promotion:** `e953c58` was fast-forwarded to `site-redesign` and `tsx-public-site` at 02:17Z.
+- **Live verification:** `ops/verify-production` `86e5576` (merge).
+  - verify-production attempt 1 compared files before the Cloudflare build had finished. One re-run passed every check
+    except the two known Email Address Obfuscation checks: 60 pages, 0 unexplained differences, browser 148/148 live.
+  - verify-not-found passed.
+- **Not touched:** Cloudflare settings, DNS, email, contact values, backend, mobile. The Pages deployment ID was not
+  readable from this environment.
