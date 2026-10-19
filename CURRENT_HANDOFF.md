@@ -1,7 +1,15 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-19T01:53Z
+active_phase: rotation of the production backup encryption key (age identity). The previous private identity was
+exposed (uploaded to an online CSV converter by the owner) and is treated as compromised. New key pair, server
+recipient replaced, fresh backup, off-host copy, restore proof, old-key backups and copies removed, no references left.
+Onboarding stays closed. Production API unchanged (644f4f5).
+next_action: generate the new identity in memory on the server, private half to the owner's laptop only.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 last_session: CLAUDE (local session, the owner's PC), 2026-10-19 (claim `a573928`), complete.
 
 ## The production API is live at https://api.tsxmr.com — closed to customers (2026-10-19, CLAUDE, local)
