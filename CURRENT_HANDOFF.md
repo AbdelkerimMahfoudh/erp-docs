@@ -1,7 +1,17 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-19T01:06Z
+active_phase: the clean PRODUCTION deployment of the API at https://api.tsxmr.com on tsxmr-app-01 (owner approval of
+2026-10-18/19): erp-backend production-deploy 644f4f5 (CI run 39109070367), /srv/erp-production, project erp-production,
+fresh secrets, encrypted pre-migration backup, migrations as the migrator, TLS, smoke, restart survival, restore proof.
+DNS verified: api A record DNS-only, no AAAA. Email, WhatsApp and onboarding stay disabled; no real data.
+The cloud portal phase (d1770f6, branches dukan-portal-lifecycle etc.) is NOT part of this deployment.
+baseline: backend production-deploy 644f4f5 · mobile e6773aa · web e953c58 · docs d1770f6.
+next_action: clone 644f4f5 into /srv/erp-production, production backup key, secrets, database, backup, deploy.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE (cloud portal phase complete).
 last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-18T08:54Z (claim
 `a7260b9` at 09:26Z), complete at 13:49Z.
 
