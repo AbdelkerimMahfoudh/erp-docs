@@ -1,7 +1,23 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T04:30Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud, website session) at `0717409`; its handoff
+was complete.
+heads_at_takeover: erp-backend `whatsapp-consent` `35eacf8`; erp-mobile `whatsapp-consent` `dff57dc`; erp-control-web
+`tsx-public-site` `bf62a72` (production), `dukan-portal` `0fd418a`; erp-docs `master` `0717409`. All clean and level.
+active_phase: the owner's corrections of 2026-10-19 to the WhatsApp consent branches, before any merge:
+1. routing: WhatsApp only when verified + active consent + deliverable + template + provider ready, otherwise one
+   verified email when email is ready, otherwise an honest not-sent; never both; withdrawal from WhatsApp is not
+   withdrawal from operational email;
+2. employee consent at invitation/activation, the employee as actor;
+3. consent lifecycle pending_unverified → active → withdrawn / superseded / expired (24 h), amending 0100 in place
+   (never on production), with the rehearsal re-run.
+Branches `whatsapp-consent` in erp-backend and erp-mobile. Nothing deployed, enabled or sent.
+next_action: the backend lifecycle and routing.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 last_session: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt — claim `ff0a4de` at 03:58Z,
 complete at 04:12Z.
 
