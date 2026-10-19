@@ -1,11 +1,20 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-released_at_utc: 2026-10-19T09:32Z
-previous_claim: CLAUDE (cloud), started 2026-10-19T07:50Z from READY_FOR_HANDOFF (owner NONE) at `4cd0b6b`; that
-handoff was complete.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T09:45Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `4ba8c92`; that handoff was complete.
+heads_at_takeover (remote, verified): erp-control-web `tsx-public-site` `bf62a72` (production tsxmr.com),
+`ops/verify-production` `86e5576`; erp-backend `production-deploy` `644f4f5`, `integration/browser-test` `b0758c2`;
+erp-mobile `integration/browser-test` `d7a28fe`; erp-docs `master` `4ba8c92`.
+active_phase: the owner-approved production change of 2026-10-19 — account deletion becomes a documentation entry on
+the Dukan ERP product page of tsxmr.com; standalone deletion links leave the general navigation, footer and company
+quick links; the deletion page is retitled "Delete a Dukan ERP account" with clarified scope (EN/FR/AR). Branch from
+`tsx-public-site` only; deploy directly to tsxmr.com after verification (Cloudflare Pages `tsxmr-public`). No backend,
+mobile, DNS, Cloudflare-settings or database change.
+next_action: audit the deletion links and the Dukan ERP page on `tsx-public-site`.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 
 ## Integration and the phone-browser test — branches tested and pushed, nothing deployed (2026-10-19, CLAUDE, cloud)
 
