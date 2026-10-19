@@ -159,7 +159,8 @@ the API on it (§7).
 3. Meta: publish the app (needs the privacy policy URL, §4); register the real number; permanent system-user token;
    approve the templates (no session submits them); set the webhook (§4).
 4. Choose the API host and its HTTPS certificate (§4).
-5. **Clients (next phase, not this one):** the app and the website must show the consent copy from
+5. *(Done 2026-10-19, D213, §12: the app shows the copy and sends the version; the opt-out route is replaced.)*
+   **Clients (next phase, not this one):** the app and the website must show the consent copy from
    `GET /api/v1/messaging/whatsapp/consent` and send `whatsappConsentVersion` with registration and number
    verification, and offer the opt-out and consent routes. Until then, live mode refuses a registration with a
    WhatsApp number (`whatsapp_consent_required`) — by design, not a bug.
@@ -206,3 +207,58 @@ They replace `WHATSAPP_TEMPLATE_TRIAL_SETUP`. The proposed EN/FR/AR copy and the
 The records gain a table of their own, `subscription_notices`: the channel, the reason, each channel's outcome, a
 masked destination and a keyed hash. Nothing about the send policy of §4 changes. Test mode still reaches the allowlist
 only, and live sends stay disabled until the owner enables them.
+
+## 12. Operational consent and routing (2026-10-19; D213; `docs/101` §17)
+
+This section supersedes the consent rows of §1, §8.5 and §10 where they differ.
+
+**The consent.** One purpose, `operational_whatsapp`; copy `wa-operational-2026-10-19` (EN/FR/AR) at
+`GET /api/v1/messaging/whatsapp/consent?language=en|fr|ar`. Required at registration **in every mode** — the earlier
+"only while WhatsApp runs live" no longer holds. A consent to any other version is outdated and counts for nothing.
+
+**Records (`whatsapp_consents`, migration `0100`).**
+
+| Column | Holds |
+| --- | --- |
+| `number_hash`, `number_masked` | the number as a keyed HMAC and a masked form; never the number |
+| `event` | `granted`, `withdrawn` (`opted_out_optional` only before D213) |
+| `version`, `purposes` | the copy agreed to; `operational_whatsapp` |
+| `locale` (0100) | the language the copy was shown in |
+| `actor_company_id`, `actor_user_id` | who made it (null for a keyword STOP) |
+| `source` | `mobile_registration`, `website_registration`, `account_settings`, `website`, `number_changed`, `inbound_keyword` |
+| `created_at` | when |
+
+The request's address goes on the grant's or withdrawal's audit event (`audit_logs.ip`), not on the consent row.
+Triggers refuse `phonestore_app` UPDATE and DELETE; CHECKs hold the event, a grant's version and the locale.
+
+**Routes.**
+- `GET /api/v1/account/whatsapp/consent?language=` — the copy, the state (`no_number`, `none`, `granted`,
+  `outdated`, `withdrawn`), the granted version and time, the withdrawal time, whether WhatsApp is the only verified
+  contact, and the person's own history. Masked throughout.
+- `POST /api/v1/account/whatsapp/consent` `{version, locale?}` — a new grant for the verified number.
+- `POST /api/v1/account/whatsapp/consent/withdraw` `{acknowledgeSupportRecovery?}` — required `true` when WhatsApp is
+  the only verified contact.
+- `POST /api/v1/account/whatsapp/verify/start` now requires `whatsappConsentVersion` (and takes
+  `whatsappConsentLocale`) for the new number.
+- `POST /api/v1/auth/register` and `/platform/register` require `whatsappConsentVersion` (and take
+  `whatsappConsentLocale`).
+- **Removed:** `POST /api/v1/account/whatsapp/opt-out` (`optional|all`). No client ever called it.
+
+**Routing precedence (`whatsapp-policy.ts` `consentRefusal`, `notice-rules.ts` `whatsappPlan`).**
+1. a verified recipient (notices: an unverified number falls back to a verified email);
+2. the consent in force — missing or outdated: refused, no email;
+3. opt-out (withdrawal, STOP) — refused, no email; undeliverable (131026) — proactive messages refused, notices fall
+   back to a verified email;
+4. the template's approval and the provider's readiness (proof, credentials);
+5. `WHATSAPP_CHANNEL`, `WHATSAPP_MODE` (+ allowlist), `WHATSAPP_LIVE_SENDS`;
+6. idempotency (`whatsapp_messages` key, `subscription_notices` identity) and pacing.
+
+One exception: the code that verifies a number not yet verified (`verifiesContact`, set only by the server's contact
+verification and new-number paths) may go before the number has a consent; it never creates one.
+
+**Production switches stay off:** `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`,
+`EMAIL_CHANNEL=disabled`, onboarding closed, no template name configured.
+
+**Still needed before live WhatsApp:** counsel's review of the copy; Meta business verification and display name;
+the opt-in wording checked against WhatsApp Business policy; templates approved in their categories; the real number,
+webhook and permanent token (§8.3); a delivery proof in test mode; the device checks of `docs/24` §67.

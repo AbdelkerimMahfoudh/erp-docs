@@ -451,3 +451,130 @@ for `dukan.tsxmr.com`; the merge; `0099` on production after a verified backup; 
 | 5 | The brief supersedes recorded decisions | marked in place in `docs/21` (D169, D170, D173, D175, D177, D181, Milestone K) |
 | 6 | "Stops operational access" after a trial against the recorded read-only rule | read-only kept; question 1 of §14 |
 | 7 | No route to verify an email address after sign-up | the Owner verifies it on the portal (§7) |
+
+## 17. The operational WhatsApp consent (2026-10-19; D213)
+
+The owner's brief of 2026-10-19, built on these branches. Decision: `docs/21` D213. Provider and routes: `docs/98` §12.
+Device rows: `docs/24` §67.
+
+### 17.1 Branches
+
+| Repository | Branch | Commits | Base |
+| --- | --- | --- | --- |
+| `erp-backend` | `whatsapp-consent` | `49a61fc` (migration 0100), `8188146` (consent and routing), `35eacf8` (real-MySQL spec in the CI gate) | `dukan-portal-lifecycle` `17ea84b` |
+| `erp-mobile` | `whatsapp-consent` | `dff57dc` | `dukan-portal-lifecycle` `de40f72` |
+| `erp-control-web` | — | untouched: the portal shows no consent control in this phase | `dukan-portal` `e020215` |
+
+### 17.2 The wording, version `wa-operational-2026-10-19`
+
+Served by `GET /api/v1/messaging/whatsapp/consent?language=`; the app stores no copy and no version.
+
+| | Title | Explanation (`body`) | Agreement (the box) |
+| --- | --- | --- | --- |
+| EN | Operational messages on WhatsApp | WhatsApp is the required contact for a Dukan ERP account: we verify your number with a code and send your account’s operational messages there. You can withdraw this agreement at any time in Communication preferences. | I agree to receive operational Dukan ERP messages on WhatsApp, including verification and security codes, account setup information, trial and subscription status, expiry reminders and important service notices. Message frequency depends on account activity. This is not consent to marketing messages. |
+| FR | Messages opérationnels sur WhatsApp | WhatsApp est le contact obligatoire d’un compte Dukan ERP : nous vérifions votre numéro par un code et y envoyons les messages opérationnels de votre compte. Vous pouvez retirer cet accord à tout moment dans Préférences de communication. | J’accepte de recevoir sur WhatsApp les messages opérationnels de Dukan ERP, notamment les codes de vérification et de sécurité, les informations de configuration du compte, l’état de l’essai et de l’abonnement, les rappels d’expiration et les avis de service importants. La fréquence des messages dépend de l’activité du compte. Il ne s’agit pas d’un consentement aux messages marketing. |
+| AR | الرسائل التشغيلية عبر واتساب | واتساب هو جهة الاتصال المطلوبة لحساب Dukan ERP: نتحقق من رقمك برمز ونرسل إليه الرسائل التشغيلية الخاصة بحسابك. يمكنك سحب هذه الموافقة في أي وقت من «تفضيلات التواصل». | أوافق على تلقي رسائل Dukan ERP التشغيلية عبر واتساب، بما في ذلك رموز التحقق والأمان، ومعلومات إعداد الحساب، وحالة الفترة التجريبية والاشتراك، وتذكيرات انتهاء الصلاحية، وإشعارات الخدمة المهمة. يعتمد عدد الرسائل على نشاط الحساب. وهذه ليست موافقة على تلقي رسائل تسويقية. |
+
+Awaiting counsel. Any change of a word is a new version, and every earlier consent then stops counting.
+
+### 17.3 Registration
+
+- The app's form: the number, then the copy's explanation, the agreement beside an **unticked** box (a real
+  checkbox for screen readers: role, state, the agreement as its name, the problem as its hint), the privacy page
+  (the phone's browser, `EXPO_PUBLIC_LEGAL_ORIGIN`), then the optional email.
+- Submitting unticked sends nothing; the problem shows under the box and the screen reader is taken to it.
+- An outdated version refused by the server unticks the box and loads the current copy.
+- The server: `whatsapp_consent_required` / `whatsapp_consent_outdated` before anything is saved, in every mode. The
+  grant is recorded at the registration request, against the pending Owner, with its version, locale, source, time
+  and an audit event with the address. A replay writes nothing. The registration code then goes to a number with a
+  consent on record.
+
+### 17.4 Existing accounts, number changes, withdrawal
+
+- **Existing accounts:** never backfilled. Your account shows "Your agreement to operational WhatsApp messages is
+  needed…" and the Communication preferences row; reading the business is never blocked.
+- **New number:** its own unticked box in the change form; the replaced number's consent ends once the new one is
+  verified (`number_changed`).
+- **Withdrawal:** explained first (reminders, notices and codes to the number stop; nothing moves to email; account,
+  number and data stay). With WhatsApp the only verified contact, *I understand that recovering my account will go
+  through TSX-MR support* must be on, or the server refuses. STOP withdraws as well; START grants nothing.
+- **Re-consent:** a new event. The history is append-only (`0100` triggers).
+
+### 17.5 Routing precedence (every sender)
+
+| Step | Check | When it fails |
+| --- | --- | --- |
+| 1 | verified recipient | notices: fall back to a verified email (`number_unverified`) |
+| 2 | consent in force | refused: `no_consent`; never email |
+| 3 | withdrawal / STOP / undeliverable | `opted_out`, never email; undeliverable notices fall back to a verified email |
+| 4 | template approved, provider ready (proof, credentials) | notices: fall back (`template_unavailable`, `whatsapp_disabled`) |
+| 5 | `WHATSAPP_CHANNEL`, `WHATSAPP_MODE` + allowlist, `WHATSAPP_LIVE_SENDS` | notices: fall back (`whatsapp_disabled`) |
+| 6 | idempotency and pacing | one row per message identity; a paced send retried |
+
+WhatsApp accepted → no email, ever. One email fallback at most, after a WhatsApp-side failure, to a verified
+address. Neither → `failed` with its reason, shown to the Owner and the console; never "sent".
+
+Covered templates (all operational): the verification and security codes, deletion confirmation, the portal
+instructions to `https://dukan.tsxmr.com/subscription`, the trial and paid reminders (72/48/24 h), the trial's end
+(read-only), the paid end with or without grace, the grace reminders and end, closing notices. No price, payment code
+or payment instruction is in any of them.
+
+### 17.6 Migration `0100_whatsapp_operational_consent`
+
+Additive: `whatsapp_consents.locale`; CHECKs on the event, a grant's version and the locale; triggers refusing
+`phonestore_app` UPDATE and DELETE. No backfill.
+
+**Rehearsal (disposable MySQL 8.4.11, scratch; dropped):**
+- a database at 0099 with D181-era history: 40 businesses, 120 people, 400 numbers, 561 events (425 grants to
+  `wa-consent-2026-10-17`, 70 STOPs of optional notices, 66 withdrawals);
+- backup `38e279e26c741982…` restored with matching `CHECKSUM TABLE` on the four tables;
+- 0100 applied; `migrate status` up to date; 561 rows, all with `locale` null; both triggers and three CHECKs present;
+  every pre-existing row's original columns byte-identical;
+- under the new code: 359 numbers `outdated`, 41 `withdrawn`, **0 consented** — nobody opted in;
+- the reverse (below) on a copy: checksums equal to the backup's, no trigger left, Prisma at 0099;
+- after backup `cf35f2e4c189f9b7…`; both dumps deleted with the scratch directory.
+
+**Reverse** (only with the owner's decision, after a fresh backup; a Git rollback does not do this):
+
+```sql
+DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_update;
+DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_delete;
+ALTER TABLE whatsapp_consents DROP CHECK ck_whatsapp_consent_event, DROP CHECK ck_whatsapp_consent_grant_version,
+  DROP CHECK ck_whatsapp_consent_locale;
+ALTER TABLE whatsapp_consents DROP COLUMN locale;
+DELETE FROM _prisma_migrations WHERE migration_name = '0100_whatsapp_operational_consent';
+```
+
+Code before `0100` reads no `locale` and writes no grant the triggers would refuse, so the API can be rolled back to
+`17ea84b` with `0100` still applied.
+
+### 17.7 Verification
+
+| Gate | Result |
+| --- | --- |
+| backend `tsc`, Prisma validate | clean; schema valid |
+| backend Jest (full, at `35eacf8`) | 266 suites, 4 817 passed, 0 failed; the three env-gated real-MySQL suites skipped here and run in the CI gate below |
+| CI database gate, fresh MySQL 8.4.11 | identities and triggers 25/0 (the two consent probes included); permission catalogue 73/73, no drift; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 6/6 |
+| migration rehearsal | §17.6: backup, apply, restore and reverse all matched |
+| mobile | `tsc` clean; lint 0 errors (28 warnings, none in a touched file); 116 pure files; Jest 34 suites, 333 tests |
+| exports and audits | web and iOS exports; bundle audit PASS (no trial action, link, QR, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean |
+| Expo Doctor | 20/21; **the dependency-version check fails**: 10 Expo packages are a patch behind SDK 57's current releases. No dependency changed in this phase; upgrading them is its own decision |
+| messaging | every sender with test or recording channels only — no provider was called, no message left the container |
+
+Tests added for the brief's list: the unticked box; the server refusing registration without consent (both modes,
+both doors); version and locale recorded; a number typed or verified creating nothing; replay idempotent; a changed
+number needing new consent and ending the old; existing accounts not opted in; consent letting an otherwise-ready
+WhatsApp message go; missing, withdrawn and outdated consent refusing it; WhatsApp success suppressing email; one
+verified-email fallback when WhatsApp cannot carry it; no channel → an honest failure; one row per message identity;
+withdrawal and re-consent keeping history; company and user isolation of the history; masked contacts in records,
+audits and answers; EN/FR/AR key parity and the Arabic RTL rendering; no marketing purpose, template, string or
+control.
+
+### 17.8 Still open
+
+- Counsel: the wording. Meta: business verification, display name, opt-in policy check, template categories, the real
+  number, the webhook, the permanent token. Nothing was submitted.
+- Physical devices: `docs/24` §67.
+- Employees see no consent at registration; they receive only their verification code. Asking them in their own
+  account before any proactive message is a follow-up for the owner (D213).
+- The portal shows the consent state nowhere; it may later read `GET account/whatsapp/consent` with the portal session.

@@ -4474,3 +4474,32 @@ a second phone for the website.
 | TR12 | Team, during the trial: a person whose seat was paid for on the website | "{store}: a seat is held for this person." or "included". No date, price, payment or activation control (PQ13) | | |
 | TR13 | The website on the phone's browser at its own width, in EN, FR and AR | The trial card, the claim's confirmation and the requests' *Paid · scheduled* rows with their start in the business's zone. No sideways scroll | | |
 | TR14 | Open the setup link from the email and from WhatsApp on the phone | The website's landing. Signed out, it asks for sign-in and does nothing else. The token leaves the address bar, and the claim needs the tap. A link preview in WhatsApp consumes nothing | | |
+
+## 67. The operational WhatsApp consent (D213, `docs/101` §17) — NOT DEVICE VERIFIED
+
+**Nothing in this section has been run on a physical phone.** Every row was proven only by rendered tests, pure tests
+and real-MySQL specs in the cloud container. Run each row on Android and on an iPhone, in EN, FR and AR, with
+VoiceOver/TalkBack for C3 and C9, against a **test** server whose businesses are disposable and whose WhatsApp channel
+is the development log or test mode with an allowlist. Never use a real customer's number; no real message is sent.
+
+**Preconditions.** An app build of `whatsapp-consent` at or after the commit recorded in `CURRENT_HANDOFF.md`, and an
+API of `whatsapp-consent` with migrations up to `0100`, applied only to a test database.
+
+| # | Do | Expect | Android | iPhone |
+| --- | --- | --- | --- | --- |
+| C1 | Open *Create a business account* | Beside the WhatsApp number: the explanation, the agreement in full, an **unticked** box, *Privacy policy* (opens in the phone's browser). No price, payment or purchase wording | | |
+| C2 | Type and correct the number; change the language | The box stays unticked. The agreement follows the language; a box ticked before the change stays ticked | | |
+| C3 | Submit without ticking, with a screen reader on | Nothing is sent. The error under the box, read with it; the reader's focus lands on the box; the box is announced as a checkbox, "not checked", with the agreement as its name | | |
+| C4 | Tick, submit, finish the code check | The account is created. On the server, one `granted` row: `wa-operational-2026-10-19`, the language shown, `mobile_registration` | | |
+| C5 | Arabic: the whole registration | Right to left; the box on the right, the agreement's lines wrapping naturally; the number and the version left-to-right where shown | | |
+| C6 | Your account → *Communication preferences* | The state "Agreed", the date, the version, the history. The not-marketing line | | |
+| C7 | *Withdraw my agreement*, with no verified email | The explanation; the only-contact warning; *Withdraw* refused until *I understand…* is on; then "Withdrawn", and the box offered again, unticked | | |
+| C8 | Agree again | A new "Agreed" line on top of the history; the earlier lines unchanged | | |
+| C9 | A test account created before D213 (no consent row) | Your account shows the request; every other screen works and reads as before | | |
+| C10 | Change the WhatsApp number | The form has its own unticked box; no code without it; after the code, the old number's history shows "the number was replaced" | | |
+| C11 | Reply STOP from the test phone (test mode, allowlisted) | Communication preferences: "Withdrawn", "by replying STOP". Replying START changes nothing | | |
+| C12 | 320 pt wide phone, largest text size | The agreement wraps without clipping; the box keeps a thumb-sized target; nothing scrolls sideways | | |
+
+**Meta and provider checks, not a device's:** business verification and display name; the opt-in wording against
+WhatsApp Business policy; each template approved in its category; the real number's quality rating; the webhook
+receiving STOP from a real handset.

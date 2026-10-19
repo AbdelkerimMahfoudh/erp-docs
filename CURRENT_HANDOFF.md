@@ -1,19 +1,90 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T02:41Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (local) at `1da1a71`; its handoff was complete.
-heads_at_takeover: erp-backend `dukan-portal-lifecycle` `17ea84b`; erp-control-web `dukan-portal` `e020215`; erp-mobile
-`dukan-portal-lifecycle` `de40f72`; erp-docs `master` `1da1a71`. All four clean and level with their remotes.
-active_phase: WhatsApp operational consent capture (the owner's brief of 2026-10-19): an unticked consent at
-registration, enforced by the server, a versioned auditable record tied to the verified number, withdrawal and
-re-consent in the app, existing accounts never opted in, one routing rule for every operational sender. Branches
-`whatsapp-consent` in erp-backend and erp-mobile (from the portal branches). Nothing deployed; WhatsApp, email,
-onboarding and paid templates stay disabled; no real message; no migration on any persistent database.
-next_action: audit the consent schema and senders, then the backend contract.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-19T02:41Z (claim
+`65cbcfc`), complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## WhatsApp operational consent capture — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
+
+| Repository | Branch | HEAD (pushed) | Base (unmoved) | This phase |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `whatsapp-consent` | `35eacf8` | `dukan-portal-lifecycle` `17ea84b` | `49a61fc` migration 0100; `8188146` consent, enforcement, routing; `35eacf8` real-MySQL spec in the CI gate |
+| `erp-mobile` | `whatsapp-consent` | `dff57dc` | `dukan-portal-lifecycle` `de40f72` | the registration checkbox, Communication preferences, the account's request, the new number's consent |
+| `erp-control-web` | `dukan-portal` | `e020215` | — | untouched |
+| `erp-docs` | `master` | the commit carrying this file | `1da1a71` | D213 (+ D212 Q1/Q11 answered) in `docs/21`; `docs/98` §12; `docs/101` §17; `docs/24` §67; session log |
+
+All four trees are clean and level with their remotes. The production API (`644f4f5`) was not touched.
+
+**The record:** `docs/101` §17 (wording, behaviour, routing table, migration, verification); decision D213 in `docs/21`.
+
+**Consent `wa-operational-2026-10-19`:**
+- One purpose, `operational_whatsapp`; never marketing.
+- Required at registration in every mode, before anything is saved.
+- Recorded with version, locale shown, source, time, actor and an audit event carrying the address.
+- A replay writes nothing. A new number needs its own consent; the replaced number's ends.
+- No backfill: earlier grants are outdated and count for nothing.
+- Withdrawal (app or STOP) stops every message, codes included. It needs the support-recovery acknowledgement when
+  WhatsApp is the only verified contact. Re-consent is a new event; the history is append-only.
+
+**Routing (every sender):** verified recipient → consent in force → opt-out/undeliverable → template and provider
+readiness → switches → idempotency and pacing. WhatsApp only when it can; one verified-email fallback only for a
+WhatsApp-side reason; never both; a missing consent or a withdrawal is an honest `no_consent` / `opted_out`, never
+emailed round.
+
+**Migration `0100_whatsapp_operational_consent`** (additive, branch head):
+- Applied only to disposable databases on a throwaway MySQL 8.4.11 in the session's scratch directory: the CI gate's
+  `phonestore`, `addon_ci`, `grace_ci`, and the rehearsal's `consent_rehearsal`, `consent_restore`, `consent_reverse`.
+- All dropped; the server stopped and deleted.
+- Rehearsal backups (deleted): before `38e279e26c741982…`, after `cf35f2e4c189f9b7…`. The exact reverse is in
+  `docs/101` §17.6.
+- Never on staging or production. A Git rollback does not undo it on a database; code at `17ea84b` runs with it
+  applied.
+
+**Verification at the final commits**
+
+| Area | Result |
+| --- | --- |
+| backend | `tsc` clean; Prisma schema valid; Jest 266 suites, 4 817 passed, 0 failed (3 env-gated real-MySQL suites skipped, run below) |
+| CI database gate (fresh MySQL 8.4.11) | identities and triggers 25/0; permission catalogue 73/73, no drift; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 6/6 |
+| 0100 rehearsal | 561 D181-era events unchanged; 0 of 400 numbers consented after it; restore and reverse matched the backup |
+| mobile | `tsc`; lint 0 errors (28 warnings, none in a touched file); 116 pure files; Jest 34 suites, 333 tests |
+| exports | web and iOS exports; bundle audit PASS; release build refused without inputs; secret scan clean |
+| Expo Doctor | **20/21 — not passed:** 10 Expo packages a patch behind SDK 57's current releases; no dependency changed here |
+| messages | test and recording channels only; no provider called; nothing sent |
+
+**Known risks and limits:**
+- Nothing ran on a device (`docs/24` §67), on Meta's API or SMTP, or on the production stack.
+- The registration grant is recorded at the registration request (the explicit act), not at verification. An
+  abandoned registration leaves a grant for a number nobody verified; nothing proactive is ever sent to an unverified
+  number.
+- Employees never see this consent; they receive only their own verification code (D213 follow-up).
+- The portal shows no consent state yet.
+- `scripts/qa-boutiques.ts` registers without a WhatsApp number (broken since 0099, before this phase) and so without
+  a consent.
+
+**Not done (by instruction):** merge; deployment; `0099` or `0100` on any persistent database; Cloudflare; WhatsApp,
+email or onboarding activation; template approval or submission; any real message.
+
+**Waiting on the owner and providers:**
+1. Counsel's review of the EN/FR/AR wording (`docs/101` §17.2). Any change is a new version.
+2. Meta: business verification, the display name, the opt-in policy check, the template categories, the real number,
+   the webhook, the permanent token.
+3. The device checks of `docs/24` §67.
+4. The remaining D212 questions (`docs/101` §14: 2–10, 12). Q1 and Q11 are answered (D213).
+5. Explicit approval, or not, for each rollout step of `docs/101` §12; `0100` goes with `0099`, after a verified backup.
+6. Expo Doctor's patch drift: approve an `npx expo install --check` dependency update as its own change, or leave it.
+
+**Next exact action:** none until the owner answers. On an explicit rollout approval, the next session:
+1. claims this file;
+2. re-runs the four repositories' gates at these HEADs;
+3. takes the production backup and checks it (`docs/22`);
+4. follows `docs/101` §12, with `0100` immediately after `0099`.
+
+The previous records follow, unchanged.
+
+---
+
 last_session: CLAUDE (local session, the owner's PC), 2026-10-19, started 01:53Z (claim `20d1b53`), complete.
 
 ## The production backup key rotated; the API live at https://api.tsxmr.com, closed to customers (2026-10-19, CLAUDE, local)

@@ -12406,3 +12406,40 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Not printed:** neither identity appeared in a log, command, commit, screenshot or chat. The old public key reached
   the server's search on standard input.
 - **Docs:** `docs/100` §5 (the no-online-service rule, how to rotate), §14 step 4 (amended), §15 (the record).
+
+## 2026-10-19 — WhatsApp operational consent capture (CLAUDE, cloud)
+
+- **Brief:** the owner's of 2026-10-19 — consent capture at registration, a versioned auditable record, withdrawal and
+  re-consent, existing accounts never opted in, one routing rule for every sender. Nothing deployed or enabled.
+- **Takeover:** the handoff was `IN_PROGRESS` under CLAUDE (local, production backup-key rotation) at 02:09Z. This
+  session stayed read-only, reported the overlap, and claimed only after the owner said that session had finished and
+  it had set `READY_FOR_HANDOFF` (`1da1a71`). Claim `65cbcfc` at 02:41Z. All four trees were clean and level.
+- **Open questions settled by the owner's "continue":** withdrawal stops codes to the number too (D181's rule kept); the
+  registration's own code goes on the strength of the grant that request records; STOP is a full withdrawal and START
+  grants nothing. One deviation from the plan as reported: the grant is recorded at the registration request (the
+  explicit act), not at verification — it lets the registration code pass the same rule as every other message, and a
+  number typed or verified still creates nothing.
+- **Backend** `whatsapp-consent` (from `17ea84b`): `49a61fc` migration 0100 (`whatsapp_consents.locale`, CHECKs,
+  append-only triggers); `8188146` the consent (`wa-operational-2026-10-19`, EN/FR/AR), registration and number-change
+  enforcement in every mode, withdrawal and re-consent, `consentRefusal` in the governed channel and a gate around the
+  development log, notices deciding consent before channel availability, the opt-out route replaced; `35eacf8` the
+  real-MySQL consent spec in the CI gate.
+- **Mobile** `whatsapp-consent` (from `de40f72`): `dff57dc` the registration checkbox, Communication preferences, the
+  account's consent request, the new number's consent, EN/FR/AR.
+- **Website** untouched (`e020215`).
+- **Verified:**
+  - backend `tsc`, Prisma validate, Jest 4 817/0;
+  - CI database gate on a fresh MySQL 8.4.11: identities 25/0, permission catalogue 73/73,
+    `trial-addons.mysql` 21/21, `lifecycle.mysql` 10/10, `consent.mysql` 6/6;
+  - 0100 rehearsal: backup `38e279e2…` restored, applied, every old row unchanged, 0 numbers consented, the reverse
+    matching the backup;
+  - mobile `tsc`, lint 0 errors, 116 pure files, Jest 333/333, web and iOS exports, bundle audit PASS, release refused
+    without inputs, secret scan clean.
+- **Not passed:** Expo Doctor 20/21 — 10 Expo packages a patch behind SDK 57's current releases. No dependency changed
+  in this phase.
+- **Not done (by instruction):** no merge, no deployment, `0099`/`0100` on no persistent database, no Cloudflare, no
+  WhatsApp or email activation, no template submitted, no real message, no physical-device run.
+- **Clean-up:** the scratch MySQL server and every database on it (CI gate schemas, `consent_rehearsal`,
+  `consent_restore`, `consent_reverse`) stopped, dropped and deleted with the dumps; the scratch exports deleted.
+- **Docs:** D213 and D212 Q1/Q11 answered in `docs/21`, the D181 refinement note; `docs/98` §12; `docs/101` §17;
+  `docs/24` §67.

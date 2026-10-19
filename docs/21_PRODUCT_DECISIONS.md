@@ -7686,6 +7686,9 @@ binding corrections. Recorded before implementation. From this phase on, session
 
 ### ✅ APPROVED — D181: Brevo SMTP and the WhatsApp Cloud API, with the owner's binding corrections
 
+> **Refined (2026-10-19) by D213:** one operational consent replaces the mandatory/optional purposes of §5; it is required at
+> registration in every mode, checked by every sender, and withdrawn by STOP or in the app.
+>
 > **Refined (2026-10-18) by D209:** subscription messages go by WhatsApp first and fall back to email only for a recorded reason
 > and only to a verified address — never after an opt-out or a missing live-mode consent. Everything else here stands.
 
@@ -8266,3 +8269,86 @@ The others ask the owner to confirm, as built:
 - at most one current-slot message per business at deployment;
 - the app's WhatsApp consent capture is needed before live WhatsApp;
 - D211.
+
+## WhatsApp operational consent (2026-10-19, CLAUDE, cloud)
+
+The owner's brief of 2026-10-19 (consent capture, binding product decisions). Backend `erp-backend` `whatsapp-consent`,
+mobile `erp-mobile` `whatsapp-consent`, both from the portal branches. Nothing deployed; WhatsApp, email, onboarding and
+the paid templates stay disabled; no real message; migration `0100` on disposable databases only. Detail: `docs/101`
+§17, `docs/98` §12.
+
+### ✅ DECIDED BY THE OWNER (brief of 2026-10-19) AND IMPLEMENTED (branches) — D213: one operational WhatsApp consent, required at registration, checked by every sender
+
+**The consent.**
+- One purpose, `operational_whatsapp`: verification and security codes, account setup, trial and subscription status,
+  expiry reminders, important service notices. Never marketing: there is no marketing purpose, copy, template or
+  control, and none may be added under this consent.
+- Copy `wa-operational-2026-10-19`, EN/FR/AR, served by the API (`GET messaging/whatsapp/consent`); the app shows it
+  and sends its version back. The English agreement, word for word:
+  > I agree to receive operational Dukan ERP messages on WhatsApp, including verification and security codes, account
+  > setup information, trial and subscription status, expiry reminders and important service notices. Message
+  > frequency depends on account activity. This is not consent to marketing messages.
+- A consent to any other version is **outdated** and lets nothing go. Rows granted to `wa-consent-2026-10-17` stay in
+  the history and stop counting: nobody is opted in by the change.
+
+**Registration.**
+- An unticked box beside the mandatory WhatsApp field, with the copy, the privacy page and the explanation that
+  WhatsApp is the required operational contact. Nothing ticks it but the person.
+- The server refuses a registration without the current version (`whatsapp_consent_required`) or with another one
+  (`whatsapp_consent_outdated`), in every mode, before anything is saved. Both doors (app, website).
+- The grant is recorded at that explicit act, against the pending Owner, with the version, the language shown, the
+  source (`mobile_registration` / `website_registration`), the time and an audit event carrying the request's address
+  (`audit_logs.ip`, under the audit log's rules). A replay of the same registration writes nothing.
+- Entering or verifying a number never creates a consent. The registration code is the one message sent before the
+  number is verified; it is authorised by the grant the same request recorded.
+
+**Changing the number.** The new number needs its own ticked consent with the code request (recorded for that number,
+`account_settings`). Once the new number is verified, the replaced number's consent is ended (`withdrawn`,
+`number_changed`): it never carries over, nor reaches whoever holds that number next.
+
+**Existing accounts.** No backfill. A verified number without the current consent receives no template; the app's
+account screen asks for the consent and links to Communication preferences; nothing blocks reading the business.
+
+**Withdrawal and re-consent.**
+- Communication preferences (app → Your account): the copy, the state, the version and time, the person's own history.
+- Withdrawing is explained first: automatic reminders and notices stop, and codes to the number stop with them;
+  nothing moves to email; the account, the number and the data stay.
+- When WhatsApp is the only verified contact, the person confirms that recovery goes through TSX-MR support; the
+  server refuses the withdrawal otherwise (`withdrawal_needs_acknowledgement`).
+- Inbound STOP withdraws too, recorded by nobody's account. START grants nothing: consent comes back only through the
+  app, with the copy shown.
+- Re-consent is a new event. The history is append-only: `0100`'s triggers refuse the application account's UPDATE and
+  DELETE.
+
+**Routing (every WhatsApp sender, one rule — `consentRefusal`).** In order: a verified recipient; the consent in
+force; the opt-out and undeliverable state; the template's approval and the provider's readiness; the channel and
+live-send switches; idempotency and pacing.
+- Withdrawn → nothing, codes included.
+- Proactive messages (portal instructions, subscription reminders and notices, closing notices) → the consent in
+  force, no opt-out, a deliverable number.
+- Codes the person asks for → the consent in force too, except the code that verifies a number not yet verified
+  (registration, an invited employee, a new number), which never creates a consent.
+- The governed Cloud API channel and the development log apply the same rule; the operator's delivery check stays
+  test-mode only.
+- Subscription messages: WhatsApp only when it can carry them; one email fallback only for a WhatsApp-side reason and
+  only to a verified address; never both; a missing consent or a withdrawal stops the message honestly (`no_consent`,
+  `opted_out`) and is never routed round by email.
+
+**Refines** D181 §5 (the mandatory/optional purposes, the STOP-for-optional-notices split and consent "only while
+WhatsApp runs live" are superseded) and D209 (consent is decided before channel availability).
+
+### ✅ ANSWERED BY THE OWNER (brief of 2026-10-19) — D212, questions 1 and 11
+
+- **Q1:** a trial's end has no grace and makes the business **read-only**: records readable and exportable,
+  operational mutations refused. As built.
+- **Q11:** the WhatsApp consent capture is approved and implemented (D213).
+- Grace stays three 72-hour periods per company in any **rolling** 12 months (D206), paid subscriptions only.
+
+### ⏳ AWAITING THE OWNER OR PROVIDERS — D213 follow-ups
+
+- Counsel's review of `wa-operational-2026-10-19` (EN/FR/AR); any change is a new version.
+- Meta: business verification, the display name, the opt-in wording check against WhatsApp Business policy, the
+  templates and their categories (authentication vs utility), the real number, the webhook, the permanent token.
+- Physical-device checks (`docs/24` §67).
+- Whether employees, who never see this consent at registration, should be asked for it in their own account before
+  any proactive message (today they receive only their verification code).
