@@ -8135,12 +8135,15 @@ branch; production is unchanged. Detail: `docs/74` "Repositioning and navigation
 - **Not done (by instruction):** the clean production deployment, the `api` DNS record, public traffic, real data,
   trials, onboarding, WhatsApp and the Storage Box.
 
-### ✅ DECIDED BY THE OWNER (implemented on a branch, awaiting visual review) — D201: the Dukan ERP illustration may show fictional MRU amounts and Bankily and Sedad as plain-text examples — nowhere else
+### ✅ DECIDED BY THE OWNER AND IN PRODUCTION (since 2026-10-19) — D201: the Dukan ERP illustration may show fictional MRU amounts and Bankily and Sedad as plain-text examples — nowhere else
 
 - **Context.** The owner approved the Balanced motion treatment and a dual-mode Dukan ERP product illustration
-  (electronics store; money-service agent) for the website on 2026-10-18. It is implemented on `erp-control-web`
-  `website-balanced-motion` (code `12f2f3f`, CI green; branch notes `notes/website-balanced-motion.md`). It is **not in
-  production**: promotion waits for the owner's review of a preview on an iPhone.
+  (electronics store; money-service agent) for the website on 2026-10-18. It was implemented on `erp-control-web`
+  `website-balanced-motion` (code `12f2f3f`, CI green; branch notes `notes/website-balanced-motion.md`).
+- **In production (2026-10-19).** The owner and the team lead reviewed the preview of `1b9c448` (Cloudflare deployment
+  `8e3b3803`) and approved it. `tsx-public-site` was fast-forwarded to `1b9c448` at 02:41Z, then to `bf62a72` (CI's
+  `.gitleaksignore` only, no site file). tsxmr.com is verified against that build: 23/23 production checks, WebKit
+  27/27, public suite 160/160 (`docs/95`, the promotion section).
 - **Exception 1 — fictional MRU amounts (the owner, 2026-10-18).** Inside the interactive illustration only, the site
   may show its clearly labelled fictional amounts:
   - a phone sold at 20,000 MRU, paid in full;

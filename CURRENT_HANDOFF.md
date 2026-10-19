@@ -1,27 +1,43 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
-started_at_utc: 2026-10-19T03:58Z (this claim written before any change)
-takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud, portal session) at `b4bd56d`; its handoff was
-complete.
-heads_at_takeover: erp-backend `whatsapp-consent` `35eacf8`, `production-deploy` `644f4f5`, `dukan-portal-lifecycle`
-`17ea84b`; erp-mobile `whatsapp-consent` `dff57dc`, `reports-export` `e6773aa`; erp-control-web `tsx-public-site`
-`bf62a72` (production), `dukan-portal` `e020215`, `main` `0417bfe`; erp-docs `master` `b4bd56d`. Local trees clean and
-level with their remotes.
-**Correction:** the website line below (`tsx-public-site` `e953c58`, "untouched") is stale. `tsx-public-site` is
-`bf62a72` and in production since 2026-10-19 02:41Z (`1b9c448`, the approved Balanced motion release) and 03:14Z
-(`bf62a72`, CI's `.gitleaksignore` only); verified live 23/23, WebKit 27/27, public suite 160/160.
-active_phase (the owner's instruction of 2026-10-19):
-1. record the website promotion in the docs (`docs/95`, `docs/96` §2, D201, session log) and correct the website HEAD;
-2. CI evidence must never carry a raw `idempotencyKey`: mask it in `erp-control-web` `dukan-portal`'s portal browser
-   evidence (`e2e/portal.spec.ts`), and carry the `.gitleaksignore` of `bf62a72` there so its CI is green again;
-3. the WhatsApp operational consent, backend and mobile only: its open code follow-up is put to the owner as a plan
-   before any implementation (the phase itself is complete, `docs/101` §17.8).
-Not in scope: deployment, merges, any database, Cloudflare, `tsx-public-site`, the portal website code.
-next_action: the docs record, then the masking on `dukan-portal`.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt — claim `ff0a4de` at 03:58Z,
+complete at 04:12Z.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## The website in production at `bf62a72`; CI evidence masks idempotency keys (2026-10-19, CLAUDE, cloud)
+
+| Repository | Branch | HEAD (pushed) | State |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` | `bf62a72` | **production** (tsxmr.com): `1b9c448`, the approved Balanced motion release, plus `.gitleaksignore` only; CI green |
+| `erp-control-web` | `dukan-portal` | `0fd418a` | `ed6c583` the same `.gitleaksignore`; `0fd418a` the portal test's evidence masks `idempotencyKey`; CI green (run `39197649573`) |
+| `erp-control-web` | `ops/verify-preview` | `451218b` | tooling only (a commit locally, as a preview, or on tsxmr.com after a promotion) |
+| `erp-backend` | `whatsapp-consent` | `35eacf8` | untouched (the consent phase below) |
+| `erp-mobile` | `whatsapp-consent` | `dff57dc` | untouched (the consent phase below) |
+| `erp-docs` | `master` | the commit carrying this file | D201 in production (`docs/21`), `docs/96` §2, `docs/95` (promotion; preview correction), session log |
+
+The production API (`644f4f5`), the databases, DNS and Cloudflare settings were not touched by this session.
+
+**Verified:**
+- tsxmr.com against the build of `bf62a72`: 23/23 production checks (every file byte-for-byte), WebKit 27/27, public
+  suite 160/160, no retries (run `39193861703`).
+- CI green on `bf62a72` (run `39193773528`) and on `0fd418a`. The full-history gitleaks scan finds no leaks, and the
+  evidence `0fd418a` committed shows `"idempotencyKey": "[masked: 36 characters]"`.
+
+**Owner settings still open (Cloudflare, `docs/95` last section):**
+- Preview branch back to None.
+- The Preview variables: empty them, or keep them.
+- The `site-redesign` and `website-balanced-motion` preview deployments still answer (noindex) until deleted.
+
+**WhatsApp operational consent:** the phase is complete (record below). Its one code follow-up for backend and
+mobile, asking employees for the consent in their own account (D213), is put to the owner as a plan. Nothing was built.
+
+**Next exact action:** none until the owner answers. The consent phase's own next action (below) still holds.
+
+The previous records follow, unchanged except the two stale website lines, now marked.
+
+---
+
 last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-19T02:41Z (claim
 `65cbcfc`), complete.
 
@@ -31,7 +47,7 @@ last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRX
 | --- | --- | --- | --- | --- |
 | `erp-backend` | `whatsapp-consent` | `35eacf8` | `dukan-portal-lifecycle` `17ea84b` | `49a61fc` migration 0100; `8188146` consent, enforcement, routing; `35eacf8` real-MySQL spec in the CI gate |
 | `erp-mobile` | `whatsapp-consent` | `dff57dc` | `dukan-portal-lifecycle` `de40f72` | the registration checkbox, Communication preferences, the account's request, the new number's consent |
-| `erp-control-web` | `dukan-portal` | `e020215` | — | untouched |
+| `erp-control-web` | `dukan-portal` | `e020215` | — | untouched (since: `0fd418a`, CI evidence masking only; record above) |
 | `erp-docs` | `master` | the commit carrying this file | `1da1a71` | D213 (+ D212 Q1/Q11 answered) in `docs/21`; `docs/98` §12; `docs/101` §17; `docs/24` §67; session log |
 
 All four trees are clean and level with their remotes. The production API (`644f4f5`) was not touched.
@@ -114,7 +130,7 @@ last_session: CLAUDE (local session, the owner's PC), 2026-10-19, started 01:53Z
 | `erp-backend` | `production-deploy` | `644f4f5` | deployed to tsxmr-app-01 (image id `sha256:7a0e9a08f94f…`); untouched by the rotation |
 | `erp-backend` | `dukan-portal-lifecycle` | `17ea84b` | the cloud portal phase: NOT deployed (needs its own approval: `docs/100` note, `docs/101`) |
 | `erp-mobile` | `reports-export` | `e6773aa` | untouched |
-| `erp-control-web` | `tsx-public-site` | `e953c58` | untouched |
+| `erp-control-web` | `tsx-public-site` | `e953c58` | untouched (stale: `bf62a72` in production since 2026-10-19 03:14Z; record above) |
 | `erp-docs` | `master` | the commit carrying this file | `docs/100` §5, §14 step 4, §15; session log |
 
 **The rotation (`docs/100` §15).** The first production backup identity went through an online CSV converter, so it is

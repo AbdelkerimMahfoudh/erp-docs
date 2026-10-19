@@ -12443,3 +12443,39 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   `consent_restore`, `consent_reverse`) stopped, dropped and deleted with the dumps; the scratch exports deleted.
 - **Docs:** D213 and D212 Q1/Q11 answered in `docs/21`, the D181 refinement note; `docs/98` §12; `docs/101` §17;
   `docs/24` §67.
+
+## 2026-10-19 — Website: the Balanced motion release promoted to tsxmr.com; CI evidence masks idempotency keys (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt. The website work (preview, review, promotion)
+  ran under the owner's instructions while other sessions held this file. They were told through the owner, and only
+  website branches were touched. The record was written here once the portal session released (`b4bd56d`), under
+  claim `ff0a4de` (03:58Z).
+- **Preview:** the Chrome-extension session deployed `1b9c448` alone (deployment `8e3b3803`), with Preview limited to
+  `website-balanced-motion`. It was verified from GitHub's runner:
+  - byte-for-byte as built, noindex on 60/60 pages, canonicals on tsxmr.com, production unchanged;
+  - WebKit 27/27, public suite 160/160.
+  - The owner and the team lead reviewed it on an iPhone and approved it.
+- **Correction:** `docs/95` had said previews were off. They were limited to `site-redesign`, which the Chrome session
+  removed.
+- **Promotion:** `tsx-public-site` was fast-forwarded with no force: `e953c58` → `1b9c448` (02:41Z, Cloudflare
+  `c9369247`), then `bf62a72` (03:14Z, `5ac08a5e`). `bf62a72` adds only `.gitleaksignore`. tsxmr.com is verified against
+  the build: 23/23 production checks, WebKit 27/27, public suite 160/160, twice (`1b9c448`, then `bf62a72`). Email
+  Address Obfuscation is now off.
+- **CI:** the push turned `checks` red on the full-history gitleaks scan.
+  - **Cause.** 9 `idempotencyKey` values in the `dukan-portal` browser evidence that its CI had committed to
+    `ci-evidence` on 2026-10-18. Every branch's CI had been red since 11:52Z that day.
+  - **Fix.** Reproduced with CI's image on a full clone: 9 findings without the ignore file, 0 with it. With the
+    owner's approval, `.gitleaksignore` lists exactly those 9. CI is green on `bf62a72`.
+  - **Prevention.** On `dukan-portal`, `ed6c583` carries the same file, and `0fd418a` masks the key in the portal test's
+    `record()` (`[masked: N characters]`). Before pushing: the claim tests passed in EN/FR/AR, and gitleaks found
+    nothing in the new evidence while flagging an unmasked control. CI is green on `0fd418a` (run `39197649573`): no
+    leaks, portal browser 34/34, and the evidence it committed is masked.
+- **Tooling:** `ops/verify-preview` (`451218b`) checks a commit locally, as a deployed preview, or on tsxmr.com after a
+  promotion, in WebKit and Chromium. Its evidence is on `ci-evidence` under `evidence/preview/`.
+- **Docs:** D201 is now in production (`docs/21`); the `docs/96` §2 exception updated; `docs/95`, the promotion
+  section and the preview correction.
+- **Owner settings still open:**
+  - Cloudflare Preview branch back to None;
+  - the Preview variables;
+  - the `site-redesign` and `website-balanced-motion` preview deployments, which still answer (noindex).
+- **WhatsApp operational consent:** unchanged here. Its code follow-up (D213: employees) is put to the owner as a plan.

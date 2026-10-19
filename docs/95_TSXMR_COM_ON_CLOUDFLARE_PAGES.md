@@ -272,9 +272,9 @@ The owner approved the redesign (`site-redesign` `de6e6ba`) for production.
 
 ## A preview of one branch only, for the owner's iPhone review (2026-10-18, CLAUDE, cloud)
 
-**Preview deployments are now off.** The "still on" discrepancy above no longer holds. Evidence: since 02:17Z, no push of
-a non-production branch has produced a "Cloudflare Pages" check run on GitHub (`ops/verify-production`,
-`website-balanced-motion`), while the production commit `e953c58` has one.
+**Preview deployments were limited to `site-redesign`, not off** (corrected 2026-10-19). This session inferred "off"
+because no other branch had produced a "Cloudflare Pages" check run since 02:17Z. The Chrome-extension session found the
+setting at "Custom branches: `site-redesign`" and removed that entry.
 
 **The owner's instruction (2026-10-18).** Preview only `website-balanced-motion`, for visual review before promotion;
 never all branches; do not promote. This session has no Cloudflare access, so the Chrome-extension session makes the
@@ -293,3 +293,51 @@ change.
 
 **After the review:** set Preview branch back to **None**, whether or not the branch is promoted.
 
+## The Balanced motion release: preview, review, promotion (2026-10-19, CLAUDE, cloud)
+
+**The preview.** The Chrome-extension session set Preview branch to "Custom branches: `website-balanced-motion`" only.
+- It removed the obsolete `site-redesign` entry and created no deploy hook.
+- It retried the skipped deployment of the exact commit: `1b9c448`, deployment `8e3b3803`, at
+  `https://8e3b3803.tsxmr-public.pages.dev` and `https://website-balanced-motion.tsxmr-public.pages.dev`.
+- The Preview environment already held the same six public variables as Production. That differs from §3's "leave
+  Preview empty"; whether to empty it again is an owner setting.
+
+**The preview, verified** (`ops/verify-preview`, run `39187728547`, at both addresses):
+- every built file was served byte-for-byte as `1b9c448` builds;
+- 60/60 pages carried `X-Robots-Tag: noindex`, and every canonical was on `https://tsxmr.com`;
+- headers equalled `_headers`, and production was unchanged;
+- WebKit (iPhone 17, iPhone SE, desktop Safari) 27/27, public suite 160/160.
+
+The owner and the team lead reviewed it on an iPhone and approved it.
+
+**The promotion.** `tsx-public-site` was fast-forwarded with no force:
+- `e953c58` → `1b9c448` at 02:41:16Z (Cloudflare production deployment `c9369247`);
+- then `1b9c448` → `bf62a72` at 03:14:50Z (deployment `5ac08a5e`). `bf62a72` adds only `.gitleaksignore`; no site
+  file changed.
+
+**Production, verified** (`ops/verify-preview` in production mode, which runs `ops/verify-production`'s
+`scripts/verify-production.mjs` against the commit's build; runs `39192467357` on `1b9c448` and `39193861703` on
+`bf62a72`):
+- 23/23 checks: TLS, redirects, headers, every file byte-for-byte, canonicals, no tracker, 404s, sitemap (39 URLs) and
+  email DNS;
+- WebKit 27/27, public suite 160/160, no retries;
+- Email Address Obfuscation is now off. The last check of `e953c58` still found it on.
+
+**CI.** The push to `tsx-public-site` turned the `checks` job red, though not because of the release:
+- **Cause.** The full-history gitleaks scan reads every branch. On 2026-10-18 the `dukan-portal` CI committed browser
+  evidence (`portal-claim-{en,fr,ar}.json`) carrying the test's generated `idempotencyKey`. Gitleaks'
+  `generic-api-key` rule matched 9 of them. They are not credentials, and every branch's CI had failed on them since
+  11:52Z.
+- **Fix.** `.gitleaksignore` lists exactly those 9 fingerprints. It was reproduced first with CI's image
+  (`sha256:c00b6bd0…`) on a full clone: 9 findings without the file, none with it. CI is green on `bf62a72` (run
+  `39193773528`).
+- **Prevention.** On `dukan-portal`, `ed6c583` carries the same `.gitleaksignore`. In `0fd418a`, the portal browser
+  test's `record()` writes any `idempotencyKey` as `[masked: N characters]`. Gitleaks with CI's image finds nothing in
+  that evidence, and flags an unmasked control copy.
+
+**Still open (owner settings):**
+- Preview branch back to **None**.
+- Empty the Preview variables, or keep them.
+- The `site-redesign` and `website-balanced-motion` preview deployments still answer at their addresses (noindex)
+  until deleted.
+- The production alias `tsxmr-public.pages.dev` answers 200 without noindex; its canonicals point to tsxmr.com.
