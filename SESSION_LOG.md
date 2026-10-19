@@ -12381,3 +12381,28 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - email, WhatsApp and onboarding disabled (sign-up 503, nothing saved);
   - secret-shaped strings 0 in the logs.
 - **Docs:** `docs/100` §14 (record, rollback, three follow-ups).
+
+## 2026-10-19 — Production backup-key rotation after an exposure (CLAUDE, local)
+
+- **Why:** the owner converted the production age backup identity to CSV with an online converter, for a password
+  manager import. It is treated as compromised.
+- **Claim:** `20d1b53`. The production API (`644f4f5`) was not redeployed or changed.
+- **Done:**
+  - a new identity, generated in memory on the server. Its private half went only to the laptop
+    (`.tsxmr\production-backup-identity-v2.txt`) and the owner's Google Password Manager. The import of a locally
+    built CSV reported success but showed no entry, so the owner added it by hand;
+  - the recipient file replaced: the new public key only;
+  - a fresh backup, `phonestore-20261019T015638Z`, sent off-host to the laptop and back, then restored with the new
+    identity: 118 tables, 53 triggers, every CHECKSUM matched. PASSED;
+  - the old key's two backups (0 companies, 0 users) removed;
+  - the import CSV, the old key and the converter's CSV moved to the Recycle Bin for the owner to delete permanently.
+- **Verified:**
+  - the old public key: 0 references on the server and in the four repositories, history included;
+  - private age keys on the server: 0;
+  - no cron or unit runs `backup.sh`;
+  - the laptop holds a single private age key file, the new one;
+  - smoke 15/15;
+  - email, WhatsApp and onboarding still closed.
+- **Not printed:** neither identity appeared in a log, command, commit, screenshot or chat. The old public key reached
+  the server's search on standard input.
+- **Docs:** `docs/100` §5 (the no-online-service rule, how to rotate), §14 step 4 (amended), §15 (the record).

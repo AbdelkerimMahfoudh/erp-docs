@@ -142,8 +142,15 @@ phone ──https──▶ api.tsxmr.com : 443   (DNS only, A → the host; crea
     the round trip passes, the wrong key is refused, and a changed byte is refused.
 - **Keys.** The server holds only the **public** recipient (`secrets/backup.age-recipients`).
   - The identity that decrypts lives **off the server**: in the owner's password manager, and in the private folder
-    `.tsxmr` on the owner's laptop.
+    `.tsxmr` on the owner's laptop (`production-backup-identity-v2.txt` since the rotation of §15).
   - The server writes backups it cannot read. Losing the server does not lose the means of restoring.
+  - **The identity never goes through an online service.** That includes converters, pastebins and chat. An import file
+    for a password manager is built locally (PowerShell), or the entry is added by hand.
+  - **If it is exposed, rotate (§15):**
+    1. a new identity;
+    2. the recipient file holding only its public key;
+    3. a fresh backup and a restore proof with the new identity;
+    4. then remove the backups made for the old key, once they hold no unique data.
 - **`backup.sh`.**
   1. mysqldump runs inside the database container as `phonestore_backup` (read-only, socket).
   2. The stream is gzipped and encrypted on the host; the plaintext never touches the disk.
@@ -441,9 +448,9 @@ equal on both ends.
 2. `stack.env` (production profile).
 3. `api.env`: email and WhatsApp `disabled`; `CORS_ORIGINS=https://dukan.tsxmr.com` (the owner's approved portal
    origin, exact; the smoke test checks it is granted exactly, and an unknown origin nothing).
-4. The production **age backup key**: generated in memory and streamed over SSH into the owner's laptop file
-   `.tsxmr\production-backup-identity.txt` (user-only, matched without being shown). Only its public half is on the
-   server. **The owner stores it in the password manager.**
+4. The production **age backup key**: generated in memory and streamed over SSH into a user-only file in the owner's
+   laptop folder `.tsxmr` (matched without being shown). Only its public half was on the server. **This first key was
+   exposed the same day and replaced: §15.**
 5. `setup-secrets.sh`: **9 fresh secrets** (5 database passwords and 4 API keys), never printed. The owner's SMTP login
    and key were left untouched.
 6. `setup-database.sh`: MySQL 8.4.11 (strict, UTC, 768 MB pool), the `phonestore` schema and the four identities
@@ -502,3 +509,72 @@ equal on both ends.
    nothing to protect, but the owner asked for the backup; documented here.
 3. `deployments.log` and `current-images.env` were written with the account's umask (0664) inside the 0700 backups
    directory. No secret is in them. Follow-up: `umask 077` in `lib.sh`.
+
+---
+
+## 15. Backup-key rotation (2026-10-19, CLAUDE, local)
+
+**Why**
+- To import the §14 backup identity into Google Password Manager, the owner converted it to CSV with an online
+  converter. The private key left the owner's machines, so it is treated as **compromised**.
+- Only two backups had been encrypted for it: the deployment's (`…010809Z`, `…011419Z`). They held an empty
+  platform: 0 companies and 0 users.
+- Both existed only on the server. No Storage Box exists, and the §14 restore ran on the host.
+
+**Done, in order**
+1. **A new age identity.**
+   - Generated on the server in `/dev/shm` (memory).
+   - Streamed over SSH into the owner's laptop file `.tsxmr\production-backup-identity-v2.txt` (user-only ACL; the
+     checksum matched on both ends without being shown).
+   - Removed from the server. It is a different key pair from the old one.
+2. **The recipient.** `secrets/backup.age-recipients` now holds the new public key alone (mode 600). No private key is
+   on the server.
+3. **A fresh backup**, to the new recipient only: `phonestore-20261019T015638Z.sql.gz.age` (53 747 bytes) and its
+   `.sha256`.
+4. **Off-host copy and restore proof.**
+   - The backup was copied to the laptop (`.tsxmr\production-backups\`; checksum OK).
+   - That copy was returned to a fresh `restore-in` directory on the server. The new identity was brought in on the
+     drill's own session.
+   - `phonestore_drill_20261019T015651Z`: tables 118, triggers 53, every table's `CHECKSUM` matched; then dropped.
+     **PASSED.**
+   - The key left with the session (`/dev/shm` `erp-*`: 0), and `restore-in` was removed.
+   - This is a laptop proof (`kind=laptop`). It does **not** open the customer-data gate (§5).
+5. **The old key's backups removed.** After the unique-data check (companies 0, users 0), the two backups and their
+   checksums were deleted from the server.
+6. **The new key in the password manager.**
+   - The owner imported a CSV built locally with PowerShell (UTF-8, no online converter).
+   - The import reported success, but the entry could not be found. The owner then added it by hand: site
+     `api.tsxmr.com`, username `age-backup-identity`.
+   - Removed from `.tsxmr` and `Downloads`, now in the Recycle Bin for the owner to delete permanently:
+     - the import CSV;
+     - the old identity file;
+     - the converter's CSV.
+   - The converter's own copy is outside our control. The replacement makes it worthless: nothing that exists is
+     encrypted to it.
+
+**Verified after the rotation**
+- **Recipient file:** one line, the new key; the old key is absent.
+- **The old public key on the server: 0 files.** Searched in `/srv`, `/etc`, `/home`, `/root`, `/usr/local`, `/opt`,
+  `/var/spool`, the Docker volumes, `/var/backups`, `/tmp`, `/var/tmp` and `/dev/shm`. Its value came in on standard
+  input, never on a command line.
+- **Private age keys on the server: 0 files**, in the same places and `/var/log`. Identity files in `/dev/shm` and
+  `/tmp`: 0.
+- **Scheduled jobs:**
+  - no cron entry, and no unit naming `backup.sh`;
+  - the only timer matching "backup" is Ubuntu's own `dpkg-db-backup`, which is unrelated;
+  - production backups have no timer yet. It is written with the Storage Box (§5).
+- **Backups on the host:** only `…015638Z`. It is the only `.age` file on the server.
+- **The four repositories:** the old public key appears 0 times and private age keys 0 times, in the working trees
+  and the whole history. All four trees are clean.
+- **Documentation:** the old identity's file is no longer named (§14 step 4 amended).
+- **The laptop:** the only file holding a private age key is `production-backup-identity-v2.txt`.
+- **The API is unchanged** (`644f4f5`): smoke **15/15** after the rotation.
+- **Gates still closed:**
+  - `EMAIL_CHANNEL=disabled`, `WHATSAPP_CHANNEL=disabled`;
+  - `CORS_ORIGINS=https://dukan.tsxmr.com`;
+  - onboarding closed: sign-up answered 503 in §14, and neither the image nor `api.env` has changed since;
+  - no real account and no real data.
+
+**Not claimed**
+- Deleting a file on an SSD does not guarantee its blocks are erased. That is why the old key was **replaced** and not
+  just deleted.

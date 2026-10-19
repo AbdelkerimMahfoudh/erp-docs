@@ -1,41 +1,48 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-19T01:53Z
-active_phase: rotation of the production backup encryption key (age identity). The previous private identity was
-exposed (uploaded to an online CSV converter by the owner) and is treated as compromised. New key pair, server
-recipient replaced, fresh backup, off-host copy, restore proof, old-key backups and copies removed, no references left.
-Onboarding stays closed. Production API unchanged (644f4f5).
-next_action: generate the new identity in memory on the server, private half to the owner's laptop only.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (local session, the owner's PC), 2026-10-19, started 01:53Z (claim `20d1b53`), complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
-last_session: CLAUDE (local session, the owner's PC), 2026-10-19 (claim `a573928`), complete.
-
-## The production API is live at https://api.tsxmr.com — closed to customers (2026-10-19, CLAUDE, local)
+## The production backup key rotated; the API live at https://api.tsxmr.com, closed to customers (2026-10-19, CLAUDE, local)
 
 | Repository | Branch | HEAD | This phase |
 | --- | --- | --- | --- |
-| `erp-backend` | `production-deploy` | `644f4f5` | **deployed** to tsxmr-app-01 (image id `sha256:7a0e9a08f94f…`) |
+| `erp-backend` | `production-deploy` | `644f4f5` | deployed to tsxmr-app-01 (image id `sha256:7a0e9a08f94f…`); untouched by the rotation |
 | `erp-backend` | `dukan-portal-lifecycle` | `17ea84b` | the cloud portal phase: NOT deployed (needs its own approval: `docs/100` note, `docs/101`) |
 | `erp-mobile` | `reports-export` | `e6773aa` | untouched |
 | `erp-control-web` | `tsx-public-site` | `e953c58` | untouched |
-| `erp-docs` | `master` | the commit carrying this file | `docs/100` §14, session log |
+| `erp-docs` | `master` | the commit carrying this file | `docs/100` §5, §14 step 4, §15; session log |
 
-**Live:**
+**The rotation (`docs/100` §15).** The first production backup identity went through an online CSV converter, so it is
+treated as compromised. The steps:
+- A **new age identity**: its private half is only in `.tsxmr\production-backup-identity-v2.txt` and the owner's Google
+  Password Manager (`api.tsxmr.com` / `age-backup-identity`, added by hand).
+- The server's recipient file holds only the new public key.
+- A fresh backup, `phonestore-20261019T015638Z`, went off-host to the laptop and back. Restored with the new identity:
+  118 tables, 53 triggers, every `CHECKSUM` matched. **PASSED** (`kind=laptop`).
+- The old key's two backups (empty platform: 0 companies, 0 users) were deleted from the server.
+- References to the old key, all **0**: on the server (config, scripts, units, cron, Docker volumes) and in the four
+  repositories with their full history. Private age keys on the server: 0.
+- The only timer named "backup" is Ubuntu's own `dpkg-db-backup`.
+- Smoke **15/15** afterwards.
+
+**Live (unchanged):**
 - api.tsxmr.com is DNS-only; Let's Encrypt TLS valid to 2027-01-17.
-- 97/97 migrations; smoke 16/16; restart and reboot survived; restore proof PASSED; only 22/80/443 open.
-- Fresh secrets; email, WhatsApp and onboarding **disabled** (sign-up answers 503); no real data.
-- Record and follow-ups: `docs/100` §14.
+- 97/97 migrations; only 22/80/443 open.
+- Email, WhatsApp and onboarding **disabled** (sign-up answers 503); no real data.
 
 **Owner actions:**
-1. Store `.tsxmr\production-backup-identity.txt` in the password manager. It is the only key that can restore
-   production backups.
-2. Before any external test, trial or customer:
-   - the Storage Box (with a restore from it);
+1. **Empty the three key files from the Windows Recycle Bin** (right-click each, then Delete):
+   - `production-backup-identity.csv` (from `Downloads`, the converter's output);
+   - `production-backup-identity` (from `.tsxmr`, the old key);
+   - `google-password-import.csv` (from `.tsxmr`).
+2. Never send the identity through an online service: converters, pastebins or chat (`docs/100` §5).
+3. Before any external test, trial or customer:
+   - the Storage Box, with a restore from it;
    - the email-tracking decision;
    - then `EMAIL_CHANNEL=smtp`.
-3. When this deployment session is over: `ssh-add -D`, and stop the `ssh-agent` service (administrator).
+4. When this deployment session is over: `ssh-add -D`, and stop the `ssh-agent` service (administrator).
 
 **Next possible phases (each on the owner's approval):**
 - merge and deploy the portal phase (`dukan-portal-lifecycle`, migration 0099, `PORTAL_ORIGIN`);
