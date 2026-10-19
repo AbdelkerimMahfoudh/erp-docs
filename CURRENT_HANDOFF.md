@@ -1,10 +1,23 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. The pre-merge reconciliation took
-over at 2026-10-19T07:05Z from READY_FOR_HANDOFF (owner NONE; claim `6470ad7`; the previous handoff, by this same
-session, was complete) and finished at 2026-10-19T07:15Z, complete.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T07:50Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `4cd0b6b`; that handoff was complete.
+heads_at_takeover (remote, verified): erp-backend `whatsapp-consent` `608e25a`; erp-mobile `whatsapp-consent`
+`23ec6fd`; erp-control-web `whatsapp-consent` `4764afd` and `tsx-public-site` `bf62a72` (production); erp-docs
+`master` `4cd0b6b`. All clean and level.
+active_phase: integration and preparation for phone-browser testing (the owner's brief of 2026-10-19):
+1. Expo patch drift, on a mobile integration branch from `whatsapp-consent` (patches within SDK 57 only);
+2. the website integration branch: `tsx-public-site` merged into web `whatsapp-consent`, the public and portal
+   surfaces kept separate;
+3. the ERP's browser build (Expo web): blockers fixed, honest fallbacks, a protected test-deployment plan;
+4. the journeys proven against a disposable API and database;
+5. the deployment handoff.
+Nothing is promoted, migrated in production, activated, bought or opened to the public.
+next_action: create the integration branches; the Expo patch updates.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 
 ## Pre-merge reconciliation: the routing matrix confirmed and closed; every branch HEAD stated (2026-10-19, CLAUDE, cloud)
 
