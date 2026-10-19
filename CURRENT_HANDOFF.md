@@ -1,19 +1,72 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T07:20Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `efccc6e`; that handoff was complete.
-heads_at_takeover: erp-backend `whatsapp-consent` `42d2bcd`; erp-mobile `whatsapp-consent` `23ec6fd`; erp-control-web
-`tsx-public-site` `bf62a72` (production), `dukan-portal` `0fd418a`, `whatsapp-consent` `4764afd`; erp-docs `master`
-`efccc6e`. All clean and level.
-active_phase: the owner's final read-only reconciliation before any merge — the routing matrix in code and tests, the
-website branch HEADs and ancestry, the backend and mobile HEADs. Corrections found: dead `stop` paths left in the
-notice plan, the withdrawal route's stale "Nothing moves to email" wording, missing notice-service tests for grace
-fallback and honest not-sent, and a stale `dukan-portal` HEAD in `docs/101` §1. Nothing merged, deployed or sent.
-next_action: the backend corrections, then the gates, then docs.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. The pre-merge reconciliation took
+over at 2026-10-19T07:20Z from READY_FOR_HANDOFF (owner NONE; claim `6470ad7`; the previous handoff, by this same
+session, was complete) and finished at 2026-10-19T07:55Z, complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## Pre-merge reconciliation: the routing matrix confirmed and closed; every branch HEAD stated (2026-10-19, CLAUDE, cloud)
+
+**Final HEADs — every tree clean and level with its remote; full history fetched to check ancestry:**
+
+| Repository | Branch | HEAD | Contains | Role |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `whatsapp-consent` | **`608e25a`** | `dukan-portal-lifecycle` `17ea84b` ⊃ `production-deploy` `644f4f5` (⊃ `master` `67352af`) | the backend to merge: 0099, 0100, 0101, portal, consent, invitations |
+| `erp-backend` | `production-deploy` | `644f4f5` | — | **production API** (api.tsxmr.com), untouched |
+| `erp-mobile` | `whatsapp-consent` | **`23ec6fd`** | `dukan-portal-lifecycle` `de40f72` ⊃ `reports-export` `e6773aa`; also `master` `f47a155` | the app to merge |
+| `erp-control-web` | `tsx-public-site` | **`bf62a72`** | `main` `0417bfe` | **production tsxmr.com**, untouched |
+| `erp-control-web` | `dukan-portal` | **`0fd418a`** | split from `tsx-public-site` at `e953c58` | the portal line before D213; not to be deployed alone |
+| `erp-control-web` | `whatsapp-consent` | **`4764afd`** | `dukan-portal` `0fd418a` | the portal to deploy (D213 labels) |
+| `erp-docs` | `master` | the commit carrying this file | — | — |
+
+- There is **no** `dukan-portal-lifecycle` branch in the website repository; `4764afd` is web `whatsapp-consent`.
+- `tsx-public-site` and the portal line have diverged: production has 4 commits the portal line lacks (the Balanced
+  motion release and `.gitleaksignore`), and the portal line has 6 that production lacks.
+- A dry-run merge (`git merge-tree`, no ref written) of `tsx-public-site` into web `whatsapp-consent` has **no
+  conflict**.
+- **`dukan.tsxmr.com/subscription`** is the portal surface (`VITE_SITE_SURFACE=portal`) of web `whatsapp-consent`.
+  On approval, merge `tsx-public-site` into it first and re-run the website gates, so one commit serves tsxmr.com and
+  the portal; the portal's own Pages project then builds it (`docs/101` §1 note, §17.7).
+- The backend and mobile `dukan-portal-lifecycle` branches must not be merged on their own: their notice rules still
+  stop a message for a missing or withdrawn consent. `whatsapp-consent` replaces that.
+
+**Routing matrix — confirmed in code and tests:** every category, with files and test names, is in `docs/101` §17.6.
+- **Never by email:** OTP, deletion, closing reports, the employee invitation, the number change, registration and
+  the portal sign-in hold no email channel. A phone's code goes by WhatsApp or fails, and no recovery route exists.
+- **Informational** (portal instructions, trial and subscription status, the 72/48/24 h reminders, grace notices,
+  read-only ends): WhatsApp when ready and actively consented; otherwise one email to a verified address when email is
+  ready; otherwise an honest not-sent. Never both.
+
+**Corrected** (backend `608e25a`):
+- the unreachable `stop` paths left in the notice plan are removed;
+- new tests cover grace started, the grace reminders and grace ended falling back on a withdrawal, the read-only end on
+  a missing consent, no verified email and email not ready (honest not-sent), and WhatsApp alone when ready;
+- the never-by-email source rule now also covers the invitation, number-change, registration and portal-sign-in
+  services, and pins the notice kinds to the seven informational ones;
+- the withdrawal route no longer says "Nothing moves to email";
+- `docs/101` §1 now shows `dukan-portal` at `0fd418a`, not the stale `e020215`.
+
+**Verification:**
+- backend `tsc` clean, Prisma valid, Jest 267 suites 4 871/0;
+- CI database gate re-run on a fresh scratch MySQL 8.4.11: identities 27/0; MySQL specs 21/21, 10/10, 9/9 and 8/8;
+- the scratch server was deleted afterwards;
+- mobile and website: no change, so last session's gates stand at `23ec6fd` and `4764afd`.
+
+**Not done (by instruction):** no merge, no deployment, no production migration, no production secret, no provider,
+no real message.
+
+**Next exact action:** none until the owner approves the rollout. Then the next session:
+1. claims this file;
+2. merges `tsx-public-site` into web `whatsapp-consent` and re-runs the website gates;
+3. re-runs the backend and mobile gates at `608e25a` and `23ec6fd`;
+4. follows the D214 rollout steps below: the secret, the backup, then `0099` → `0100` → `0101`.
+
+The previous records follow; the D214 record below holds the rest (risks, waiting items).
+
+---
+
+Previous session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — 05:40Z–07:05Z, complete.
 
 ## Employee invitations: creating an employee sends nothing; the employee activates from a reference — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
 

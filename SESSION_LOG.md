@@ -12595,3 +12595,32 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - `docs/101` §17 (lifecycle, migrations, order, rehearsal, reverse, rollout additions, verification);
   - `docs/24` §67 C13–C21;
   - handoff READY_FOR_HANDOFF, owner NONE.
+
+## 2026-10-19 — Pre-merge reconciliation: the routing matrix confirmed and closed; branch HEADs stated (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It claimed at 07:20Z (`6470ad7`) from
+  READY_FOR_HANDOFF (owner NONE) once corrections turned out to be needed. Released 07:55Z.
+- **Routing matrix:** confirmed in code and tests. Files and test names are in `docs/101` §17.6.
+  - Never by email: phone codes go by WhatsApp or fail; OTP, deletion, closing reports, the employee invitation, the
+    number change, registration and the portal sign-in hold no email channel; no recovery route exists.
+  - Informational: WhatsApp-first, one verified-email fallback, otherwise an honest not-sent, never both. A missing or
+    withdrawn consent already falls back on `whatsapp-consent`.
+  - The earlier `dukan-portal-lifecycle` branches still stop a message for a missing or withdrawn consent. They must
+    not be merged on their own.
+- **Corrected** (backend `whatsapp-consent` `608e25a`):
+  - the unreachable `stop` paths in the notice plan are removed;
+  - new tests: grace started, the grace reminders and grace ended by verified email on a withdrawal; the read-only end
+    on a missing consent; honest not-sent with no verified email and with email not ready; WhatsApp alone when ready;
+  - the never-by-email source rule is widened, and the notice kinds are pinned to the informational set;
+  - the withdrawal route's stale "Nothing moves to email" wording is fixed.
+- **Branches:** full history fetched; ancestry checked.
+  - Backend `whatsapp-consent` `608e25a` ⊃ `17ea84b` ⊃ `644f4f5` (production).
+  - Mobile `whatsapp-consent` `23ec6fd` ⊃ `de40f72` ⊃ `e6773aa`.
+  - Website: `tsx-public-site` `bf62a72` (production), `dukan-portal` `0fd418a`, `whatsapp-consent` `4764afd`
+    (⊃ `dukan-portal`). The production branch and the portal line diverged at `e953c58`; a dry-run merge has no
+    conflict. There is no website `dukan-portal-lifecycle` branch.
+  - `dukan.tsxmr.com/subscription` deploys from web `whatsapp-consent`, after merging `tsx-public-site` into it.
+  - `docs/101` §1's stale `dukan-portal` HEAD (`e020215`) is corrected.
+- **Verified:** backend `tsc`, Prisma, Jest 4 871/0; CI database gate on a fresh MySQL 8.4.11, eight steps green. The
+  scratch server was deleted.
+- **Not done (by instruction):** no merge, no deployment, no production migration, no secret, no provider, no message.

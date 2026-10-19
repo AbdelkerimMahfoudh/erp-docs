@@ -21,6 +21,26 @@ subscription messages with a recorded email fallback.
 
 `production-deploy`, `reports-export`, `tsx-public-site` and `main` were not moved.
 
+> **Superseded HEADs (2026-10-19 reconciliation; full history checked).** Each branch below contains the one before it.
+> - **Backend:** `production-deploy` `644f4f5` (production) ⊂ `dukan-portal-lifecycle` `17ea84b` ⊂ `whatsapp-consent`
+>   `608e25a`.
+> - **Mobile:** `reports-export` `e6773aa` ⊂ `dukan-portal-lifecycle` `de40f72` ⊂ `whatsapp-consent` `23ec6fd`.
+> - **Website, three separate branches:**
+>   - `tsx-public-site` `bf62a72` — production tsxmr.com;
+>   - `dukan-portal` `0fd418a` — not `e020215` as the table says: `ed6c583` and `0fd418a` were added since;
+>   - `whatsapp-consent` `4764afd` — `dukan-portal` + the D213 labels.
+>
+>   `dukan-portal` and `tsx-public-site` diverged at `e953c58`. Production has 4 commits the portal line lacks (the
+>   Balanced motion release and `.gitleaksignore`); the portal line has 6 that production lacks. A dry-run merge of
+>   `tsx-public-site` into web `whatsapp-consent` has no conflict. The website repository has no
+>   `dukan-portal-lifecycle` branch.
+> - **What serves `dukan.tsxmr.com/subscription`:** the portal surface (`VITE_SITE_SURFACE=portal`) built from web
+>   `whatsapp-consent`, never `dukan-portal` alone, which lacks the D213 fallback labels. Before any deployment, merge
+>   `tsx-public-site` into it and re-run the website gates, so one commit serves tsxmr.com and the portal. Then, on
+>   approval, it becomes the production line and the portal's own Pages project builds it. The backend and mobile
+>   `dukan-portal-lifecycle` branches must never be merged on their own: their notice rules still stop a message for a
+>   missing or withdrawn consent, which `whatsapp-consent` replaces.
+
 ## 2. Topology (D202)
 
 | Host | What | Notes |
@@ -462,7 +482,7 @@ or deployed; `0100` ran on disposable databases only.
 
 | Repository | Branch | Commits | Base |
 | --- | --- | --- | --- |
-| `erp-backend` | `whatsapp-consent` | `49a61fc` (0100), `8188146` (consent and routing), `35eacf8` (CI gate); corrections `c6ea3b7` (lifecycle, 0100 amended in place), `c21af86` (routing), `82a0c58` (employee consent), `e1e4f8e`, `c3c8e9e` (specs); invitations `b6a0dc7` (0101, the key, `cancelled` in amended 0100), `a1f82ae` (the flow), `42d2bcd` (probe spec) | `dukan-portal-lifecycle` `17ea84b` |
+| `erp-backend` | `whatsapp-consent` | `49a61fc` (0100), `8188146` (consent and routing), `35eacf8` (CI gate); corrections `c6ea3b7` (lifecycle, 0100 amended in place), `c21af86` (routing), `82a0c58` (employee consent), `e1e4f8e`, `c3c8e9e` (specs); invitations `b6a0dc7` (0101, the key, `cancelled` in amended 0100), `a1f82ae` (the flow), `42d2bcd` (probe spec); reconciliation `608e25a` (dead `stop` paths removed, routing tests, withdrawal wording) | `dukan-portal-lifecycle` `17ea84b` |
 | `erp-mobile` | `whatsapp-consent` | `dff57dc`; correction `452ce08` (lifecycle states); invitations `23ec6fd` (the join screen by reference, the Owner's reference-once sheet, the pending panel) | `dukan-portal-lifecycle` `de40f72` |
 | `erp-control-web` | `whatsapp-consent` | `4764afd` (the two new fallback reasons named in the portal and console, EN/FR/AR) | `dukan-portal` `0fd418a` |
 
@@ -540,6 +560,27 @@ Awaiting counsel. Any change of a word is a new version, and every earlier conse
   as the fallback reason; the old `no_consent` / `opted_out` failure reasons remain only for earlier rows.
 - No price, payment code or payment instruction is in any template.
 
+**The routing matrix in code and tests** (backend `whatsapp-consent` `608e25a`):
+
+| Category | Implementation | Proven by |
+| --- | --- | --- |
+| WhatsApp-number verification (registration, the employee's invitation code) | `platform/contact-delivery.ts` `WhatsAppContactDeliveryProvider.send` — the branch is the contact's, a phone goes by WhatsApp or fails 503; `messaging/whatsapp-policy.ts` `consentRefusal(…, verifiesContact)` | `whatsapp-consent-flows.spec` "a WhatsApp number’s verification code goes by WhatsApp or not at all — the contact delivery never swaps channels", "a governed channel in test mode reaches only its allowlist; nothing falls back to email"; `whatsapp-policy.spec` "a pending agreement authorises the code that verifies its number — and nothing else" |
+| Sign-in OTP (unrecognised device, re-authentication), changed-number verification, deletion codes | `auth/otp/otp.service.ts` (WhatsApp channel only); `account/account.service.ts` `startPhoneVerification` | `whatsapp-consent-flows.spec` "a code, a deletion confirmation or a financial report has no email path: the services that send them hold no email channel", "a new number needs its own consent with the code request…" |
+| Password / security recovery | no recovery route exists; with WhatsApp the only verified contact, withdrawal requires acknowledging that recovery goes through TSX-MR support | `whatsapp-consent-flows.spec` "withdrawing when WhatsApp is the only verified contact needs the acknowledgement of support-assisted recovery" |
+| Account-deletion confirmation | `account/account-deletion.service.ts` (WhatsApp channel only) | the same "no email path" rule; `account-deletion.service.spec` |
+| Employee activation / invitation verification | `staff/staff-invitation.service.ts` `requestCode` (the one `verification.start`, to the matched number) | `whatsapp-consent-flows.spec` "an employee’s invitation code goes only to the invitation’s own WhatsApp number"; `staff-invitation.service.spec` "creating, reinviting and cancelling send nothing…" |
+| Access, credentials, deletion (portal sign-in, password set, deletion) | `platform/portal/portal-session.service.ts` (password, no code); confirmation by invitation or OTP only | the "no email path" rule (it lists the portal sign-in, registration, number change and invitation services) |
+| Sensitive financial / business reports | `closing/closing-notice.service.ts` (WhatsApp only); report documents are downloaded in the app, never sent | the same "no email path" rule |
+| Informational: portal instructions | `notices/notice.service.ts` `tryWhatsApp` → `tryEmail`; `notices/notice-rules.ts` `whatsappPlan`, `afterWhatsApp`, `afterEmail` | `trial-setup.service.spec`: "a missing or withdrawn WhatsApp consent: one email to the verified address, with the reason — in any mode, never both", "the consent in force: WhatsApp only — no email, even with a verified address", "a withdrawal without a verified email: an honest not-sent — never claimed sent", "a missing consent with email unavailable: not sent, said why", "one message per notification…", "accepted, then reported failed by the provider: one email instead — never a second, whatever replays" |
+| Informational: trial / subscription status, 3/2/1 reminders | the same | `notice.service.spec` "a reminder and a read-only notice to an Owner without WhatsApp consent go by the verified email, once each — never also by WhatsApp (D213)", "an Owner who withdrew WhatsApp still receives the informational notices by the verified email", "WhatsApp ready and the consent active: WhatsApp alone — no email, even with a verified address"; `notice-rules.spec` "WhatsApp when it can; otherwise a verified email, for the reason recorded — a missing or withdrawn consent included" |
+| Informational: paid grace notices | the same | `notice.service.spec` "grace started, grace reminders and grace ended, to an Owner who withdrew WhatsApp: each by the verified email once — never by WhatsApp" |
+| Informational: expiration / read-only | the same | `notice.service.spec` "the paid end without grace (read-only) to an Owner who never agreed: by the verified email, once", and the trial's end in the D213 test above |
+| Informational: honest not-sent, never both | `tryEmail` (`no_email`, `email_unavailable`, `email_failed`); one row per message identity | `notice.service.spec` "no verified email to fall back to: an honest not-sent, nothing by either channel", "email not ready: an honest not-sent, said why — nothing by either channel"; `notice-rules.spec` "decides in the routing order of D213… — never a stop" |
+| Only informational kinds use the email fallback | the email channel is held only by `notice.service.ts` and `contact-delivery.ts` (an email address's own code) | `whatsapp-consent-flows.spec` "the subscription notices are the one place email carries a WhatsApp-first message, and only their informational kinds" (the notice kinds pinned to the seven informational ones) |
+
+A WhatsApp failure reported asynchronously before delivery (`async_failed`) is the one case where WhatsApp was
+accepted and the email still goes: the message never arrived, and exactly one email replaces it.
+
 ### 17.7 Migrations `0100` (amended in place) and `0101_staff_invitations` — neither reached production
 
 **Order** (verified from the branches, D214): production `production-deploy` `644f4f5` stops at `0098`;
@@ -607,8 +648,8 @@ invitation*.
 | Gate | Result |
 | --- | --- |
 | backend `tsc`, Prisma validate | clean; schema valid |
-| backend Jest (full, at `42d2bcd`) | 267 suites, 4 864 passed, 0 failed; the four env-gated real-MySQL suites skipped here and run in the CI gate below |
-| CI database gate, fresh MySQL 8.4.11 | identities and triggers **27/0** (consent and invitation UPDATE/DELETE refused); permission catalogue 73/73; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 9/9; **`staff-invitation.mysql` 8/8** |
+| backend Jest (full, at `608e25a`) | 267 suites, 4 871 passed, 0 failed; the four env-gated real-MySQL suites skipped here and run in the CI gate below |
+| CI database gate, fresh MySQL 8.4.11 (re-run at `608e25a`) | identities and triggers **27/0** (consent and invitation UPDATE/DELETE refused); permission catalogue 73/73; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 9/9; **`staff-invitation.mysql` 8/8** |
 | migration rehearsal | §17.7: 0098 → 0099 → 0100 → 0101, backup/restore, specs on the upgraded schema, reverse with identical schema |
 | mobile (`23ec6fd`) | `tsc` clean; lint 0 errors (28 pre-existing warnings); 117 pure files; Jest 36 suites, 349 tests; web and iOS exports; bundle audit PASS (no trial action, link, QR code, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean (2 136 blobs, every ref). **Expo Doctor fails one check**: 10 Expo packages a patch behind SDK 57; no dependency changed |
 | website (`erp-control-web` `whatsapp-consent` `4764afd`) | unchanged by D214; typecheck clean; Vitest 535/535; preview builds of three surfaces with link and bundle audits PASS (previous run, same HEAD) |
