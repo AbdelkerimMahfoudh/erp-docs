@@ -12624,3 +12624,5 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Verified:** backend `tsc`, Prisma, Jest 4 871/0; CI database gate on a fresh MySQL 8.4.11, eight steps green. The
   scratch server was deleted.
 - **Not done (by instruction):** no merge, no deployment, no production migration, no secret, no provider, no message.
+- **Correction to the entry above:** the claim was at 07:05Z (`6470ad7`) and the release at 07:15Z, not 07:20Z and
+  07:55Z as written.
