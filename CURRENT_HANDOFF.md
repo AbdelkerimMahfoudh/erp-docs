@@ -1,7 +1,19 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T02:41Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (local) at `1da1a71`; its handoff was complete.
+heads_at_takeover: erp-backend `dukan-portal-lifecycle` `17ea84b`; erp-control-web `dukan-portal` `e020215`; erp-mobile
+`dukan-portal-lifecycle` `de40f72`; erp-docs `master` `1da1a71`. All four clean and level with their remotes.
+active_phase: WhatsApp operational consent capture (the owner's brief of 2026-10-19): an unticked consent at
+registration, enforced by the server, a versioned auditable record tied to the verified number, withdrawal and
+re-consent in the app, existing accounts never opted in, one routing rule for every operational sender. Branches
+`whatsapp-consent` in erp-backend and erp-mobile (from the portal branches). Nothing deployed; WhatsApp, email,
+onboarding and paid templates stay disabled; no real message; no migration on any persistent database.
+next_action: audit the consent schema and senders, then the backend contract.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 last_session: CLAUDE (local session, the owner's PC), 2026-10-19, started 01:53Z (claim `20d1b53`), complete.
 
 ## The production backup key rotated; the API live at https://api.tsxmr.com, closed to customers (2026-10-19, CLAUDE, local)
