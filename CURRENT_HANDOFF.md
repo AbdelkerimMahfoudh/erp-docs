@@ -1,7 +1,27 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
+started_at_utc: 2026-10-19T03:58Z (this claim written before any change)
+takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud, portal session) at `b4bd56d`; its handoff was
+complete.
+heads_at_takeover: erp-backend `whatsapp-consent` `35eacf8`, `production-deploy` `644f4f5`, `dukan-portal-lifecycle`
+`17ea84b`; erp-mobile `whatsapp-consent` `dff57dc`, `reports-export` `e6773aa`; erp-control-web `tsx-public-site`
+`bf62a72` (production), `dukan-portal` `e020215`, `main` `0417bfe`; erp-docs `master` `b4bd56d`. Local trees clean and
+level with their remotes.
+**Correction:** the website line below (`tsx-public-site` `e953c58`, "untouched") is stale. `tsx-public-site` is
+`bf62a72` and in production since 2026-10-19 02:41Z (`1b9c448`, the approved Balanced motion release) and 03:14Z
+(`bf62a72`, CI's `.gitleaksignore` only); verified live 23/23, WebKit 27/27, public suite 160/160.
+active_phase (the owner's instruction of 2026-10-19):
+1. record the website promotion in the docs (`docs/95`, `docs/96` §2, D201, session log) and correct the website HEAD;
+2. CI evidence must never carry a raw `idempotencyKey`: mask it in `erp-control-web` `dukan-portal`'s portal browser
+   evidence (`e2e/portal.spec.ts`), and carry the `.gitleaksignore` of `bf62a72` there so its CI is green again;
+3. the WhatsApp operational consent, backend and mobile only: its open code follow-up is put to the owner as a plan
+   before any implementation (the phase itself is complete, `docs/101` §17.8).
+Not in scope: deployment, merges, any database, Cloudflare, `tsx-public-site`, the portal website code.
+next_action: the docs record, then the masking on `dukan-portal`.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-19T02:41Z (claim
 `65cbcfc`), complete.
 
