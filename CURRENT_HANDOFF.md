@@ -42,7 +42,9 @@ treated as compromised. The steps:
    - the Storage Box, with a restore from it;
    - the email-tracking decision;
    - then `EMAIL_CHANNEL=smtp`.
-4. When this deployment session is over: `ssh-add -D`, and stop the `ssh-agent` service (administrator).
+
+**Done by the owner (2026-10-19):** `ssh-add -D` and the `ssh-agent` service stopped (startup Manual, checked). The
+next SSH session to tsxmr-app-01 asks for the key's passphrase, or the agent is started again for that session.
 
 **Next possible phases (each on the owner's approval):**
 - merge and deploy the portal phase (`dukan-portal-lifecycle`, migration 0099, `PORTAL_ORIGIN`);
