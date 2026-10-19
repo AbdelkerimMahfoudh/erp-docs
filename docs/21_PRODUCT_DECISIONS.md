@@ -7687,7 +7687,8 @@ binding corrections. Recorded before implementation. From this phase on, session
 ### ✅ APPROVED — D181: Brevo SMTP and the WhatsApp Cloud API, with the owner's binding corrections
 
 > **Refined (2026-10-19) by D213:** one operational consent replaces the mandatory/optional purposes of §5; it is required at
-> registration in every mode, checked by every sender, and withdrawn by STOP or in the app.
+> registration in every mode, pending until the number is verified, checked by every sender, and withdrawn by STOP or in
+> the app. Codes, recovery and deletion confirmation never fall back to email.
 >
 > **Refined (2026-10-18) by D209:** subscription messages go by WhatsApp first and fall back to email only for a recorded reason
 > and only to a verified address — never after an opt-out or a missing live-mode consent. Everything else here stands.
@@ -8280,7 +8281,13 @@ mobile `erp-mobile` `whatsapp-consent`, both from the portal branches. Nothing d
 the paid templates stay disabled; no real message; migration `0100` on disposable databases only. Detail: `docs/101`
 §17, `docs/98` §12.
 
-### ✅ DECIDED BY THE OWNER (brief of 2026-10-19) AND IMPLEMENTED (branches) — D213: one operational WhatsApp consent, required at registration, checked by every sender
+### ✅ DECIDED BY THE OWNER (briefs of 2026-10-19) AND IMPLEMENTED (branches) — D213: one operational WhatsApp consent, pending until the number is verified, checked by every sender
+
+> **Corrected (2026-10-19, second brief and binding security correction):** consent is **pending** until the number is
+> verified and only then **active**; employees agree on their own phone; informational subscription notices fall back
+> once to a verified email when WhatsApp cannot carry them, including on a missing or withdrawn consent. Codes,
+> recovery, deletion confirmation, employee verification, number verification and financial reports **never** go by
+> email. The text below is the corrected decision.
 
 **The consent.**
 - One purpose, `operational_whatsapp`: verification and security codes, account setup, trial and subscription status,
@@ -8294,51 +8301,86 @@ the paid templates stay disabled; no real message; migration `0100` on disposabl
 - A consent to any other version is **outdated** and lets nothing go. Rows granted to `wa-consent-2026-10-17` stay in
   the history and stop counting: nobody is opted in by the change.
 
-**Registration.**
+**The lifecycle (append-only rows in `whatsapp_consents`, migration `0100`).**
+
+| Event | Written when | Counts as consent? |
+| --- | --- | --- |
+| `pending_unverified` | the person ticks the box and asks for a code (registration, employee activation, a new number) | **No.** It authorises only the one verification code for that number |
+| `active` | that number is verified — in the same transaction, naming the exact pending row (`pending_id`); or a re-consent for an already verified number | Yes |
+| `withdrawn` | the person withdraws in the app, or replies STOP | No |
+| `superseded` | the person's verified number is replaced by another | No |
+| `expired` | a pending row is still unverified after **24 hours** (hourly sweep) | No; the pending row stays for audit |
+
+- A pending agreement is concluded **once**: `pending_id` is UNIQUE, so a verification racing a retry, or the expiry
+  sweep, writes one conclusion and the other loses. The contact row is locked (`SELECT … FOR UPDATE`) for each decision.
+- Only a pending row of the **current** version, by the same person, still within 24 hours, can be activated.
+- No full number is stored or logged: a keyed hash and a masked form only. The request's address goes on the audit
+  event (`audit_logs.ip`), not on the consent row.
+- Triggers refuse the application account's UPDATE and DELETE; CHECKs hold the events, a grant's version, the
+  conclusion shape and the locale.
+
+**Registration (Owner).**
 - An unticked box beside the mandatory WhatsApp field, with the copy, the privacy page and the explanation that
   WhatsApp is the required operational contact. Nothing ticks it but the person.
 - The server refuses a registration without the current version (`whatsapp_consent_required`) or with another one
   (`whatsapp_consent_outdated`), in every mode, before anything is saved. Both doors (app, website).
-- The grant is recorded at that explicit act, against the pending Owner, with the version, the language shown, the
-  source (`mobile_registration` / `website_registration`), the time and an audit event carrying the request's address
-  (`audit_logs.ip`, under the audit log's rules). A replay of the same registration writes nothing.
-- Entering or verifying a number never creates a consent. The registration code is the one message sent before the
-  number is verified; it is authorised by the grant the same request recorded.
+- The agreement is recorded `pending_unverified` against the pending Owner, with the version, the language shown, the
+  source (`mobile_registration` / `website_registration`) and an audit event. It becomes `active` when the registration
+  code proves the number. A replay of the same registration writes nothing.
 
-**Changing the number.** The new number needs its own ticked consent with the code request (recorded for that number,
-`account_settings`). Once the new number is verified, the replaced number's consent is ended (`withdrawn`,
-`number_changed`): it never carries over, nor reaches whoever holds that number next.
+**Employees (self-consent).**
+- An Owner never agrees for an employee and cannot send an employee's WhatsApp code: for a phone, the Owner's resend is
+  refused (`employee_consent_required`) and the staff screens show "waiting for their agreement" (`awaiting_consent`).
+  An email address is unaffected.
+- The employee opens **Join your team** from the sign-in screen on their own phone, types the number the Owner gave, sees
+  the server's EN/FR/AR copy unticked, ticks it and asks for the code (`POST staff/verify/resend` with
+  `whatsappConsentVersion` and `whatsappConsentLocale`). The pending row names the employee as actor, source
+  `employee_activation`. The code and a first password (`POST staff/verify/confirm`) activate it in the same
+  transaction.
+- The public routes answer the same whether or not an account waits. Existing employees are not migrated: they are
+  asked when they next need a WhatsApp code.
 
-**Existing accounts.** No backfill. A verified number without the current consent receives no template; the app's
+**Changing the number.** The new number needs its own ticked consent with the code request (`pending_unverified`,
+`account_settings`). Verifying it activates that consent and, in the same transaction, ends the replaced number's
+(`superseded`): consent never carries over, nor reaches whoever holds that number next.
+
+**Existing accounts.** No backfill. A verified number without the current consent receives no WhatsApp template; the
 account screen asks for the consent and links to Communication preferences; nothing blocks reading the business.
 
 **Withdrawal and re-consent.**
-- Communication preferences (app → Your account): the copy, the state, the version and time, the person's own history.
-- Withdrawing is explained first: automatic reminders and notices stop, and codes to the number stop with them;
-  nothing moves to email; the account, the number and the data stay.
-- When WhatsApp is the only verified contact, the person confirms that recovery goes through TSX-MR support; the
-  server refuses the withdrawal otherwise (`withdrawal_needs_acknowledgement`).
+- Communication preferences (app → Your account): the copy, the state (`none`, `pending`, `active`, `outdated`,
+  `withdrawn`, `superseded`), the version and time, the person's own history.
+- Withdrawing is explained first: WhatsApp reminders and notices stop; informational notices go to the verified email
+  instead; codes never go by email and stay unavailable on WhatsApp while the agreement is withdrawn.
+- **Withdrawing from WhatsApp is not withdrawing from operational email.** Email is a separate channel.
+- When WhatsApp is the only verified contact, the person confirms that recovery goes through TSX-MR support; the server
+  refuses the withdrawal otherwise (`withdrawal_needs_acknowledgement`).
 - Inbound STOP withdraws too, recorded by nobody's account. START grants nothing: consent comes back only through the
-  app, with the copy shown.
-- Re-consent is a new event. The history is append-only: `0100`'s triggers refuse the application account's UPDATE and
-  DELETE.
+  app, with the copy shown. Re-consent is a new `active` row.
 
-**Routing (every WhatsApp sender, one rule — `consentRefusal`).** In order: a verified recipient; the consent in
-force; the opt-out and undeliverable state; the template's approval and the provider's readiness; the channel and
-live-send switches; idempotency and pacing.
-- Withdrawn → nothing, codes included.
-- Proactive messages (portal instructions, subscription reminders and notices, closing notices) → the consent in
-  force, no opt-out, a deliverable number.
-- Codes the person asks for → the consent in force too, except the code that verifies a number not yet verified
-  (registration, an invited employee, a new number), which never creates a consent.
-- The governed Cloud API channel and the development log apply the same rule; the operator's delivery check stays
-  test-mode only.
-- Subscription messages: WhatsApp only when it can carry them; one email fallback only for a WhatsApp-side reason and
-  only to a verified address; never both; a missing consent or a withdrawal stops the message honestly (`no_consent`,
-  `opted_out`) and is never routed round by email.
+**Routing.**
+- **WhatsApp** only when all hold: the number is verified, the consent is active (or pending, for its own verification
+  code only), the recipient is deliverable, the template is approved and the provider is ready.
+- **Email fallback is allowed only for informational operational messages:** portal instructions, trial and
+  subscription status, the 3/2/1 reminders, grace notices and read-only notices (`notices/`). One email, only to a
+  verified address, only when email is enabled and ready. Reasons recorded: `number_unverified`, `consent_missing`,
+  `consent_withdrawn`, `number_undeliverable`, `template_unavailable`, `whatsapp_disabled`, `provider_refused`,
+  `retries_exhausted`, `async_failed`.
+- Otherwise an honest **not sent** (`email_unavailable`, `email_failed`, no verified address). Never both channels: a
+  message's identity is UNIQUE and records one channel.
+- Email never stands in for WhatsApp consent: it records nothing about it and never turns it back on.
+- **Never by email:** WhatsApp-number verification, sign-in/authentication codes, password or security recovery,
+  account-deletion confirmation, employee activation/invitation verification, changed-number verification, anything
+  that grants access, changes credentials or authorises deletion. These services hold no email fallback for a phone
+  contact: a code goes to the contact that is being proved, by that contact's own channel.
+- **Sensitive financial reports stay WhatsApp-only for now.** No report is sent by any channel today; when one is, it
+  needs active WhatsApp consent and has no email fallback.
+- The governed Cloud API channel and the development log apply the same rule (`consentRefusal`); the operator's
+  delivery check stays test-mode only.
 
 **Refines** D181 §5 (the mandatory/optional purposes, the STOP-for-optional-notices split and consent "only while
-WhatsApp runs live" are superseded) and D209 (consent is decided before channel availability).
+WhatsApp runs live" are superseded) and D209 (consent is decided before channel availability; a missing or withdrawn
+consent now falls back to a verified email for informational notices only, instead of stopping them).
 
 ### ✅ ANSWERED BY THE OWNER (brief of 2026-10-19) — D212, questions 1 and 11
 
@@ -8353,5 +8395,6 @@ WhatsApp runs live" are superseded) and D209 (consent is decided before channel 
 - Meta: business verification, the display name, the opt-in wording check against WhatsApp Business policy, the
   templates and their categories (authentication vs utility), the real number, the webhook, the permanent token.
 - Physical-device checks (`docs/24` §67).
-- Whether employees, who never see this consent at registration, should be asked for it in their own account before
-  any proactive message (today they receive only their verification code).
+- Whether a consent still pending when its code was never used should be shown to the Owner in the team screen (today
+  only "waiting for their agreement" or "code sent" is shown; expiry after 24 h is silent).
+- Which financial reports, if any, may later be sent, and in which WhatsApp template category.

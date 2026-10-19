@@ -1,25 +1,112 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T04:30Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud, website session) at `0717409`; its handoff
-was complete.
-heads_at_takeover: erp-backend `whatsapp-consent` `35eacf8`; erp-mobile `whatsapp-consent` `dff57dc`; erp-control-web
-`tsx-public-site` `bf62a72` (production), `dukan-portal` `0fd418a`; erp-docs `master` `0717409`. All clean and level.
-active_phase: the owner's corrections of 2026-10-19 to the WhatsApp consent branches, before any merge:
-1. routing: WhatsApp only when verified + active consent + deliverable + template + provider ready, otherwise one
-   verified email when email is ready, otherwise an honest not-sent; never both; withdrawal from WhatsApp is not
-   withdrawal from operational email;
-2. employee consent at invitation/activation, the employee as actor;
-3. consent lifecycle pending_unverified → active → withdrawn / superseded / expired (24 h), amending 0100 in place
-   (never on production), with the rehearsal re-run.
-Branches `whatsapp-consent` in erp-backend and erp-mobile. Nothing deployed, enabled or sent.
-next_action: the backend lifecycle and routing.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It took over at
+2026-10-19T04:30Z from READY_FOR_HANDOFF (owner NONE), whose handoff was complete (claim `4aa4ef1`). It finished at
+2026-10-19T05:25Z, complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
-last_session: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt — claim `ff0a4de` at 03:58Z,
-complete at 04:12Z.
+## WhatsApp consent corrections: pending until verified, employee self-consent, email only for informational notices — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
+
+| Repository | Branch | HEAD (pushed) | Base (unmoved) | This session |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `whatsapp-consent` | `c3c8e9e` | `dukan-portal-lifecycle` `17ea84b` | `c6ea3b7` lifecycle, with 0100 amended in place; `c21af86` routing; `82a0c58` employee consent; `e1e4f8e`, `c3c8e9e` specs |
+| `erp-mobile` | `whatsapp-consent` | `452ce08` | `dukan-portal-lifecycle` `de40f72` | the *Join your team* screen; team "waiting for them"; the lifecycle states; the withdrawal wording |
+| `erp-control-web` | `whatsapp-consent` (new) | `4764afd` | `dukan-portal` `0fd418a` | the fallback reasons `consent_missing` and `consent_withdrawn`, named in EN/FR/AR in the portal and console |
+| `erp-control-web` | `tsx-public-site` | `bf62a72` | — | **production** (tsxmr.com), untouched |
+| `erp-docs` | `master` | the commit carrying this file | `4aa4ef1` | D213 corrected; `docs/98` §12; `docs/101` §17; `docs/24` §67 (C13–C18); session log |
+
+All four trees are clean and level with their remotes. The production API (`644f4f5`), the databases, DNS and
+Cloudflare were not touched.
+
+**What changed** (record: `docs/101` §17; decision: D213):
+1. **Lifecycle.**
+   - `pending_unverified` is written at the tick and code request.
+   - `active` is written only when that number is verified: in the same transaction, naming the exact pending row
+     (`pending_id`, UNIQUE).
+   - Later events are `withdrawn`, `superseded` (number replaced) and `expired` (24 h, hourly sweep).
+   - Pending consent authorises only its own verification code.
+   - Concurrency and retries are idempotent, with a row lock and one conclusion per pending row.
+   - No full number is stored or logged.
+2. **Routing.**
+   - WhatsApp is used only when the number is verified, consent is active, the number is deliverable, the template is
+     approved and the provider is ready.
+   - Email fallback applies only to informational notices: portal instructions, trial and subscription status, 3/2/1
+     reminders, grace and read-only notices. It is one email, to a verified address, only when email is ready;
+     otherwise the notice is honestly recorded not sent. Never both channels.
+   - A missing or withdrawn consent now falls back for these notices (`consent_missing`, `consent_withdrawn`).
+   - Never by email: number verification, sign-in codes, recovery, deletion confirmation, employee verification,
+     changed-number verification, and anything granting access or authorising deletion. Financial reports stay
+     WhatsApp-only; none is sent today.
+   - Withdrawing WhatsApp is not withdrawing email.
+3. **Employees.**
+   - The employee agrees on their own phone (sign-in → *I was added to a team*), as actor, with source
+     `employee_activation`.
+   - The Owner cannot agree for them or send their WhatsApp code (`awaiting_consent`, `employee_consent_required`).
+   - Existing employees are not migrated.
+
+**Migration `0100`, amended in place** (it never reached production): it adds `pending_id` with a UNIQUE index and
+`ck_whatsapp_consent_conclusion`.
+- Applied only to disposable databases on a throwaway MySQL 8.4.11 in the scratch directory: the CI gate's
+  `phonestore`, `addon_ci` and `grace_ci`, and the rehearsal's `consent_rehearsal`, `consent_restore` and
+  `consent_reverse`.
+- All of them are dropped, and the server is stopped and deleted.
+- Rehearsal backups (deleted): before `2239317664cfd8c4…`, after `0d06f30257630004…`.
+- The exact reverse, now including `pending_id`, the index and the CHECK, is in `docs/101` §17.7.
+
+**Verification at the final HEADs**
+
+| Area | Result |
+| --- | --- |
+| backend | `tsc` clean; Prisma schema valid; Jest 266 suites, 4 839 passed, 0 failed (3 env-gated real-MySQL suites skipped, run below) |
+| CI database gate (fresh MySQL 8.4.11) | identities and triggers 25/0; permission catalogue 73/73; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 9/9 (concurrent activation, expiry race, UNIQUE, CHECKs, triggers) |
+| 0100 rehearsal | upgrade from 0099 with 561 D181-era events unchanged; 0 of 400 numbers consented; on the upgraded data, one activation from two concurrent verifications and one expiry from two racing sweeps; restore and reverse matched the backup |
+| mobile | `tsc`; lint 0 errors (28 pre-existing warnings); 117 pure files; Jest 36 suites, 340 tests |
+| exports | web and iOS exports; bundle audit PASS; release build refused without its inputs; secret scan clean |
+| Expo Doctor | **not passed:** 10 Expo packages a patch behind SDK 57; no dependency changed (unchanged since the last phase) |
+| website `whatsapp-consent` | typecheck; Vitest 33 files, 535 tests; preview builds of the full, portal and public surfaces with link and bundle audits PASS (the production build refuses by design: legal drafts) |
+| EN/FR/AR | key parity: mobile 3 926, website 730 |
+| messages | test and recording channels only; no provider called; nothing sent |
+
+**Known risks and limits:**
+- Nothing ran on a device (`docs/24` §67, C1–C18), on Meta's API or SMTP, or on the production stack.
+- An employee's pending agreement that expires is silent: the Owner keeps seeing "waiting for them" until the employee
+  asks again (an open question in D213).
+- The old failure reasons `no_consent` and `opted_out` stay readable for earlier rows; new rows use the fallback
+  reasons.
+- `scripts/qa-boutiques.ts` still registers without a WhatsApp number (broken since 0099, before this work).
+
+**Not done (by instruction):**
+- merging, or any deployment;
+- applying `0099` or `0100` to any persistent database;
+- touching Cloudflare;
+- activating WhatsApp, email or onboarding;
+- approving or submitting templates;
+- sending any real message.
+
+**Waiting on the owner and providers:**
+1. Counsel's review of the EN/FR/AR wording (`docs/101` §17.2).
+2. Meta: business verification, the display name, the opt-in policy check, the template categories, the real number,
+   the webhook and the permanent token.
+3. The device checks of `docs/24` §67.
+4. The remaining D212 questions (`docs/101` §14: 2–10, 12).
+5. Explicit approval, or not, to merge the three `whatsapp-consent` branches and for each rollout step of `docs/101`
+   §12. `0100` goes immediately after `0099`, after a verified backup.
+6. Expo Doctor's patch drift: approve a dependency update as its own change, or leave it.
+
+**Next exact action:** none until the owner answers. On an explicit approval, the next session:
+1. claims this file;
+2. re-runs the gates at these HEADs (backend `c3c8e9e`, mobile `452ce08`, web `4764afd`);
+3. takes and checks the production backup (`docs/22`);
+4. follows `docs/101` §12.
+
+The previous records follow. The consent record of 02:41Z below is superseded on routing, the lifecycle and employees
+by this one.
+
+---
+
+Previous session: CLAUDE (cloud, website session), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt — claim
+`ff0a4de` at 03:58Z, complete at 04:12Z.
 
 ## The website in production at `bf62a72`; CI evidence masks idempotency keys (2026-10-19, CLAUDE, cloud)
 
@@ -45,8 +132,9 @@ The production API (`644f4f5`), the databases, DNS and Cloudflare settings were 
 - The Preview variables: empty them, or keep them.
 - The `site-redesign` and `website-balanced-motion` preview deployments still answer (noindex) until deleted.
 
-**WhatsApp operational consent:** the phase is complete (record below). Its one code follow-up for backend and
-mobile, asking employees for the consent in their own account (D213), is put to the owner as a plan. Nothing was built.
+**WhatsApp operational consent:** *(stale: superseded by the corrections record above; employees now agree on their own
+phone.)* The phase is complete (record below). Its one code follow-up for backend and mobile, asking employees for the
+consent in their own account (D213), is put to the owner as a plan. Nothing was built.
 
 **Next exact action:** none until the owner answers. The consent phase's own next action (below) still holds.
 

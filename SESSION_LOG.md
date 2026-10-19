@@ -12479,3 +12479,53 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - the Preview variables;
   - the `site-redesign` and `website-balanced-motion` preview deployments, which still answer (noindex).
 - **WhatsApp operational consent:** unchanged here. Its code follow-up (D213: employees) is put to the owner as a plan.
+
+## 2026-10-19 — WhatsApp consent corrections: pending until verified, employee self-consent, informational-only email fallback (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It claimed the file at 04:30Z (`4aa4ef1`) from
+  READY_FOR_HANDOFF (owner NONE) after the owner said the website session had finished; that handoff was complete. It
+  worked under the owner's correction brief and the binding security correction given mid-session.
+- **Backend** `whatsapp-consent`:
+  - `c6ea3b7` is the lifecycle:
+    - `pending_unverified`, then `active` only on verification, in the same transaction, naming the exact pending row
+      (`pending_id`, UNIQUE);
+    - `withdrawn`, `superseded` and `expired` (24 h, hourly sweep);
+    - the contact row is locked for each decision;
+    - `0100` was amended in place, since it never reached production.
+  - `c21af86` is the routing: informational notices fall back to one verified email on a missing or withdrawn consent
+    (`consent_missing`, `consent_withdrawn`). Codes, recovery, deletion confirmation, employee and number verification
+    never go by email.
+  - `82a0c58` is employee consent: the public `staff/verify/resend` carries the employee's own agreement and `confirm`
+    activates it; the Owner's phone resend is refused (`employee_consent_required`); the delivery state is
+    `awaiting_consent`.
+  - `e1e4f8e` and `c3c8e9e` are specs; the real-MySQL consent spec now expects `active`.
+- **Mobile** `whatsapp-consent`: `452ce08` adds:
+  - the *Join your team* screen (sign-in → *I was added to a team*), with the server's EN/FR/AR copy unticked and no
+    code until it is ticked;
+  - the team screens' "waiting for them";
+  - the lifecycle states and events in Communication preferences;
+  - the withdrawal explanation: notices go to the verified email, codes never do.
+- **Website** `whatsapp-consent` (new, from `dukan-portal` `0fd418a`): `4764afd` names the two new fallback reasons in
+  EN/FR/AR.
+- **Verified at the final HEADs:**
+  - backend: `tsc`, Prisma validate, Jest 4 839/0;
+  - CI database gate on a fresh MySQL 8.4.11: identities 25/0, permission catalogue 73/73, `trial-addons.mysql`
+    21/21, `lifecycle.mysql` 10/10, `consent.mysql` 9/9;
+  - 0100 rehearsal:
+    - backup `2239317…` restored;
+    - upgraded from 0099 with 561 old events unchanged and 0 numbers consented;
+    - on the upgraded data, two concurrent verifications wrote one activation, and two racing sweeps wrote one
+      expiry;
+    - the reverse, now including `pending_id`, the index and the conclusion CHECK, matched the backup;
+  - mobile: `tsc`, lint 0 errors, 117 pure files, Jest 340/340, web and iOS exports, bundle audit PASS, release refused
+    without inputs, secret scan clean;
+  - website: typecheck, Vitest 535/535, preview builds of three surfaces with link and bundle audits PASS;
+  - EN/FR/AR key parity.
+- **Not passed:** Expo Doctor (the same 10-package patch drift; no dependency changed).
+- **Fixed during the run:** two `consent.mysql` assertions still expected the old `granted` event and grant reason.
+- **Not done (by instruction):** no merge, no deployment, `0100` on no persistent database, no Cloudflare, no WhatsApp
+  or email activation, no template, no real message, no device run.
+- **Clean-up:** the scratch MySQL server and all its databases were stopped, dropped and deleted with the dumps; the
+  exports were deleted. Scratch files lived only in the session's temporary directory.
+- **Docs:** D213 corrected (`docs/21`, with the D181 note); `docs/98` §12; `docs/101` §17; `docs/24` §67 rows C13–C18.
+  The handoff is READY_FOR_HANDOFF, owner NONE, with the website production HEAD `bf62a72`.

@@ -454,16 +454,17 @@ for `dukan.tsxmr.com`; the merge; `0099` on production after a verified backup; 
 
 ## 17. The operational WhatsApp consent (2026-10-19; D213)
 
-The owner's brief of 2026-10-19, built on these branches. Decision: `docs/21` D213. Provider and routes: `docs/98` §12.
-Device rows: `docs/24` §67.
+The owner's brief of 2026-10-19, corrected the same day (second brief and binding security correction), built on these
+branches. Decision: `docs/21` D213. Provider and routes: `docs/98` §12. Device rows: `docs/24` §67. Nothing is merged
+or deployed; `0100` ran on disposable databases only.
 
 ### 17.1 Branches
 
 | Repository | Branch | Commits | Base |
 | --- | --- | --- | --- |
-| `erp-backend` | `whatsapp-consent` | `49a61fc` (migration 0100), `8188146` (consent and routing), `35eacf8` (real-MySQL spec in the CI gate) | `dukan-portal-lifecycle` `17ea84b` |
-| `erp-mobile` | `whatsapp-consent` | `dff57dc` | `dukan-portal-lifecycle` `de40f72` |
-| `erp-control-web` | — | untouched: the portal shows no consent control in this phase | `dukan-portal` `e020215` |
+| `erp-backend` | `whatsapp-consent` | `49a61fc` (0100), `8188146` (consent and routing), `35eacf8` (CI gate); corrections `c6ea3b7` (lifecycle, 0100 amended in place), `c21af86` (routing), `82a0c58` (employee consent), `e1e4f8e`, `c3c8e9e` (specs) | `dukan-portal-lifecycle` `17ea84b` |
+| `erp-mobile` | `whatsapp-consent` | `dff57dc`; correction `452ce08` (employee join screen, lifecycle states) | `dukan-portal-lifecycle` `de40f72` |
+| `erp-control-web` | `whatsapp-consent` | `4764afd` (the two new fallback reasons named in the portal and console, EN/FR/AR) | `dukan-portal` `0fd418a` |
 
 ### 17.2 The wording, version `wa-operational-2026-10-19`
 
@@ -477,62 +478,85 @@ Served by `GET /api/v1/messaging/whatsapp/consent?language=`; the app stores no 
 
 Awaiting counsel. Any change of a word is a new version, and every earlier consent then stops counting.
 
-### 17.3 Registration
+### 17.3 The lifecycle
 
-- The app's form: the number, then the copy's explanation, the agreement beside an **unticked** box (a real
-  checkbox for screen readers: role, state, the agreement as its name, the problem as its hint), the privacy page
-  (the phone's browser, `EXPO_PUBLIC_LEGAL_ORIGIN`), then the optional email.
-- Submitting unticked sends nothing; the problem shows under the box and the screen reader is taken to it.
-- An outdated version refused by the server unticks the box and loads the current copy.
-- The server: `whatsapp_consent_required` / `whatsapp_consent_outdated` before anything is saved, in every mode. The
-  grant is recorded at the registration request, against the pending Owner, with its version, locale, source, time
-  and an audit event with the address. A replay writes nothing. The registration code then goes to a number with a
-  consent on record.
-
-### 17.4 Existing accounts, number changes, withdrawal
-
-- **Existing accounts:** never backfilled. Your account shows "Your agreement to operational WhatsApp messages is
-  needed…" and the Communication preferences row; reading the business is never blocked.
-- **New number:** its own unticked box in the change form; the replaced number's consent ends once the new one is
-  verified (`number_changed`).
-- **Withdrawal:** explained first (reminders, notices and codes to the number stop; nothing moves to email; account,
-  number and data stay). With WhatsApp the only verified contact, *I understand that recovering my account will go
-  through TSX-MR support* must be on, or the server refuses. STOP withdraws as well; START grants nothing.
-- **Re-consent:** a new event. The history is append-only (`0100` triggers).
-
-### 17.5 Routing precedence (every sender)
-
-| Step | Check | When it fails |
+| Event | Written when | Counts? |
 | --- | --- | --- |
-| 1 | verified recipient | notices: fall back to a verified email (`number_unverified`) |
-| 2 | consent in force | refused: `no_consent`; never email |
-| 3 | withdrawal / STOP / undeliverable | `opted_out`, never email; undeliverable notices fall back to a verified email |
-| 4 | template approved, provider ready (proof, credentials) | notices: fall back (`template_unavailable`, `whatsapp_disabled`) |
-| 5 | `WHATSAPP_CHANNEL`, `WHATSAPP_MODE` + allowlist, `WHATSAPP_LIVE_SENDS` | notices: fall back (`whatsapp_disabled`) |
-| 6 | idempotency and pacing | one row per message identity; a paced send retried |
+| `pending_unverified` | the box ticked and a code requested: registration, an employee's join, a new number | only for that number's own verification code |
+| `active` | the number verified — same transaction, naming the exact pending row (`pending_id`); or re-consent for a verified number | yes |
+| `withdrawn` | the app's withdrawal, or STOP | no |
+| `superseded` | the verified number replaced | no |
+| `expired` | a pending row unverified after 24 h (hourly sweep) | no; the pending row stays for audit |
 
-WhatsApp accepted → no email, ever. One email fallback at most, after a WhatsApp-side failure, to a verified
-address. Neither → `failed` with its reason, shown to the Owner and the console; never "sent".
+- `pending_id` is UNIQUE: a pending agreement is concluded exactly once — concurrent verifications, a retry and the
+  sweep cannot write two conclusions. Each decision locks the contact row first (`SELECT … FOR UPDATE`).
+- Only a pending row of the current version, by the same person, younger than 24 h, is activated.
+- No full number is stored or logged; the request's address is on the audit event.
 
-Covered templates (all operational): the verification and security codes, deletion confirmation, the portal
-instructions to `https://dukan.tsxmr.com/subscription`, the trial and paid reminders (72/48/24 h), the trial's end
-(read-only), the paid end with or without grace, the grace reminders and end, closing notices. No price, payment code
-or payment instruction is in any of them.
+### 17.4 Who agrees, where
 
-### 17.6 Migration `0100_whatsapp_operational_consent`
+- **Owner, registration (app and website):** an unticked box beside the mandatory WhatsApp field; submitting unticked
+  sends nothing and the screen reader is taken to the problem; the server refuses without the current version
+  (`whatsapp_consent_required` / `whatsapp_consent_outdated`), in every mode, before anything is saved. Pending until
+  the registration code is confirmed. A replay writes nothing.
+- **Employee, on their own phone:** sign-in → **Join your team** (`/(auth)/join`). For a number, the server's copy,
+  unticked; the code is requested only once ticked (`POST staff/verify/resend` with the version and locale), recorded
+  with the employee as actor (`employee_activation`). Code + first password (`POST staff/verify/confirm`) activate it.
+  An email address needs no WhatsApp consent. The Owner cannot agree or send the WhatsApp code for them: the staff
+  screens show "waiting for their agreement" (`awaiting_consent`) and the Owner's phone resend is refused
+  (`employee_consent_required`).
+- **New number:** its own unticked box; verifying it activates the new consent and supersedes the old number's.
+- **Existing accounts and employees:** never backfilled or migrated. Your account asks for the consent and links to
+  Communication preferences; reading the business is never blocked.
 
-Additive: `whatsapp_consents.locale`; CHECKs on the event, a grant's version and the locale; triggers refusing
+### 17.5 Withdrawal and re-consent
+
+- Explained first: WhatsApp reminders and notices stop; informational notices go to the verified email instead; codes
+  never go by email and stay unavailable on WhatsApp while the agreement is withdrawn. Account, number and data stay.
+- Withdrawing WhatsApp is not withdrawing operational email.
+- With WhatsApp the only verified contact, *I understand that recovering my account will go through TSX-MR support*
+  must be on, or the server refuses. STOP withdraws as well; START grants nothing. Re-consent is a new `active` row.
+
+### 17.6 Routing
+
+| Step | Check | When it fails — informational notices | When it fails — codes, recovery, deletion, verification |
+| --- | --- | --- | --- |
+| 1 | verified recipient | email fallback (`number_unverified`) | not sent |
+| 2 | consent active (pending: its own verification code only) | email fallback (`consent_missing` / `consent_withdrawn`) | not sent |
+| 3 | deliverable (not 131026) | email fallback (`number_undeliverable`) | not sent |
+| 4 | template approved, provider ready | email fallback (`template_unavailable`, `whatsapp_disabled`) | not sent |
+| 5 | `WHATSAPP_CHANNEL`, `WHATSAPP_MODE` + allowlist, `WHATSAPP_LIVE_SENDS` | email fallback (`whatsapp_disabled`) | not sent |
+| 6 | the provider's answer | refusal or retries exhausted: email fallback | not sent |
+
+- **Informational notices** (`notices/`): portal instructions to `https://dukan.tsxmr.com/subscription`, trial and
+  subscription status, the 3/2/1 reminders (72/48/24 h), grace notices and the read-only notice. The fallback is one
+  email to a **verified** address, only when `EMAIL_CHANNEL` is enabled and ready; otherwise an honest **not sent**
+  (`email_unavailable`, `email_failed`). WhatsApp accepted → no email. Never both: the message identity is UNIQUE.
+- **Never by email:** number verification, sign-in codes, password/security recovery, account-deletion confirmation,
+  employee activation/invitation verification, changed-number verification, anything granting access, changing
+  credentials or authorising deletion; sensitive financial reports (none is sent today; WhatsApp-only when one is).
+- Email never stands in for WhatsApp consent and never records or restores it. Withdrawal names `consent_withdrawn`
+  as the fallback reason; the old `no_consent` / `opted_out` failure reasons remain only for earlier rows.
+- No price, payment code or payment instruction is in any template.
+
+### 17.7 Migration `0100_whatsapp_operational_consent` (amended in place — never reached production)
+
+Additive: `whatsapp_consents.locale` and `pending_id` (UNIQUE `ux_whatsapp_consents_pending`); CHECKs on the event,
+a grant's version, the conclusion shape (`ck_whatsapp_consent_conclusion`) and the locale; triggers refusing
 `phonestore_app` UPDATE and DELETE. No backfill.
 
 **Rehearsal (disposable MySQL 8.4.11, scratch; dropped):**
 - a database at 0099 with D181-era history: 40 businesses, 120 people, 400 numbers, 561 events (425 grants to
   `wa-consent-2026-10-17`, 70 STOPs of optional notices, 66 withdrawals);
-- backup `38e279e26c741982…` restored with matching `CHECKSUM TABLE` on the four tables;
-- 0100 applied; `migrate status` up to date; 561 rows, all with `locale` null; both triggers and three CHECKs present;
-  every pre-existing row's original columns byte-identical;
+- backup `2239317664cfd8c4…` restored with matching `CHECKSUM TABLE` on the four tables;
+- 0100 applied; `migrate status` up to date; 561 rows, all with `locale` null; both triggers, four CHECKs and the
+  UNIQUE index present; every pre-existing row's original columns byte-identical;
 - under the new code: 359 numbers `outdated`, 41 `withdrawn`, **0 consented** — nobody opted in;
-- the reverse (below) on a copy: checksums equal to the backup's, no trigger left, Prisma at 0099;
-- after backup `cf35f2e4c189f9b7…`; both dumps deleted with the scratch directory.
+- on the upgraded data: two concurrent verifications of a pending agreement wrote **one** activation (`activated`,
+  `unchanged`); a pending agreement swept 25 h later by two racing sweeps wrote **one** `expired` (1+0), the pending
+  row kept, no longer counted, and a late verification activated nothing;
+- the reverse (below) on a copy of the after-state: checksums equal to the backup's, no trigger left, Prisma at 0099;
+- after backup `0d06f30257630004…`; both dumps deleted.
 
 **Reverse** (only with the owner's decision, after a fresh backup; a Git rollback does not do this):
 
@@ -540,41 +564,44 @@ Additive: `whatsapp_consents.locale`; CHECKs on the event, a grant's version and
 DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_update;
 DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_delete;
 ALTER TABLE whatsapp_consents DROP CHECK ck_whatsapp_consent_event, DROP CHECK ck_whatsapp_consent_grant_version,
-  DROP CHECK ck_whatsapp_consent_locale;
-ALTER TABLE whatsapp_consents DROP COLUMN locale;
+  DROP CHECK ck_whatsapp_consent_conclusion, DROP CHECK ck_whatsapp_consent_locale;
+DROP INDEX ux_whatsapp_consents_pending ON whatsapp_consents;
+ALTER TABLE whatsapp_consents DROP COLUMN pending_id, DROP COLUMN locale;
 DELETE FROM _prisma_migrations WHERE migration_name = '0100_whatsapp_operational_consent';
 ```
 
-Code before `0100` reads no `locale` and writes no grant the triggers would refuse, so the API can be rolled back to
-`17ea84b` with `0100` still applied.
+Rows written by the new code (`pending_unverified`, `active`, `superseded`, `expired`) survive the reverse but mean
+nothing to code before `0100`, which counts only `granted` to `wa-consent-2026-10-17`: rolling back the API to
+`17ea84b` with or without the reverse opts nobody in.
 
-### 17.7 Verification
+### 17.8 Verification (final HEADs)
 
 | Gate | Result |
 | --- | --- |
 | backend `tsc`, Prisma validate | clean; schema valid |
-| backend Jest (full, at `35eacf8`) | 266 suites, 4 817 passed, 0 failed; the three env-gated real-MySQL suites skipped here and run in the CI gate below |
-| CI database gate, fresh MySQL 8.4.11 | identities and triggers 25/0 (the two consent probes included); permission catalogue 73/73, no drift; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 6/6 |
-| migration rehearsal | §17.6: backup, apply, restore and reverse all matched |
-| mobile | `tsc` clean; lint 0 errors (28 warnings, none in a touched file); 116 pure files; Jest 34 suites, 333 tests |
-| exports and audits | web and iOS exports; bundle audit PASS (no trial action, link, QR, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean |
-| Expo Doctor | 20/21; **the dependency-version check fails**: 10 Expo packages are a patch behind SDK 57's current releases. No dependency changed in this phase; upgrading them is its own decision |
-| messaging | every sender with test or recording channels only — no provider was called, no message left the container |
+| backend Jest (full, at `c3c8e9e`) | 266 suites, 4 839 passed, 0 failed; the three env-gated real-MySQL suites skipped here and run in the CI gate below |
+| CI database gate, fresh MySQL 8.4.11 | identities and triggers 25/0 (consent UPDATE/DELETE refused); permission catalogue 73/73, no drift; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` **9/9** |
+| migration rehearsal | §17.7: clean install (CI gate), upgrade from 0099, backup/restore, lifecycle on upgraded data, reverse — all matched |
+| mobile | `tsc` clean; lint 0 errors (28 warnings, pre-existing); 117 pure files; Jest 36 suites, 340 tests |
+| exports and audits | web and iOS exports; bundle audit PASS (no trial action, link, QR, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean (2 136 blobs, every ref) |
+| Expo Doctor | **fails one check**: 10 Expo packages a patch behind SDK 57's current releases; no dependency changed; upgrading is its own decision |
+| website (`erp-control-web` `whatsapp-consent`) | typecheck clean; Vitest 33 files, 535 tests; preview builds of the full, portal and public surfaces with link and bundle audits PASS. The production build refuses by design (legal drafts and hosting values unresolved, docs/74 §7) |
+| EN/FR/AR | key parity: mobile 3 926, website 730 per language |
+| messaging | test or recording channels only — no provider called, no message left the container |
 
-Tests added for the brief's list: the unticked box; the server refusing registration without consent (both modes,
-both doors); version and locale recorded; a number typed or verified creating nothing; replay idempotent; a changed
-number needing new consent and ending the old; existing accounts not opted in; consent letting an otherwise-ready
-WhatsApp message go; missing, withdrawn and outdated consent refusing it; WhatsApp success suppressing email; one
-verified-email fallback when WhatsApp cannot carry it; no channel → an honest failure; one row per message identity;
-withdrawal and re-consent keeping history; company and user isolation of the history; masked contacts in records,
-audits and answers; EN/FR/AR key parity and the Arabic RTL rendering; no marketing purpose, template, string or
-control.
+Focused tests: `whatsapp-consent.spec` (lifecycle: pending, activation once, expiry, withdrawal, supersede,
+re-consent), `whatsapp-policy.spec` (pending authorises only its code), `notice-rules.spec` and `notice.service.spec`
+(missing and withdrawn consent, undeliverable, provider outage, verified-email fallback, email unavailable, one message
+per identity), `whatsapp-consent-flows.spec` (Owner registration, number change, and the services that never fall back
+to email), `staff-invitation.service.spec` (employee consent, actor, Owner refused), `registration-continuation.spec`
+(activation in the confirmation transaction), `consent.mysql.spec` (real-MySQL concurrency, expiry race, UNIQUE,
+CHECKs, triggers); mobile `join-team.test`, `team-employee-consent.test`, `staff-activation.test`, the communication
+and registration consent tests; website `console-oversight.test`.
 
-### 17.8 Still open
+### 17.9 Still open
 
 - Counsel: the wording. Meta: business verification, display name, opt-in policy check, template categories, the real
   number, the webhook, the permanent token. Nothing was submitted.
 - Physical devices: `docs/24` §67.
-- Employees see no consent at registration; they receive only their verification code. Asking them in their own
-  account before any proactive message is a follow-up for the owner (D213).
+- Merging the branches, deploying `0100` and enabling any channel each need the owner's separate approval.
 - The portal shows the consent state nowhere; it may later read `GET account/whatsapp/consent` with the portal session.

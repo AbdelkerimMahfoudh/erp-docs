@@ -4479,7 +4479,7 @@ a second phone for the website.
 
 **Nothing in this section has been run on a physical phone.** Every row was proven only by rendered tests, pure tests
 and real-MySQL specs in the cloud container. Run each row on Android and on an iPhone, in EN, FR and AR, with
-VoiceOver/TalkBack for C3 and C9, against a **test** server whose businesses are disposable and whose WhatsApp channel
+VoiceOver/TalkBack for C3, C9 and C14, against a **test** server whose businesses are disposable and whose WhatsApp channel
 is the development log or test mode with an allowlist. Never use a real customer's number; no real message is sent.
 
 **Preconditions.** An app build of `whatsapp-consent` at or after the commit recorded in `CURRENT_HANDOFF.md`, and an
@@ -4490,15 +4490,21 @@ API of `whatsapp-consent` with migrations up to `0100`, applied only to a test d
 | C1 | Open *Create a business account* | Beside the WhatsApp number: the explanation, the agreement in full, an **unticked** box, *Privacy policy* (opens in the phone's browser). No price, payment or purchase wording | | |
 | C2 | Type and correct the number; change the language | The box stays unticked. The agreement follows the language; a box ticked before the change stays ticked | | |
 | C3 | Submit without ticking, with a screen reader on | Nothing is sent. The error under the box, read with it; the reader's focus lands on the box; the box is announced as a checkbox, "not checked", with the agreement as its name | | |
-| C4 | Tick, submit, finish the code check | The account is created. On the server, one `granted` row: `wa-operational-2026-10-19`, the language shown, `mobile_registration` | | |
+| C4 | Tick, submit, finish the code check | The account is created. On the server: a `pending_unverified` row when the code is requested (`wa-operational-2026-10-19`, the language shown, `mobile_registration`), then one `active` row naming it once the code is confirmed | | |
 | C5 | Arabic: the whole registration | Right to left; the box on the right, the agreement's lines wrapping naturally; the number and the version left-to-right where shown | | |
-| C6 | Your account → *Communication preferences* | The state "Agreed", the date, the version, the history. The not-marketing line | | |
-| C7 | *Withdraw my agreement*, with no verified email | The explanation; the only-contact warning; *Withdraw* refused until *I understand…* is on; then "Withdrawn", and the box offered again, unticked | | |
+| C6 | Your account → *Communication preferences* | The state "Agreed", the date, the version, the history ("Agreed, waiting for the code", then "Agreed"). The not-marketing line | | |
+| C7 | *Withdraw my agreement*, with no verified email | The explanation (notices go to a verified email; codes never do and stay unavailable while withdrawn); the only-contact warning; *Withdraw* refused until *I understand…* is on; then "Withdrawn", and the box offered again, unticked | | |
 | C8 | Agree again | A new "Agreed" line on top of the history; the earlier lines unchanged | | |
 | C9 | A test account created before D213 (no consent row) | Your account shows the request; every other screen works and reads as before | | |
-| C10 | Change the WhatsApp number | The form has its own unticked box; no code without it; after the code, the old number's history shows "the number was replaced" | | |
+| C10 | Change the WhatsApp number | The form has its own unticked box; no code without it; after the code, the new number shows "Agreed" and the old number's history shows "Number replaced" | | |
 | C11 | Reply STOP from the test phone (test mode, allowlisted) | Communication preferences: "Withdrawn", "by replying STOP". Replying START changes nothing | | |
 | C12 | 320 pt wide phone, largest text size | The agreement wraps without clipping; the box keeps a thumb-sized target; nothing scrolls sideways | | |
+| C13 | Owner: Team → add an employee with a WhatsApp number | The employee's row says "Waiting for them" (the WhatsApp code is theirs to ask for); no *Resend* for the number (email still resendable); nothing reaches the number | | |
+| C14 | Employee's phone, signed out: *Sign in* → *I was added to a team*, type that number | *Join your team*: the server's agreement in the phone's language, **unticked**; *Send me the code* refused until ticked, the reader taken to the box | | |
+| C15 | Tick, send, enter the code and a first password | "Ready" for the business; sign in works. On the server: `pending_unverified` then `active`, actor the employee, `employee_activation` | | |
+| C16 | *Join your team* with an email address | No WhatsApp box; the code goes by email | | |
+| C17 | Join: tick and request a code, then wait more than 24 h (or use a test clock) and enter it | Nothing activates; the history shows "Expired: the code was never confirmed"; asking again shows the box unticked | | |
+| C18 | Arabic: the whole join screen | Right to left; the agreement wraps naturally; the number left-to-right | | |
 
 **Meta and provider checks, not a device's:** business verification and display name; the opt-in wording against
 WhatsApp Business policy; each template approved in its category; the real number's quality rating; the webhook

@@ -210,7 +210,8 @@ only, and live sends stay disabled until the owner enables them.
 
 ## 12. Operational consent and routing (2026-10-19; D213; `docs/101` §17)
 
-This section supersedes the consent rows of §1, §8.5 and §10 where they differ.
+This section supersedes the consent rows of §1, §8.5, §10 and §11 where they differ. It is the corrected version
+(second brief and binding security correction of 2026-10-19).
 
 **The consent.** One purpose, `operational_whatsapp`; copy `wa-operational-2026-10-19` (EN/FR/AR) at
 `GET /api/v1/messaging/whatsapp/consent?language=en|fr|ar`. Required at registration **in every mode** — the earlier
@@ -221,40 +222,56 @@ This section supersedes the consent rows of §1, §8.5 and §10 where they diffe
 | Column | Holds |
 | --- | --- |
 | `number_hash`, `number_masked` | the number as a keyed HMAC and a masked form; never the number |
-| `event` | `granted`, `withdrawn` (`opted_out_optional` only before D213) |
+| `event` | `pending_unverified`, `active`, `withdrawn`, `superseded`, `expired` (`granted`, `opted_out_optional` only before D213) |
 | `version`, `purposes` | the copy agreed to; `operational_whatsapp` |
 | `locale` (0100) | the language the copy was shown in |
-| `actor_company_id`, `actor_user_id` | who made it (null for a keyword STOP) |
-| `source` | `mobile_registration`, `website_registration`, `account_settings`, `website`, `number_changed`, `inbound_keyword` |
+| `pending_id` (0100, UNIQUE) | on `active` / `expired`: the pending row it concludes — so it is concluded once |
+| `actor_company_id`, `actor_user_id` | who made it (null for a keyword STOP or the expiry sweep) |
+| `source` | `mobile_registration`, `website_registration`, `employee_activation`, `account_settings`, `website`, `number_changed`, `inbound_keyword`, `expiry` |
 | `created_at` | when |
 
-The request's address goes on the grant's or withdrawal's audit event (`audit_logs.ip`), not on the consent row.
-Triggers refuse `phonestore_app` UPDATE and DELETE; CHECKs hold the event, a grant's version and the locale.
+The request's address goes on the decision's audit event (`audit_logs.ip`), not on the consent row. Triggers refuse
+`phonestore_app` UPDATE and DELETE; CHECKs hold the event, a grant's version, the conclusion shape and the locale.
+
+**Lifecycle.** `pending_unverified` (ticked, code requested) → `active` (the number verified, same transaction, the
+exact pending row) → `withdrawn` / `superseded`; or `pending_unverified` → `expired` after 24 h (hourly sweep in the
+webhook worker). A pending row authorises only its own verification code; an expired one never counts and cannot be
+activated.
 
 **Routes.**
-- `GET /api/v1/account/whatsapp/consent?language=` — the copy, the state (`no_number`, `none`, `granted`,
-  `outdated`, `withdrawn`), the granted version and time, the withdrawal time, whether WhatsApp is the only verified
-  contact, and the person's own history. Masked throughout.
-- `POST /api/v1/account/whatsapp/consent` `{version, locale?}` — a new grant for the verified number.
+- `GET /api/v1/account/whatsapp/consent?language=` — the copy, the state (`no_number`, `none`, `pending`, `active`,
+  `outdated`, `withdrawn`, `superseded`), the version and time, the withdrawal time, whether WhatsApp is the only
+  verified contact, and the person's own history. Masked throughout.
+- `POST /api/v1/account/whatsapp/consent` `{version, locale?}` — re-consent for the verified number (`active` at once).
 - `POST /api/v1/account/whatsapp/consent/withdraw` `{acknowledgeSupportRecovery?}` — required `true` when WhatsApp is
   the only verified contact.
-- `POST /api/v1/account/whatsapp/verify/start` now requires `whatsappConsentVersion` (and takes
-  `whatsappConsentLocale`) for the new number.
+- `POST /api/v1/account/whatsapp/verify/start` requires `whatsappConsentVersion` (and takes `whatsappConsentLocale`)
+  for the new number: pending. `…/verify/confirm` activates it and supersedes the replaced number's.
 - `POST /api/v1/auth/register` and `/platform/register` require `whatsappConsentVersion` (and take
-  `whatsappConsentLocale`).
+  `whatsappConsentLocale`): pending until the registration code is confirmed.
+- `POST /api/v1/staff/verify/resend` (public) requires `whatsappConsentVersion` (and takes `whatsappConsentLocale`)
+  for a phone: the employee's own pending agreement. `POST /api/v1/staff/verify/confirm` activates it.
+- `POST /api/v1/staff/:id/resend-verification` for a phone is refused (`employee_consent_required`).
 - **Removed:** `POST /api/v1/account/whatsapp/opt-out` (`optional|all`). No client ever called it.
 
 **Routing precedence (`whatsapp-policy.ts` `consentRefusal`, `notice-rules.ts` `whatsappPlan`).**
-1. a verified recipient (notices: an unverified number falls back to a verified email);
-2. the consent in force — missing or outdated: refused, no email;
-3. opt-out (withdrawal, STOP) — refused, no email; undeliverable (131026) — proactive messages refused, notices fall
-   back to a verified email;
+1. a verified recipient;
+2. the consent: active (or pending, for its own verification code only); missing, outdated, pending, withdrawn or
+   superseded — WhatsApp refused;
+3. undeliverable (131026) — refused;
 4. the template's approval and the provider's readiness (proof, credentials);
 5. `WHATSAPP_CHANNEL`, `WHATSAPP_MODE` (+ allowlist), `WHATSAPP_LIVE_SENDS`;
 6. idempotency (`whatsapp_messages` key, `subscription_notices` identity) and pacing.
 
-One exception: the code that verifies a number not yet verified (`verifiesContact`, set only by the server's contact
-verification and new-number paths) may go before the number has a consent; it never creates one.
+**Email fallback — informational subscription messages only** (`notices/`: portal instructions, trial/subscription
+status, 3/2/1 reminders, grace and read-only notices). When any of 1–5 fails, or the provider refuses or retries run
+out, one email goes to a **verified** address if `EMAIL_CHANNEL` is enabled and ready; otherwise the notice is recorded
+not sent (`email_unavailable` / `email_failed`). Never both channels. Email records nothing about WhatsApp consent.
+
+**Never by email:** number verification, sign-in/authentication codes, password or security recovery, account-deletion
+confirmation, employee activation/invitation verification, changed-number verification, anything granting access,
+changing credentials or authorising deletion; sensitive financial reports (none is sent today). The OTP,
+account-deletion and closing-notice services hold no email fallback for a phone contact.
 
 **Production switches stay off:** `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`,
 `EMAIL_CHANNEL=disabled`, onboarding closed, no template name configured.
