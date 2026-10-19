@@ -20,7 +20,11 @@ active_phase: the owner's approved employee-invitation activation (2026-10-19):
 - cancellation and reinvitation end the pending consent;
 - migration `0101` (plus the `cancelled` event in amended `0100`), rehearsed on disposable databases only.
 Nothing merged, deployed, enabled or sent.
-next_action: backend migration 0101 and the invitation service.
+checkpoint (06:40Z): backend `whatsapp-consent` committed locally — `b6a0dc7` (0101, STAFF_INVITATION_KEY, the
+`cancelled` conclusion in amended 0100), `a1f82ae` (the invitation flow). Full Jest 4 861/0; the CI database gate on a
+fresh scratch MySQL 8.4.11 passes all eight steps (identities 27/0; MySQL specs 21, 10, 9, 8). Not pushed yet.
+next_action: the mobile join screen (reference entry + `dukanerp://join?ref=`), the Owner's reference-once sheet and
+PendingPanel status; then the 0098 → 0099 → 0100 → 0101 rehearsal, docs and handoff.
 
 Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 
