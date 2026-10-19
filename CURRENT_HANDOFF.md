@@ -1,10 +1,28 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It took over at
-2026-10-19T04:30Z from READY_FOR_HANDOFF (owner NONE), whose handoff was complete (claim `4aa4ef1`). It finished at
-2026-10-19T05:25Z, complete.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T05:40Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `b39123e`; that handoff was complete.
+heads_at_takeover: erp-backend `whatsapp-consent` `c3c8e9e`; erp-mobile `whatsapp-consent` `452ce08`; erp-control-web
+`whatsapp-consent` `4764afd` (production `tsx-public-site` `bf62a72`, untouched); erp-docs `master` `b39123e`. All
+clean and level with their remotes.
+migration_chain (verified): production `production-deploy` `644f4f5` (0098) ⊂ `dukan-portal-lifecycle` `17ea84b`
+(0099) ⊂ `whatsapp-consent` `c3c8e9e` (0100). No other branch defines 0099–0101. `0101_staff_invitations` goes on
+`whatsapp-consent` only.
+active_phase: the owner's approved employee-invitation activation (2026-10-19):
+- Owner-only creation, cancellation and reinvitation;
+- creation sends nothing, by WhatsApp or email: it issues a 72-hour, one-use invitation reference, shown once, with a
+  purpose-keyed hash stored;
+- the employee opens it (manual entry, or `dukanerp://join?ref=`), types the matching number, accepts the consent
+  and requests the code;
+- confirmation is atomic: consent, invitation and account;
+- cancellation and reinvitation end the pending consent;
+- migration `0101` (plus the `cancelled` event in amended `0100`), rehearsed on disposable databases only.
+Nothing merged, deployed, enabled or sent.
+next_action: backend migration 0101 and the invitation service.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 
 ## WhatsApp consent corrections: pending until verified, employee self-consent, email only for informational notices — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
 
