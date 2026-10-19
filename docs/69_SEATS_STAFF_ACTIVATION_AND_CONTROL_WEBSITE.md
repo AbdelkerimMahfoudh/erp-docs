@@ -62,30 +62,43 @@ matrix had seated two people on one included seat, and reported nothing to do on
 
 ## 3. Staff activation: the flow and its routes
 
+> **Superseded in part (2026-10-19) by D214** (`docs/21`; branch `whatsapp-consent`, not deployed): creating an
+> employee sends nothing; every employee activates from an invitation and accepts the operational WhatsApp consent
+> themselves. The routes below are the branch's. Production (`644f4f5`) still runs the earlier routes until the
+> owner approves the rollout.
+
 ```
-Owner (Team) ──POST /users──▶ account PENDING ──codes──▶ person
-                               │  invited_at set, is_active 0, placeholder password
+Owner (Team) ──POST /users──▶ account PENDING + invitation (reference shown ONCE; only its keyed hash stored)
+                               │  invited_at set, is_active 0, placeholder password; NOTHING sent (no WhatsApp, no email)
                                │  seat per store: included / held / request priced (pending_payment)
-person ──POST staff/verify/confirm {destination, code, password}──▶ contact verified (+ password the first time)
-                               │
+Owner ──reads out / copies / shares the reference from their own phone──▶ employee
+employee ──POST staff/join/open {reference}──▶ business, name, the number's last two digits
+employee ──POST staff/join/request-code {reference, number, consent}──▶ pending_unverified consent (employee as actor)
+                               │  + the WhatsApp code, only now
+employee ──POST staff/join/confirm {reference, code, password}──▶ ONE transaction: code consumed, number verified,
+                               │  password set, the bound consent active, the invitation used, the account activated
+                               │  when a seat is held (otherwise it waits, as before, for the seat)
 administrator ──confirm-payment {reference}──▶ seat paid   (only for a seat beyond the included one)
-                               │
-StaffActivationService.tryActivate: every selected contact verified AND a seat at each store
-                               └──▶ is_active 1, activated_at set, timeline "staff_activated"
 ```
 
 | Route | Realm | Does |
 | --- | --- | --- |
-| `POST /users` `{name, email?, phone?, branchIds[], role, language?}` | Owner (`user.manage`) | creates the pending account; sends a code on each channel that can deliver; answers `verification.{email,phone}: sent / unavailable / null`, `seats[].state`, `activation.pending[]`; never a code outside local development |
-| `POST /users/:id/resend-verification` `{channel}` | Owner | 200 `{delivery: sent}` or 503 `delivery_unavailable` |
-| `POST /users/:id/cancel-invitation` | Owner | withdraws a pending account (soft-deleted, contact released, its seat request withdrawn) |
-| `POST staff/verify/confirm` `{destination, code, password?}` | public, throttled | proves one contact; `password_required` the first time (the code is not spent by asking); then the gate runs |
-| `POST staff/verify/resend` `{destination}` | public, throttled | answers the same whether or not an account is waiting; 503 while nothing can deliver |
-| `PATCH /users/:id {isActive: true}` on a pending account | Owner | **refused**: `activation_pending` |
-| `GET /users` | Owner | each row carries `status: pending` and `pending.{email, phone, seats[]}` |
+| `POST /users` `{name, phone, email?, branchIds[], role}` | Owner (`user.manage`) | creates the pending account and its invitation; `whatsapp_required` without a number; answers `invitation {reference, link, expiresAt}` (shown once), `seats[].state`, `activation.pending[]`; sends nothing |
+| `POST /users/:id/invitation` | Owner | a new invitation: the live one revoked and its pending consent concluded `cancelled`; the new reference shown once |
+| `POST /users/:id/cancel-invitation` | Owner | withdraws a pending account (soft-deleted, contact released, its seat request withdrawn), revokes its invitation and concludes its pending consent |
+| `POST staff/join/open` `{reference}` | public, throttled | the business, the person's name, the number's last two digits; `invitation_unavailable` for every unusable reference |
+| `POST staff/join/request-code` `{reference, number, language?, whatsappConsentVersion, whatsappConsentLocale?}` | public, throttled | the typed number must match (`number_mismatch`); records the employee's pending consent and sends the code; again, a new code under the same pending consent while both are valid |
+| `POST staff/join/confirm` `{reference, code, password?}` | public, throttled | the atomic confirmation above; `password_required` the first time (the code is not spent by asking); `consent_expired` when the agreement lapsed (24 h) |
+| `PATCH /users/:id` on a pending account | Owner | `{isActive: true}` refused (`activation_pending`); a changed number refused (`pending_number_locked`): cancel and add again |
+| `GET /users` | Owner | each pending row carries `pending.{phone, email, invitation {state, expiresAt}, seats[]}` — never the reference |
 
-Refusals carry codes, never only English: `contact_required`, `contact_in_use`, `activation_pending`,
-`delivery_unavailable`, `password_required`, `reference_required`, `seat_request_changed`, `store_name_in_use`.
+**Removed by D214:** `POST /users/:id/resend-verification`, `POST staff/verify/confirm`, `POST staff/verify/resend`.
+**Activation** waits for the verified WhatsApp number and a seat; an email address is optional and never a condition.
+
+Refusals carry codes, never only English: `whatsapp_required`, `contact_in_use`, `activation_pending`,
+`pending_number_locked`, `invitation_unavailable`, `invitations_unavailable`, `number_mismatch`, `number_invalid`,
+`whatsapp_consent_required`, `whatsapp_consent_outdated`, `delivery_unavailable`, `code_mismatch`, `password_required`,
+`consent_expired`, `not_pending`, `reference_required`, `seat_request_changed`, `store_name_in_use`.
 
 Seat and store requests (`docs/68` §9 for bodies): the Owner asks (`platform/my-subscription/seat-requests`,
 `store-requests`, `…/withdraw`, all allowed even when the subscription has lapsed — asking to pay is not a business

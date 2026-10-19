@@ -12529,3 +12529,69 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   exports were deleted. Scratch files lived only in the session's temporary directory.
 - **Docs:** D213 corrected (`docs/21`, with the D181 note); `docs/98` §12; `docs/101` §17; `docs/24` §67 rows C13–C18.
   The handoff is READY_FOR_HANDOFF, owner NONE, with the website production HEAD `bf62a72`.
+
+## 2026-10-19 — Employee invitations (D214): creating an employee sends nothing; the employee activates from a reference (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It claimed at 05:40Z (`bcf1a28`) from
+  READY_FOR_HANDOFF (owner NONE) after the owner approved the plan with binding decisions:
+  - Owner-only;
+  - no email-only activation: a WhatsApp number is required and creation sends nothing at all;
+  - a 72-hour invitation, while pending consent stays 24 h;
+  - the `dukanerp://join?ref=` link plus manual entry, no QR code and no HTTPS link;
+  - the reference shown once and stored only as a purpose-keyed hash;
+  - the security list;
+  - the migration order checked before building.
+- **Migration order verified:** `644f4f5` (0098) ⊂ `17ea84b` (0099) ⊂ `whatsapp-consent` (0100, 0101). No other branch
+  defines 0099–0101.
+- **Backend** `whatsapp-consent`:
+  - `b6a0dc7`:
+    - `0101_staff_invitations`: a keyed hash, one live invitation per person through a UNIQUE generated column, CHECKs,
+      and triggers that keep an ended invitation ended and refuse re-pointing and deletion;
+    - `STAFF_INVITATION_KEY`, wired as a secret file through config, the production guard, compose, both preflights,
+      check-stack and setup-secrets;
+    - `0100` amended in place for the `cancelled` conclusion.
+  - `a1f82ae`:
+    - creation sends nothing and returns the reference once;
+    - `staff/join/open`, `request-code` and `confirm`: the employee's own pending consent, then the code; one atomic
+      confirmation;
+    - `users/:id/invitation` and cancellation revoke the invitation and conclude its pending consent;
+    - activation waits only for the verified number and a seat;
+    - a pending employee's number is locked;
+    - account deletion revokes invitations;
+    - the number-based `staff/verify/*` routes and the Owner's resend are removed.
+  - `42d2bcd`: the probe spec.
+- **Mobile** `whatsapp-consent` `23ec6fd`:
+  - the join screen by reference (the link only fills it in), then the employee's number and the unticked consent;
+  - the Owner's sheet: number required, reference shown once with Copy and Share;
+  - the pending panel: status and expiry, *New invitation*;
+  - EN/FR/AR.
+- **Website:** unchanged (`4764afd`).
+- **Verified:**
+  - backend `tsc`, Prisma valid, Jest 4 864/0;
+  - CI database gate on fresh MySQL 8.4.11, eight steps: identities 27/0, catalogue 73/73, MySQL specs 21, 10, 9 and 8;
+  - production-upgrade rehearsal:
+    - 0098 exactly as `644f4f5`, with 80 pending employees from before invitations;
+    - 0099 → 0100 → 0101 applied: 0 invitations created, everything pre-existing unchanged, 0 consented;
+    - both MySQL specs green on the upgraded schema as the application account;
+    - the reverse of all three gives data and schema identical to the backup;
+  - mobile `tsc`, lint 0 errors, 117 pure files, Jest 349/349, exports, bundle audit, release refusal, secret scan;
+  - EN/FR/AR parity.
+- **Not passed:** Expo Doctor (the same patch drift; no dependency changed).
+- **Found and fixed:**
+  - A confirmation racing a cancellation could withdraw a just-activated account. Fixed with a re-check under the
+    person's row lock and lock helpers that read state from the locking read; a real-MySQL test pins it.
+  - `consent.mysql.spec` still looked for the pre-D213 `granted` event (it passed only on one race order).
+  - `0099`'s header omits `CHARACTER SET … COLLATE` in its reverse; `docs/101` §13 has it, and the rehearsal proved
+    that form exact. The applied file is left unchanged.
+- **Not done (by instruction):**
+  - no merge, no deployment, no production migration, no production secret;
+  - no provider, no real message, no Cloudflare, no device run.
+- **Clean-up:** the scratch MySQL, every database on it and the dumps were deleted, along with the export directories.
+  Scratch files stayed in the session's temporary directory.
+- **Docs:**
+  - `docs/21`: D214, D213's employee paragraph pointing to it, and the follow-up list;
+  - `docs/69` §3 (routes);
+  - `docs/98` §12 (routes and the new secret);
+  - `docs/101` §17 (lifecycle, migrations, order, rehearsal, reverse, rollout additions, verification);
+  - `docs/24` §67 C13–C21;
+  - handoff READY_FOR_HANDOFF, owner NONE.

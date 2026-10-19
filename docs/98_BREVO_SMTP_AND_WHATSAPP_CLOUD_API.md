@@ -222,12 +222,12 @@ This section supersedes the consent rows of §1, §8.5, §10 and §11 where they
 | Column | Holds |
 | --- | --- |
 | `number_hash`, `number_masked` | the number as a keyed HMAC and a masked form; never the number |
-| `event` | `pending_unverified`, `active`, `withdrawn`, `superseded`, `expired` (`granted`, `opted_out_optional` only before D213) |
+| `event` | `pending_unverified`, `active`, `withdrawn`, `superseded`, `expired`, `cancelled` (`granted`, `opted_out_optional` only before D213) |
 | `version`, `purposes` | the copy agreed to; `operational_whatsapp` |
 | `locale` (0100) | the language the copy was shown in |
-| `pending_id` (0100, UNIQUE) | on `active` / `expired`: the pending row it concludes — so it is concluded once |
+| `pending_id` (0100, UNIQUE) | on `active` / `expired` / `cancelled`: the pending row it concludes — so it is concluded once |
 | `actor_company_id`, `actor_user_id` | who made it (null for a keyword STOP or the expiry sweep) |
-| `source` | `mobile_registration`, `website_registration`, `employee_activation`, `account_settings`, `website`, `number_changed`, `inbound_keyword`, `expiry` |
+| `source` | `mobile_registration`, `website_registration`, `employee_activation`, `account_settings`, `website`, `number_changed`, `inbound_keyword`, `expiry`, `invitation_cancelled`, `invitation_replaced` |
 | `created_at` | when |
 
 The request's address goes on the decision's audit event (`audit_logs.ip`), not on the consent row. Triggers refuse
@@ -249,9 +249,11 @@ activated.
   for the new number: pending. `…/verify/confirm` activates it and supersedes the replaced number's.
 - `POST /api/v1/auth/register` and `/platform/register` require `whatsappConsentVersion` (and take
   `whatsappConsentLocale`): pending until the registration code is confirmed.
-- `POST /api/v1/staff/verify/resend` (public) requires `whatsappConsentVersion` (and takes `whatsappConsentLocale`)
-  for a phone: the employee's own pending agreement. `POST /api/v1/staff/verify/confirm` activates it.
-- `POST /api/v1/staff/:id/resend-verification` for a phone is refused (`employee_consent_required`).
+- Employees (D214; `docs/69` §3): `POST /api/v1/users` sends nothing and answers the invitation reference once;
+  `POST /api/v1/users/:id/invitation` replaces it. The employee: `POST /api/v1/staff/join/open` `{reference}`,
+  `…/request-code` `{reference, number, whatsappConsentVersion, whatsappConsentLocale?}` (the employee's own pending
+  agreement, then the code), `…/confirm` `{reference, code, password?}` (consent, invitation and account in one
+  transaction). The number-based `staff/verify/*` routes and the Owner's resend are removed.
 - **Removed:** `POST /api/v1/account/whatsapp/opt-out` (`optional|all`). No client ever called it.
 
 **Routing precedence (`whatsapp-policy.ts` `consentRefusal`, `notice-rules.ts` `whatsappPlan`).**
@@ -272,6 +274,10 @@ not sent (`email_unavailable` / `email_failed`). Never both channels. Email reco
 confirmation, employee activation/invitation verification, changed-number verification, anything granting access,
 changing credentials or authorising deletion; sensitive financial reports (none is sent today). The OTP,
 account-deletion and closing-notice services hold no email fallback for a phone contact.
+
+**A new secret, `STAFF_INVITATION_KEY`** (0101, D214): keys the employee invitation references, 32+ characters, a
+file under `/run/secrets` like the others (`deploy/production/setup-secrets.sh` creates `staff_invitation_key` without
+replacing anything). Production refuses to start without it. Rotating it voids every invitation not yet used.
 
 **Production switches stay off:** `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`,
 `EMAIL_CHANNEL=disabled`, onboarding closed, no template name configured.

@@ -4479,7 +4479,7 @@ a second phone for the website.
 
 **Nothing in this section has been run on a physical phone.** Every row was proven only by rendered tests, pure tests
 and real-MySQL specs in the cloud container. Run each row on Android and on an iPhone, in EN, FR and AR, with
-VoiceOver/TalkBack for C3, C9 and C14, against a **test** server whose businesses are disposable and whose WhatsApp channel
+VoiceOver/TalkBack for C3, C9, C14 and C17, against a **test** server whose businesses are disposable and whose WhatsApp channel
 is the development log or test mode with an allowlist. Never use a real customer's number; no real message is sent.
 
 **Preconditions.** An app build of `whatsapp-consent` at or after the commit recorded in `CURRENT_HANDOFF.md`, and an
@@ -4499,12 +4499,15 @@ API of `whatsapp-consent` with migrations up to `0100`, applied only to a test d
 | C10 | Change the WhatsApp number | The form has its own unticked box; no code without it; after the code, the new number shows "Agreed" and the old number's history shows "Number replaced" | | |
 | C11 | Reply STOP from the test phone (test mode, allowlisted) | Communication preferences: "Withdrawn", "by replying STOP". Replying START changes nothing | | |
 | C12 | 320 pt wide phone, largest text size | The agreement wraps without clipping; the box keeps a thumb-sized target; nothing scrolls sideways | | |
-| C13 | Owner: Team → add an employee with a WhatsApp number | The employee's row says "Waiting for them" (the WhatsApp code is theirs to ask for); no *Resend* for the number (email still resendable); nothing reaches the number | | |
-| C14 | Employee's phone, signed out: *Sign in* → *I was added to a team*, type that number | *Join your team*: the server's agreement in the phone's language, **unticked**; *Send me the code* refused until ticked, the reader taken to the box | | |
-| C15 | Tick, send, enter the code and a first password | "Ready" for the business; sign in works. On the server: `pending_unverified` then `active`, actor the employee, `employee_activation` | | |
-| C16 | *Join your team* with an email address | No WhatsApp box; the code goes by email | | |
-| C17 | Join: tick and request a code, then wait more than 24 h (or use a test clock) and enter it | Nothing activates; the history shows "Expired: the code was never confirmed"; asking again shows the box unticked | | |
-| C18 | Arabic: the whole join screen | Right to left; the agreement wraps naturally; the number left-to-right | | |
+| C13 | Owner: Team → add an employee without a WhatsApp number | Refused under the number field ("Give the person’s WhatsApp number"); nothing created | | |
+| C14 | Owner: add an employee with a number (and an email) | Nothing reaches the test phone or the email. The sheet shows the reference in large type, "Valid until …", *Copy*, *Share* and "Shown only now"; *Copy* puts it on the clipboard; *Share* opens the phone's own share sheet with the reference and the app link | | |
+| C15 | Close the sheet, open the employee again | "Invitation waiting" and its expiry — never the reference. *New invitation* asks first, then shows a new reference once; the old one, typed on the employee's phone, says "This invitation cannot be used" | | |
+| C16 | Employee's phone, signed out: *Sign in* → *I was added to a team*; type the reference in lowercase with spaces | *Join your team* accepts it; shows "{name}, {business} added you to its team" and "it ends in 66"; no code yet | | |
+| C17 | Type another number; then the right one, without ticking, then ticking, then *Send me the code* | Another number: "That is not the number…"; unticked: nothing sent, the reader taken to the box; ticked: the code arrives on WhatsApp (test mode). Server: `pending_unverified`, actor the employee, `employee_activation` | | |
+| C18 | Enter the code and a first password | "Your account is ready"; sign-in works. Server, together: `active` consent naming the pending row, invitation used, account active. The same reference again: "This invitation cannot be used" | | |
+| C19 | Tap a `dukanerp://join?ref=…` link (from the Owner's share) | The join screen opens with the reference filled in; nothing else happens until *Continue* | | |
+| C20 | Owner withdraws a waiting employee who already asked for a code | The reference stops working; the employee's history shows the agreement ended; the account is gone from Team | | |
+| C21 | Arabic: the Owner's sheet and the whole join screen | Right to left; the reference and the number left-to-right; the agreement wraps naturally | | |
 
 **Meta and provider checks, not a device's:** business verification and display name; the opt-in wording against
 WhatsApp Business policy; each template approved in its category; the real number's quality rating; the webhook

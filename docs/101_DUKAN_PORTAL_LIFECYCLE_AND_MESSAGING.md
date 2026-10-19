@@ -452,7 +452,7 @@ for `dukan.tsxmr.com`; the merge; `0099` on production after a verified backup; 
 | 6 | "Stops operational access" after a trial against the recorded read-only rule | read-only kept; question 1 of §14 |
 | 7 | No route to verify an email address after sign-up | the Owner verifies it on the portal (§7) |
 
-## 17. The operational WhatsApp consent (2026-10-19; D213)
+## 17. The operational WhatsApp consent and employee invitations (2026-10-19; D213, D214)
 
 The owner's brief of 2026-10-19, corrected the same day (second brief and binding security correction), built on these
 branches. Decision: `docs/21` D213. Provider and routes: `docs/98` §12. Device rows: `docs/24` §67. Nothing is merged
@@ -462,8 +462,8 @@ or deployed; `0100` ran on disposable databases only.
 
 | Repository | Branch | Commits | Base |
 | --- | --- | --- | --- |
-| `erp-backend` | `whatsapp-consent` | `49a61fc` (0100), `8188146` (consent and routing), `35eacf8` (CI gate); corrections `c6ea3b7` (lifecycle, 0100 amended in place), `c21af86` (routing), `82a0c58` (employee consent), `e1e4f8e`, `c3c8e9e` (specs) | `dukan-portal-lifecycle` `17ea84b` |
-| `erp-mobile` | `whatsapp-consent` | `dff57dc`; correction `452ce08` (employee join screen, lifecycle states) | `dukan-portal-lifecycle` `de40f72` |
+| `erp-backend` | `whatsapp-consent` | `49a61fc` (0100), `8188146` (consent and routing), `35eacf8` (CI gate); corrections `c6ea3b7` (lifecycle, 0100 amended in place), `c21af86` (routing), `82a0c58` (employee consent), `e1e4f8e`, `c3c8e9e` (specs); invitations `b6a0dc7` (0101, the key, `cancelled` in amended 0100), `a1f82ae` (the flow), `42d2bcd` (probe spec) | `dukan-portal-lifecycle` `17ea84b` |
+| `erp-mobile` | `whatsapp-consent` | `dff57dc`; correction `452ce08` (lifecycle states); invitations `23ec6fd` (the join screen by reference, the Owner's reference-once sheet, the pending panel) | `dukan-portal-lifecycle` `de40f72` |
 | `erp-control-web` | `whatsapp-consent` | `4764afd` (the two new fallback reasons named in the portal and console, EN/FR/AR) | `dukan-portal` `0fd418a` |
 
 ### 17.2 The wording, version `wa-operational-2026-10-19`
@@ -499,12 +499,13 @@ Awaiting counsel. Any change of a word is a new version, and every earlier conse
   sends nothing and the screen reader is taken to the problem; the server refuses without the current version
   (`whatsapp_consent_required` / `whatsapp_consent_outdated`), in every mode, before anything is saved. Pending until
   the registration code is confirmed. A replay writes nothing.
-- **Employee, on their own phone:** sign-in → **Join your team** (`/(auth)/join`). For a number, the server's copy,
-  unticked; the code is requested only once ticked (`POST staff/verify/resend` with the version and locale), recorded
-  with the employee as actor (`employee_activation`). Code + first password (`POST staff/verify/confirm`) activate it.
-  An email address needs no WhatsApp consent. The Owner cannot agree or send the WhatsApp code for them: the staff
-  screens show "waiting for their agreement" (`awaiting_consent`) and the Owner's phone resend is refused
-  (`employee_consent_required`).
+- **Employee, from an invitation (D214; routes `docs/69` §3):** the Owner's act sends nothing and shows a reference
+  once (Copy, Share). On their own phone — sign-in → *I was added to a team* (`/(auth)/join`, or the app link
+  `dukanerp://join?ref=…`, which only fills the form) — the employee types the reference, then their whole number (it
+  must match), sees the server's copy unticked, ticks it and asks for the code: only then is the `pending_unverified`
+  consent recorded (the employee as actor, `employee_activation`) and the code sent. The code and a first password
+  confirm everything in one transaction. New invitation and cancellation end the old invitation's pending consent
+  (`cancelled`, by the Owner). Unusable references all read `invitation_unavailable`.
 - **New number:** its own unticked box; verifying it activates the new consent and supersedes the old number's.
 - **Existing accounts and employees:** never backfilled or migrated. Your account asks for the consent and links to
   Communication preferences; reading the business is never blocked.
@@ -539,28 +540,48 @@ Awaiting counsel. Any change of a word is a new version, and every earlier conse
   as the fallback reason; the old `no_consent` / `opted_out` failure reasons remain only for earlier rows.
 - No price, payment code or payment instruction is in any template.
 
-### 17.7 Migration `0100_whatsapp_operational_consent` (amended in place — never reached production)
+### 17.7 Migrations `0100` (amended in place) and `0101_staff_invitations` — neither reached production
 
-Additive: `whatsapp_consents.locale` and `pending_id` (UNIQUE `ux_whatsapp_consents_pending`); CHECKs on the event,
-a grant's version, the conclusion shape (`ck_whatsapp_consent_conclusion`) and the locale; triggers refusing
-`phonestore_app` UPDATE and DELETE. No backfill.
+**Order** (verified from the branches, D214): production `production-deploy` `644f4f5` stops at `0098`;
+`dukan-portal-lifecycle` `17ea84b` adds `0099`; `whatsapp-consent` adds `0100` and `0101`. Each branch contains the one
+before it; no other branch defines `0099`–`0101`. They go to production together, in that order.
 
-**Rehearsal (disposable MySQL 8.4.11, scratch; dropped):**
-- a database at 0099 with D181-era history: 40 businesses, 120 people, 400 numbers, 561 events (425 grants to
-  `wa-consent-2026-10-17`, 70 STOPs of optional notices, 66 withdrawals);
-- backup `2239317664cfd8c4…` restored with matching `CHECKSUM TABLE` on the four tables;
-- 0100 applied; `migrate status` up to date; 561 rows, all with `locale` null; both triggers, four CHECKs and the
-  UNIQUE index present; every pre-existing row's original columns byte-identical;
-- under the new code: 359 numbers `outdated`, 41 `withdrawn`, **0 consented** — nobody opted in;
-- on the upgraded data: two concurrent verifications of a pending agreement wrote **one** activation (`activated`,
-  `unchanged`); a pending agreement swept 25 h later by two racing sweeps wrote **one** `expired` (1+0), the pending
-  row kept, no longer counted, and a late verification activated nothing;
-- the reverse (below) on a copy of the after-state: checksums equal to the backup's, no trigger left, Prisma at 0099;
-- after backup `0d06f30257630004…`; both dumps deleted.
+- `0100`: `whatsapp_consents.locale` and `pending_id` (UNIQUE `ux_whatsapp_consents_pending`); CHECKs on the event (now
+  with `cancelled`), a grant's version, the conclusion shape (`expired`/`cancelled` name a pending row) and the locale;
+  triggers refusing `phonestore_app` UPDATE and DELETE.
+- `0101`: `staff_invitations` — business, person, keyed hash of the reference (UNIQUE), `issued_by`, `expires_at`,
+  `pending_consent_id`, `used_at`, `revoked_at` + `revoked_reason` (reinvited | cancelled); a UNIQUE generated column
+  for one live invitation per person; CHECKs (one end only, a reason exactly with a revocation, a known reason, no use
+  without a consent); triggers refusing `phonestore_app` any change to an ended invitation, any re-pointing of its
+  business, person, hash or life, and any DELETE. No row is created for anyone.
 
-**Reverse** (only with the owner's decision, after a fresh backup; a Git rollback does not do this):
+**Rehearsal of the production upgrade (disposable MySQL 8.4.11, scratch; dropped):**
+- a database at **0098 exactly** (its migrations compared with `644f4f5`'s), with production-shaped rows: 40
+  businesses with their subscription and its event, 120 people, **80 pending employees added before invitations**, 400
+  numbers, 561 D181-era consent events;
+- backup `dc4031f2f1090488…` restored with matching `CHECKSUM TABLE` on six tables;
+- `0099`, `0100`, `0101` applied by the branch, in order; `migrate status` up to date; all six triggers and eight
+  CHECKs present; **0 invitations created**, 80 pending employees still pending; every pre-existing consent row
+  byte-identical, and companies, users, subscriptions, subscription events and contacts unchanged;
+- under the new code: 359 numbers `outdated`, 41 `withdrawn`, **0 consented**;
+- on the upgraded data: one activation from two concurrent verifications, one expiry from two racing sweeps;
+- **the real-MySQL specs run on the upgraded schema as the application account**: consent 9/9, invitations 8/8
+  (four concurrent confirmations → one activation; a confirmation racing a cancellation → one whole winner, never an
+  activated account withdrawn; two reinvitations at once → one live invitation; one number in two businesses → only
+  the invited account; triggers; CHECKs);
+- the reverse of all three on a copy of the after-state (backup `2ceed2cc93688886…`): data checksums equal to the
+  0098 backup's, **schema identical object for object**, no table or trigger left, Prisma at 0098;
+- both dumps deleted with the scratch directory.
+
+**Reverse** (only with the owner's decision, after a fresh backup; a Git rollback does not do this), newest first:
 
 ```sql
+-- 0101
+DROP TRIGGER IF EXISTS trg_staff_invitation_guard_update;
+DROP TRIGGER IF EXISTS trg_staff_invitation_no_delete;
+DROP TABLE staff_invitations;
+DELETE FROM _prisma_migrations WHERE migration_name = '0101_staff_invitations';
+-- 0100
 DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_update;
 DROP TRIGGER IF EXISTS trg_whatsapp_consent_no_delete;
 ALTER TABLE whatsapp_consents DROP CHECK ck_whatsapp_consent_event, DROP CHECK ck_whatsapp_consent_grant_version,
@@ -568,40 +589,48 @@ ALTER TABLE whatsapp_consents DROP CHECK ck_whatsapp_consent_event, DROP CHECK c
 DROP INDEX ux_whatsapp_consents_pending ON whatsapp_consents;
 ALTER TABLE whatsapp_consents DROP COLUMN pending_id, DROP COLUMN locale;
 DELETE FROM _prisma_migrations WHERE migration_name = '0100_whatsapp_operational_consent';
+-- 0099: §13 (its column restored WITH `CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, as §13 writes it — the
+-- migration header's own copy omits that clause, and without it the column's definition is not byte-identical)
 ```
 
-Rows written by the new code (`pending_unverified`, `active`, `superseded`, `expired`) survive the reverse but mean
-nothing to code before `0100`, which counts only `granted` to `wa-consent-2026-10-17`: rolling back the API to
-`17ea84b` with or without the reverse opts nobody in.
+Dropping `staff_invitations` loses every invitation: employees still pending need a new one once the code that issues
+them is back. Rows written by the new code in `whatsapp_consents` survive the reverse and mean nothing to code before
+`0100`: rolling the API back to `17ea84b` or `644f4f5` opts nobody in.
+
+**Rollout additions** (to `docs/101` §12 when approved): create the `staff_invitation_key` secret first
+(`deploy/production/setup-secrets.sh`, which replaces nothing) — the API refuses to start without it; apply `0099`,
+`0100`, `0101` in one deployment after `docs/22`'s backup; existing pending employees then need their Owner's *New
+invitation*.
 
 ### 17.8 Verification (final HEADs)
 
 | Gate | Result |
 | --- | --- |
 | backend `tsc`, Prisma validate | clean; schema valid |
-| backend Jest (full, at `c3c8e9e`) | 266 suites, 4 839 passed, 0 failed; the three env-gated real-MySQL suites skipped here and run in the CI gate below |
-| CI database gate, fresh MySQL 8.4.11 | identities and triggers 25/0 (consent UPDATE/DELETE refused); permission catalogue 73/73, no drift; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` **9/9** |
-| migration rehearsal | §17.7: clean install (CI gate), upgrade from 0099, backup/restore, lifecycle on upgraded data, reverse — all matched |
-| mobile | `tsc` clean; lint 0 errors (28 warnings, pre-existing); 117 pure files; Jest 36 suites, 340 tests |
-| exports and audits | web and iOS exports; bundle audit PASS (no trial action, link, QR, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean (2 136 blobs, every ref) |
-| Expo Doctor | **fails one check**: 10 Expo packages a patch behind SDK 57's current releases; no dependency changed; upgrading is its own decision |
-| website (`erp-control-web` `whatsapp-consent`) | typecheck clean; Vitest 33 files, 535 tests; preview builds of the full, portal and public surfaces with link and bundle audits PASS. The production build refuses by design (legal drafts and hosting values unresolved, docs/74 §7) |
-| EN/FR/AR | key parity: mobile 3 926, website 730 per language |
+| backend Jest (full, at `42d2bcd`) | 267 suites, 4 864 passed, 0 failed; the four env-gated real-MySQL suites skipped here and run in the CI gate below |
+| CI database gate, fresh MySQL 8.4.11 | identities and triggers **27/0** (consent and invitation UPDATE/DELETE refused); permission catalogue 73/73; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 9/9; **`staff-invitation.mysql` 8/8** |
+| migration rehearsal | §17.7: 0098 → 0099 → 0100 → 0101, backup/restore, specs on the upgraded schema, reverse with identical schema |
+| mobile (`23ec6fd`) | `tsc` clean; lint 0 errors (28 pre-existing warnings); 117 pure files; Jest 36 suites, 349 tests; web and iOS exports; bundle audit PASS (no trial action, link, QR code, web view, browser, price or payment instruction); release build refused without its inputs; secret scan clean (2 136 blobs, every ref). **Expo Doctor fails one check**: 10 Expo packages a patch behind SDK 57; no dependency changed |
+| website (`erp-control-web` `whatsapp-consent` `4764afd`) | unchanged by D214; typecheck clean; Vitest 535/535; preview builds of three surfaces with link and bundle audits PASS (previous run, same HEAD) |
+| EN/FR/AR | key parity: mobile 3 942, website 730 per language |
 | messaging | test or recording channels only — no provider called, no message left the container |
 
-Focused tests: `whatsapp-consent.spec` (lifecycle: pending, activation once, expiry, withdrawal, supersede,
-re-consent), `whatsapp-policy.spec` (pending authorises only its code), `notice-rules.spec` and `notice.service.spec`
-(missing and withdrawn consent, undeliverable, provider outage, verified-email fallback, email unavailable, one message
-per identity), `whatsapp-consent-flows.spec` (Owner registration, number change, and the services that never fall back
-to email), `staff-invitation.service.spec` (employee consent, actor, Owner refused), `registration-continuation.spec`
-(activation in the confirmation transaction), `consent.mysql.spec` (real-MySQL concurrency, expiry race, UNIQUE,
-CHECKs, triggers); mobile `join-team.test`, `team-employee-consent.test`, `staff-activation.test`, the communication
-and registration consent tests; website `console-oversight.test`.
+Focused tests for D214: `staff-invitation.service.spec` (38: creation sends nothing; the reference stored only as its
+keyed hash and in no audit; `whatsapp_required`; open as typed; every unusable reference the same answer; the link
+opens nothing; consent required and outdated; number mismatch; pending consent bound, its actor and address; resend
+under the same consent; re-acceptance after 24 h; atomic confirmation; token reuse; consent expiry before confirmation;
+no seat yet; expired invitation; reinvite and cancel ending the pending consent; cross-company refusal; one number in
+two businesses; the gate's static checks), `invitation-reference.spec` (7), `whatsapp-consent.spec` (+3: exact pending
+activation, `cancelled` once, never after activation), `staff-invitation.mysql.spec` (8, real MySQL); mobile
+`join-team.test` (9), `team-invitation.test` (7), `staff-activation.test` (7), `access-boundary.test` (the Owner's
+routes pinned).
 
 ### 17.9 Still open
 
 - Counsel: the wording. Meta: business verification, display name, opt-in policy check, template categories, the real
   number, the webhook, the permanent token. Nothing was submitted.
-- Physical devices: `docs/24` §67.
-- Merging the branches, deploying `0100` and enabling any channel each need the owner's separate approval.
+- Physical devices: `docs/24` §67 (C1–C21).
+- Merging the branches, creating `STAFF_INVITATION_KEY` in production, deploying `0099`–`0101` and enabling any
+  channel each need the owner's separate approval.
+- An HTTPS join link needs a website deployment and its own approval; the app link and manual entry stand meanwhile.
 - The portal shows the consent state nowhere; it may later read `GET account/whatsapp/consent` with the portal session.

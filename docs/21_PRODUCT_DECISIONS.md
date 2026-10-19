@@ -8328,17 +8328,8 @@ the paid templates stay disabled; no real message; migration `0100` on disposabl
   source (`mobile_registration` / `website_registration`) and an audit event. It becomes `active` when the registration
   code proves the number. A replay of the same registration writes nothing.
 
-**Employees (self-consent).**
-- An Owner never agrees for an employee and cannot send an employee's WhatsApp code: for a phone, the Owner's resend is
-  refused (`employee_consent_required`) and the staff screens show "waiting for their agreement" (`awaiting_consent`).
-  An email address is unaffected.
-- The employee opens **Join your team** from the sign-in screen on their own phone, types the number the Owner gave, sees
-  the server's EN/FR/AR copy unticked, ticks it and asks for the code (`POST staff/verify/resend` with
-  `whatsappConsentVersion` and `whatsappConsentLocale`). The pending row names the employee as actor, source
-  `employee_activation`. The code and a first password (`POST staff/verify/confirm`) activate it in the same
-  transaction.
-- The public routes answer the same whether or not an account waits. Existing employees are not migrated: they are
-  asked when they next need a WhatsApp code.
+**Employees (self-consent).** Superseded by **D214** (below): every employee activates from an invitation and accepts
+the consent themselves; the Owner's act sends nothing. The earlier number-based `staff/verify/*` routes are removed.
 
 **Changing the number.** The new number needs its own ticked consent with the code request (`pending_unverified`,
 `account_settings`). Verifying it activates that consent and, in the same transaction, ends the replaced number's
@@ -8382,6 +8373,54 @@ account screen asks for the consent and links to Communication preferences; noth
 WhatsApp runs live" are superseded) and D209 (consent is decided before channel availability; a missing or withdrawn
 consent now falls back to a verified email for informational notices only, instead of stopping them).
 
+### ✅ DECIDED BY THE OWNER (2026-10-19) AND IMPLEMENTED (branches) — D214: an employee activates their own account from an invitation; creating one sends nothing
+
+**Why.** The employee had not consented when the Owner created them, so nothing may be sent to them on the Owner's say-so.
+Without an activation screen of its own, the earlier flow either sent a code at creation or let anyone who knew a
+number start one — and one number shared by two businesses was activated in both. The missing screen was a defect to
+finish, not a reason to keep sending.
+
+**The Owner (Owner-only: `user.manage`; Managers get no invitation authority in this phase).**
+- Creates the pending employee: a **WhatsApp number required**, an email optional. **Nothing is sent** — no WhatsApp,
+  no email. The server issues an invitation.
+- The reference is shown **once**, right after creation or reinvitation, with Copy and the phone's own Share. It is never
+  stored in clear — not in the database, logs, analytics or audit payloads — so it cannot be shown again. The pending
+  panel shows the invitation's status (none, waiting, consent given, expired) and expiry, never the reference.
+- **New invitation** revokes the old one, ends any pending consent made under it, and shows a new reference once.
+- **Cancelling** the account revokes its invitation and ends its pending consent, in the same transaction.
+- A pending employee's number cannot be edited (`pending_number_locked`): cancel and add again.
+
+**The invitation.**
+- 12 characters of Crockford base32 (`K7QM-9XRT-2CHD`, 60 random bits), typed forgivingly (case, spaces, O/0, I/L/1).
+- Stored only as an HMAC-SHA256 under **`STAFF_INVITATION_KEY`**, a secret of its own (production refuses to start
+  without 32+ characters), in its own purpose domain.
+- Names one business and one person, never a phone number. **72 hours.** One use. At most one live per person.
+- The app's link `dukanerp://join?ref=…` only **fills in** the form; it opens, accepts and activates nothing. Manual
+  entry is the primary, permanent method. No QR code, no HTTPS join link in this phase.
+
+**The employee (signed out, own phone: Sign in → *I was added to a team*).**
+1. Types the reference → sees the business, their name and the number's last two digits.
+2. Types their whole number (it must match the account's) → sees the server's EN/FR/AR consent, **unticked**; ticks it
+   and asks for the code.
+3. Only then: the `pending_unverified` consent is recorded (the employee as actor, version, locale, source
+   `employee_activation`, address on the audit event), bound to the invitation, and the WhatsApp code sent.
+4. The code and a first password: **one transaction** — the code consumed, the number verified, the password set,
+   exactly the bound consent activated, the invitation used, and the account activated when a seat is held (otherwise
+   it waits for the seat, as before).
+- Asking again sends a new code under the **same** pending consent while it and the invitation are valid. A consent
+  that expired (24 h) inside the invitation's 72 h is accepted again as a new one.
+- Unknown, expired, revoked and used references all answer `invitation_unavailable`. Nothing says whether a business,
+  a person or a number exists. Every public route is rate-limited.
+- One number invited by two businesses: each invitation activates only its own account.
+
+**Activation** waits for the verified WhatsApp number and a seat. An email address is optional, never a condition, and
+never a way around the employee's consent or the number's verification.
+
+**Existing pending employees** are not migrated: no invitation is created for them silently. The Owner issues one.
+
+**Records.** Migration `0101_staff_invitations` (and the `cancelled` conclusion added to amended `0100`): `docs/101`
+§17. Routes: `docs/69` §3.
+
 ### ✅ ANSWERED BY THE OWNER (brief of 2026-10-19) — D212, questions 1 and 11
 
 - **Q1:** a trial's end has no grace and makes the business **read-only**: records readable and exportable,
@@ -8395,6 +8434,6 @@ consent now falls back to a verified email for informational notices only, inste
 - Meta: business verification, the display name, the opt-in wording check against WhatsApp Business policy, the
   templates and their categories (authentication vs utility), the real number, the webhook, the permanent token.
 - Physical-device checks (`docs/24` §67).
-- Whether a consent still pending when its code was never used should be shown to the Owner in the team screen (today
-  only "waiting for their agreement" or "code sent" is shown; expiry after 24 h is silent).
+- An HTTPS join link (e.g. on tsxmr.com, with the app's domain association) — needs a website deployment and its own
+  approval (D214 keeps the app link and manual entry only).
 - Which financial reports, if any, may later be sent, and in which WhatsApp template category.

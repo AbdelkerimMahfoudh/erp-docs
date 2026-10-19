@@ -1,32 +1,112 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T05:40Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `b39123e`; that handoff was complete.
-heads_at_takeover: erp-backend `whatsapp-consent` `c3c8e9e`; erp-mobile `whatsapp-consent` `452ce08`; erp-control-web
-`whatsapp-consent` `4764afd` (production `tsx-public-site` `bf62a72`, untouched); erp-docs `master` `b39123e`. All
-clean and level with their remotes.
-migration_chain (verified): production `production-deploy` `644f4f5` (0098) ⊂ `dukan-portal-lifecycle` `17ea84b`
-(0099) ⊂ `whatsapp-consent` `c3c8e9e` (0100). No other branch defines 0099–0101. `0101_staff_invitations` goes on
-`whatsapp-consent` only.
-active_phase: the owner's approved employee-invitation activation (2026-10-19):
-- Owner-only creation, cancellation and reinvitation;
-- creation sends nothing, by WhatsApp or email: it issues a 72-hour, one-use invitation reference, shown once, with a
-  purpose-keyed hash stored;
-- the employee opens it (manual entry, or `dukanerp://join?ref=`), types the matching number, accepts the consent
-  and requests the code;
-- confirmation is atomic: consent, invitation and account;
-- cancellation and reinvitation end the pending consent;
-- migration `0101` (plus the `cancelled` event in amended `0100`), rehearsed on disposable databases only.
-Nothing merged, deployed, enabled or sent.
-checkpoint (06:40Z): backend `whatsapp-consent` committed locally — `b6a0dc7` (0101, STAFF_INVITATION_KEY, the
-`cancelled` conclusion in amended 0100), `a1f82ae` (the invitation flow). Full Jest 4 861/0; the CI database gate on a
-fresh scratch MySQL 8.4.11 passes all eight steps (identities 27/0; MySQL specs 21, 10, 9, 8). Not pushed yet.
-next_action: the mobile join screen (reference entry + `dukanerp://join?ref=`), the Owner's reference-once sheet and
-PendingPanel status; then the 0098 → 0099 → 0100 → 0101 rehearsal, docs and handoff.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It took over at
+2026-10-19T05:40Z from READY_FOR_HANDOFF (owner NONE; claim `bcf1a28`; the previous handoff, by this same session, was
+complete). It finished at 2026-10-19T07:05Z, complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## Employee invitations: creating an employee sends nothing; the employee activates from a reference — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
+
+| Repository | Branch | HEAD (pushed) | Base (unmoved) | This session |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `whatsapp-consent` | `42d2bcd` | `dukan-portal-lifecycle` `17ea84b` | `b6a0dc7` migration 0101, `STAFF_INVITATION_KEY`, the `cancelled` conclusion in amended 0100; `a1f82ae` the invitation flow; `42d2bcd` probe spec |
+| `erp-mobile` | `whatsapp-consent` | `23ec6fd` | `dukan-portal-lifecycle` `de40f72` | the join screen by reference; the Owner's reference-once sheet; the pending panel's status and new invitation |
+| `erp-control-web` | `whatsapp-consent` | `4764afd` | `dukan-portal` `0fd418a` | unchanged (D214 needs nothing there) |
+| `erp-control-web` | `tsx-public-site` | `bf62a72` | — | **production** (tsxmr.com), untouched |
+| `erp-docs` | `master` | the commit carrying this file | `bcf1a28` | D214 (+ D213 pointer) in `docs/21`; `docs/69` §3; `docs/98` §12; `docs/101` §17; `docs/24` §67 (C13–C21); session log |
+
+All four trees are clean and level with their remotes. The production API (`644f4f5`), its database, DNS and
+Cloudflare were not touched.
+
+**Migration order** (verified from the branches): production `production-deploy` `644f4f5` stops at `0098`;
+`dukan-portal-lifecycle` `17ea84b` adds `0099`; `whatsapp-consent` adds `0100` (amended in place) and `0101`. Each
+branch contains the one before it; no other branch defines `0099`–`0101`.
+
+**What D214 does** (record: `docs/101` §17; decision: `docs/21` D214; routes: `docs/69` §3):
+- **Owner-only** creation, new invitation and cancellation (`user.manage`); no Manager authority; no permission change.
+- Creating an employee needs a **WhatsApp number** (email optional) and **sends nothing** — no WhatsApp, no email.
+- The server issues a **72-hour, one-use** invitation. Its reference (12 characters, `K7QM-9XRT-2CHD`) is shown
+  **once**, with Copy and the phone's Share; only its HMAC under the new **`STAFF_INVITATION_KEY`** is stored, never
+  the reference or a number. The pending panel shows status and expiry, never the reference.
+- *New invitation* revokes the old one and ends its pending consent (`cancelled`, by the Owner); cancellation does the
+  same and withdraws the account; both re-check under lock that the account is still pending.
+- The employee (Sign in → *I was added to a team*; or `dukanerp://join?ref=…`, which only fills the form) types the
+  reference, then their matching number, sees the server's consent unticked, ticks it and asks for the code. Only then
+  is the `pending_unverified` consent recorded (the employee as actor) and the code sent. Resend reuses the same
+  pending consent while both are valid; an expired consent (24 h) is accepted again inside the 72 h.
+- Confirmation is **one transaction**: code consumed, number verified, password set, exactly the bound consent active,
+  invitation used, account activated when a seat is held.
+- Unknown, expired, revoked and used references all answer `invitation_unavailable`; every public route is throttled;
+  one number invited by two businesses activates only the invitation's own account.
+- Activation now waits for the verified number and a seat; email never holds it back. A pending employee's number
+  cannot be edited (`pending_number_locked`). The number-based `staff/verify/*` routes and the Owner's resend are gone.
+- No existing pending employee was migrated: the Owner issues their invitation.
+
+**Databases.** Only disposable ones, on a throwaway MySQL 8.4.11 in the session's scratch directory: the CI gate's
+`phonestore`, `addon_ci`, `grace_ci`, and the rehearsal's `consent_rehearsal`, `consent_restore`, `consent_reverse`.
+All are dropped, and the server is stopped and deleted. Rehearsal backups (deleted): before `dc4031f2f1090488…` (0098),
+after `2ceed2cc93688886…` (0101). No staging or production database was touched.
+
+**Verification at the final HEADs**
+
+| Area | Result |
+| --- | --- |
+| backend | `tsc` clean; Prisma valid; Jest 267 suites, 4 864 passed, 0 failed (4 env-gated MySQL suites skipped, run below) |
+| CI database gate (fresh MySQL 8.4.11) | identities and triggers 27/0; catalogue 73/73; `trial-addons.mysql` 21/21; `lifecycle.mysql` 10/10; `consent.mysql` 9/9; `staff-invitation.mysql` 8/8 |
+| production-upgrade rehearsal | 0098 (identical to `644f4f5`'s migrations) with 80 pre-invitation pending employees → 0099 → 0100 → 0101: 0 invitations created, nothing pre-existing changed, 0 numbers consented; both MySQL specs green **on the upgraded schema** as the application account; the reverse of all three gives data and schema identical to the 0098 backup |
+| mobile | `tsc`; lint 0 errors (28 pre-existing warnings); 117 pure files; Jest 36 suites, 349 tests; web and iOS exports; bundle audit PASS; release refused without inputs; secret scan clean |
+| Expo Doctor | **not passed:** 10 Expo packages a patch behind SDK 57; no dependency changed (unchanged since the earlier phases) |
+| EN/FR/AR | key parity: mobile 3 942, website 730 |
+| messages | test and recording channels only; nothing sent |
+
+**Found and fixed on the way:**
+- A confirmation racing the Owner's cancellation could have withdrawn a just-activated account: cancellation and
+  reinvitation now re-check under the person's row lock, and the lock helpers read the row's state from the locking read
+  itself. A real-MySQL test pins it.
+- `consent.mysql.spec` still filtered for the pre-D213 `granted` event: it passed only when the race went one way.
+  Corrected to `active`.
+- `0099`'s migration header gives its reverse without the column's `CHARACTER SET … COLLATE`; `docs/101` §13 already
+  has the full form, and the rehearsal proved it restores the schema exactly. The applied migration file is left as is.
+
+**Known risks and limits:**
+- Nothing ran on a device (`docs/24` §67, C1–C21), on Meta or SMTP, or on the production stack.
+- Rollout needs a **new production secret** (`staff_invitation_key`, via `deploy/production/setup-secrets.sh`) before
+  the API starts; without it the API refuses to start.
+- After rollout, every employee still pending in production needs their Owner's *New invitation*. A pending employee
+  created without a number (before 0099) must be cancelled and added again with one.
+- The app link is a custom scheme: WhatsApp does not make it tappable, so manual entry is the main path, as decided.
+
+**Not done (by instruction):**
+- merging, or any deployment;
+- migrating production, or applying `0099`–`0101` to any persistent database;
+- creating the production secret;
+- activating a provider;
+- sending any real message;
+- touching Cloudflare.
+
+**Waiting on the owner and providers:**
+1. Approval to merge the three `whatsapp-consent` branches, and for each rollout step (`docs/101` §12 with the §17.7
+   additions).
+2. Counsel's review of the consent wording.
+3. Meta: verification, display name, opt-in policy, templates, the number, the webhook and the token.
+4. The device checks of `docs/24` §67.
+5. The remaining D212 questions (`docs/101` §14).
+6. Expo Doctor's patch drift: approve a dependency update as its own change, or leave it.
+7. An HTTPS join link, if wanted: a website deployment and its own approval.
+
+**Next exact action:** none until the owner answers. On an explicit rollout approval, the next session:
+1. claims this file;
+2. re-runs the gates at backend `42d2bcd`, mobile `23ec6fd`, web `4764afd`;
+3. creates `staff_invitation_key` with `setup-secrets.sh`;
+4. takes and checks the production backup (`docs/22`);
+5. applies `0099` → `0100` → `0101` per `docs/101` §12 and §17.7.
+
+The previous records follow. The consent-corrections record below is superseded on employee activation by this one.
+
+---
+
+Previous session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — 04:30Z–05:25Z, complete.
 
 ## WhatsApp consent corrections: pending until verified, employee self-consent, email only for informational notices — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
 
