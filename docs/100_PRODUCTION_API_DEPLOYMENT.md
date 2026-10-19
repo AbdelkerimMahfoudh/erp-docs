@@ -419,3 +419,86 @@ equal on both ends.
   the same SSH session** that runs the drill (standard input into `/dev/shm`). It then cannot outlive the session.
 - `docker compose run/exec` forward standard input. Run operator scripts as files on the host, never piped into
   `ssh … bash -s`.
+
+---
+
+## 14. Production deployment record (2026-10-19, CLAUDE, local)
+
+**Approval and target**
+- The owner approved the clean deployment on 2026-10-18 and 2026-10-19.
+- Commit `644f4f5` (CI run 39109070367, 6/6), deployed exactly. The cloud portal branch `dukan-portal-lifecycle` is
+  **not** part of it.
+
+**DNS**
+- `api.tsxmr.com` is an A record, DNS-only, TTL Auto, with no AAAA.
+- Both Cloudflare authoritative servers and 1.1.1.1, 8.8.8.8 and 9.9.9.9 return exactly the server's IPv4, which also
+  proves the record is not proxied.
+- The first request on 2026-10-18 found no record. The deployment stopped there, before anything was started, until
+  the owner created it.
+
+**Steps, in order (`/srv/erp-production`, project `erp-production`)**
+1. The commit arrived as a git bundle, its checksum equal on both ends, and was checked out clean.
+2. `stack.env` (production profile).
+3. `api.env`: email and WhatsApp `disabled`; `CORS_ORIGINS=https://dukan.tsxmr.com` (the owner's approved portal
+   origin, exact; the smoke test checks it is granted exactly, and an unknown origin nothing).
+4. The production **age backup key**: generated in memory and streamed over SSH into the owner's laptop file
+   `.tsxmr\production-backup-identity.txt` (user-only, matched without being shown). Only its public half is on the
+   server. **The owner stores it in the password manager.**
+5. `setup-secrets.sh`: **9 fresh secrets** (5 database passwords and 4 API keys), never printed. The owner's SMTP login
+   and key were left untouched.
+6. `setup-database.sh`: MySQL 8.4.11 (strict, UTC, 768 MB pool), the `phonestore` schema and the four identities
+   (root@localhost only).
+7. An explicit **encrypted pre-migration backup**: `phonestore-20261019T010809Z.sql.gz.age`, of the empty schema.
+   `migrate.sh` skips a backup on an empty schema by design.
+8. `deploy.sh --confirm api.tsxmr.com`:
+   - build, contract PASS, preflight PASS;
+   - **97/97 migrations as `phonestore_migrator`**, catalogue, identities 16/0, audit chain;
+   - API healthy, edge started.
+   - The first smoke failed: it ran seconds before Caddy finished its first Let's Encrypt order, which then succeeded
+     ("certificate obtained successfully", HTTP-01).
+   - The marker held the next run. `--after-interrupted` re-ran: a backup before the no-op migration
+     (`phonestore-20261019T011419Z`, 118 tables), then smoke **15/15**.
+
+**Deployed**
+- API image `erp-api:644f4f5…`, id `sha256:7a0e9a08f94f5d251858f38ba9db13b7134aa6b59c2a23a3b5a4909c0d76280b` (751 MB).
+- Tools image id `sha256:873ef57c479b…` (1.3 GB).
+- `mysql:8.4.11@sha256:24989179…`, `caddy:2.11.7@sha256:685ae3d7…`.
+
+**Verified**
+- **TLS from outside:** trusted, TLS 1.3, Let's Encrypt YE2, `DNS:api.tsxmr.com`, valid 2026-10-19 → 2027-01-17.
+  `http://` answers 308 to `https://`.
+- **Readiness:** `ready:true`, 97 applied, 0 pending, 0 missing, `environment=production`.
+- **Headers:** HSTS `max-age=15552000; includeSubDomains`, nosniff, `X-Frame-Options`, CSP, COOP/CORP,
+  `Referrer-Policy: no-referrer`, no `Server` or `X-Powered-By`.
+- **Smoke:** 16/16, including CORS for `https://dukan.tsxmr.com` exactly.
+- **Ports from outside:** 22, 80 and 443 open; 3306, 3010, 2019, 8080, 8443 and 33060 closed. MySQL and the API
+  publish nothing; the edge publishes TCP 80/443 only.
+- **The API container:** 0 secret values and 0 database URLs in its environment.
+- **Restart survival:** an API restart, a Docker daemon restart and a full host reboot (back in about 35 s). Database,
+  API and edge returned on their own; smoke 16/16 after each, the certificate kept.
+- **Restore proof:** the pre-migration backup decrypts and is complete. The post-migration backup was restored into a
+  throw-away copy: 118 tables, 53 triggers, every table's CHECKSUM, then dropped. **PASSED.** The key was brought in
+  on the drill's session and removed with it. No off-site proof is recorded: the laptop counts for the rehearsal only,
+  and the Storage Box is the production one.
+- **Gates closed:**
+  - `EMAIL_CHANNEL=disabled`, `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`, no templates;
+  - a fictitious sign-up attempt answered **503 `registration_unavailable`**, with 0 companies before and after. No
+    record was created, so there was nothing to delete and no audit effect;
+  - no real account and no real data.
+- **Logs:** secret-shaped strings 0 in the journal and the API log; no private age key on the server.
+- **Resources:** API 179 MiB, MySQL 650 MiB, Caddy 53 MiB; 2.6 GB of host memory available; 8.6 GB disk of 38 GB.
+
+**Rollback**
+- There is no previous release. `deployments.log` names the same image only because the second run re-deployed it.
+- To take the API offline: `cd /srv/erp-production/erp-backend && docker compose -p erp-production --env-file
+  deploy/production/stack.env -f deploy/docker-compose.production.yml stop edge api`. Volumes and data are kept.
+- To roll back a later release: `deploy/production/rollback.sh erp-api:644f4f5984873e2b8c1253998985f1e79b4f3fd9
+  --confirm api.tsxmr.com`.
+
+**Deviations from this runbook, and follow-ups**
+1. `deploy.sh` runs its smoke test immediately after starting the edge. On a **first** certificate issuance that
+   races Let's Encrypt. Follow-up: wait for the certificate (or retry the TLS check briefly) before the smoke.
+2. The pre-migration backup was taken by hand, because `migrate.sh` skips an empty schema. A first deployment has
+   nothing to protect, but the owner asked for the backup; documented here.
+3. `deployments.log` and `current-images.env` were written with the account's umask (0664) inside the 0700 backups
+   directory. No secret is in them. Follow-up: `umask 077` in `lib.sh`.

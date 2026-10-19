@@ -1,17 +1,41 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-19T01:06Z
-active_phase: the clean PRODUCTION deployment of the API at https://api.tsxmr.com on tsxmr-app-01 (owner approval of
-2026-10-18/19): erp-backend production-deploy 644f4f5 (CI run 39109070367), /srv/erp-production, project erp-production,
-fresh secrets, encrypted pre-migration backup, migrations as the migrator, TLS, smoke, restart survival, restore proof.
-DNS verified: api A record DNS-only, no AAAA. Email, WhatsApp and onboarding stay disabled; no real data.
-The cloud portal phase (d1770f6, branches dukan-portal-lifecycle etc.) is NOT part of this deployment.
-baseline: backend production-deploy 644f4f5 · mobile e6773aa · web e953c58 · docs d1770f6.
-next_action: clone 644f4f5 into /srv/erp-production, production backup key, secrets, database, backup, deploy.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+last_session: CLAUDE (local session, the owner's PC), 2026-10-19 (claim `a573928`), complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE (cloud portal phase complete).
+## The production API is live at https://api.tsxmr.com — closed to customers (2026-10-19, CLAUDE, local)
+
+| Repository | Branch | HEAD | This phase |
+| --- | --- | --- | --- |
+| `erp-backend` | `production-deploy` | `644f4f5` | **deployed** to tsxmr-app-01 (image id `sha256:7a0e9a08f94f…`) |
+| `erp-backend` | `dukan-portal-lifecycle` | `17ea84b` | the cloud portal phase: NOT deployed (needs its own approval: `docs/100` note, `docs/101`) |
+| `erp-mobile` | `reports-export` | `e6773aa` | untouched |
+| `erp-control-web` | `tsx-public-site` | `e953c58` | untouched |
+| `erp-docs` | `master` | the commit carrying this file | `docs/100` §14, session log |
+
+**Live:**
+- api.tsxmr.com is DNS-only; Let's Encrypt TLS valid to 2027-01-17.
+- 97/97 migrations; smoke 16/16; restart and reboot survived; restore proof PASSED; only 22/80/443 open.
+- Fresh secrets; email, WhatsApp and onboarding **disabled** (sign-up answers 503); no real data.
+- Record and follow-ups: `docs/100` §14.
+
+**Owner actions:**
+1. Store `.tsxmr\production-backup-identity.txt` in the password manager. It is the only key that can restore
+   production backups.
+2. Before any external test, trial or customer:
+   - the Storage Box (with a restore from it);
+   - the email-tracking decision;
+   - then `EMAIL_CHANNEL=smtp`.
+3. When this deployment session is over: `ssh-add -D`, and stop the `ssh-agent` service (administrator).
+
+**Next possible phases (each on the owner's approval):**
+- merge and deploy the portal phase (`dukan-portal-lifecycle`, migration 0099, `PORTAL_ORIGIN`);
+- the `deploy.sh` certificate-wait follow-up;
+- the Storage Box.
+
+---
+
 last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof — started 2026-10-18T08:54Z (claim
 `a7260b9` at 09:26Z), complete at 13:49Z.
 

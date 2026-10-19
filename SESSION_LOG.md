@@ -12360,3 +12360,24 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   over the Unix socket); the TCP form, which CI uses, passed.
 - On the portal, a business that has not started shows the requests section's refusal in a red notice. Pre-existing
   (`0eedfaa`), left as it was.
+
+## 2026-10-19 — Clean production deployment of the API at https://api.tsxmr.com (CLAUDE, local)
+
+- **Approval:** the owner, 2026-10-18 and 2026-10-19. The first attempt stopped: there was no DNS record. The owner
+  created `api` (A, DNS-only, no AAAA); verified at both Cloudflare authoritative servers and three public resolvers.
+- **Claim:** `a573928`. It was rebased onto the cloud portal phase (`d1770f6`), which had completed meanwhile and is not
+  part of this deployment.
+- **Deployed:** `644f4f5` (CI run 39109070367) under `/srv/erp-production`, project `erp-production`.
+  - Fresh secrets.
+  - A production age key: its private half only on the owner's laptop, to go into the password manager.
+  - An encrypted pre-migration backup, then 97 migrations as the migrator.
+  - Let's Encrypt TLS.
+  - The first smoke raced the certificate's first issuance. After `--after-interrupted`: smoke 15/15, and 16/16 with
+    the portal origin.
+- **Verified:**
+  - TLS and headers from outside; only 22/80/443 open;
+  - restart survival (API, Docker daemon, host reboot);
+  - restore proof PASSED;
+  - email, WhatsApp and onboarding disabled (sign-up 503, nothing saved);
+  - secret-shaped strings 0 in the logs.
+- **Docs:** `docs/100` §14 (record, rollback, three follow-ups).
