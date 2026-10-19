@@ -1,10 +1,19 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-last_session: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof. It took over at
-2026-10-19T05:40Z from READY_FOR_HANDOFF (owner NONE; claim `bcf1a28`; the previous handoff, by this same session, was
-complete). It finished at 2026-10-19T07:05Z, complete.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+started_at_utc: 2026-10-19T07:20Z
+takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `efccc6e`; that handoff was complete.
+heads_at_takeover: erp-backend `whatsapp-consent` `42d2bcd`; erp-mobile `whatsapp-consent` `23ec6fd`; erp-control-web
+`tsx-public-site` `bf62a72` (production), `dukan-portal` `0fd418a`, `whatsapp-consent` `4764afd`; erp-docs `master`
+`efccc6e`. All clean and level.
+active_phase: the owner's final read-only reconciliation before any merge — the routing matrix in code and tests, the
+website branch HEADs and ancestry, the backend and mobile HEADs. Corrections found: dead `stop` paths left in the
+notice plan, the withdrawal route's stale "Nothing moves to email" wording, missing notice-service tests for grace
+fallback and honest not-sent, and a stale `dukan-portal` HEAD in `docs/101` §1. Nothing merged, deployed or sent.
+next_action: the backend corrections, then the gates, then docs.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 
 ## Employee invitations: creating an employee sends nothing; the employee activates from a reference — on branches, verified, not deployed (2026-10-19, CLAUDE, cloud)
 
