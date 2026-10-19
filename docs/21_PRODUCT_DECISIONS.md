@@ -8472,3 +8472,41 @@ fictional data; the hostname and its TLS confirmed before any DNS change (`docs/
 - the names and their DNS records;
 - the tester login;
 - whether a staging portal is wanted, and where.
+
+### ✅ DECIDED BY THE OWNER (2026-10-19) AND DEPLOYED (tsxmr.com, `5f666ea`) — D216: account deletion is a Dukan ERP documentation entry, not a TSX-MR navigation item
+
+**Decision (the owner's brief and approval of 2026-10-19).** TSX-MR is the company website. Account deletion concerns
+its Dukan ERP product, so it appears as a documentation entry on the Dukan ERP product page. This is a navigation and
+presentation correction: deletion itself, the retention rules and identity verification are unchanged.
+
+**On tsxmr.com:**
+- **Placement.** The Dukan ERP page (`/products/dukan-erp`, `/fr/…`, `/ar/…`) ends with a modest **Documentation**
+  section. Its one entry, **Account deletion**, opens the localized deletion page. It is a text link with an arrow and
+  a one-line note, not a card, hero or call to action.
+- **Removed:**
+  - the standalone deletion link from the general footer (its Help column);
+  - the deletion pill from the company pages' "Related pages" list (the end of each legal page, Support and Contact).
+
+  The header and phone navigation never carried one.
+- **Kept, in context:**
+  - Support's Dukan ERP "Account deletion" section and its link;
+  - the footer of the pages the app opens (`/in-app/…`);
+  - every other privacy, terms, support and legal link.
+- **The page** (version 1.1, effective 2026-10-19), EN/FR/AR:
+  - titled **"Delete a Dukan ERP account"** / « Supprimer un compte Dukan ERP » / «حذف حساب Dukan ERP»;
+  - says the instructions concern Dukan ERP accounts and that browsing the TSX-MR public website creates no account;
+  - says that information sent by email or another enquiry is a separate request.
+
+  The substance is unchanged, and still matches the release state:
+  - Dukan ERP is not yet open for public registration;
+  - deletion will be done in the mobile app, explained before opening;
+  - other information is deleted on request to the privacy address, with possible identity confirmation, unless the
+    law requires keeping it.
+- **Addresses unchanged:** `/account-deletion`, `/fr/account-deletion`, `/ar/account-deletion` and their `/in-app/`
+  variants.
+
+**Not changed:**
+- the portal and service texts (`legal-deletion.ts`, still drafts behind the PORTAL gate);
+- the backend, the app, DNS, Cloudflare settings, email routing, SMTP, WhatsApp, any database.
+
+The deployment record is `docs/95`, last section.

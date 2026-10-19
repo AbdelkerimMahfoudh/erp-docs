@@ -12661,3 +12661,25 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Clean-up:** the scratch stack, its secrets and builds were deleted, and the scratch worktree removed.
 - **Not done (by instruction):** no merge, deployment, DNS change, production migration, secret, provider, message or
   purchase.
+
+## 2026-10-19 — Account deletion as a Dukan ERP documentation entry, deployed to tsxmr.com (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof.
+  - Claimed at 09:45Z (`77cfc43`) from READY_FOR_HANDOFF (owner NONE).
+  - Released at 2026-10-19T12:56Z, READY_FOR_HANDOFF, owner NONE.
+- **Scope:** the owner's approved production change (D216), built from `tsx-public-site` `bf62a72` only.
+- **Change** (web `5f666ea`):
+  - a Documentation section on the Dukan ERP page, whose entry opens the deletion page;
+  - the deletion link removed from the footer and the company pages' related links;
+  - Support's and the `/in-app/` links kept;
+  - the deletion page 1.1, "Delete a Dukan ERP account", in EN/FR/AR, with its scope and the separate email request
+    stated and the policy unchanged;
+  - focused tests in `test/deletion-docs.test.tsx` and an e2e layout and scroll-to-top check.
+- **Verified:**
+  - locally: Vitest 519, e2e full 130 and public 163, the real production build, and a page diff against `bf62a72`;
+  - CI `39253330577` and `39254183135` green;
+  - fast-forward without force at 12:42:41Z; Cloudflare built it at 12:43:00Z;
+  - live from here: 79/80 files byte-identical (`security.txt` differs by build time only) and a Chromium check 33/33;
+  - via `ops/verify-preview` run `39254553775`: 23/23, WebKit 27/27, public suite 163/163 against tsxmr.com.
+- **Rollback target:** `bf62a72`, Cloudflare deployment `5ac08a5e`. Not needed.
+- **Not done:** no preview; no DNS, Cloudflare-settings, email, backend, app or database change.

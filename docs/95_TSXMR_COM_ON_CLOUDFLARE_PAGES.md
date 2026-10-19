@@ -341,3 +341,82 @@ The owner and the team lead reviewed it on an iPhone and approved it.
 - The `site-redesign` and `website-balanced-motion` preview deployments still answer at their addresses (noindex)
   until deleted.
 - The production alias `tsxmr-public.pages.dev` answers 200 without noindex; its canonicals point to tsxmr.com.
+
+## Account deletion as a Dukan ERP documentation entry: deployed (2026-10-19, CLAUDE, cloud; D216)
+
+**Approval.** The owner approved this specific production change on 2026-10-19 and asked for a direct deployment after
+verification, with no preview and no further approval. No preview was created: the branch name matches no preview
+rule.
+
+**The change** (web `5f666ea`, one commit on `tsx-public-site` `bf62a72`; nothing from the portal or browser-test
+lines):
+- the Dukan ERP page ends with a modest Documentation section; its entry "Account deletion" opens the localized
+  deletion page;
+- the deletion link is gone from the general footer and the company pages' "Related pages". The `/in-app/` footer and
+  Support's Dukan ERP section keep theirs;
+- the deletion page 1.1 is "Delete a Dukan ERP account", with its scope stated in EN/FR/AR. The policy is unchanged.
+
+Full scope: `docs/21` D216.
+
+**Verified before the promotion:**
+- **Locally**, the CI workflow's steps:
+  - typecheck;
+  - Vitest 30 files, 519 tests (the new `test/deletion-docs.test.tsx` among them);
+  - the full and public production builds both refused without their inputs;
+  - preview builds with link and bundle audits;
+  - Chromium e2e: full 130/130, public 163/163. The new test checks that the entry opens the page at its top and that
+    the heading wraps at 320 and 375 px in light and dark;
+  - the **real production build** (`npm run build:public-release` with the four production values): links and bundle
+    PASS.
+- **Against production's own build** (`bf62a72`): the same 88 files. Every changed page differs only by the removed
+  deletion links, the new Documentation band, the new deletion text, and in-app Support's link label.
+  `security.txt` differs only in its build-time `Expires`. Sitemap, `_headers`, `_redirects` and `robots.txt` are
+  identical.
+- **CI** on the exact candidate: run `39253330577` (`site-deletion-docs`, `5f666ea`), success.
+
+**Rollback target, recorded before the promotion:**
+- commit `bf62a72`, Cloudflare production deployment `5ac08a5e` (this document's previous section);
+- the live site was checked byte-identical to the `bf62a72` build first (7 pages and the main bundle).
+- To roll back: Cloudflare dashboard → `tsxmr-public` → Deployments → `5ac08a5e` → "Rollback to this deployment".
+  Or revert `5f666ea` and push the revert to `tsx-public-site`, never with force.
+
+**The promotion.**
+- `tsx-public-site` was re-checked at `bf62a72` and fast-forwarded with no force to `5f666ea` at **12:42:41Z**.
+- Cloudflare Pages (`tsxmr-public`, Git integration) built it at 12:43:00Z: the `Expires` in the served
+  `security.txt`. It was serving at 12:43:19Z.
+- This session has no Cloudflare dashboard access, so the new deployment's ID is not recorded here. It is the
+  production deployment of `5f666ea` in the dashboard.
+- CI on `tsx-public-site` `5f666ea`: run `39254183135`, success.
+
+**Live verification:**
+- **From this environment** (tsxmr.com is reachable):
+  - 79 of 80 built files are served byte-for-byte as built, plus the three 404 pages. The 80th, `security.txt`,
+    differs only by its build-time `Expires`;
+  - `/subscription`, `/admin` and `/account` (and their localized forms) answer 404;
+  - a Chromium check of the live site passed **33/33**, in EN/FR/AR:
+    - the one Documentation entry opens the new page at its top;
+    - no deletion link in the header, the footer or the company pages' links;
+    - Support and the `/in-app/` footer keep theirs;
+    - `/account-deletion`, `/fr/…`, `/ar/…` and their `/in-app/` forms answer 200 with the new heading;
+    - no overflow at 320 and 375 px, light and dark;
+    - no script error.
+- **The established GitHub verification**: `ops/verify-preview` in production mode, `verify/target.env` set to
+  `5f666ea` (tooling commit `8c87ec8`), run `39254553775`, evidence under `evidence/preview/5f666ea-39254553775` on
+  `ci-evidence`:
+  - `verify-production.mjs` 23/23: TLS, redirects, security headers equal `_headers`, every one of the 80 files
+    byte-for-byte, canonicals, no tracker, 404s, a 39-URL sitemap, email DNS;
+  - WebKit (iPhone profiles and desktop Safari) 27/27. That suite is the site's general WebKit set; it does not
+    contain the new deletion check;
+  - the public suite against tsxmr.com 163/163, the new deletion test included (Chromium).
+
+  This is browser automation, not a physical iPhone.
+
+**Outcome:** no regression found; the deployment stands.
+
+**Still open (owner settings, unchanged by this change):**
+- preview branches back to None;
+- the `site-redesign` preview still answering (noindex);
+- `tsxmr-public.pages.dev` answers 200 without noindex. Its canonicals point to tsxmr.com.
+
+**Note for the integration line:** web `integration/browser-test` (`cd512c2d`) merged production at `bf62a72`. Merge
+`tsx-public-site` `5f666ea` into it before it is next built or deployed.

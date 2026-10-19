@@ -1,20 +1,58 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T09:45Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `4ba8c92`; that handoff was complete.
-heads_at_takeover (remote, verified): erp-control-web `tsx-public-site` `bf62a72` (production tsxmr.com),
-`ops/verify-production` `86e5576`; erp-backend `production-deploy` `644f4f5`, `integration/browser-test` `b0758c2`;
-erp-mobile `integration/browser-test` `d7a28fe`; erp-docs `master` `4ba8c92`.
-active_phase: the owner-approved production change of 2026-10-19 — account deletion becomes a documentation entry on
-the Dukan ERP product page of tsxmr.com; standalone deletion links leave the general navigation, footer and company
-quick links; the deletion page is retitled "Delete a Dukan ERP account" with clarified scope (EN/FR/AR). Branch from
-`tsx-public-site` only; deploy directly to tsxmr.com after verification (Cloudflare Pages `tsxmr-public`). No backend,
-mobile, DNS, Cloudflare-settings or database change.
-next_action: audit the deletion links and the Dukan ERP page on `tsx-public-site`.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+released_at_utc: 2026-10-19T12:56Z
+previous_claim: CLAUDE (cloud), started 2026-10-19T09:45Z (`77cfc43`) from READY_FOR_HANDOFF (owner NONE) at
+`4ba8c92`; that handoff was complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## Account deletion as a Dukan ERP documentation entry — deployed to tsxmr.com and verified live (2026-10-19, CLAUDE, cloud)
+
+The owner approved this production change and its direct deployment (D216). The record is `docs/95`, last section.
+
+**HEADs — every tree clean and level with its remote:**
+
+| Repository | Branch | HEAD | Note |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` | **`5f666ea`** | **production tsxmr.com**; fast-forwarded from `bf62a72` at 12:42:41Z, no force |
+| `erp-control-web` | `site-deletion-docs` | `5f666ea` | the candidate branch (CI `39253330577` green) |
+| `erp-control-web` | `ops/verify-preview` | `8c87ec8` | tooling: target set to `5f666ea` on tsxmr.com (run `39254553775` green) |
+| `erp-control-web` | `integration/browser-test` | `cd512c2d` | unchanged; merge `tsx-public-site` `5f666ea` into it before its next build |
+| `erp-backend`, `erp-mobile` | all | unchanged | `production-deploy` `644f4f5`; `integration/browser-test` `b0758c2` / `d7a28fe` |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+**Changed on tsxmr.com:**
+- the Dukan ERP page ends with a Documentation section, whose entry "Account deletion" opens the localized page;
+- the deletion link is gone from the footer's Help column and from the company pages' "Related pages";
+- Support's Dukan ERP section and the `/in-app/` footer keep theirs;
+- the deletion page is 1.1, "Delete a Dukan ERP account" in EN/FR/AR, with its scope and the separate email request
+  stated. The policy is unchanged and Dukan ERP is still said to be not open;
+- all deletion URLs, `/in-app/` included, are unchanged.
+
+**Verification:**
+- **Local:** typecheck; Vitest 519/519; refusals; link and bundle audits; e2e full 130, public 163; the real
+  production build PASS; a page-by-page diff against `bf62a72` showing only the intended changes.
+- **CI:** green on the exact commit, on both branches.
+- **Live, from this environment:**
+  - 79/80 files byte-identical; the 80th, `security.txt`, differs only by its build time;
+  - a Chromium check 33/33 in EN/FR/AR;
+  - portal and admin routes 404.
+- **Live, via the GitHub verification** (`39254553775`): production checks 23/23, WebKit 27/27, public suite 163/163.
+- No regression found; no rollback.
+
+**Rollback target:** commit `bf62a72`, Cloudflare deployment `5ac08a5e`. The new deployment's ID was not read: there
+is no dashboard access in this session.
+
+**Not done (by instruction or scope):**
+- no preview;
+- no DNS, Cloudflare-settings, email, SMTP, WhatsApp, backend, app or database change;
+- the portal and service deletion text (`legal-deletion.ts`) is untouched.
+
+**Next exact action: none for this change.** The previous record below still holds for the integration line (D215
+awaits the owner; `docs/102` §9 is the shortest path to the browser-test URL).
+
+---
 
 ## Integration and the phone-browser test — branches tested and pushed, nothing deployed (2026-10-19, CLAUDE, cloud)
 
