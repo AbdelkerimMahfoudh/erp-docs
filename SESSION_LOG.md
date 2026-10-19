@@ -12626,3 +12626,38 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Not done (by instruction):** no merge, no deployment, no production migration, no secret, no provider, no message.
 - **Correction to the entry above:** the claim was at 07:05Z (`6470ad7`) and the release at 07:15Z, not 07:20Z and
   07:55Z as written.
+
+## 2026-10-19 — Integration and the phone-browser test: branches tested and pushed, nothing deployed (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof.
+  - Claimed at 07:50Z (`b11ad7f`) from READY_FOR_HANDOFF (owner NONE).
+  - Released at 2026-10-19T09:32Z, READY_FOR_HANDOFF, owner NONE.
+  - The record is `docs/102`; decision D215 is proposed.
+- **Baseline verified** against the remotes: backend `608e25a`, mobile `23ec6fd`, web `4764afd` and `bf62a72`, docs
+  `4cd0b6b`.
+- **Branches pushed** (`integration/browser-test` in each code repository):
+  - backend `b0758c2`: the QA fixture with the mandatory number and consent; the staging edge's password-protected
+    browser-test site, `web-test.sh`, and CI validating the edge with the site off and on;
+  - mobile `d7a28fe`: the Expo SDK 57 patches, with the camera patch re-cut for 57.0.6; the browser fixes; the web
+    routes and the release script;
+  - web `cd512c2d`: `tsx-public-site` merged into the portal line, with no conflict.
+- **Browser defects found and fixed:**
+  - an unticked consent threw on the web (`sendAccessibilityEvent`);
+  - react-native-web 0.21 ignored `accessibilityState`, so no browser screen reader heard a checkbox's state;
+  - the receipt was hidden on the web;
+  - the scanner's notice said "no camera";
+  - *Share* did nothing without a share sheet;
+  - dynamic routes were not found by a plain file server.
+- **Journeys** (Chromium at phone size, against a disposable API and database, codes from hashes, no message sent):
+  - sign-in and sign-out; registration and consent with the portal trial claim (8/8);
+  - the employee invitation and activation (10/10);
+  - stock intake by typed IMEI and the sale (5/5);
+  - read-only after expiry (5/5);
+  - 72 screens without a script error;
+  - layouts: 81 screens, EN/FR/AR, light and dark, 390 and 320 pt.
+- **Not run here:** WebKit (unavailable; installing browsers is not allowed) and a physical iPhone (`docs/24` §68).
+- **Gates:** mobile all pass at `d7a28fe` (Expo Doctor 21/21); web as above; backend deploy-only (Caddy validate, compose config, specs).
+- **Found:** production occupies `tsxmr-app-01`, so the test site needs a staging host of its own (`docs/99` §11).
+- **Clean-up:** the scratch stack, its secrets and builds were deleted, and the scratch worktree removed.
+- **Not done (by instruction):** no merge, deployment, DNS change, production migration, secret, provider, message or
+  purchase.

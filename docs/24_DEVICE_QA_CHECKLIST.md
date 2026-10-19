@@ -4512,3 +4512,23 @@ API of `whatsapp-consent` with migrations up to `0100`, applied only to a test d
 **Meta and provider checks, not a device's:** business verification and display name; the opt-in wording against
 WhatsApp Business policy; each template approved in its category; the real number's quality rating; the webhook
 receiving STOP from a real handset.
+
+## 68. The browser build on real phones (2026-10-19, `docs/102`) — NOT DEVICE VERIFIED
+
+Browser automation (Chromium, 390 × 844 and 320 × 844, EN/FR/AR, light and dark) passed `docs/102` §6–§7. It emulates
+a viewport and touch. It is **not** iOS Safari's engine, keyboard, safe areas or VoiceOver, and **no WebKit run
+happened**.
+
+**Preconditions:** the protected test site (`docs/99` §14), signed in with the tester login.
+
+| # | Do | Expect | Android (Chrome) | iPhone (Safari) |
+| --- | --- | --- | --- | --- |
+| A1 | Native app (not the browser): receive with the camera on an Android phone built at mobile `d7a28fe` | The expo-camera 57.0.6 patch behaves as 57.0.5 did: the scan frame, focus and a read on the first try | | — |
+| B1 | Open the site | The password prompt before anything; after it, sign-in. No page or picture shows before the password | | |
+| B2 | Sign in, rotate, reload on `/sales/<id>` | Stays signed in; the same sale reloads; no sideways scroll | | |
+| B3 | Registration with VoiceOver / TalkBack: Continue with the box unticked | Nothing sent; the reader is taken to the box and says "checkbox, not checked" with the agreement | | |
+| B4 | Receive: type an IMEI on the phone keyboard | The number pad or keyboard does not cover the field or *Add to delivery*; the scanner notice says scanning is in the phone app | | |
+| B5 | Sell, then *View receipt* | A new tab with the receipt; Safari's Share → Print or Save to Files works; nothing else opens | | |
+| B6 | Team → add an employee → *Copy* | The reference is on the clipboard (paste it in Notes); *Share* appears only if the browser offers a share sheet and opens it | | |
+| B7 | Arabic, dark | Right to left, the home indicator and notch clear of the tab bar and the pinned buttons | | |
+| B8 | Add the site to the home screen | Opens to the password prompt or the app; no data from another tester | | |

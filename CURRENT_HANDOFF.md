@@ -1,23 +1,96 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-started_at_utc: 2026-10-19T07:50Z
-takeover: from READY_FOR_HANDOFF (owner NONE), released by this same session at `4cd0b6b`; that handoff was complete.
-heads_at_takeover (remote, verified): erp-backend `whatsapp-consent` `608e25a`; erp-mobile `whatsapp-consent`
-`23ec6fd`; erp-control-web `whatsapp-consent` `4764afd` and `tsx-public-site` `bf62a72` (production); erp-docs
-`master` `4cd0b6b`. All clean and level.
-active_phase: integration and preparation for phone-browser testing (the owner's brief of 2026-10-19):
-1. Expo patch drift, on a mobile integration branch from `whatsapp-consent` (patches within SDK 57 only);
-2. the website integration branch: `tsx-public-site` merged into web `whatsapp-consent`, the public and portal
-   surfaces kept separate;
-3. the ERP's browser build (Expo web): blockers fixed, honest fallbacks, a protected test-deployment plan;
-4. the journeys proven against a disposable API and database;
-5. the deployment handoff.
-Nothing is promoted, migrated in production, activated, bought or opened to the public.
-next_action: create the integration branches; the Expo patch updates.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
+released_at_utc: 2026-10-19T09:32Z
+previous_claim: CLAUDE (cloud), started 2026-10-19T07:50Z from READY_FOR_HANDOFF (owner NONE) at `4cd0b6b`; that
+handoff was complete.
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
+## Integration and the phone-browser test — branches tested and pushed, nothing deployed (2026-10-19, CLAUDE, cloud)
+
+**The full record is `docs/102`.** Decision D215 is proposed and awaits the owner's approval.
+
+**Final HEADs — every tree clean and level with its remote:**
+
+| Repository | Branch | HEAD | Base | Role |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `integration/browser-test` | **`b0758c2`** | `whatsapp-consent` `608e25a` | + QA fixture (`7445d2b`); + the staging edge's protected browser-test site (`b0758c2`) |
+| `erp-mobile` | `integration/browser-test` | **`d7a28fe`** | `whatsapp-consent` `23ec6fd` | Expo patches; browser fixes; web routes and the release script |
+| `erp-control-web` | `integration/browser-test` | **`cd512c2d`** | `whatsapp-consent` `4764afd` | + `tsx-public-site` `bf62a72` merged (no conflict) |
+| `erp-docs` | `master` | the commit carrying this file | — | — |
+
+Unchanged:
+- production backend `production-deploy` `644f4f5` (api.tsxmr.com, migrations to `0098`);
+- production web `tsx-public-site` `bf62a72`;
+- the `whatsapp-consent` branches `608e25a`, `23ec6fd` and `4764afd`.
+
+**Done:**
+1. **Expo patch drift.** Ten SDK 57 patches; the camera patch re-cut for 57.0.6 (byte-identical hunks); Expo Doctor
+   21/21. Remaining: the Android camera on a physical phone (`docs/24` §68 A1).
+2. **Website and portal.** One commit, two surfaces.
+   - The public production build matches production page for page.
+   - The portal surface serves `/subscription` and `/admin`; the public surface 404s them.
+   - typecheck; Vitest 548; link and bundle audits; Chromium e2e full 138, public 160 and portal 34, all passing.
+   - The production portal build is refused by the PORTAL gate (12 legal blockers and 6 drafts).
+3. **The ERP in a browser.** The web export was audited and fixed (`docs/102` §4):
+   - the unticked consent no longer throws (`sendAccessibilityEvent` is absent on web);
+   - `aria-*` states reach browser screen readers;
+   - the receipt opens in a tab; the refund receipt and the scanner say what the phone app does;
+   - *Share* is offered only with a share sheet;
+   - dynamic routes are served by the right page.
+
+   The protected test site: Caddy basic auth on its own DNS-only hostname, on the staging edge (`docs/99` §14),
+   rehearsed locally.
+4. **Journeys** (Chromium at phone size, against a disposable API and database, codes read from hashes, nothing
+   sent):
+   - sign-in and sign-out;
+   - Owner registration and consent, then the portal trial claim (8/8);
+   - employee invitation and activation (10/10, the reference absent from a full database dump and the API log);
+   - stock intake by typed IMEI and the sale, with the receipt tab and sell-once (5/5);
+   - read-only after expiry (5/5);
+   - 72 static screens.
+
+   Layouts: 81 screens, EN/FR/AR × light/dark/320 pt; no overflow, direction right, no script error.
+5. **Handoff.** Build commands, variables, hosting and access, backend image and migration order, rollback, and the
+   owner inputs: `docs/102` §8.
+
+**Verification at the final HEADs:**
+- mobile `d7a28fe`: tsc; lint 0 errors (28 warnings, baseline); pure 119 files; Jest 36 suites / 349; web and iOS exports; bundle audit PASS; release refused without inputs; secret scan clean; Expo Doctor 21/21 (dependencies unchanged since `5fe0287`, whose shipped-dependency audit passed);
+- backend `b0758c2`: deploy-only change. `bash -n`; Caddy 2.8.4 validates the edge with the site off and on;
+  `compose config`; the production-guard spec 97/97 and the deploy-scripts spec 17/17. `whatsapp-consent`'s full gate
+  at `608e25a` stands (Jest 4 871/0, CI database gate);
+- web `cd512c2d`: as in item 2 above.
+
+**Not done:**
+- **By instruction:** no merge, no deployment or promotion, no DNS or Cloudflare change, no production migration or
+  secret, no provider, no real message, no purchase.
+- **Could not be done here:**
+  - **WebKit automation.** No WebKit in this environment, and browsers cannot be installed. Adding Playwright to the
+    mobile repository is a new dependency that needs approval;
+  - **a physical iPhone**: `docs/24` §68, NOT DEVICE VERIFIED.
+
+**Risks:**
+- Production now occupies `tsxmr-app-01`. Staging, and with it the test site, needs **its own host** (`docs/99` §11).
+- The web branch push may trigger a Cloudflare Pages preview if preview branches are enabled. It would be noindexed
+  but public; check the project setting.
+- Staging codes reach testers only through the operator: the outbox and the keyed lookup.
+
+**Clean-up:**
+- the scratch MySQL and its data, the API, the static servers and Caddy were stopped and deleted, with their secrets
+  and builds;
+- the scratch web worktree was removed;
+- scratch files stay in the session's temporary directory only.
+
+**Next exact action: none until the owner decides.** On approval of the test site, follow `docs/102` §9:
+1. the owner provides a staging host and confirms `staging-api.tsxmr.com` and `erp-test.tsxmr.com` (both DNS only),
+   then adds the two records;
+2. the operator deploys the staging API from backend `b0758c2` (`docs/99` §6 plus `docs/102` §8.1 step 3);
+3. the operator builds and packages the release from mobile `d7a28fe` and runs `deploy/staging/web-test.sh install`;
+4. the operator creates a fictional Owner with an outbox code and opens it;
+5. the owner gives testers the URL, the login and the password, separately.
+
+On approval of the production rollout: `docs/102` §8.2, then `docs/101` §17.7.
 
 ## Pre-merge reconciliation: the routing matrix confirmed and closed; every branch HEAD stated (2026-10-19, CLAUDE, cloud)
 

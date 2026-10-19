@@ -8437,3 +8437,38 @@ never a way around the employee's consent or the number's verification.
 - An HTTPS join link (e.g. on tsxmr.com, with the app's domain association) — needs a website deployment and its own
   approval (D214 keeps the app link and manual entry only).
 - Which financial reports, if any, may later be sent, and in which WhatsApp template category.
+
+### ⏳ PROPOSED (CLAUDE, 2026-10-19) AND PREPARED (branches) — D215: the browser-test site is the app's web export behind a password, on the staging edge
+
+**Context.** The owner asked for a protected browser version of the ERP to test from phones: authentication on every
+hosting alias, not merely noindex; no embedded credentials or bypass; exact CORS; normal tenant and role enforcement;
+fictional data; the hostname and its TLS confirmed before any DNS change (`docs/102`).
+
+**Prepared:**
+- **Where.** The staging stack's Caddy edge serves Expo's static web export of `erp-mobile` on its own hostname,
+  beside the staging API (`docs/99` §14).
+- **Why not Cloudflare Pages.** Pages adds `*.pages.dev` aliases that each need their own protection. Its `_redirects`
+  rules run before static files, so the dynamic-page rewrites would shadow real pages (`/sales/period` under
+  `/sales/:id`). And it could not be rehearsed here. On the edge there is one name, one certificate for exactly that
+  name, and routing that tries a real file first.
+- **Protection.** Basic authentication on every path, the scripts included. One tester login; the password goes to
+  testers out of band and only its bcrypt hash is on the host. `noindex` is extra, not the lock.
+- **Data and rules.** Staging's own database, fictional accounts only, ordinary sessions; tenancy and roles as in
+  production. Codes from the staging outbox via the operator; WhatsApp and email disabled until `docs/98`.
+- **Hostname.** Proposed `erp-test.tsxmr.com`, one level under `tsxmr.com`, DNS only. A nested or proxied name is not
+  assumed to be covered by any existing certificate.
+- **No staging banner** (kept off since `277fb7e`): the separation is the password, the database and the name.
+
+**Also in the browser build** (`docs/102` §4):
+- the customer's receipt opens in a new tab to print or save, and the refund receipt says it is shared from the phone
+  app;
+- scanning says it is in the phone app, and typing the IMEI is the permanent equal path;
+- *Share* only where the browser has a share sheet;
+- every checked, selected or expanded state is given as an `aria-*` prop as well.
+
+**Open for the owner:**
+- approval;
+- a staging host (production occupies `tsxmr-app-01`);
+- the names and their DNS records;
+- the tester login;
+- whether a staging portal is wanted, and where.

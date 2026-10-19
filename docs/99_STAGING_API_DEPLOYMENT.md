@@ -488,3 +488,53 @@ deployment. It must not receive both.
 
 Re-check the owner's address if SSH stops connecting: a home address can change, and the firewall's /32 must then be
 updated in Hetzner.
+
+---
+
+## 14. The browser-test site (2026-10-19, CLAUDE, cloud; D215) — prepared, not deployed
+
+The app's Expo web export is served by this stack's edge on its own hostname, behind basic authentication. The
+design, the rehearsal and the journeys are in `docs/102`.
+
+**Before anything:** the owner confirms the hostname (proposed `erp-test.tsxmr.com`, one level under `tsxmr.com`) and
+adds its A record **DNS only**, like `staging-api`. Caddy then obtains a certificate for exactly that name. Do not
+assume any other name, nested or proxied, is covered by an existing certificate (`docs/102` §5).
+
+**This host only.** Production now runs on `tsxmr-app-01` (`docs/100` §14). §11 holds: the staging stack, and
+therefore this site, need their own host.
+
+**Files (backend `b0758c2`):**
+- `deploy/staging/web-test.caddy`: the site block, with basic auth on every path, noindex, no framing, HSTS, immutable
+  bundles and `no-cache` pages.
+- `deploy/staging/Caddyfile`: `import /srv/erp-web/enabled/*.caddy`, which matches nothing until the site is enabled.
+- Compose mounts `STAGING_WEB_DIR` at `/srv/erp-web`, or `deploy/staging/web-off` when it is unset.
+- `deploy/staging/web-test.sh install <release> | off | restart-edge`.
+
+**Settings:**
+- `stack.env`: `STAGING_WEB_HOST`, `STAGING_WEB_DIR`, `STAGING_WEB_USER`, and `STAGING_WEB_PASSWORD_HASH` (bcrypt,
+  single-quoted; `docker run --rm -it caddy:2.8 caddy hash-password`).
+- `api.env`: `CORS_ORIGINS` must name `https://<STAGING_WEB_HOST>` exactly (the API is redeployed after the change).
+
+**Install:**
+1. Build the release on any machine with the mobile checkout (`docs/102` §8.1 step 4). It is a `site/` directory plus
+   a `routes.caddy` generated from it.
+2. Copy it to the host.
+3. Run `deploy/staging/web-test.sh install <dir>`. Before touching the edge, it refuses:
+   - an unset, malformed or production hostname, or the API's own;
+   - a missing user or a non-bcrypt hash;
+   - CORS that does not name the site;
+   - an incomplete release.
+
+   It then copies the release under `releases/<UTC time>`, points `current` at it and enables the site. It validates
+   the whole edge configuration, putting the previous state back if that fails, and restarts the edge (the API
+   pauses for seconds). Finally it checks that `/`, `/login` and the bundles answer **401** without a password, and
+   logs the change in `deployments.log`.
+
+**Rollback:** `ln -sfn releases/<previous> $STAGING_WEB_DIR/current && deploy/staging/web-test.sh restart-edge`.
+**Off:** `web-test.sh off`.
+
+**Verification on the host after install** (the operator holds the password):
+- `curl -sI https://erp-test.tsxmr.com/` answers 401;
+- with `-u <user>`: 200, `X-Robots-Tag: noindex, nofollow, noarchive`, and no `Server` header;
+- `https://erp-test.tsxmr.com/sales/x` (authenticated) answers 200 with the sale page's HTML;
+- `/nope` answers 404.
