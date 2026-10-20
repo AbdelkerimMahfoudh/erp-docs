@@ -1,7 +1,20 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-20T08:11Z (this claim written before any change)
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `95dbf90`; that handoff was complete.
+active_phase: `docs/100` §16 on tsxmr-app-01, in order, as the owner authorised on 2026-10-20. Inspect; a backup copied
+to the laptop and restored with the v2 identity (PASSED before any migration); backend `f5da650` (0099→0102) with
+`CUSTOMER_ACTIVATION=closed` and email/WhatsApp disabled; the test sites erp-test (app `da5c73c`) and dukan-test
+(console `d1016d8`) behind one password; a fictional test business by hand; restart survival; verify tsxmr.com
+(`5aa8322`); D219.
+heads_at_claim: erp-backend `production-deploy` `644f4f5` (deployed) and `superadmin-provisioning` `f5da650`;
+erp-mobile `superadmin-provisioning` `da5c73c`; erp-control-web `superadmin-provisioning` `d1016d8`, `tsx-public-site`
+`5aa8322`; erp-docs `master` `95dbf90`.
+next_action: §16.2, inspect the server read-only.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
 released_at_utc: 2026-10-20T07:03Z
 previous_claim: CLAUDE (cloud), started 2026-10-20T07:02Z (`163dac8`) from READY_FOR_HANDOFF (owner NONE) at `d52bf7a`;
