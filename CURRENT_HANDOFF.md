@@ -28,8 +28,17 @@ active_phase (the owner's brief of 2026-10-20, revised the same day — the revi
 
 Not authorised: purchases, a second server, release-gate bypass, public onboarding, real payments, Meta, SMTP, the
 public site (`tsx-public-site` is preserved as is). The company sender +22231229945 is not used or configured.
-next_action: discovery (platform-admin auth and MFA, business provisioning, owner invitations, stores, entitlements,
-staging tooling, docs/99–102), then the plan to the owner.
+checkpoint (2026-10-20T05:10Z) — implementation pushed, nothing deployed, no shared database touched:
+- erp-backend `superadmin-provisioning` `1e58a8b` (from `b0758c2`): migration **0102** (`companies.is_test`,
+  `test_marked_at`, `test_marked_by`; additive), `CUSTOMER_ACTIVATION` (closed by default in production; preflight
+  refuses "open"), test status, console stores, setup/activation status, `auth/owner-setup`; full suite 268/4891 green;
+  CI database gates 1–9 green on a disposable MySQL 8.0 (scratch server, outside every tree).
+- erp-control-web `superadmin-provisioning` `02d6e4b` (from `cd512c2`, `tsx-public-site` `5f666ea` merged in at
+  `b0597ab`): New business, Setup and access, test status, stores; 574 tests green.
+- erp-mobile `superadmin-provisioning` `3131ef6` (from `d7a28fe`): "I have a setup code", test-business strip; jest
+  353, pure tests, exports and bundle audit green.
+next_action: the local end-to-end verification (the 12 journeys, real API + MySQL + built frontends), CI on the pushed
+heads, then the deployment package and runbook for tsxmr-app-01, then D217 and the docs.
 
 Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
