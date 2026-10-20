@@ -28,8 +28,22 @@ checkpoints:
 - Builds: the laptop cannot run either build (Smart App Control blocks Rolldown and lightningcss 1.33). By the owner's
   choice, both are built on GitHub Actions: erp-control-web `ops/build-test-console` (new, tooling only), output on
   `ci-evidence`. They are packaged and checked on the laptop.
-next_action: §16.5, bring `f5da650`; `api.env`; `setup-secrets.sh`; `stack.env` with the testers' login from hidden
-prompts.
+- §16.5:
+  - `f5da650` came as a bundle (sha256 equal on both ends) and is checked out clean;
+  - `api.env`: the three CORS origins, `CUSTOMER_ACTIVATION=closed`, `PORTAL_ORIGIN`. `PUBLIC_SITE_ORIGIN` is kept
+    because the rollback target `644f4f5` requires it. The previous file is `api.env.pre-f5da650` (mode 600);
+  - `staff_invitation_key` was created, and nothing else was replaced;
+  - `stack.env`: `WEB_DIR`, the two hosts, and the testers' login (from hidden prompts; bcrypt only, mode 600).
+- §16.6:
+  - **The first `deploy.sh` stopped at `step=contract`**, before the backup and the migrations. My `git checkout` had
+    run under `umask 077`, so 165 changed files were mode 600 and unreadable in the image.
+  - The tracked files' read bits were restored, then the deploy was re-run with `--after-interrupted`.
+  - Then: contract PASS; preflight PASS; pre-migration backup **`phonestore-20261020T110554Z.sql.gz.age`**;
+    **0099→0102 applied**, schema up to date (101 migrations); catalogue 73/73; identities 16/0; audit chain OK.
+  - API and edge recreated: image `erp-api:f5da650945ba…`; rollback target `erp-api:644f4f5984873e2b…`.
+  - Smoke 15/15, and 16/16 with each of `--allowed-origin` erp-test and dukan-test.
+next_action: §16.7, install the app and console releases (built on GitHub run `39396765340`, packaged on the laptop)
+with `test-sites.sh`, after re-checking DNS.
 
 Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
