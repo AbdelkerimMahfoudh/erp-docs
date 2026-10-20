@@ -1,7 +1,29 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
+started_at_utc: 2026-10-20T04:07Z (this claim written before any change)
+takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud) at `6ea8f9b`; that handoff was complete.
+heads_at_takeover:
+- erp-backend: `integration/browser-test` `b0758c2`, `whatsapp-consent` `608e25a`, `production-deploy` `644f4f5`
+  (production API);
+- erp-mobile: `integration/browser-test` `d7a28fe`, `whatsapp-consent` `23ec6fd`;
+- erp-control-web: `tsx-public-site` `5f666ea` (production), `integration/browser-test` `cd512c2`, `whatsapp-consent`
+  `4764afd`, `dukan-portal` `0fd418a`;
+- erp-docs: `master` `6ea8f9b`.
+- Local trees clean.
+**Discrepancy at takeover:** `erp-control-web` `site-riyade-coming-soon` `5aa8322` (2026-10-20 03:15Z, public site,
+contains `5f666ea`) is not recorded here. This phase does not touch it, `tsx-public-site` or any public page.
+active_phase (the owner's brief of 2026-10-20): platform-superadmin provisioning of owners, businesses and stores on
+the existing platform administration (backend + console); a staging-only, production-refused test-access bootstrap for
+fictional accounts; the private ERP browser test deployment (web export, staging API, protected portal and console).
+Implementation, reviewed migrations, tests and deployment to an approved isolated test environment only; no purchase,
+DNS change, production release gate bypass, Meta, SMTP or public-site change. The company sender +22231229945 is not
+used or configured.
+next_action: discovery (platform-admin auth and MFA, business provisioning, owner invitations, stores, entitlements,
+staging tooling, docs/99–102), then the plan to the owner.
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
 released_at_utc: 2026-10-19T12:56Z
 previous_claim: CLAUDE (cloud), started 2026-10-19T09:45Z (`77cfc43`) from READY_FOR_HANDOFF (owner NONE) at
