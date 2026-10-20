@@ -12,7 +12,24 @@ to the laptop and restored with the v2 identity (PASSED before any migration); b
 heads_at_claim: erp-backend `production-deploy` `644f4f5` (deployed) and `superadmin-provisioning` `f5da650`;
 erp-mobile `superadmin-provisioning` `da5c73c`; erp-control-web `superadmin-provisioning` `d1016d8`, `tsx-public-site`
 `5aa8322`; erp-docs `master` `95dbf90`.
-next_action: §16.2, inspect the server read-only.
+checkpoints:
+- §16.2 (08:54Z), read-only:
+  - checkout `644f4f5`, clean;
+  - api, db and edge healthy;
+  - readiness ready, 97 applied, 0 pending, 0 missing;
+  - companies 0, users 0, stores 0, sales 0; 118 tables, 53 triggers;
+  - 2.5 GB memory available, disk 24 %.
+  - **Platform administrators: 0** (§16.2 assumed one; §14 never created it).
+- §16.3:
+  - **the database rollback point is `phonestore-20261020T085555Z.sql.gz.age`** (53 747 bytes). It was copied to the
+    laptop's `.tsxmr\production-backups\` (checksum OK), and that copy was returned to the host;
+  - the drill restored it with the v2 identity (`/dev/shm`, shredded after): tables 118, triggers 53, every CHECKSUM.
+    **PASSED** (`kind=laptop`).
+- Builds: the laptop cannot run either build (Smart App Control blocks Rolldown and lightningcss 1.33). By the owner's
+  choice, both are built on GitHub Actions: erp-control-web `ops/build-test-console` (new, tooling only), output on
+  `ci-evidence`. They are packaged and checked on the laptop.
+next_action: §16.5, bring `f5da650`; `api.env`; `setup-secrets.sh`; `stack.env` with the testers' login from hidden
+prompts.
 
 Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
