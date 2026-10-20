@@ -1,5 +1,24 @@
 # CURRENT_HANDOFF
 
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
+started_at_utc: 2026-10-20T07:02Z (this claim written before any other change)
+takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud) at `d52bf7a`; that handoff was complete.
+heads_at_takeover (read from the remotes):
+- erp-backend: `production-deploy` `644f4f5` (production API), `superadmin-provisioning` `f5da650`,
+  `integration/browser-test` `b0758c2`;
+- erp-mobile: `superadmin-provisioning` `da5c73c`, `integration/browser-test` `d7a28fe`;
+- erp-control-web: `tsx-public-site` **`5aa8322`** (production tsxmr.com, the Riyade release), `ops/verify-production`
+  `5a01050`, `ops/verify-preview` `57010fb`, `site-riyade-coming-soon` `5aa8322`, `superadmin-provisioning` `d1016d8`
+  and `integration/browser-test` `0ee0b35` (both contain `5aa8322`);
+- erp-docs: `master` `d52bf7a`.
+active_phase: documentation only. Record the Riyade coming-soon release, already deployed and verified on 2026-10-20
+with the owner's approval, as **D218**. The number was coordinated with the releasing provisioning session, whose
+release names D218 as next free. The record covers docs/21, docs/95, docs/74, docs/83 (WEB-F01) and SESSION_LOG. No
+code, deployment or database change.
+next_action: write the record, then release this handoff as READY_FOR_HANDOFF.
+
+Previous state (unchanged below):
 Status: READY_FOR_HANDOFF
 Owner: NONE
 released_by: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
