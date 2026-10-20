@@ -14,12 +14,20 @@ heads_at_takeover:
 - Local trees clean.
 **Discrepancy at takeover:** `erp-control-web` `site-riyade-coming-soon` `5aa8322` (2026-10-20 03:15Z, public site,
 contains `5f666ea`) is not recorded here. This phase does not touch it, `tsx-public-site` or any public page.
-active_phase (the owner's brief of 2026-10-20): platform-superadmin provisioning of owners, businesses and stores on
-the existing platform administration (backend + console); a staging-only, production-refused test-access bootstrap for
-fictional accounts; the private ERP browser test deployment (web export, staging API, protected portal and console).
-Implementation, reviewed migrations, tests and deployment to an approved isolated test environment only; no purchase,
-DNS change, production release gate bypass, Meta, SMTP or public-site change. The company sender +22231229945 is not
-used or configured.
+active_phase (the owner's brief of 2026-10-20, revised the same day — the revision supersedes the separate staging host):
+- platform-superadmin provisioning of owners, businesses and stores on the existing platform administration (backend +
+  console);
+- **persistent, explicitly marked test businesses** on the one deployed application (tsxmr-app-01 and its production
+  API, the owner's decision): superadmin-only test status, an unmistakable indicator in app and console, excluded from
+  commercial metrics, audited complimentary grants only, no messaging of real customers, no cross-business interaction,
+  never wiped;
+- a superadmin-issued, short-lived, single-use setup credential for test owners (the owner chooses the password; phone
+  stays unverified; no consent fabricated; no OTP bypass);
+- deployment of the ERP browser app, the portal and the console with their compatible backend, after an encrypted,
+  restore-verified backup and a rehearsed migration.
+
+Not authorised: purchases, a second server, release-gate bypass, public onboarding, real payments, Meta, SMTP, the
+public site (`tsx-public-site` is preserved as is). The company sender +22231229945 is not used or configured.
 next_action: discovery (platform-admin auth and MFA, business provisioning, owner invitations, stores, entitlements,
 staging tooling, docs/99–102), then the plan to the owner.
 
