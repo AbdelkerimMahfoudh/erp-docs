@@ -43,8 +43,9 @@ One Vite + React SPA with **build-time prerendering** of the public pages:
 | --- | --- | --- | --- |
 | `/` | TSX-MR home | yes | hero, Dukan ERP feature, problems, capabilities, security, languages, CTAs |
 | `/about` | About TSX-MR | yes | factual; company-details block from the inputs |
-| `/products` | Products | yes | Dukan ERP card |
+| `/products` | Products | yes | Dukan ERP card; Riyade's lighter card after it (D218) |
 | `/products/dukan-erp` | Dukan ERP | yes | the two activities, provider disclaimer, how a business starts, app, **server-derived pricing and estimate** (moved unchanged from the old home) |
+| `/products/riyade` | Riyade | yes | coming soon: its name, one line, who makes it, its status — no action of any kind (D218) |
 | `/contact` | Contact | yes | `mailto:` to the configured addresses only — no server form |
 | `/support` | Support | yes | sign-in, verification, stores, staff, stock, sales, returns, subscriptions, deletion |
 | `/privacy`, `/terms`, `/account-deletion` | legal | yes | version + effective date + contents; drafts with blockers |
@@ -723,3 +724,24 @@ It was fast-forwarded to `tsx-public-site` at 02:17Z. The live check is `ops/ver
 - **verify-production** (run 39089584510, attempt 2): 60 pages; every built file is served as built, apart from Email
   Address Obfuscation; browser 148/148 live.
 - **verify-not-found:** passed.
+
+## Riyade, coming soon (2026-10-20, CLAUDE, cloud; D218)
+
+Riyade, TSX-MR's second own product, is announced, not described:
+- **Copy:** `src/content/riyade.ts` holds the approved copy, word for word: name, line, attribution and status in
+  EN/FR/AR.
+- **Its page:** `src/pages/public/Riyade.tsx`, at `/products/riyade` (`/fr/…`, `/ar/…`).
+- **Components:** `src/components/public/riyade.tsx` has the wordmark, status pill, drawing, Products card and home
+  row.
+- **Placements:** Products (after Dukan ERP), Home (under the featured Dukan ERP card) and the footer's products column
+  (now "Products").
+- **Route:** `src/site/routes.ts` (indexable; sitemap 42 URLs). **Head:** `src/site/meta.ts`.
+- **Tests:**
+  - `test/riyade.test.tsx`: the route and head; the approved copy; a refusal list per language and no digit; every
+    placement; Dukan ERP intact; no unpublished links;
+  - `e2e/public-site.spec.ts`: the "Riyade in {en,fr,ar}" tests at 320/375/1280 px, light and dark, without a script,
+    and the language switch;
+  - `test/content-parity.test.ts` and `test/operator-identity.test.tsx` include it.
+- **Production verifier:** `ops/verify-production` checks the three pages and the 42-URL sitemap.
+
+Deployed at `tsx-public-site` `5aa8322`; the record is `docs/95`, last section.

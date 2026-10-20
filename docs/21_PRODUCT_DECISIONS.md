@@ -8593,3 +8593,62 @@ Both test names are DNS only and password-protected, and their origins are named
 - erp-mobile `superadmin-provisioning` `da5c73c`.
 
 The runbook is `docs/100` §16.
+
+### ✅ DECIDED BY THE OWNER (2026-10-20) AND DEPLOYED (tsxmr.com, `5aa8322`) — D218: Riyade on tsxmr.com, coming soon
+
+**Decision (the owner's brief and approval of 2026-10-20).** Riyade is TSX-MR's second own product. Until it launches,
+the website presents it with as little as possible: its name, one line, who makes it and its status, in EN/FR/AR.
+The owner approved the presentation shown in the review page, including:
+- the small home-page row;
+- the lighter Products card after Dukan ERP;
+- the footer entry;
+- the Arabic wording and punctuation as implemented;
+- removing the outdated "one product" statement, and the footer heading "Products".
+
+**The approved copy** (`erp-control-web` `src/content/riyade.ts`; TSX-MR is the configured display name):
+
+| | English | French | Arabic |
+| --- | --- | --- | --- |
+| Name | Riyade | Riyade | Riyade (Latin letters, not transliterated) |
+| Line | School life, simply connected. | La vie scolaire, simplement connectée. | حياة مدرسية أكثر ترابطًا وبساطة |
+| Who and for whom | A new TSX-MR product for schools and their communities. | Un nouveau produit TSX-MR destiné aux établissements scolaires et à leur communauté. | منتج جديد من TSX-MR للمؤسسات التعليمية ومجتمعاتها. |
+| Status | Coming soon | Bientôt disponible | قريبًا |
+
+The Arabic line has no final full stop, as approved; the English and French lines have one.
+
+**On tsxmr.com:**
+- **Its page:** `/products/riyade`, `/fr/products/riyade`, `/ar/products/riyade`. One navy band holds the name as the
+  only `h1`, the line, the sentence and the status, beside an abstract drawing. There is no link, button, form, field,
+  image or embed.
+- **Products:** a lighter second card after Dukan ERP's, with one secondary button to its page. Dukan ERP's card is
+  unchanged and stays first and larger, with its primary button.
+- **Home:** one row under the featured Dukan ERP card: the name, the sentence, the status and an arrow. The whole row
+  links to its page.
+- **Footer:** the products column, now headed "Products" (« Produits », «المنتجات»; was "Product"), lists Dukan ERP,
+  Riyade, then the Products page.
+- **Products summary:** "Today there is one: Dukan ERP." is removed in EN/FR/AR, because it became untrue. It is also
+  that page's meta description.
+- **Head:** title "Riyade — TSX-MR"; description is the sentence and the status. Canonical, `hreflang`
+  (en/fr/ar/x-default) and Open Graph work as on every page. The sitemap goes from 39 to 42 URLs. Structured data is
+  the Organization only: no `SoftwareApplication`, product, offer, price, rating, platform or date.
+- **Mark:** the name set in the site's display type. No logo, colour or symbol was made, because no approved Riyade
+  identity exists.
+
+**Never said** (unit tests refuse each in three languages, in the texts and the head, and any digit): features or
+modules, attendance, grades, finance, payments, timetables, communications, facial recognition or biometrics, APIs or
+architecture, a free period, paid modules, advertising, Bankily, Sedad or sponsorship, prices or subscriptions,
+figures, screenshots, dates or delays, beta, registration, sign-in, trial, preorder, payment, waiting lists, or
+documentation. Also no testimonials, statistics, partner logos, school names or performance claims.
+
+**Dukan ERP is unchanged:** its page, wording, documentation link, routes and cards. Its three pages differ from
+production's previous build (`5f666ea`) only in the shared footer.
+
+**Supersedes** D195's "Products shows the one own product". Riyade is the owner's product, not an invented one.
+
+**Not changed:** the backend, the app, the portal and account systems, DNS, Cloudflare settings, email.
+
+**Follow-up (separate, not fixed by this change):** on any page whose language differs from the device's or the saved
+language, `<html lang dir>` shows the wrong language for about two frames while the page starts. Arabic pages briefly
+lay out left-to-right. This is `docs/83` WEB-F01.
+
+The deployment record is `docs/95`, last section.

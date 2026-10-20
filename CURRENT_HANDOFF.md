@@ -1,32 +1,62 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
-started_at_utc: 2026-10-20T07:02Z (this claim written before any other change)
-takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud) at `d52bf7a`; that handoff was complete.
-heads_at_takeover (read from the remotes):
-- erp-backend: `production-deploy` `644f4f5` (production API), `superadmin-provisioning` `f5da650`,
-  `integration/browser-test` `b0758c2`;
-- erp-mobile: `superadmin-provisioning` `da5c73c`, `integration/browser-test` `d7a28fe`;
-- erp-control-web: `tsx-public-site` **`5aa8322`** (production tsxmr.com, the Riyade release), `ops/verify-production`
-  `5a01050`, `ops/verify-preview` `57010fb`, `site-riyade-coming-soon` `5aa8322`, `superadmin-provisioning` `d1016d8`
-  and `integration/browser-test` `0ee0b35` (both contain `5aa8322`);
-- erp-docs: `master` `d52bf7a`.
-active_phase: documentation only. Record the Riyade coming-soon release, already deployed and verified on 2026-10-20
-with the owner's approval, as **D218**. The number was coordinated with the releasing provisioning session, whose
-release names D218 as next free. The record covers docs/21, docs/95, docs/74, docs/83 (WEB-F01) and SESSION_LOG. No
-code, deployment or database change.
-next_action: write the record, then release this handoff as READY_FOR_HANDOFF.
-
-Previous state (unchanged below):
 Status: READY_FOR_HANDOFF
 Owner: NONE
-released_by: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
-released_at_utc: 2026-10-20T06:45Z
-previous_claim: CLAUDE (cloud), started 2026-10-20T04:07Z (`aae9a8c`) from READY_FOR_HANDOFF (owner NONE) at `6ea8f9b`;
+released_by: CLAUDE (cloud), https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77
+released_at_utc: 2026-10-20T07:03Z
+previous_claim: CLAUDE (cloud), started 2026-10-20T07:02Z (`163dac8`) from READY_FOR_HANDOFF (owner NONE) at `d52bf7a`;
 that handoff was complete.
-decision_numbers: this phase used **D217 only**. The next free number is **D218**. The Riyade release
-(`tsx-public-site` `5aa8322`) is not recorded here yet: the Riyade session records it, with D218 if it needs a number.
+decision_numbers: D217 is the provisioning phase's; this phase used **D218 only** (the Riyade release, coordinated with
+that session's release note). The next free number is **D219**.
+
+## Riyade, coming soon — deployed to tsxmr.com and verified live; recorded (D218) (2026-10-20, CLAUDE, cloud)
+
+The owner approved this production change on 2026-10-20 (D218). The deployment record is `docs/95`, last section; the
+follow-up defect is `docs/83` WEB-F01.
+
+**HEADs — every tree this phase touched is clean and level with its remote:**
+
+| Repository | Branch | HEAD | Note |
+| --- | --- | --- | --- |
+| `erp-control-web` | `tsx-public-site` | **`5aa8322`** | **production tsxmr.com**; fast-forwarded from `5f666ea` at 05:47:39Z, no force |
+| `erp-control-web` | `site-riyade-coming-soon` | `5aa8322` | the candidate branch (CI `39363371901` green) |
+| `erp-control-web` | `ops/verify-production` | `5a01050` | the verifier now expects the three Riyade pages and 42 sitemap URLs |
+| `erp-control-web` | `ops/verify-preview` | `57010fb` | tooling: target `5aa8322` on tsxmr.com (run `39377118688` green) |
+| `erp-control-web` | `superadmin-provisioning`, `integration/browser-test` | `d1016d8`, `0ee0b35` | unchanged by this phase; both contain `5aa8322` (checked) |
+| `erp-backend`, `erp-mobile` | all | unchanged | as in the record below |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+**Changed on tsxmr.com:**
+- Riyade's page in EN/FR/AR at `/products/riyade`, `/fr/…` and `/ar/…`: name, line, who makes it and "coming soon";
+  nothing to do;
+- a lighter Products card after Dukan ERP, a row under the featured Dukan ERP card on Home, and a footer entry under
+  the heading "Products";
+- "Today there is one: Dukan ERP." removed from the Products summary;
+- Dukan ERP's pages, wording, documentation link and routes are unchanged.
+
+**Verification:**
+- **Before:** Vitest 552, e2e full 134 and public 172 locally; the real production build PASS; CI green on the exact
+  commit.
+- **After, live via GitHub runners:**
+  - verify-production run `39377112842`: 25/25 checks, public suite 172/172;
+  - verify-preview run `39377118688` on the exact commit: 25/25, WebKit 27/27, public suite 172/172;
+  - verify-not-found green; CI on `tsx-public-site` `39376798802` green.
+- No regression found; no rollback.
+
+**Rollback target:** commit `5f666ea` and its Cloudflare production deployment (dashboard → `tsxmr-public` →
+Deployments), or revert `cfd207b` and `5aa8322` and push the revert, never with force.
+
+**Open, not blocking:**
+- WEB-F01, the wrong language or direction for about two frames while a page starts (`docs/83`). A separate fix with
+  the owner's approval.
+- The verifier compares the sitemap's build-date `<lastmod>`; a re-run on a later UTC day fails that one file
+  (`docs/95`).
+
+**Next exact action: none for this change.** Any deployment that affects tsxmr.com must keep the three Riyade routes
+and the Dukan ERP pages; `ops/verify-production` checks both. The provisioning record below is unchanged and still
+holds for its runbook.
+
+---
 
 ## Platform-superadmin provisioning and persistent test businesses (D217) — branches pushed and verified, nothing deployed (2026-10-20, CLAUDE, cloud)
 

@@ -420,3 +420,112 @@ Full scope: `docs/21` D216.
 
 **Note for the integration line:** web `integration/browser-test` (`cd512c2d`) merged production at `bf62a72`. Merge
 `tsx-public-site` `5f666ea` into it before it is next built or deployed.
+
+## Riyade, coming soon: deployed (2026-10-20, CLAUDE, cloud; D218)
+
+**Approval.** The owner approved the presentation in the review page on 2026-10-20 and authorized this production
+deployment: the home row, the Products card, the footer entry, the Arabic wording and punctuation, and the two wording
+changes. No preview was created, because the branch name matches no preview rule.
+
+**The change** (web `cfd207b`, plus the branch record `5aa8322` under `notes/`, both on `tsx-public-site` `5f666ea`):
+- a page per language at `/products/riyade`, `/fr/…` and `/ar/…`;
+- a lighter card after Dukan ERP on Products;
+- a row under the featured Dukan ERP card on the home page;
+- a footer entry, under the heading "Products";
+- the Products summary without "Today there is one: Dukan ERP.".
+
+Full scope: `docs/21` D218.
+
+**Verified before the promotion:**
+- **Locally**, the CI workflow's steps on the final tree:
+  - typecheck;
+  - Vitest 31 files, 552 tests (the new `test/riyade.test.tsx` among them);
+  - both surfaces' production builds refused without their inputs;
+  - preview builds with link and bundle audits;
+  - Chromium e2e: full 134/134, public 172/172;
+  - the **real production build** (`npm run build:public-release` with tsxmr.com's public inputs): 91 files, 3 114
+    links, 0 broken; PUBLIC_WEBSITE GO; the public suite 172/172 on it.
+- **Against production's own build** (`5f666ea`):
+  - the three Riyade pages are new;
+  - the home pages differ in the row and the footer;
+  - the Products pages differ in their description, the card and the footer;
+  - the 36 other pages, the three Dukan ERP pages among them, differ in the footer only;
+  - the sitemap gains exactly the three Riyade entries (39 → 42);
+  - `security.txt` differs only by its build-time `Expires`;
+  - `robots.txt`, `_headers`, `_redirects` and the manifest are identical.
+- **CI** on the exact candidate: run `39363371901` (`site-riyade-coming-soon`, `5aa8322`), success.
+- **Production before the promotion** (`ops/verify-preview` in production mode on `5f666ea`, run `39375772883`):
+  - WebKit and the public suite passed;
+  - `verify-production.mjs` 21/23. Both failures are one file: `sitemap.xml`'s `<lastmod>`, the build date
+    (2026-10-19 live, 2026-10-20 in the verifier's build, same length). This is an artifact of verifying on a later
+    UTC day than the deployment, not a change in production. See "Known limitation" below.
+
+**Rollback target, recorded before the promotion:**
+- commit `5f666ea`, its Cloudflare production deployment (D216's; its ID is in the dashboard, not readable from this
+  session);
+- to roll back: Cloudflare dashboard → `tsxmr-public` → Deployments → the `5f666ea` deployment → "Rollback to this
+  deployment". Or revert `cfd207b` and `5aa8322` and push the revert to `tsx-public-site`, never with force.
+
+**The promotion.**
+- `tsx-public-site` was re-checked at `5f666ea` and fast-forwarded with no force to `5aa8322` at **05:47:39Z**
+  (`5f666ea7..5aa8322f`).
+- Cloudflare Pages (`tsxmr-public`, Git integration) built and served it within four minutes. The first live check
+  (05:51:32–43Z) found every built file byte-for-byte, including the sitemap dated 2026-10-20.
+- This session has no Cloudflare dashboard access, so the new deployment's ID is not recorded here.
+- CI on `tsx-public-site` `5aa8322`: run `39376798802`, success.
+
+**The production verifier** (`ops/verify-production` `5a01050`, with `tsx-public-site` `5aa8322` merged in at
+`fb59f76`). Two checks were added; every other check is unchanged:
+- the sitemap has exactly 42 URLs, the same set as the build's `sitemap.xml`, the three Riyade addresses among them;
+- Riyade in each language: 200, `<html lang dir>` (ar: rtl), its own canonical, "Riyade" as the one `h1`, and no
+  `SoftwareApplication`, offer or price in its structured data.
+
+Both were checked locally by pointing tsxmr.com at a local server: the release build passes them, and `5f666ea`'s
+build fails them.
+
+**Live verification** (GitHub runners; this container cannot reach tsxmr.com):
+- `ops/verify-production` push, run `39377112842` (`verify-production.yml`; evidence on `ci-evidence` under
+  `evidence/production/5a0105079eb600f585911228afc77a20f3787c26-39377112842`):
+  - `verify-production.mjs` against the branch's build: **25/25**. TLS, redirects, security headers equal
+    `_headers`, every one of the 83 files byte-for-byte, 63 pages' canonicals, no tracker or edge rewriting, the
+    404s, the 42-URL sitemap equal to the build's, Riyade in three languages, email DNS;
+  - the public suite against tsxmr.com: **172/172** (Chromium), no retry.
+- `ops/verify-preview` in production mode, `verify/target.env` set to `5aa8322` (tooling commit `57010fb`), run
+  `39377118688` (evidence `evidence/preview/5aa8322-39377118688` on `ci-evidence`):
+  - `verify-production.mjs` against the exact commit's build: **25/25**. This is the deployed-commit proof: every
+    built file, hashed bundles included, is served byte-for-byte;
+  - WebKit (iPhone 17, iPhone SE 3rd gen, desktop Safari profiles): **27/27**;
+  - the public suite against tsxmr.com (Chromium), with the Riyade tests in EN/FR/AR: **172/172**.
+- `verify-not-found` (the 404 behaviour), run `39377113011`: success.
+
+These cover:
+- the three Riyade pages, language and direction, head, Products order and the home row's hover room;
+- language switching between them;
+- Home, Products and the footer;
+- that Dukan ERP's pages, wording and documentation link are unchanged (byte identity with the build, whose Dukan ERP
+  pages equal production's previous build except the footer);
+- the 42-URL sitemap.
+
+This is browser automation, not a physical iPhone.
+
+**Outcome:** no regression found; the deployment stands.
+
+**Known limitation of the verifier (recorded, not changed).**
+- `verify-production.mjs` compares `sitemap.xml` byte-for-byte. Each `<lastmod>` is the build date, so a re-run on a
+  later UTC day than the deployment fails that one file, as the baseline run above did.
+- The fix is the one `security.txt`'s `Expires` already has: compare without the `<lastmod>` values. It is left for a
+  separate change, because this release kept the existing checks as they were.
+
+**Follow-up (separate):** the initial language and direction of a page whose language differs from the device's or the
+saved language. See `docs/83` WEB-F01.
+
+**Still open (owner settings, unchanged by this change):**
+- preview branches back to None;
+- the `site-redesign` preview still answering (noindex);
+- `tsxmr-public.pages.dev` answers 200 without noindex. Its canonicals point to tsxmr.com.
+
+**The integration lines carry it.** The provisioning session merged `tsx-public-site` `5aa8322` into web
+`superadmin-provisioning` (`d1016d8`) and `integration/browser-test` (`0ee0b35`). This session confirmed at 07:01Z that
+both contain `5aa8322`, and that Riyade's content, component, page and test files are byte-identical to it on both.
+Any later deployment that affects tsxmr.com must still serve the three Riyade routes and the unchanged Dukan ERP pages;
+`ops/verify-production` checks both.

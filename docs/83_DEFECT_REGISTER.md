@@ -297,3 +297,35 @@ matrix (`SCR-*`, `docs/84`).
 | SCR-R2 | medium | website + backend | account page of a pending, suspended, not-started or refused business: the requests card loading for ever beside a red 403, the activity change unpriced, while the request forms still worked | fixed (website) + owner (server: PQ17) | website 0eedfaa — a list that cannot be read is not left loading (regression test fails on old code). The server half, letting a closed business read its own request list and request prices, IS docs/21 PQ17 alternative (a), awaiting the owner: implemented in backend 2251c06 by mistake and reverted in 06a0db7. Until decided, the card shows the refusal once and the forms still work |
 | SCR-R3 | low | mobile + backend | a closed business's app sends POST /devices/adopt on each load and gets 403 (adopting grants authority, deliberately blocked); the app swallows it and retries next launch | open — owner policy | seen on the web export only; native NOT DEVICE VERIFIED |
 | SCR-R4 | low | website | the header shows "Sign in" while an Owner is signed in, beside the page's own Sign out | open — deferred | the header holds no session state; components/Chrome.tsx |
+
+## Website follow-ups (2026-10-20)
+
+Found while verifying the Riyade release (D218). Reproduced, not fixed: a separate change.
+
+| ID | Sev | Area | Finding | Status | Commit / ref |
+| --- | --- | --- | --- | --- | --- |
+| WEB-F01 | low | website i18n | When the device's (or the saved) language differs from the page's, `<html lang dir>` shows that other language for about two painted frames while the page hydrates, then corrects. An Arabic page is laid out left-to-right briefly; with an Arabic device, French and English pages are briefly mirrored. With an English device, French pages keep `dir="ltr"` and their French text but carry `lang="en"` briefly: a language-attribute issue whose only visible effect is `html[lang='fr'] .hero-copy h1`. No wrong frame when the languages match. | open — follow-up | cause: `src/main.tsx`'s outer `I18nProvider` (no fixed language) writes `<html lang dir>` in an effect that runs after the page's fixed inner provider (`src/app.tsx`) and until its `follow` update re-renders it. Evidence: the table below |
+
+**WEB-F01 reproduction** (2026-10-20, web `5aa8322`):
+- **Setup:**
+  - the public production build served locally;
+  - Chromium via Playwright at 390×844, with the context `locale` as the device language and no saved choice;
+  - `<html>` lang/dir recorded at every mutation and every animation frame, with the first contentful paint (FCP);
+  - CPU ×1 and ×4.
+- **Results:** 2 wrong frames after FCP in every mismatched case at ×4, and 1–2 at ×1. For example:
+
+| Device | Page | CPU | FCP | `<html>` changes |
+| --- | --- | --- | --- | --- |
+| en-US | `/ar/products/riyade` | ×1 | 624 ms | 754 ms en/ltr → 894 ms ar/rtl |
+| en-US | `/ar` | ×4 | 632 ms | 1399 ms en/ltr → 1950 ms ar/rtl |
+| fr-FR | `/ar/products/riyade` | ×4 | 508 ms | 626 ms fr/ltr → 820 ms ar/rtl |
+| en-US | `/fr/products/riyade` | ×4 | 400 ms | 506 ms en/ltr → 592 ms fr/ltr |
+| ar | `/fr/products/riyade` | ×1 | 92 ms | 134 ms ar/rtl → 156 ms fr/ltr |
+| ar | `/products/riyade` | ×4 | 232 ms | 553 ms ar/rtl → 646 ms en/ltr |
+| any | the page's own language | ×1, ×4 | — | none wrong |
+
+- **Done when:**
+  - no painted frame carries another `lang` or `dir`, for every device × saved × page language;
+  - a regression e2e test fails on the current code and passes after the fix;
+  - the protected areas keep the saved or device language;
+  - production follows the usual approval.

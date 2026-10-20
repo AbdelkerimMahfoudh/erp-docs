@@ -12750,3 +12750,38 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - a physical iPhone; the WhatsApp-dependent tests (real codes, consent, deletion, notices, invitations by WhatsApp).
 - **Clean-up:** the scratch MySQL databases dropped and its server stopped; the API, static servers and the
   rehearsal stack stopped and removed; the scratch secret files deleted; the scratch worktrees removed.
+
+## 2026-10-20 — Riyade, coming soon, deployed to tsxmr.com (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01QVaHmhvXSCrmndjXnKST77.
+  - The website change was built while `erp-docs` read READY_FOR_HANDOFF (owner NONE, `6ea8f9b`). The brief kept
+    `erp-docs` out of scope, so it was read, not claimed.
+  - The release ran while the provisioning session (session_01WqJ1WH6TJWfctbXGjyqFZt) held the handoff for a phase
+    that excludes the public site. Only `tsx-public-site`, `ops/verify-production` and `ops/verify-preview` changed.
+    That session was told at once; it merged `5aa8322` into its web branches and released at 06:45Z naming D218 as
+    next free.
+  - This record: claimed at 07:02Z (`163dac8`) from READY_FOR_HANDOFF at `d52bf7a`, documentation only, then
+    released READY_FOR_HANDOFF.
+- **Scope:** the owner's approved Riyade presentation (D218), from `tsx-public-site` `5f666ea` only.
+- **Change** (web `cfd207b`, record `5aa8322`):
+  - Riyade's page in EN/FR/AR (`/products/riyade`, `/fr/…`, `/ar/…`);
+  - a lighter Products card after Dukan ERP;
+  - a home row under the featured Dukan ERP card;
+  - a footer entry, under the heading "Products";
+  - "Today there is one: Dukan ERP." removed;
+  - focused unit and e2e tests.
+- **Verified:**
+  - locally: Vitest 552, e2e full 134 and public 172, the real production build and PUBLIC_WEBSITE GO, and a page diff
+    against `5f666ea`;
+  - CI `39363371901` (candidate) and `39376798802` (`tsx-public-site`) green;
+  - production before the promotion: run `39375772883`, where only the sitemap's build-date `<lastmod>` differed;
+  - fast-forward without force at 05:47:39Z;
+  - live via `ops/verify-production` run `39377112842` and `ops/verify-preview` run `39377118688`: 25/25 production
+    checks in both, WebKit 27/27, the public suite 172/172 in both.
+- **Verifier:** `ops/verify-production` `5a01050` expects the three Riyade pages and 42 sitemap URLs; its other checks
+  are unchanged.
+- **Rollback target:** `5f666ea` and its Cloudflare production deployment. Not needed.
+- **Follow-up:** WEB-F01 (`docs/83`), the language and direction shown for about two frames while a page starts.
+  Reproduced and recorded, not fixed.
+- **Not done:** no preview; no DNS, Cloudflare-settings, email, backend, app, portal or database change; Riyade mobile
+  PR #1, PORTAL and APP_STORE untouched.
