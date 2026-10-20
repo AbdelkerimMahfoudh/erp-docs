@@ -578,3 +578,211 @@ equal on both ends.
 **Not claimed**
 - Deleting a file on an SSD does not guarantee its blocks are erased. That is why the old key was **replaced** and not
   just deleted.
+
+---
+
+## 16. Persistent test businesses on production (D217): the deployment runbook (2026-10-20, CLAUDE, cloud)
+
+**What it deploys.** On `tsxmr-app-01`, beside the API and changing nothing on `tsxmr.com`:
+- **the API** from erp-backend `superadmin-provisioning`: migrations 0099–0102, provisioning, test businesses, the
+  Owner's setup code, and the edge's two test sites;
+- **`https://erp-test.tsxmr.com`**: the app's web export (erp-mobile `superadmin-provisioning`), behind a password;
+- **`https://dukan-test.tsxmr.com`**: the console (`/admin`) and the Owner's portal (`/subscription`), from
+  erp-control-web `superadmin-provisioning` built in preview mode, behind the same password.
+
+`dukan.tsxmr.com` stays reserved for the production portal, which the PORTAL gate still refuses.
+
+**Who runs it.** The owner's local session only: SSH to the server is limited to the owner's address. This cloud
+session prepared and rehearsed every step but **deployed nothing**.
+
+**Commits:**
+
+| Repository | Commit | CI |
+| --- | --- | --- |
+| erp-backend | `f5da650` (superadmin-provisioning) | green (`39379592884`, 6/6), including the edge validated with both sites on |
+| erp-control-web | `d1016d8` (superadmin-provisioning, carrying `tsx-public-site` `5aa8322`) | green (`39380223602`) |
+| erp-mobile | `da5c73c` (superadmin-provisioning) | green (`39379598714`, 3/3) |
+
+If later commits land, take the heads the handoff names, never older ones.
+
+### 16.1 Before anything (owner)
+
+1. **DNS: two records, DNS only** (instructions for the Chrome extension follow in §16.9). Both must resolve to the
+   server before step 9, or Caddy cannot obtain their certificates.
+2. **The testers' login name and password.** Choose them yourself. Only the bcrypt hash goes on the server.
+3. **The backup identity** (`production-backup-identity-v2`, in the password manager), for the restore proof. It is
+   brought into memory for the drill and removed afterwards (§15).
+
+### 16.2 Inspect the server as it is (read-only)
+
+```bash
+cd /srv/erp-production/erp-backend
+git status --short && git log --oneline -1          # expect a clean checkout at 644f4f5
+docker compose -p erp-production --env-file deploy/production/stack.env -f deploy/docker-compose.production.yml ps
+curl -s https://api.tsxmr.com/api/health/ready      # ready:true, 97 applied, 0 pending, 0 missing
+free -m; df -h /; docker system df                  # stop if available memory < 1.2 GB or root disk > 75 %
+sudo docker compose -p erp-production --env-file deploy/production/stack.env \
+  -f deploy/docker-compose.production.yml exec -T db sh -c \
+  'MYSQL_PWD="$(cat /secrets/mysql_root.pw)" mysql -uroot -N -e "SELECT COUNT(*) FROM phonestore.companies; SELECT COUNT(*) FROM phonestore.users;"'
+```
+
+Record the counts. They were 0 and 0 on 2026-10-19 (§15), apart from the platform administrator.
+
+### 16.3 A fresh encrypted backup, copied off the host, and its restore proof
+
+```bash
+deploy/production/backup.sh                                     # phonestore-<UTC>.sql.gz.age + .sha256
+# On the laptop:  scp the two files into .tsxmr\production-backups\ and check the checksum.
+# The restore drill, with the identity in memory only:
+umask 077; cat > /dev/shm/age-identity                          # paste the identity, then Ctrl-D
+deploy/production/restore-drill.sh --identity /dev/shm/age-identity --offsite laptop
+shred -u /dev/shm/age-identity
+```
+
+The drill must end **PASSED** (tables, triggers, rows and every CHECKSUM equal). Keep the file name: it is the
+**database rollback point**.
+
+### 16.4 The migration, rehearsed (done here; optional again on the laptop)
+
+- **This session.** A 0098-shaped database (production's 97 migrations, with rows) was backed up, migrated to 0102,
+  verified, then rolled back by restoring the backup into a new schema. The details are in the handoff.
+  - All four migrations applied, and status is up to date.
+  - Earlier rows were kept, and the existing business stays a customer's (`is_test` = 0).
+  - The restored copy is identical to the pre-migration snapshot.
+  - The deployed code `644f4f5` runs on the 0102 schema: ready, 0 pending, 0 missing; sign-in answers normally.
+- **Optionally, on the laptop, against the real backup.** Decrypt it into a throw-away MySQL 8.4 container, run
+  `npx prisma migrate deploy` from a checkout of `f5da650`, read `migrate status`, then remove the container.
+
+### 16.5 Bring the commit and update the configuration
+
+1. Bring `f5da650` as a git bundle, the same way as §14, and check out the commit with a clean tree.
+2. **`api.env`** (mode 600), no secret involved:
+   - `CORS_ORIGINS=https://dukan.tsxmr.com,https://erp-test.tsxmr.com,https://dukan-test.tsxmr.com`
+   - `CUSTOMER_ACTIVATION=closed`
+   - `PORTAL_ORIGIN` stays `https://dukan.tsxmr.com`;
+   - email and WhatsApp stay `disabled`.
+3. `deploy/production/setup-secrets.sh` creates the one missing secret, `staff_invitation_key`. It replaces nothing.
+4. **`stack.env`:**
+   ```
+   WEB_DIR=/srv/erp-production/web
+   TEST_APP_HOST=erp-test.tsxmr.com
+   TEST_CONSOLE_HOST=dukan-test.tsxmr.com
+   TEST_WEB_USER=<the testers' login>
+   TEST_WEB_PASSWORD_HASH='<bcrypt>'   # docker run --rm -it caddy:2.11.7 caddy hash-password  (typed at its prompt)
+   ```
+
+### 16.6 Deploy the API
+
+```bash
+deploy/production/deploy.sh --confirm api.tsxmr.com
+```
+
+- It runs, in order: build, secrets, contract, preflight, a backup before migrating, then **0099 → 0102 as the
+  migrator**, the catalogue, the identities, the audit chain, the API, the edge, and the smoke test.
+- On the CX23 the build ran on the host before (§14). If step 16.2 showed under 1.2 GB available, build the two
+  images on the laptop, load them with `docker save | ssh … docker load`, and deploy with `SKIP_BUILD=1 API_IMAGE=…
+  TOOLS_IMAGE=…`.
+- Then the smoke test for each test origin:
+  ```bash
+  deploy/production/smoke.sh --allowed-origin https://erp-test.tsxmr.com
+  deploy/production/smoke.sh --allowed-origin https://dukan-test.tsxmr.com
+  ```
+
+### 16.7 Build the two sites off the server (laptop), then install them
+
+```bash
+# The app (erp-mobile da5c73c):
+npm ci
+EXPO_PUBLIC_API_ORIGIN=https://api.tsxmr.com EXPO_PUBLIC_LEGAL_ORIGIN=https://tsxmr.com \
+  npx expo export --platform web --clear --output-dir /tmp/erp-web-export
+node scripts/web-test-release.mjs /tmp/erp-web-export /tmp/erp-app-release https://api.tsxmr.com --production-api
+# The console and portal (erp-control-web d1016d8):
+npm ci
+VITE_SITE_SURFACE=portal VITE_API_BASE=https://api.tsxmr.com/api/v1 VITE_PORTAL_ORIGIN=https://dukan-test.tsxmr.com \
+  npm run build:preview
+node scripts/caddy-release.mjs dist /tmp/erp-console-release https://dukan-test.tsxmr.com https://api.tsxmr.com/api/v1
+```
+
+`--clear` matters. A cached Metro bundle kept an earlier API origin in this session's first export.
+
+Copy both release directories to the deploy user's home and check them. Then:
+
+```bash
+deploy/production/test-sites.sh install app ~/erp-app-release --confirm api.tsxmr.com
+deploy/production/test-sites.sh install console ~/erp-console-release --confirm api.tsxmr.com
+```
+
+Each refuses before touching the edge, in any of these cases:
+- a production or missing name, or one name for both sites;
+- a hash that is not bcrypt;
+- an API whose `CORS_ORIGINS` does not name the site exactly;
+- `CUSTOMER_ACTIVATION` not closed;
+- a release built for another API.
+
+Each validates the edge with the release before restarting it, which interrupts the API for a few seconds. It ends by
+checking 401 without the password on every path, and the API's exact CORS grant.
+
+### 16.8 After deployment: the persistent test accounts (by hand; no test suite or load against the live service)
+
+1. **The console.** `https://dukan-test.tsxmr.com/admin`: the testers' password, then the administrator's password and
+   code. The dashboard counts 0 customers.
+2. **A test business.** *New business*, kept as a test, with a fictional Owner, business and store. The setup code is
+   shown once: hand it over privately and press *I have handed it over*.
+3. **The Owner's password.** On `https://erp-test.tsxmr.com`: *I have a setup code*, the code, a password the Owner
+   chooses. Then sign in with the number and that password.
+   - The test strip shows on every screen.
+   - Before any grant, *Pending approval* shows.
+4. **Access.** In the console: *Grant access (no payment)*, with a reason. Then *Add the store*: it opens at no charge
+   under the grant. No payment can be recorded.
+5. **A day's work in the app.** Open the day; receive five chargers; sell one for cash; four remain.
+6. **Isolation.** Make a second test business. Neither Owner sees the other's stores or sales. A customer business
+   cannot be created (closed).
+7. **Refusals without a session** (from the laptop):
+   - `curl -s -o /dev/null -w '%{http_code}' -X POST https://api.tsxmr.com/api/v1/platform/businesses` gives 401;
+   - an Owner's bearer token on `GET /api/v1/platform/dashboard` gives 401.
+8. **tsxmr.com is unchanged.** Run the `ops/verify-production` workflow (it checks the three Riyade routes and the
+   42-URL sitemap). Nothing in this deployment touches Cloudflare Pages.
+
+### 16.9 DNS instructions (for the Chrome extension, in the Cloudflare dashboard, owner-approved)
+
+In Cloudflare → `tsxmr.com` → DNS → Records, add exactly two records. Change nothing else: not `api`, not the apex, not
+`www`, not the Pages records.
+
+| Type | Name | IPv4 address | Proxy status | TTL |
+| --- | --- | --- | --- | --- |
+| A | `erp-test` | the server's IPv4 (the same as `api`) | **DNS only** (grey cloud) | Auto |
+| A | `dukan-test` | the server's IPv4 | **DNS only** (grey cloud) | Auto |
+
+- No AAAA record.
+- Check from a terminal: `dig +short erp-test.tsxmr.com @1.1.1.1` and `@8.8.8.8` each return exactly the server's
+  IPv4. That also proves the record is not proxied.
+- Only then run §16.7. Caddy obtains each certificate itself (HTTP-01).
+
+### 16.10 Rollback, in three independent parts
+
+- **The test sites:**
+  - `deploy/production/test-sites.sh rollback app|console <release> --confirm api.tsxmr.com` puts back a previous
+    release;
+  - `off app|console|all` disables the sites;
+  - the API and its data are untouched either way.
+- **The API code:** `deploy/production/rollback.sh erp-api:644f4f5984873e2b8c1253998985f1e79b4f3fd9 --confirm
+  api.tsxmr.com`.
+  - Proven here: `644f4f5` runs on the 0102 schema (ready, 0 pending, 0 missing), because 0099–0102 are additive.
+  - Turn the test sites off first: the old API has no setup-code route, and test businesses would read as customers'.
+- **The database:** only by the owner's decision. Restore the pre-migration backup from §16.3 into a **new** schema
+  (`KEEP_DRILL=1 restore-drill.sh …`), point the API at it, and redeploy the old image.
+  - Test businesses made after the deployment are lost then.
+  - Never drop `phonestore` before the restored copy is verified.
+  - **A Git rollback does not roll back the database.**
+
+### 16.11 Risks the owner should weigh
+
+- **Off-site backups.** §12.5 asks for the Storage Box before any external test. The testers here are the owner's own
+  and the data is fictional, but backups exist only on the host and the laptop. Buying the Storage Box is the owner's
+  decision, and this phase is not authorised to make purchases.
+- **The test sites share the production edge.** A Caddy restart from `test-sites.sh` interrupts the API for a few
+  seconds.
+- **The protection order.** One password protects both sites. Behind it, the console still asks for the
+  administrator's password, code and step-up, and every API call is authorised by the server.
+- **Timeline notes are English.** The console timeline shows notes the server recorded in English (as every timeline
+  note already is) on FR/AR pages.

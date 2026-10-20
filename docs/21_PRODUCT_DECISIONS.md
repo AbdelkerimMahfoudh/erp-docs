@@ -8473,6 +8473,11 @@ fictional data; the hostname and its TLS confirmed before any DNS change (`docs/
 - the tester login;
 - whether a staging portal is wanted, and where.
 
+**Superseded in part (2026-10-20, D217).** The owner chose the existing server and its production API, with persistent
+test businesses, instead of a staging host. The design above is kept, on the production edge (`docs/100` §16), beside
+a protected console and portal at `dukan-test.tsxmr.com`. The staging files (`docs/99` §14) stay for a later staging
+host.
+
 ### ✅ DECIDED BY THE OWNER (2026-10-19) AND DEPLOYED (tsxmr.com, `5f666ea`) — D216: account deletion is a Dukan ERP documentation entry, not a TSX-MR navigation item
 
 **Decision (the owner's brief and approval of 2026-10-19).** TSX-MR is the company website. Account deletion concerns
@@ -8510,3 +8515,81 @@ presentation correction: deletion itself, the retention rules and identity verif
 - the backend, the app, DNS, Cloudflare settings, email routing, SMTP, WhatsApp, any database.
 
 The deployment record is `docs/95`, last section.
+
+### ✅ DECIDED BY THE OWNER (2026-10-20), IMPLEMENTED (branches, CI green) AND PREPARED FOR DEPLOYMENT — D217: platform-superadmin provisioning, and persistent test businesses on the existing server
+
+**Decision (the owner's brief of 2026-10-20 and its same-day revision).**
+- Only an authenticated platform administrator, holding MFA and passing a step-up, may create a business and its
+  initial Owner, add stores to the right business, see where provisioning and activation stand, and issue or reissue
+  the Owner's setup code.
+- **The controlled test runs on the existing server `tsxmr-app-01` and its production API**, through persistent,
+  explicitly marked test businesses. No second server is required or bought.
+- This **supersedes D215's separate staging host for this phase.** D215's design is kept and moved: the app's web
+  export behind a password on its own name, exact CORS, routing that tries a real file first. It now sits on the
+  production edge (`docs/100` §16).
+
+**Test businesses.**
+- **Who marks one.** Only the platform administrator sets or clears the test status, with a reason and a step-up, all
+  audited. Clearing it is refused once the business is connected to another, has paid, or has been used; marking a
+  customer's business is refused on the same grounds. A test business never quietly becomes a real one.
+- **Unmistakable.**
+  - The console shows a **Test** badge in lists and a banner on the business's page.
+  - The app shows a strip on every screen: "Test business — for testing only, not a real shop" /
+    « Entreprise de test — … » / «نشاط تجاري اختباري — …». The strip shows from the first sign-in, because the sign-in
+    answer itself carries the flag.
+  - The Arabic is اختباري, because تجريبي is the free trial's word.
+- **Out of the commercial figures.** The dashboard's customer counts and revenue leave test businesses out, and count
+  them on a line of their own. Each keeps its own operational reports and audit history.
+- **No money.** No payment can be recorded for a test business (`test_business_no_payment`), and no seat or store
+  payment can be confirmed for one. Access comes only from an explicit, audited administrative grant through the
+  existing entitlement model.
+  - **A store for a test business holding a grant** opens at once, at no charge, as part of that grant. It is recorded
+    on the timeline and audited. This was the owner's answer of 2026-10-20.
+  - **A customer's store from the console** is the priced request its Owner would file, awaiting a real payment.
+- **Apart from real shops.** A test business finds and connects only to test businesses. No message reaches a real
+  customer.
+- **Never wiped.** Nothing resets or deletes a test business automatically.
+
+**Customer activation stays closed.**
+- `CUSTOMER_ACTIVATION` is closed by default in production, and the production preflight refuses "open".
+- While it is closed, the console creates test businesses only. A customer's invitation cannot be issued or accepted,
+  and a customer cannot be approved, granted, extended or reinstated. Public onboarding and real activation keep their
+  existing release requirements.
+
+**The Owner's setup code (account activation without WhatsApp).**
+- **What it is.** The existing Owner invitation (0075): 72 hours, single use, kept only as a SHA-256 hash. It is shown
+  once in the console and handed over privately by the administrator.
+- **How it is used.** In the app the Owner chooses "I have a setup code", pastes the code and chooses their own
+  password. No session opens, and they then sign in normally.
+- **Limits.** The code works only for a test business while customer activation is closed. A reissue revokes the
+  previous code.
+- **What it never does:**
+  - no password is visible to anyone, and there is no impersonation;
+  - the phone stays **unverified** and no WhatsApp consent is recorded;
+  - there is no OTP bypass and no email fallback;
+  - the code is never logged, stored by the browser or put in an address.
+- The company sender +22231229945 is neither used nor configured.
+
+**Idempotent creation.**
+- Creating a business carries a key: a retry finds the same business, without a second business and without a second
+  code.
+- Two administrators opening the same store, changing the same status or spending the same code at once produce one
+  outcome. This is proven on MySQL.
+
+**Not authorised by this decision:** purchases, a second server, bypassing a release gate, public onboarding, real
+payments, unfinished legal texts, Meta, SMTP or billing changes, the public TSX-MR site, DNS changes without the owner.
+
+**Hostnames** (the existing plans, `docs/102` §5):
+- `erp-test.tsxmr.com`: the app's web export;
+- `dukan-test.tsxmr.com`: the console and the Owner's portal, built in preview mode;
+- `api.tsxmr.com` is unchanged;
+- `dukan.tsxmr.com` stays reserved for the production portal, which the PORTAL gate still refuses (`docs/96`).
+
+Both test names are DNS only and password-protected, and their origins are named exactly in `CORS_ORIGINS`.
+
+**Code:**
+- erp-backend `superadmin-provisioning` `f5da650`: migration 0102, provisioning, the production edge's test sites;
+- erp-control-web `superadmin-provisioning` `d1016d8`, carrying `tsx-public-site` `5aa8322` (Riyade);
+- erp-mobile `superadmin-provisioning` `da5c73c`.
+
+The runbook is `docs/100` §16.

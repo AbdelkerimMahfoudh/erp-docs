@@ -4,6 +4,13 @@
 opened to the public.** The protected browser-test site is prepared and rehearsed locally. Deploying it is blocked on
 the owner's inputs (§8), first of all a staging host: production now occupies the only server.
 
+> **2026-10-20, D217.** The owner chose the existing server `tsxmr-app-01` and its production API, with persistent
+> test businesses, instead of a staging host. §8.1's staging steps are superseded for this phase. The browser-test site
+> (`erp-test.tsxmr.com`) and a protected console and portal (`dukan-test.tsxmr.com`, the §8.1 step 6 name) go on the
+> production edge, and test owners are set up with a one-time setup code rather than the staging outbox. The runbook is
+> `docs/100` §16. The integration line `erp-control-web` `integration/browser-test` now carries `tsx-public-site`
+> `5aa8322` (Riyade) at `0ee0b35`.
+
 The owner's brief: resolve the Expo patch drift; integrate the website and the portal; prepare the ERP's browser build
 and a protected test deployment; prove the user journeys against a disposable API; prepare the deployment handoff.
 

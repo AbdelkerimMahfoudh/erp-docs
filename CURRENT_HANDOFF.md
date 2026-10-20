@@ -1,50 +1,123 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
-started_at_utc: 2026-10-20T04:07Z (this claim written before any change)
-takeover: from READY_FOR_HANDOFF (owner NONE), released by CLAUDE (cloud) at `6ea8f9b`; that handoff was complete.
-heads_at_takeover:
-- erp-backend: `integration/browser-test` `b0758c2`, `whatsapp-consent` `608e25a`, `production-deploy` `644f4f5`
-  (production API);
-- erp-mobile: `integration/browser-test` `d7a28fe`, `whatsapp-consent` `23ec6fd`;
-- erp-control-web: `tsx-public-site` `5f666ea` (production), `integration/browser-test` `cd512c2`, `whatsapp-consent`
-  `4764afd`, `dukan-portal` `0fd418a`;
-- erp-docs: `master` `6ea8f9b`.
-- Local trees clean.
-**Discrepancy at takeover:** `erp-control-web` `site-riyade-coming-soon` `5aa8322` (2026-10-20 03:15Z, public site,
-contains `5f666ea`) is not recorded here. This phase does not touch it, `tsx-public-site` or any public page.
-active_phase (the owner's brief of 2026-10-20, revised the same day — the revision supersedes the separate staging host):
-- platform-superadmin provisioning of owners, businesses and stores on the existing platform administration (backend +
-  console);
-- **persistent, explicitly marked test businesses** on the one deployed application (tsxmr-app-01 and its production
-  API, the owner's decision): superadmin-only test status, an unmistakable indicator in app and console, excluded from
-  commercial metrics, audited complimentary grants only, no messaging of real customers, no cross-business interaction,
-  never wiped;
-- a superadmin-issued, short-lived, single-use setup credential for test owners (the owner chooses the password; phone
-  stays unverified; no consent fabricated; no OTP bypass);
-- deployment of the ERP browser app, the portal and the console with their compatible backend, after an encrypted,
-  restore-verified backup and a rehearsed migration.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
+released_at_utc: 2026-10-20T06:45Z
+previous_claim: CLAUDE (cloud), started 2026-10-20T04:07Z (`aae9a8c`) from READY_FOR_HANDOFF (owner NONE) at `6ea8f9b`;
+that handoff was complete.
+decision_numbers: this phase used **D217 only**. The next free number is **D218**. The Riyade release
+(`tsx-public-site` `5aa8322`) is not recorded here yet: the Riyade session records it, with D218 if it needs a number.
 
-Not authorised: purchases, a second server, release-gate bypass, public onboarding, real payments, Meta, SMTP, the
-public site (`tsx-public-site` is preserved as is). The company sender +22231229945 is not used or configured.
-checkpoint (2026-10-20T05:10Z) — implementation pushed, nothing deployed, no shared database touched:
-- erp-backend `superadmin-provisioning` `1e58a8b` (from `b0758c2`): migration **0102** (`companies.is_test`,
-  `test_marked_at`, `test_marked_by`; additive), `CUSTOMER_ACTIVATION` (closed by default in production; preflight
-  refuses "open"), test status, console stores, setup/activation status, `auth/owner-setup`; full suite 268/4891 green;
-  CI database gates 1–9 green on a disposable MySQL 8.0 (scratch server, outside every tree).
-- erp-control-web `superadmin-provisioning` `02d6e4b` (from `cd512c2`, `tsx-public-site` `5f666ea` merged in at
-  `b0597ab`): New business, Setup and access, test status, stores; 574 tests green.
-- erp-mobile `superadmin-provisioning` `3131ef6` (from `d7a28fe`): "I have a setup code", test-business strip; jest
-  353, pure tests, exports and bundle audit green.
-next_action: the local end-to-end verification (the 12 journeys, real API + MySQL + built frontends), CI on the pushed
-heads, then the deployment package and runbook for tsxmr-app-01, then D217 and the docs.
+## Platform-superadmin provisioning and persistent test businesses (D217) — branches pushed and verified, nothing deployed (2026-10-20, CLAUDE, cloud)
 
-Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE.
-released_by: CLAUDE (cloud), https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof
-released_at_utc: 2026-10-19T12:56Z
-previous_claim: CLAUDE (cloud), started 2026-10-19T09:45Z (`77cfc43`) from READY_FOR_HANDOFF (owner NONE) at
-`4ba8c92`; that handoff was complete.
+The decision is D217 (`docs/21`). The deployment runbook is `docs/100` §16, to be run by the owner's local session.
+
+**Final HEADs — every tree clean and level with its remote:**
+
+| Repository | Branch | HEAD | Base | CI on that commit |
+| --- | --- | --- | --- | --- |
+| `erp-backend` | `superadmin-provisioning` | **`f5da650`** | `integration/browser-test` `b0758c2` | `39379592884` green, 6/6 |
+| `erp-mobile` | `superadmin-provisioning` | **`da5c73c`** | `integration/browser-test` `d7a28fe` | `39379598714` green, 3/3 |
+| `erp-control-web` | `superadmin-provisioning` | **`d1016d8`** | `integration/browser-test` `cd512c2d`; + `tsx-public-site` `5f666ea` (at `b0597ab`) and `5aa8322` (at `d1016d8`) | `39380223602` green |
+| `erp-control-web` | `integration/browser-test` | **`0ee0b35`** | `cd512c2d` + `tsx-public-site` `5aa8322` | `39380702740` green |
+| `erp-control-web` | `ops/verify-provisioning` | `6c0e971` | new orphan tooling branch | `39380843386` (WebKit) green: journeys 41/41, console 103/103, app 57/57 |
+| `erp-docs` | `master` | the commit carrying this file | — | — |
+
+The WebKit evidence is on `ci-evidence` under `evidence/provisioning/f5da650-d1016d8-da5c73c-39380843386`: 122
+screenshots, none showing a setup code.
+
+**Unchanged by this phase:**
+- the production API: backend `production-deploy` `644f4f5` (api.tsxmr.com, migrations to 0098);
+- tsxmr.com: `tsx-public-site` `5aa8322`, the Riyade session's release, and its `site-riyade-coming-soon`;
+- the `whatsapp-consent` branches `608e25a`, `23ec6fd` and `4764afd`.
+
+**Riyade carried into every branch that serves the public site.** `tsx-public-site` `5aa8322` is merged into web
+`superadmin-provisioning` and `integration/browser-test`. On both:
+- Riyade's five files are byte-identical to `5aa8322`: its page, component, content, test and notes;
+- every line Riyade added that names it or "coming soon" (231 lines in all) is present. That includes the shared files:
+  routes, i18n, Home, Products and the footer;
+- `test/riyade.test.tsx` passes in their CI.
+
+Neither branch is deployed to tsxmr.com.
+
+**Permanent functionality** (backend + console):
+- **Who.** A platform administrator with MFA, a step-up and a server-side permission.
+- **What they can do:**
+  - create a business with its Owner (idempotent by key);
+  - add stores to that business;
+  - see provisioning and activation as separate statuses;
+  - issue or reissue the Owner's setup code.
+- **Rules:**
+  - the existing duplicate-contact and multi-company rules apply;
+  - each action is audited with actor, target and outcome;
+  - no visible password, no impersonation, no consent or phone verification, no payment, no trial spent.
+
+**Test mechanism** (migration 0102, additive):
+- **Status.** Only the administrator sets or clears test status.
+- **Indicator.** A Test badge and banner in the console; an app strip from the first sign-in.
+- **Accounting.**
+  - Excluded from commercial figures.
+  - No payment can be recorded.
+  - Access only by an audited grant, under which a store opens free.
+- **Isolation.** Connections to test businesses only; nothing wiped automatically.
+- **Activation.** `CUSTOMER_ACTIVATION=closed` in production. The setup code works only for a test business, and the
+  owner chooses the password.
+
+**Verification:**
+- **Locally** (real API, MySQL, built frontends, Chromium):
+  - 12 journeys 41/41;
+  - the console in EN/FR/AR, light and dark, 320/393/1280: 103/103;
+  - the app: 57/57.
+- **The edge,** rehearsed through the real `test-sites.sh`.
+- **The migration,** 0098 → 0102, with the backup, the verification and the restore into a new schema: PASSED.
+- **The code rollback:** `644f4f5` runs on the 0102 schema.
+- **WebKit on a runner:** as in the table. It is not a physical iPhone.
+  - The console log lists one refused stylesheet per combination (`style-src`). The console injects no
+    stylesheet, and every screenshot is styled; it is the style Playwright adds for its screenshots.
+
+**Not done:**
+- **Nothing is deployed.** SSH to `tsxmr-app-01` is limited to the owner's address.
+- **No DNS change.** Instructions are in `docs/100` §16.9.
+- **No purchase, Meta, SMTP, billing or public-site change.**
+- **The company sender.** +22231229945 is neither used nor configured.
+
+**Blockers (owner):**
+1. Two DNS-only A records, `erp-test` and `dukan-test`, with no AAAA (`docs/100` §16.9).
+2. The testers' login name and password; only the bcrypt hash goes on the server.
+3. The backup identity, for the restore drill (§16.3).
+4. The Storage Box or another off-site backup decision (§16.11). It is a purchase, outside this phase.
+
+**WhatsApp-dependent tests still outstanding:**
+- real verification codes and phone verification;
+- WhatsApp consent;
+- deletion by WhatsApp code;
+- informational notices;
+- employee invitations sent by WhatsApp.
+
+They wait for the company's replacement sender. A physical iPhone check is also outstanding (`docs/24` §68).
+
+**Next exact action:** in the owner's local session, run `docs/100` §16 in order:
+1. §16.1, the owner's inputs;
+2. §16.2, inspect the server (read-only);
+3. §16.3, an encrypted backup, copied off the host, and the restore drill PASSED;
+4. §16.5, bring `f5da650`, then `api.env` and `stack.env`;
+5. §16.6, `deploy.sh`, then smoke with both origins;
+6. §16.7, build both sites on the laptop from `da5c73c` and `d1016d8`, then install them;
+7. §16.8, the manual checks with persistent test accounts, ending with `ops/verify-production` against tsxmr.com.
+
+Record the backup file name, the migration and the release names here as each step is done.
+
+**Clean-up:**
+- the scratch MySQL databases were dropped and the server stopped;
+- the local API, the static servers and the rehearsal stack were stopped and removed;
+- the scratch secret files were deleted;
+- the scratch worktrees were removed.
+
+---
+
+Previous state (unchanged below): READY_FOR_HANDOFF, owner NONE, released 2026-10-19T12:56Z by CLAUDE (cloud),
+https://claude.ai/code/session_01PLhoUhSVGTwofTQRXsJNof.
 
 ## Account deletion as a Dukan ERP documentation entry — deployed to tsxmr.com and verified live (2026-10-19, CLAUDE, cloud)
 

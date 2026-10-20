@@ -493,6 +493,11 @@ updated in Hetzner.
 
 ## 14. The browser-test site (2026-10-19, CLAUDE, cloud; D215) — prepared, not deployed
 
+> **2026-10-20, D217.** The owner chose the existing server and its production API, with persistent test businesses,
+> instead of a staging host for this phase. The same design now runs on the production edge, where
+> `deploy/production/test-sites.sh` installs the app here and the console beside it (`docs/100` §16). This section and
+> its staging files stay for a later staging host.
+
 The app's Expo web export is served by this stack's edge on its own hostname, behind basic authentication. The
 design, the rehearsal and the journeys are in `docs/102`.
 

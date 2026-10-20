@@ -12683,3 +12683,70 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - via `ops/verify-preview` run `39254553775`: 23/23, WebKit 27/27, public suite 163/163 against tsxmr.com.
 - **Rollback target:** `bf62a72`, Cloudflare deployment `5ac08a5e`. Not needed.
 - **Not done:** no preview; no DNS, Cloudflare-settings, email, backend, app or database change.
+
+## 2026-10-20 — Platform-superadmin provisioning and persistent test businesses (D217): branches pushed and verified, nothing deployed (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt.
+  - Claimed at 04:07Z (`aae9a8c`) from READY_FOR_HANDOFF (owner NONE) at `6ea8f9b`; that handoff was complete.
+  - The owner's same-day revision recorded at `2b4d76a`; a checkpoint at `3a7686e`.
+  - Released at 2026-10-20T06:45Z, READY_FOR_HANDOFF, owner NONE.
+- **Scope:** the owner's brief of 2026-10-20 and its revision: provisioning from the platform administration, and
+  persistent test businesses on `tsxmr-app-01` and its production API, with no second server. The decision is D217,
+  this phase's only number. The runbook is `docs/100` §16.
+- **Discrepancy found at the claim:** `site-riyade-coming-soon` `5aa8322` was not recorded. During the phase the owner
+  said Riyade was released at `5aa8322` (`tsx-public-site`) and asked that it be carried into every branch that serves
+  the public site. This phase did not touch `tsx-public-site`, `site-riyade-coming-soon` or tsxmr.com. The Riyade
+  session records its own release.
+- **Permanent functionality** (backend `f5da650`, console `d1016d8`):
+  - a platform administrator with MFA and a step-up creates a business and its Owner, adds stores to that business,
+    reads provisioning and activation as separate statuses, and issues or reissues the Owner's setup code;
+  - the existing duplicate-contact and multi-company rules apply; every action is audited with actor, target and
+    outcome;
+  - creation is idempotent: a retry with the same key returns the same business and no second code; concurrent
+    stores, statuses and code spends give one outcome (proven on MySQL);
+  - no password is visible, no impersonation, no WhatsApp consent or phone verification, no payment, no trial spent.
+- **Test mechanism** (migration 0102, additive: `companies.is_test`, `test_marked_at`, `test_marked_by`):
+  - only the administrator marks or clears it, with a reason and a step-up; clearing is refused once used, paid or
+    connected; a customer's business cannot be marked;
+  - a Test badge and banner in the console; a strip on every app screen from the first sign-in (the sign-in and
+    refresh answers now carry `isTestBusiness`);
+  - excluded from the dashboard's customer figures and counted apart; no payment can be recorded; access only from an
+    audited grant; a store under the grant opens at no charge (the owner's answer);
+  - a test business connects only to test businesses; nothing is wiped automatically;
+  - `CUSTOMER_ACTIVATION` closed in production (the preflight refuses "open"); the setup code works only for a test
+    business while it is closed.
+- **Deployment package** (backend `f5da650`, mobile `da5c73c`, console `d1016d8`):
+  - the production edge imports two optional sites from a read-only mount; `deploy/production/test-sites.sh` installs,
+    rolls back or turns off each, refusing a production name, a non-bcrypt hash, an origin missing from
+    `CORS_ORIGINS`, open activation or a release built for another API; the stack contract checks the mount;
+  - CI validates the Caddyfile with the sites off and on;
+  - the app's `web-test-release.mjs` needs `--production-api` for api.tsxmr.com; the console's `caddy-release.mjs`
+    turns `_headers` and `_redirects` into Caddy routes.
+- **Merged without conflict loss:** `tsx-public-site` `5aa8322` (Riyade) into web `superadmin-provisioning` (`d1016d8`)
+  and `integration/browser-test` (`0ee0b35`).
+  - Riyade's five files are byte-identical on both.
+  - Every line Riyade added that names it or "coming soon" (231) is present on both. That includes the shared
+    files: routes, i18n, Home, Products and the footer.
+- **Verified locally** (real API, MySQL 8, built frontends, Chromium; fictional data, codes never printed):
+  - the 12 journeys, 41/41;
+  - the console in EN/FR/AR, light and dark, 320/393/1280: 103/103; the app: 57/57;
+  - the edge rehearsed through the real `test-sites.sh`: refusals, install, rollback, off, a broken release refused;
+  - migration rehearsal 0098 → 0102 with a backup, verification and the restore into a new schema: PASSED;
+  - the code rollback: `644f4f5` runs on the 0102 schema (ready, 0 pending, 0 missing).
+- **CI on the final commits:** backend `39379592884` 6/6; mobile `39379598714` 3/3; console `39380223602`;
+  integration `39380702740` green.
+- **WebKit** (Playwright on a GitHub runner, not a physical iPhone): `ops/verify-provisioning` `6c0e971`, run
+  `39380843386`, green:
+  - the 12 journeys 41/41, the console 103/103, the app 57/57;
+  - evidence on `ci-evidence` under `evidence/provisioning/f5da650-d1016d8-da5c73c-39380843386`: 122 screenshots,
+    none showing a setup code;
+  - the console log lists one refused stylesheet per combination: the style Playwright adds for screenshots, which
+    the page's policy refuses. The console injects none.
+- **Not done:**
+  - **nothing deployed:** SSH to the server is limited to the owner's address; the owner's local session runs
+    `docs/100` §16;
+  - no DNS change (instructions in §16.9), no purchase, no Meta, SMTP, billing or public-site change; the company
+    sender +22231229945 is neither used nor configured;
+  - a physical iPhone; the WhatsApp-dependent tests (real codes, consent, deletion, notices, invitations by WhatsApp).
+- **Clean-up:** the scratch MySQL databases dropped and its server stopped; the API, static servers and the
+  rehearsal stack stopped and removed; the scratch secret files deleted; the scratch worktrees removed.
