@@ -12840,3 +12840,45 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Not done:** **nothing deployed** (no server access); no DNS, tsxmr.com, email, WhatsApp or payment change; no
   purchase; `+22231229945` unused.
 - **Next:** the PC-linked session runs `docs/103` §5. The handoff is READY_FOR_HANDOFF, owner NONE.
+
+## 2026-10-24 — The browser ERP's visual-quality pass (D220): code complete, verified, not deployed (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9. It worked in parallel and code-only, on its
+  own branch and worktree, while the D219 session held the handoff. It claimed the handoff only to record this phase
+  (17:38Z, documentation only), and released it.
+- **Brief (owner, iPhone review of erp-test):** light-mode hierarchy; a light/dark toggle on every authentication
+  route; authentication surfaces; registration in steps; spacing and empty space; no decoration and no new motion.
+- **Branch:** erp-mobile `visual/light-auth-spacing`, from `da5c73c`:
+  - `ef4c279` design system;
+  - `48ab55a` authentication and registration;
+  - `800b949` **merge of `browser-input-setup-code` `c8c5c0d`** (conflicts in LegalPages and CreateMemberSheet
+    resolved; no rewrite);
+  - `9ddb8be` localised toggles, SearchInput at 320, a localised 404;
+  - `234d030` theme boot from same-origin files (CSP);
+  - **`9e0b38b`** the switch's knob in Arabic.
+- **Root causes found by the checks, fixed:**
+  - sign-in centred without scrolling, logo clipped on phones;
+  - Team's description directly on its button;
+  - six sheets inset twice;
+  - `Toggle` defaulting to English "On"/"Off" (13 screens);
+  - RNW placing a switch's knob with a logical `start` against the page's CSS direction, so in Arabic it sat outside
+    its track, over the words, and painted in RNW's teal;
+  - web inputs not shrinking: the password eye in Field and the Scan button in SearchInput were pushed past a 320 px
+    screen;
+  - inputs under 16px, which make Safari zoom;
+  - Expo's default 404 page: English only, 23 px too wide, linking to `/_sitemap`;
+  - no-flash theme script inline → same-origin file (`script-src 'self'`).
+- **Decision D220** (`docs/21`): a first visit follows the device's appearance; a choice is stored; dark mode is
+  unchanged. The record is `docs/104`.
+- **Verified on `9e0b38b`:**
+  - security CI `40116896564` green;
+  - `ops/visual-check` `40116908073` green: WebKit 818/818 and Chromium 818/818; D219's verifier copied unchanged,
+    journey 21/21 and input 245/245 in each browser; Expo Doctor 20/21 with only the documented finding; businesses
+    3 → 3 (one POST, nothing created);
+  - local: Chromium 818/818, D219 21/21 and 245/245; tsc; lint 28 warnings; pure 123 files; Jest 364/364.
+- **Evidence:** erp-mobile `ops/visual-check` `761ded3` `evidence/visual-pass/` — the note, the summary and 19
+  labelled before/after screenshots.
+- **Not done:** nothing deployed; no server, database, DNS, tsxmr.com, email, WhatsApp, payment or activation change;
+  `+22231229945` unused; no test data touched (all tests ran on disposable local and runner databases).
+- **Next:** the PC-linked session runs `docs/103` §5 with app **`9e0b38b`** (a new release build), adds `docs/104` §7 to
+  the physical-iPhone checklist. Handoff READY_FOR_HANDOFF, owner NONE.

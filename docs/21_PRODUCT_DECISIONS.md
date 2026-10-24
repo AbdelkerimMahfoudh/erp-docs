@@ -8685,3 +8685,34 @@ The deployment record is `docs/95`, last section.
 - the administrator's "Approve" action: approval stays a separate, audited decision.
 
 The record and runbook are `docs/103`.
+
+### ✅ DECIDED BY THE OWNER (2026-10-24), IMPLEMENTED (branch, CI), NOT DEPLOYED — D220: the browser ERP's visual pass — light-mode hierarchy, one authentication header with light/dark, registration in three steps, one spacing rule
+
+**The owner's brief (physical-iPhone review of erp-test, 2026-10-24):** dark mode is satisfactory. Light mode had
+little separation; the authentication pages had a weak hierarchy; registration inputs looked oversized and the form was
+long and repetitive; some text touched the card, button or section below it; some routes had space caused by layout,
+not content. The goal: a polished operational product, not a marketing page, with no decorative motion.
+
+**Decided:**
+- **Theme:** a first visit follows the device's appearance. A choice is stored and wins. This replaces "light for
+  everybody", which reflected no user's preference. One implementation (`ThemeProvider`); the sun/moon on every
+  authentication route is a second door to it.
+- **Light mode** separates by a faintly tinted canvas, a firmer card edge and the faintest card lift, never by colour
+  on every surface. Purple stays the interaction accent. Supporting text meets AA. Dark mode is unchanged.
+- **Authentication:** one compact Dukan ERP header (mark, back, light/dark) on every route before sign-in. One centred
+  column of at most 480 on a desktop. Sign-in's form on one surface, the other ways in set apart.
+- **Registration:** three steps over the unchanged single submission. Nothing is sent or stored between steps; the
+  browser's Back is a step back; leaving a typed first step asks.
+- **Spacing:** a page's description sits 16 from the action it introduces (`PageIntro`). A sheet's content is inset
+  once. Operational pages stop at 760 on a desktop. Short lists and empty states keep their natural space; nothing
+  decorative fills it.
+- **Words:** a switch says its state in the reader's language. An unknown address has the app's own page (EN/FR/AR,
+  one way on, no route list).
+- **CSP-ready:** the theme boot is a same-origin file, never inline. A strict policy needs `script-src 'self'` plus
+  the hash of Expo's own hydration flag (`docs/104` §3.1). Adding that policy at the edge is required before any public
+  browser deployment; it is not needed for the password-protected test site.
+
+**Not changed:** business rules, the backend, the registration contract, public activation (closed), consent rules,
+employee invitations, D219.
+
+The record and integration steps are `docs/104`.

@@ -1,17 +1,49 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9) — **documentation only, briefly**
-started_at_utc: 2026-10-24T17:38Z
-claimed_from: READY_FOR_HANDOFF (owner NONE) at `24ae78d`, released 15:02Z by session_01KgTdKL8Zio1HYmBzKGBuAY; that
-handoff was complete.
-active_phase: record the visual-quality pass (D220, docs/104) that this session built in parallel, code only, on
-erp-mobile `visual/light-auth-spacing`; then release. No code, server, database or deployment is touched by this claim.
-heads_at_claim: erp-mobile `visual/light-auth-spacing` `9e0b38b` (contains `browser-input-setup-code` `c8c5c0d`);
-erp-control-web `browser-input-setup-code` `2ebe9c5`; erp-backend `f5da650` (unchanged); erp-docs `master` `24ae78d`.
-next_action: write docs/104, D220 in docs/21 and the session log; then READY_FOR_HANDOFF, owner NONE.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
+released_at_utc: 2026-10-24T18:27Z
+this_claim: 17:38Z–18:27Z from READY_FOR_HANDOFF (owner NONE) at `24ae78d`, documentation only: it recorded the
+visual-quality pass (D220, `docs/104`), built in parallel and code-only. **Complete**: every tree touched is clean and
+level with its remote.
+decision_numbers: this claim used **D220**. The next free number is **D221**.
 
-Previous state (unchanged below until this claim is released): READY_FOR_HANDOFF, owner NONE.
+## Visual-quality pass (D220) — code complete, verified, NOT deployed (2026-10-24, CLAUDE, cloud)
+
+The record, integration steps, CSP note and physical-iPhone checks are `docs/104`. **Nothing was deployed; no server,
+database, DNS, tsxmr.com, email, WhatsApp, payment or activation setting was touched.**
+
+**HEADs — clean and level with their remotes:**
+
+| Repository | Branch | HEAD | Note |
+| --- | --- | --- | --- |
+| `erp-mobile` | `visual/light-auth-spacing` | **`9e0b38b`** | **the app to deploy**; contains `browser-input-setup-code` `c8c5c0d` (merge `800b949`) |
+| `erp-mobile` | `browser-input-setup-code` | `c8c5c0d` | unchanged; fast-forwards to `9e0b38b` |
+| `erp-mobile` | `ops/visual-check` | `761ded3` | tooling + evidence (`evidence/visual-pass/`) |
+| `erp-control-web`, `erp-backend` | all | unchanged | console `2ebe9c5`; backend `f5da650` |
+
+**Verified on `9e0b38b`:**
+- security CI `40116896564`: green;
+- visual-check `40116908073`: green —
+  - WebKit 818/818, Chromium 818/818;
+  - D219's own verifier copied in unchanged: journey 21/21 and input 245/245 in each browser;
+  - Expo Doctor 20/21, with only the documented patch-version finding (docs/75 §15.6);
+  - businesses 3 → 3;
+- local: tsc, lint 28 warnings, pure 123 files, Jest 364/364, Chromium 818/818.
+
+**Changes to the next action below:**
+- The app to deploy is **`9e0b38b`**, not `c8c5c0d`.
+- Its release build does not exist yet. Retarget erp-control-web `ops/build-test-console` to console `2ebe9c5` + app
+  `9e0b38b` (or build locally), then package as `docs/103` §5 says. The export now also carries
+  `theme-boot.js` and `theme-boot.css`; `web-test-release.mjs` copies them with the pages.
+- Add the D220 items of `docs/104` §7 to the owner's physical-iPhone checklist.
+
+**Open, not blocking the test deployment:**
+- a strict CSP at the edge before any **public** browser deployment (`docs/104` §3.1 gives the policy and Expo's hash);
+- the Expo patch versions (docs/75 §15.6).
+
+---
 
 ## Browser input, focus ring and the Owner's setup code (D219) — code complete, verified, NOT deployed (2026-10-24, CLAUDE, cloud)
 
@@ -48,12 +80,13 @@ The record and the deployment runbook are `docs/103`. **This session had no serv
 **Next exact action — the PC-linked session, in order (`docs/103` §5):**
 1. pull `erp-docs`, and claim the handoff;
 2. run `deploy/reconcile-readonly.sh` and compare it with §5.1 — stop on any difference;
-3. fetch the release build `evidence/test-console/2ebe9c5-c8c5c0d-40104218531/` from `ci-evidence`, check the
-   checksums, and package from checkouts at `2ebe9c5` and `c8c5c0d`;
+3. **(D220: the app is now `9e0b38b`.)** Build the release for console `2ebe9c5` + app `9e0b38b`
+   (`ops/build-test-console`), fetch it from `ci-evidence`, check the checksums, and package from checkouts at `2ebe9c5`
+   and `9e0b38b`. The earlier build `2ebe9c5-c8c5c0d-40104218531` lacks the visual pass;
 4. `test-sites.sh install app` and `install console`;
 5. smoke 16/16 with each origin, 401 without the password, readiness, image `f5da650`, `ops/verify-production`, and
    §5.1 again with the same counts;
-6. the owner's physical-iPhone checklist (§5.9);
+6. the owner's physical-iPhone checklist (§5.9, and `docs/104` §7);
 7. record in `docs/103` §5, the handoff and the session log.
 
 No backend deployment and no backup gate apply: the API and database are unchanged. Rollback: `test-sites.sh rollback
@@ -64,7 +97,7 @@ app 20261020T110732Z` and `rollback console 20261020T110759Z`.
 - the Storage Box and an off-site restore proof, mandatory before outside testers or real data;
 - the physical-iPhone retest;
 - WEB-F01;
-- the Arabic store switch showing "On".
+- ~~the Arabic store switch showing "On"~~: fixed by D220 (`9e0b38b`).
 
 **Not changed:**
 - public tsxmr.com, DNS, the API, migrations and secrets;
