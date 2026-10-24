@@ -1,13 +1,17 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-released_by: CLAUDE (cloud; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY)
-released_at_utc: 2026-10-24T15:02Z
-this_claim: started 2026-10-24T09:45Z by an owner-authorised takeover from the previous account's interrupted local
-session (its account became unavailable; abandoned, no concurrent work); phase re-claimed 13:15Z by the owner's
-explicit override. **Complete**: every tree this phase touched is clean and level with its remote.
-decision_numbers: this phase used **D219**. The next free number is **D220**.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9) — **documentation only, briefly**
+started_at_utc: 2026-10-24T17:38Z
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `24ae78d`, released 15:02Z by session_01KgTdKL8Zio1HYmBzKGBuAY; that
+handoff was complete.
+active_phase: record the visual-quality pass (D220, docs/104) that this session built in parallel, code only, on
+erp-mobile `visual/light-auth-spacing`; then release. No code, server, database or deployment is touched by this claim.
+heads_at_claim: erp-mobile `visual/light-auth-spacing` `9e0b38b` (contains `browser-input-setup-code` `c8c5c0d`);
+erp-control-web `browser-input-setup-code` `2ebe9c5`; erp-backend `f5da650` (unchanged); erp-docs `master` `24ae78d`.
+next_action: write docs/104, D220 in docs/21 and the session log; then READY_FOR_HANDOFF, owner NONE.
+
+Previous state (unchanged below until this claim is released): READY_FOR_HANDOFF, owner NONE.
 
 ## Browser input, focus ring and the Owner's setup code (D219) — code complete, verified, NOT deployed (2026-10-24, CLAUDE, cloud)
 
