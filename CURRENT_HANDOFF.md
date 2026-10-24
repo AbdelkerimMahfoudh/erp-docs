@@ -1,6 +1,29 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
+Owner: CLAUDE (cloud session linked to the owner's PC; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY)
+started_at_utc: 2026-10-24T09:45Z (owner-authorised takeover; this claim written before any change)
+taken_over_from: CLAUDE (local session, the owner's PC), IN_PROGRESS since 2026-10-20T08:11Z. **Its handoff was
+interrupted**: the last record stops at §16.6, although the server shows §16.7 done (below). The rulebook's
+CLAUDE-A/CLAUDE-B labels are retired by the owner: the single active session is `CLAUDE`.
+heads_at_takeover (remote = local, all clean per the local refs): erp-backend `superadmin-provisioning` `f5da650`,
+`production-deploy` `644f4f5`; erp-mobile `superadmin-provisioning` `da5c73c`; erp-control-web
+`superadmin-provisioning` `d1016d8`, `tsx-public-site` `5aa8322`; erp-docs `master` `d7c6ce5`.
+read_only_inspection_2026-10-24T09:37Z:
+- checkout `f5da650` clean; readiness ready, 101 applied, 0 pending, 0 missing; api/db healthy, edge up, 0 restarts.
+- images: `erp-api:f5da650…` (current), `erp-api:644f4f5…` (rollback); backups on host `…015638Z`, `…085555Z`,
+  `…110554Z`.
+- gates: `CUSTOMER_ACTIVATION=closed`, email/WhatsApp disabled, CORS = dukan, erp-test, dukan-test exactly.
+- **§16.7 was done but never recorded:** `deployments.log` 11:07:35Z app release `20261020T110732Z`, 11:08:03Z console
+  release `20261020T110759Z`; both enabled; Let's Encrypt certificates to 2027-01-18; both answer 401 without the
+  password, **without `X-Robots-Tag`** (open follow-up).
+- tsxmr.com `/` 200, `/admin` 404.
+- **Platform administrators: 0; companies 0; users 0.** The console login never existed: the owner's "forgotten"
+  password is in fact a never-created administrator. Next: create it with `prisma/create-platform-admin.ts`
+  (hidden prompt), audit `admin.created`, MFA enrolment token to the owner's terminal only.
+- PHP audit (first pass): no PHP/Apache/LiteSpeed/FrankenPHP package, binary, process, container or Caddy route.
+
+Previous claim, superseded by the takeover above:
 Owner: CLAUDE (local session, the owner's PC)
 started_at_utc: 2026-10-20T08:11Z (this claim written before any change)
 claimed_from: READY_FOR_HANDOFF (owner NONE) at `95dbf90`; that handoff was complete.
