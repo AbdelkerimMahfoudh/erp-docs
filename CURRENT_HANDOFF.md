@@ -1,8 +1,22 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
-Owner: CLAUDE (cloud session linked to the owner's PC; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY)
-started_at_utc: 2026-10-24T09:45Z (owner-authorised takeover; this claim written before any change)
+Owner: CLAUDE (cloud session; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY) — **no server access in this
+phase**: SSH to tsxmr-app-01 is limited to the owner's address, and this session cannot type into the owner's terminal.
+started_at_utc: 2026-10-24T09:45Z; phase re-claimed 2026-10-24T13:15Z by the owner's explicit override (the previous
+account's session is permanently unavailable, its claim abandoned; no concurrent work exists).
+active_phase: code only — the Owner setup-code / access-state wording correction (binding clarification of
+2026-10-24 13:11Z, below), plus the browser-input and focus-ring corrections once the owner restates them. Code,
+tests, commits and a deployment runbook for the PC-linked session; **nothing deployed by this session**.
+binding_clarification_2026-10-24:
+- redeeming a valid platform-issued Owner setup code activates the Owner at once; there is no second approval step;
+- approval and commercial entitlement stay separate; a test business with an active no-payment grant, and a real
+  business with an active subscription or grant, enter the ERP at once;
+- a business without an entitlement is shown an accurate subscription/access-required state, never "waiting for
+  approval"; no paid subscription is created by redeeming a code; employee invitations and WhatsApp consent unchanged.
+server_state_note: the owner reports a platform administrator, a test business, its Owner, store, grant and data now
+exist on production (created after the 09:37Z inspection below). Not yet re-verified; **never delete, reset or
+recreate them**. The PC-linked session must run the read-only reconciliation in the runbook before deploying.
 taken_over_from: CLAUDE (local session, the owner's PC), IN_PROGRESS since 2026-10-20T08:11Z. **Its handoff was
 interrupted**: the last record stops at §16.6, although the server shows §16.7 done (below). The rulebook's
 CLAUDE-A/CLAUDE-B labels are retired by the owner: the single active session is `CLAUDE`.
