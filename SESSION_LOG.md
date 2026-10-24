@@ -12785,3 +12785,58 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   Reproduced and recorded, not fixed.
 - **Not done:** no preview; no DNS, Cloudflare-settings, email, backend, app, portal or database change; Riyade mobile
   PR #1, PORTAL and APP_STORE untouched.
+
+## 2026-10-24 — Takeover; the first platform administrator; browser input, focus ring and the setup code (D219): code complete, verified, not deployed (CLAUDE, cloud)
+
+- **Session:** https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY, a cloud session linked to the owner's PC.
+- **Takeover (09:45Z), owner-authorised:**
+  - `CURRENT_HANDOFF` read IN_PROGRESS under the previous account's local session (from 2026-10-20T08:11Z). That
+    account became unavailable, so the claim was abandoned, with no concurrent work.
+  - Its last record stopped at §16.6, although the server shows §16.7 done: test sites installed at 11:07–11:08Z.
+  - The owner retired the CLAUDE-A/CLAUDE-B labels: the single session is `CLAUDE`.
+  - The phase was re-claimed at 13:15Z by the owner's explicit override.
+- **Read-only inspection (09:37Z, via a script the owner ran; prints no secret):**
+  - `f5da650` clean; 101 applied, 0 pending; images `f5da650` (current) and `644f4f5` (rollback); 0 restarts;
+  - gates closed; test sites live, 401 without the password, no `X-Robots-Tag`; certificates to 2027-01-18;
+  - tsxmr.com `/admin` 404;
+  - PHP: none anywhere; updates healthy;
+  - **platform administrators 0**: the "forgotten" password was a never-created administrator.
+- **The administrator (owner at the terminal; this session cannot type into a terminal):**
+  - `erp-admin-create.sh` ran `prisma/create-platform-admin.ts` with a hidden prompt, twice, ≥ 12 characters:
+    "✓ Created", exactly one administrator.
+  - Its in-container audit step failed: the app folder is read-only for the container's user. The script stopped
+    before MFA.
+  - `erp-admin-mfa.sh` writes `admin.created` through Prisma from stdin (no file), then issues the enrolment token to
+    the owner's terminal only.
+  - The console correctly stopped a password-only sign-in at the enrolment-token screen. The owner reports enrolment
+    and a test business made since; not re-verified by this session.
+  - The server address appeared once in the chat, in ssh's closing line. It is recorded nowhere; `-q` is used since.
+- **D219, the owner's binding clarification:** a setup code activates the Owner; approval and entitlement are separate;
+  no business is told it is waiting for approval. Backend unchanged: `f5da650` already behaves so.
+- **Root causes, reproduced in Chromium before fixing:**
+  - **Sheet fields:** react-native-web portals a `Modal`, so a tap reached the screen behind, whose blank-space
+    `Keyboard.dismiss` blurred the field just focused. Event sequence and blur stack captured.
+  - **Double focus border:** the browser's outline on the `<input>` inside the app's border.
+  - **"Waiting for approval":** the `pending` wording, and `closedReason(undefined)` falling back to `pending`.
+- **Changes:**
+  - erp-mobile `browser-input-setup-code` `7d199a9` and `c8c5c0d`:
+    - `ModalBoundary` in all three modals;
+    - one ring via `field-chrome.tsx`: overlay, no outline, scoped autofill rule;
+    - form sheets `scroll`; web keyboard from the visual viewport; account sheet keyed reset;
+    - access wording EN/FR/AR and `unknown`;
+    - legal links wrap at 320 px.
+  - erp-control-web `browser-input-setup-code` `2ebe9c5`: portal and console "No access yet".
+  - Tooling: `ops/verify-browser-input` (new); `ops/build-test-console` retargeted.
+- **Verified:**
+  - local: app tsc, lint 28 warnings (same as before), pure 121 files, rendered 360/360; console 612/612 and preview
+    build;
+  - CI: mobile `40099913947`, `40104214743`; console `40100086065`;
+  - `ops/verify-browser-input` run `40104216381`, green: backend unit and real-MySQL gates; Chromium and WebKit each
+    with journey 21/21 and matrix 245/245;
+  - the matrix fails on `da5c73c`;
+  - release build `40104218531`, with checksums verified here;
+  - harness corrections on the way: TOTP replay across scripts, hidden navigator screens, select-all on Linux WebKit,
+    and the Owner's first store pick. Each was a test-harness fault, not an app fault.
+- **Not done:** **nothing deployed** (no server access); no DNS, tsxmr.com, email, WhatsApp or payment change; no
+  purchase; `+22231229945` unused.
+- **Next:** the PC-linked session runs `docs/103` §5. The handoff is READY_FOR_HANDOFF, owner NONE.

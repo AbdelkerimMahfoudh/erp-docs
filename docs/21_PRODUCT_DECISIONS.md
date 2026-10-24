@@ -8652,3 +8652,36 @@ language, `<html lang dir>` shows the wrong language for about two frames while 
 lay out left-to-right. This is `docs/83` WEB-F01.
 
 The deployment record is `docs/95`, last section.
+
+---
+
+### ✅ DECIDED BY THE OWNER (2026-10-24), IMPLEMENTED (branches, CI green), NOT DEPLOYED — D219: a setup code activates the Owner; approval and entitlement are separate; no business is told it is waiting for approval
+
+**The owner's binding clarification (2026-10-24):**
+- Redeeming a valid platform-issued Owner setup code activates the Owner immediately. There is no second
+  platform-approval step.
+- Approval and commercial entitlement remain separate.
+- A test business with an active, audited no-payment grant enters the ERP immediately. So does a real business with an
+  active subscription or grant.
+- A business without an entitlement is shown an accurate access-required state, or read-only, never "waiting for
+  approval".
+- Redeeming a code never creates a paid subscription.
+- Employee invitations, employee number verification and WhatsApp consent are unchanged.
+
+**What it changed:**
+- **The backend: nothing.** `f5da650` already behaves this way:
+  - the code sets the password and is spent once;
+  - no subscription, period or payment is written;
+  - the grant sets `activated` + complimentary, which opens the ERP at once.
+- **The app (EN/FR/AR):** `pending` reads "No active access yet", with a body saying the account is ready but the
+  business has no active access yet. The App Store rule stands: the app names no subscription, price or way to buy.
+  - A missing or unknown state reads "Access could not be read", never `pending`. Before, a failed read was shown as
+    pending.
+- **The portal and the console:** `pending` and `pending_activation` read "No access yet". The portal's explanation
+  names the missing subscription or access grant.
+
+**Not changed:**
+- the public sign-up confirmation: registration is closed, and tsxmr.com is out of scope;
+- the administrator's "Approve" action: approval stays a separate, audited decision.
+
+The record and runbook are `docs/103`.

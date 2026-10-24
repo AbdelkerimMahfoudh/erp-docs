@@ -1,22 +1,80 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud session; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY) — **no server access in this
-phase**: SSH to tsxmr-app-01 is limited to the owner's address, and this session cannot type into the owner's terminal.
-started_at_utc: 2026-10-24T09:45Z; phase re-claimed 2026-10-24T13:15Z by the owner's explicit override (the previous
-account's session is permanently unavailable, its claim abandoned; no concurrent work exists).
-active_phase: code only — the Owner setup-code / access-state wording correction (binding clarification of
-2026-10-24 13:11Z, below), plus the browser-input and focus-ring corrections once the owner restates them. Code,
-tests, commits and a deployment runbook for the PC-linked session; **nothing deployed by this session**.
-binding_clarification_2026-10-24:
-- redeeming a valid platform-issued Owner setup code activates the Owner at once; there is no second approval step;
-- approval and commercial entitlement stay separate; a test business with an active no-payment grant, and a real
-  business with an active subscription or grant, enter the ERP at once;
-- a business without an entitlement is shown an accurate subscription/access-required state, never "waiting for
-  approval"; no paid subscription is created by redeeming a code; employee invitations and WhatsApp consent unchanged.
-server_state_note: the owner reports a platform administrator, a test business, its Owner, store, grant and data now
-exist on production (created after the 09:37Z inspection below). Not yet re-verified; **never delete, reset or
-recreate them**. The PC-linked session must run the read-only reconciliation in the runbook before deploying.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (cloud; https://claude.ai/code/session_01KgTdKL8Zio1HYmBzKGBuAY)
+released_at_utc: 2026-10-24T15:02Z
+this_claim: started 2026-10-24T09:45Z by an owner-authorised takeover from the previous account's interrupted local
+session (its account became unavailable; abandoned, no concurrent work); phase re-claimed 13:15Z by the owner's
+explicit override. **Complete**: every tree this phase touched is clean and level with its remote.
+decision_numbers: this phase used **D219**. The next free number is **D220**.
+
+## Browser input, focus ring and the Owner's setup code (D219) — code complete, verified, NOT deployed (2026-10-24, CLAUDE, cloud)
+
+The record and the deployment runbook are `docs/103`. **This session had no server access and deployed nothing.**
+
+**HEADs — clean and level with their remotes:**
+
+| Repository | Branch | HEAD | Note |
+| --- | --- | --- | --- |
+| `erp-mobile` | `browser-input-setup-code` | **`c8c5c0d`** | from `superadmin-provisioning` `da5c73c`; CI `40104214743` green |
+| `erp-control-web` | `browser-input-setup-code` | **`2ebe9c5`** | from `superadmin-provisioning` `d1016d8`; CI `40100086065` green (unit 612, three e2e surfaces) |
+| `erp-control-web` | `ops/verify-browser-input` | `657ced4` | new tooling branch: run `40104216381` green |
+| `erp-control-web` | `ops/build-test-console` | (target: console `2ebe9c5`, app `c8c5c0d`) | release build run `40104218531` green |
+| `erp-backend` | all | unchanged | production `f5da650`, rollback `644f4f5` |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+**Verification:**
+- **Local:**
+  - app: tsc 0 errors; lint 28 warnings, the same as before; 121 pure test files; 360/360 rendered;
+  - web export OK; Expo Doctor 19/21 (network-only checks);
+  - console: typecheck, 612/612, preview build.
+- **`ops/verify-browser-input` run `40104216381`:**
+  - the backend's unit suite and real-MySQL gates;
+  - Chromium and WebKit each: access journey 21/21 and input matrix 245/245 (18 combinations of width × language ×
+    theme, validation saved for real).
+- The same input matrix fails on the app before the fix (`da5c73c`) and passes after it.
+- WebKit is automation on Linux, not a physical iPhone.
+
+**Production state (last verified read-only 2026-10-24T09:37Z, below):**
+- unchanged by this phase;
+- the owner reports a platform administrator with MFA, a test business with its Owner, store, grant and data created
+  after that inspection. **Not yet re-verified; never delete, reset or recreate them.**
+
+**Next exact action — the PC-linked session, in order (`docs/103` §5):**
+1. pull `erp-docs`, and claim the handoff;
+2. run `deploy/reconcile-readonly.sh` and compare it with §5.1 — stop on any difference;
+3. fetch the release build `evidence/test-console/2ebe9c5-c8c5c0d-40104218531/` from `ci-evidence`, check the
+   checksums, and package from checkouts at `2ebe9c5` and `c8c5c0d`;
+4. `test-sites.sh install app` and `install console`;
+5. smoke 16/16 with each origin, 401 without the password, readiness, image `f5da650`, `ops/verify-production`, and
+   §5.1 again with the same counts;
+6. the owner's physical-iPhone checklist (§5.9);
+7. record in `docs/103` §5, the handoff and the session log.
+
+No backend deployment and no backup gate apply: the API and database are unchanged. Rollback: `test-sites.sh rollback
+app 20261020T110732Z` and `rollback console 20261020T110759Z`.
+
+**Open, not blocking this deployment:**
+- `X-Robots-Tag` on the unauthenticated 401: root cause and fix in `docs/103` §6, needing a separate approval;
+- the Storage Box and an off-site restore proof, mandatory before outside testers or real data;
+- the physical-iPhone retest;
+- WEB-F01;
+- the Arabic store switch showing "On".
+
+**Not changed:**
+- public tsxmr.com, DNS, the API, migrations and secrets;
+- `CUSTOMER_ACTIVATION=closed`; email and WhatsApp disabled; nothing purchased;
+- `+22231229945` neither used nor configured.
+
+**Owner's PC, `C:\wamp64\www\ERP\local-scripts`:** `erp-inspect.sh`, `erp-admin-create.sh` and `erp-admin-mfa.sh`
+from this morning's administrator work, and `inspect-report.txt`. None holds a secret; delete them when no longer
+useful. The administrator was created this morning (audit `admin.created` written by `erp-admin-mfa.sh` if it ran).
+
+---
+
+## Takeover and production inspection (2026-10-24 morning, CLAUDE, cloud)
+
 taken_over_from: CLAUDE (local session, the owner's PC), IN_PROGRESS since 2026-10-20T08:11Z. **Its handoff was
 interrupted**: the last record stops at §16.6, although the server shows §16.7 done (below). The rulebook's
 CLAUDE-A/CLAUDE-B labels are retired by the owner: the single active session is `CLAUDE`.
@@ -32,12 +90,15 @@ read_only_inspection_2026-10-24T09:37Z:
   release `20261020T110759Z`; both enabled; Let's Encrypt certificates to 2027-01-18; both answer 401 without the
   password, **without `X-Robots-Tag`** (open follow-up).
 - tsxmr.com `/` 200, `/admin` 404.
-- **Platform administrators: 0; companies 0; users 0.** The console login never existed: the owner's "forgotten"
-  password is in fact a never-created administrator. Next: create it with `prisma/create-platform-admin.ts`
-  (hidden prompt), audit `admin.created`, MFA enrolment token to the owner's terminal only.
+- **Platform administrators: 0; companies 0; users 0** at 09:37Z. The console login never existed: the owner's
+  "forgotten" password was a never-created administrator. Done afterwards with the owner at the terminal: created with
+  `prisma/create-platform-admin.ts` (hidden prompt, twice), then `erp-admin-mfa.sh` for the audit `admin.created` and
+  the MFA enrolment token (owner's terminal only). The owner reports MFA enrolled and the test business made since —
+  re-verify with `deploy/reconcile-readonly.sh`.
 - PHP audit (first pass): no PHP/Apache/LiteSpeed/FrankenPHP package, binary, process, container or Caddy route.
 
-Previous claim, superseded by the takeover above:
+Previous claim, superseded by the takeover above — **history only: its next_action below was completed on the server
+(§16.7) and is not an instruction**:
 Owner: CLAUDE (local session, the owner's PC)
 started_at_utc: 2026-10-20T08:11Z (this claim written before any change)
 claimed_from: READY_FOR_HANDOFF (owner NONE) at `95dbf90`; that handoff was complete.
