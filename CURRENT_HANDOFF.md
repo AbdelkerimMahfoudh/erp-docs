@@ -12,7 +12,14 @@ active_phase: integrate D220 into erp-mobile `browser-input-setup-code` (fast-fo
 install the two **protected test sites only** (erp-test app `9e0b38b`, dukan-test console `2ebe9c5`) per `docs/103` §5.
 No API deployment, migration, backup, account, credential, DNS, Cloudflare, tsxmr.com, email, WhatsApp or activation
 change.
-next_action: fast-forward `browser-input-setup-code` to `9e0b38b`, then the combined gates.
+checkpoint_2026-10-25T08:20Z:
+- erp-mobile `browser-input-setup-code` fast-forwarded `c8c5c0d..9e0b38b` and pushed (no force); local gates green
+  (details at release).
+- erp-control-web `ops/build-test-console` `26b62d2` (target app `9e0b38b`, console `2ebe9c5`); build run
+  `40174230768` green; evidence `2ebe9c5-9e0b38b-40174230768` checksums verified; both releases packaged on the PC.
+- **Blocker for the server steps:** SSH to tsxmr-app-01 times out. The PC's public IPv4 is no longer the firewall's
+  trusted address; the owner must update the Hetzner firewall rule. Nothing on the server has been touched.
+next_action: after the owner updates the firewall, run `deploy/reconcile-readonly.sh` (`docs/103` §5.1).
 
 Previous state: READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
