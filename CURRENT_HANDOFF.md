@@ -1,24 +1,89 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
-Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
-started_at_utc: 2026-10-25T09:56Z
-claimed_from: READY_FOR_HANDOFF (owner NONE) at `3a71aa4`, released 09:30Z by the local deployment session; that
-handoff was complete (every tree clean and level).
-heads_at_claim (remote = local, all clean): erp-backend `superadmin-provisioning` `f5da650` (production),
-`production-deploy` `644f4f5` (rollback); erp-mobile `browser-input-setup-code` `9e0b38b` (= `visual/light-auth-spacing`,
-on erp-test); erp-control-web `browser-input-setup-code` `2ebe9c5` (on dukan-test), `tsx-public-site` `5aa8322`
-(tsxmr.com); erp-docs `master` `3a71aa4`.
-active_phase: **promoter codes and user-invitation attribution (owner's brief, 2026-10-25)** — a promoter model with
-six-digit codes and opaque QR links managed in the superadmin console; optional promo entry in every business
-registration; ordinary user invitations; immutable acquisition attribution; one additive migration. **Feature branches
-only**: no merge to production branches, no production migration, no deployment, no DNS, no public registration, no
-messaging, no purchase. **No reward, commission or benefit of any kind.**
-branches (to be created from the integrated heads above): erp-backend, erp-mobile and erp-control-web
-`promoter-attribution`.
-next_action: read the registration, provisioning, deep-link and console code; design the schema; then implement.
+Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), holding it
+since 2026-10-25T09:56Z (claimed from READY_FOR_HANDOFF, owner NONE, at `3a71aa4`; that handoff was complete).
 
-Previous state (unchanged below until this claim is released): READY_FOR_HANDOFF, owner NONE.
+## Promoter codes, QR cards and user invitations (D221) — implemented and verified on feature branches; nothing merged, deployed or migrated (2026-10-25, CLAUDE, cloud)
+
+The full record is `docs/105`, and the decision is D221. **Production is untouched:** backend `superadmin-provisioning`
+`f5da650` and rollback `production-deploy` `644f4f5`; the test sites as recorded below (app `9e0b38b`, console
+`2ebe9c5`); tsxmr.com `5aa8322`. No DNS, server, registration, messaging or purchase change was made.
+
+**HEADs — every tree clean and level with its remote:**
+
+| Repository | Branch | HEAD | Built on |
+| --- | --- | --- | --- |
+| `erp-backend` | `promoter-attribution` | **`002e7f8`** | `superadmin-provisioning` `f5da650` (commits `5c2cd88`, `44bf0c4`, `002e7f8`) |
+| `erp-control-web` | `promoter-attribution` | **`b652181`** | `browser-input-setup-code` `2ebe9c5` (`012abcd`, `b35c6e8`, `b652181`) |
+| `erp-mobile` | `promoter-attribution` | **`02a30ad`** | `browser-input-setup-code` `9e0b38b` (`a6c2921`, `02a30ad`) |
+| `erp-control-web` | `ops/verify-promoter-attribution` | `7b5e94e` | orphan tooling branch, never merged |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+**What changed:**
+- **Migration `0103_promoter_attribution`** (additive): `promoters`, `promoter_codes`, `referral_invitations`,
+  `business_acquisitions`, with triggers and CHECKs (`docs/105` §2). It is **not applied anywhere but disposable
+  databases.**
+- **A new required production secret, `REFERRAL_KEY`**, wired through the guard, secret files, compose, both
+  preflights and `setup-secrets.sh` (`docs/105` §10, `docs/100` §17).
+- **New optional website input `VITE_APP_WEB_ORIGIN`.** `/join` is added to the portal and full builds' shell
+  rewrites.
+- **APIs:**
+  - public `platform|auth/acquisition/{code,link}` (POST);
+  - registration `promoCode` / `referralToken`;
+  - console `platform/promoters*`, `platform/acquisitions*`;
+  - user `referral-invitations*` (`docs/68` §12).
+
+**Verification:**
+- **Backend:**
+  - Jest 4,928 passed (80 env-gated skipped); the acquisition spec 34/34.
+  - Real-MySQL 0103 spec 22/22 locally and in CI's database gates, which also probe the attribution triggers.
+  - Migration rehearsal from production's schema (`f5da650`, 101 migrations): forward, the documented reverse and
+    restore all give identical schemas, and 22/22 on the rehearsed schema.
+  - CI `40202868432` on `002e7f8`: 5/6 jobs green. The **dependency audit is red** on new `body-parser` and
+    `multer` (high) advisories against the unchanged lockfile — see Open.
+- **Web:**
+  - typecheck clean; Vitest 39 files, 631 tests;
+  - Chromium e2e 169/169 locally, the new promoter pages included (EN/FR/AR × light/dark × 375/320/desktop, axe);
+  - CI `40203102363` on `b652181` **green**: full, public and portal browser checks, link and bundle audits, the
+    full-history secret scan.
+- **Mobile:**
+  - tsc clean; every pure test passes; Jest 379/379; lint 0 errors and 28 warnings (the baseline);
+  - release config, web and iOS exports and the bundle audit pass;
+  - CI `40202577957` on `02a30ad` **green**.
+- **End to end:**
+  - real API and MySQL 8.4, an administrator with MFA, the console build and the app's web export, in both browsers:
+    still running — CI run `40205588722` (the last check before release);
+  - locally in Chromium: 41/41;
+  - evidence (statuses and screenshots, no secret) in `ci-evidence` under `evidence/promoter-attribution/`.
+  **WebKit on Linux is not an iPhone.**
+- **Defects found and fixed by these checks:**
+  - the six boxes overflowed at 320 px;
+  - the card's text took dark-mode paragraph colour (contrast 1.88);
+  - the app's lookup cancelled itself;
+  - the app kept the token in the address on a first browser load;
+  - the public build's protected-areas alias let the console's module graph in (pre-existing);
+  - a token-shaped fixture flagged by gitleaks (built from bytes now, and recorded in `.gitleaksignore`).
+
+**Open / blockers for any merge (none is this session's to decide):**
+1. **Backend dependency audit:** the `body-parser` and `multer` high advisories. `multer`'s fix is
+   `@nestjs/platform-express` 12 (breaking). They need resolving, or an accepted exception in `docs/48` §7.3.
+2. **App links:** the Apple Team ID and the Android release SHA-256 are needed. Then publish the two association files
+   and add `associatedDomains` / `intentFilters` (`docs/105` §10). Until then a QR address opens the browser page.
+3. **The website's application form** (full build only) sends no WhatsApp consent version, so the server refuses its
+   registrations. This predates this phase; the app is where a business registers.
+4. **A promoter's own data-deletion request** is handled by hand. It is a gap for counsel (`docs/86` §4).
+5. **Physical checks** (`docs/24` §69): camera QR, iOS/Android app links, the native share sheet and WhatsApp through
+   it, real-device RTL, printing the card.
+
+**Next exact action (this session):** record run `40205588722` and release. **Then:** the owner reviews D221 and `docs/105`, then decides:
+1. the dependency-audit resolution (item 1);
+2. the merge of the three `promoter-attribution` branches into the integration line;
+3. the deployment, per `docs/100` §17: `REFERRAL_KEY`, then a backup, then 0103, then the portal rebuild;
+4. the app-link identifiers.
+Nothing should be merged, migrated or deployed before that decision.
+
+Previous state (the D219 + D220 deployment, kept below for reference).
 
 ## D219 + D220 on the protected test sites — deployed and checked live; the iPhone review is the owner's (2026-10-25, CLAUDE, local)
 
