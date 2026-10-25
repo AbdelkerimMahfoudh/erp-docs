@@ -12882,3 +12882,62 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   `+22231229945` unused; no test data touched (all tests ran on disposable local and runner databases).
 - **Next:** the PC-linked session runs `docs/103` §5 with app **`9e0b38b`** (a new release build), adds `docs/104` §7 to
   the physical-iPhone checklist. Handoff READY_FOR_HANDOFF, owner NONE.
+
+## 2026-10-25 — D219 + D220 deployed to the protected test sites (erp-test, dukan-test) and checked live (CLAUDE, local)
+
+- **Session:** the local deployment session on the owner's PC (Claude Code desktop).
+- **Claim:**
+  - 07:47Z, from READY_FOR_HANDOFF (owner NONE) at `63b5175`, complete.
+  - Every expected HEAD matched: mobile `browser-input-setup-code` `c8c5c0d`, `visual/light-auth-spacing` `9e0b38b`;
+    console `2ebe9c5`; docs `63b5175`.
+- **Merge:**
+  - `git merge --ff-only origin/visual/light-auth-spacing` on `browser-input-setup-code` gave exactly `9e0b38b`;
+  - pushed with no force; mobile `master` untouched.
+- **Gates on `9e0b38b`:**
+  - **Local:** tsc clean; lint 0 errors, 28 warnings; Jest 364/364; release config PASS; secret scan clean; parity by
+    type; Expo Doctor 20/21 with the documented patch-version finding only.
+  - **Pure tests:** 119/123 on Windows (path and CRLF artifacts) and 123/123 on CI.
+  - **CI:** security `40175357685` (pushed branch) and `40116896564`; visual-check `40116908073` (818/818 ×2).
+- **Build:**
+  - `ops/build-test-console` `26b62d2` (console `2ebe9c5` + app `9e0b38b`); run `40174230768` green; checksums verified;
+  - packaged on the PC: app 124 files, console 23 files;
+  - bundle audit clean: no secret, map, or development API. The localhost fallbacks cannot be reached, and jsdelivr is
+    zxing's known loader, already in earlier builds.
+- **Server:**
+  - **SSH:** it first timed out (the PC's IPv4 had changed). The owner replaced the Hetzner firewall rule's SSH source
+    via Claude in Chrome, on their approval; only that rule changed.
+  - **§5.1:** matched, except the test business's access: the owner's own `subscription.approve` (period to
+    2026-12-11, 0 payments), not a grant. The owner confirmed it as theirs; it was left unchanged.
+  - **First app install:** refused at validation (mode-700 upload from Windows scp), so nothing was served. Its copy was
+    removed, the upload was made readable, and it was re-installed.
+  - **Installed:** app `20261025T084923Z` (previous `20261020T110732Z`), console `20261025T084934Z` (previous
+    `20261020T110759Z`).
+  - **After:** smoke 16/16 ×2; readiness 101/0/0; image `f5da650`, the API not restarted; §5.1 counts identical;
+    401, TLS and exact CORS OK; tsxmr.com unchanged.
+- **Live:**
+  - **Signed in**, in the owner's signed-in Chrome profile:
+    - sheet typing in Add team member and Add an account; one ring; the sheets scroll;
+    - Works here / Y travaille / يعمل هنا, with the Arabic knob inside its track and clear of the label;
+    - the theme kept across reloads;
+    - the localised 404 with no sitemap link;
+    - store, stock and money screens readable.
+  - **Signed out**, on the exact release files served locally at 320 and 640 px:
+    - 72/72 route × language × theme combinations with no overflow;
+    - the toggle on every authentication route; no light flash;
+    - the corrected setup-code wording;
+    - registration values kept across steps and Back, with zero calls between steps.
+  - dukan-test: D219 wording present in EN/FR/AR.
+- **Not done:**
+  - no live final registration POST (proven by CI and the server's refusal);
+  - no live 320 px on signed-in screens (CI);
+  - no CSP added (by instruction);
+  - no package update, native build, API deployment, migration, account or credential change;
+  - no DNS, Cloudflare, tsxmr.com, email, WhatsApp or activation change.
+- **Open:**
+  - `X-Robots-Tag` on the 401;
+  - a CSP before any public deployment (`docs/104` §3.1);
+  - `/_sitemap` in the release;
+  - server leftovers in `/tmp` and home (no secret);
+  - the Storage Box;
+  - WEB-F01.
+- **Next:** the owner's physical-iPhone review (`docs/103` §5.9, `docs/104` §7). Handoff READY_FOR_HANDOFF, owner NONE.

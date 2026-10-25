@@ -1,17 +1,86 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local deployment session, the owner's PC)
-started_at_utc: 2026-10-25T07:47Z (this claim written before any change)
-claimed_from: READY_FOR_HANDOFF (owner NONE) at `63b5175`; that handoff was complete.
-heads_at_claim (remote = local where checked out; all trees clean): erp-mobile `browser-input-setup-code` `c8c5c0d`,
-`visual/light-auth-spacing` `9e0b38b`, `ops/visual-check` `761ded3`, `superadmin-provisioning` `da5c73c`;
-erp-control-web `browser-input-setup-code` `2ebe9c5`, `ops/build-test-console` `67a3331`, `tsx-public-site` `5aa8322`;
-erp-backend `superadmin-provisioning` `f5da650`, `production-deploy` `644f4f5`; erp-docs `master` `63b5175`.
-active_phase: integrate D220 into erp-mobile `browser-input-setup-code` (fast-forward to `9e0b38b`), verify, and
-install the two **protected test sites only** (erp-test app `9e0b38b`, dukan-test console `2ebe9c5`) per `docs/103` §5.
-No API deployment, migration, backup, account, credential, DNS, Cloudflare, tsxmr.com, email, WhatsApp or activation
-change.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_by: CLAUDE (local deployment session, the owner's PC)
+released_at_utc: 2026-10-25T09:30Z
+this_claim: 07:47Z–09:30Z from READY_FOR_HANDOFF (owner NONE) at `63b5175`. **Complete**: every tree touched is clean
+and level with its remote.
+decision_numbers: none used. The next free number is still **D221**.
+
+## D219 + D220 on the protected test sites — deployed and checked live; the iPhone review is the owner's (2026-10-25, CLAUDE, local)
+
+The full record is `docs/103` §5.10.
+
+**HEADs — clean and level with their remotes:**
+
+| Repository | Branch | HEAD | Note |
+| --- | --- | --- | --- |
+| `erp-mobile` | `browser-input-setup-code` | **`9e0b38b`** | fast-forwarded from `c8c5c0d` (`--ff-only`, no force); = `visual/light-auth-spacing`; **deployed on erp-test** |
+| `erp-control-web` | `browser-input-setup-code` | **`2ebe9c5`** | unchanged; **deployed on dukan-test** |
+| `erp-control-web` | `ops/build-test-console` | `26b62d2` | build target console `2ebe9c5` + app `9e0b38b`; run `40174230768` green |
+| `erp-backend` | all | unchanged | production `f5da650`, rollback `644f4f5` |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+The PC's checkouts: erp-mobile is on `browser-input-setup-code` (before: `reports-export`); the others are unchanged.
+
+**Releases (`deployments.log` 08:49:26Z and 08:49:38Z):**
+
+| Site | New release | Previous (rollback) | Files | SHA-256 of the sorted checksum list |
+| --- | --- | --- | --- | --- |
+| erp-test.tsxmr.com | `20261025T084923Z` (app `9e0b38b`) | `20261020T110732Z` | 124 | `37176d11360f2584…` |
+| dukan-test.tsxmr.com | `20261025T084934Z` (console `2ebe9c5`) | `20261020T110759Z` | 23 | `40625f32b551588a…` |
+
+**Verification:**
+- **Local:** tsc clean; lint 0 errors, 28 warnings; Jest 364/364; release config PASS; secret scan clean; Expo Doctor
+  20/21, the documented patch-version finding only.
+  - Pure tests: 123/123 on Linux CI (`40175357685`), 119/123 on Windows (path and CRLF artifacts, `docs/103` §5.10).
+- **CI on `9e0b38b`:**
+  - security `40175357685`, on the pushed integration branch, and `40116896564`;
+  - visual-check `40116908073`: WebKit and Chromium each 818/818; journey 21/21 and input 245/245.
+- **Server:**
+  - smoke 16/16 with each test origin; readiness 101 applied, 0 pending, 0 missing; image `f5da650`, the API not
+    restarted;
+  - 401 without the password on both sites; TLS valid; CORS exact;
+  - the §5.1 counts are identical before and after.
+- **Live checks**, the 17 points of the owner's brief: all passed, except as noted in `docs/103` §5.10:
+  - the final registration POST was proven by CI and the server's refusal, not sent live;
+  - the signed-in screens at 320 px rest on CI, because the Chrome window was minimised.
+  - dukan-test: D219 wording present in EN/FR/AR.
+
+**Not changed:** the API, the database (no migration, no backup needed), accounts and credentials, `api.env`, DNS,
+Cloudflare, tsxmr.com (Cloudflare pages verified), email, WhatsApp, `CUSTOMER_ACTIVATION=closed`, and the test
+business and its data.
+- **Firewall:** the owner replaced the Hetzner firewall's SSH source with the PC's new IPv4, with Claude in Chrome
+  doing it on the owner's approval. Only that rule changed.
+
+**Known, open:**
+- **Test access:** the test business is entitled by the owner's own `subscription.approve` (2026-10-24, period to
+  2026-12-11, 0 payments), not by a grant. The owner confirmed it as theirs. Left as is.
+- **`X-Robots-Tag`:** the unauthenticated 401 still carries none (`docs/103` §6; a separate approval). Authenticated
+  responses do carry it.
+- **CSP:** a strict policy at the edge is required before any **public** browser deployment, with Expo's hydration
+  hash (`docs/104` §3.1). It was deliberately not added now.
+- **`/_sitemap`:** it is served by the app release (behind the password). Exclude it before a public deployment.
+- **Expo Doctor:** the patch-version finding stands (docs/75 §15.6). No package was updated and no native build was
+  made.
+- **Server leftovers** (no secret): `/tmp/s16-platform-admin.sh`, `/tmp/erp-admin-status.txt`, `~/erp-app-release`
+  and `~/erp-console-release`. Delete them with the owner's approval.
+- **The Storage Box and an off-site restore proof** are still mandatory before outside testers. WEB-F01 is still open.
+
+**Next exact action: the owner's physical-iPhone review** of erp-test and dukan-test, `docs/103` §5.9 plus `docs/104` §7.
+No other work was started. Rollback, if the review fails:
+`test-sites.sh rollback app 20261020T110732Z --confirm api.tsxmr.com` and
+`rollback console 20261020T110759Z --confirm api.tsxmr.com`.
+
+---
+
+Previous claim (this session), superseded by the record above:
+started_at_utc: 2026-10-25T07:47Z; claimed_from READY_FOR_HANDOFF (owner NONE) at `63b5175`.
+heads_at_claim (all trees clean): erp-mobile `browser-input-setup-code` `c8c5c0d`, `visual/light-auth-spacing`
+`9e0b38b`, `ops/visual-check` `761ded3`, `superadmin-provisioning` `da5c73c`; erp-control-web `browser-input-setup-code`
+`2ebe9c5`, `ops/build-test-console` `67a3331`, `tsx-public-site` `5aa8322`; erp-backend `superadmin-provisioning`
+`f5da650`, `production-deploy` `644f4f5`; erp-docs `master` `63b5175`.
 checkpoint_2026-10-25T08:20Z:
 - erp-mobile `browser-input-setup-code` fast-forwarded `c8c5c0d..9e0b38b` and pushed (no force); local gates green
   (details at release).
@@ -30,7 +99,7 @@ checkpoint_2026-10-25T08:55Z:
     its stray copy `20261025T084828Z` was removed.
 - Smoke 16/16 with each origin; readiness 101/0/0. §5.1 re-run identical apart from the new releases and the edge
   restart.
-next_action: live browser checks on erp-test and dukan-test (owner signs in in the built-in browser).
+(The live checks followed; see the record above.)
 
 Previous state: READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)

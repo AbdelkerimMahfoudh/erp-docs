@@ -255,6 +255,120 @@ deploy/production/test-sites.sh rollback console 20261020T110759Z --confirm api.
    - after "Grant access (no payment)", "Check again" opens the ERP.
 5. **Arabic:** repeat 2 in Arabic. The layout is right to left, and typing is unaffected.
 
+### 5.10 Deployment record (2026-10-25, CLAUDE, local deployment session on the owner's PC)
+
+Deployed: **app `9e0b38b`** (D219 + D220) and **console `2ebe9c5`** (D219), to the two protected test sites only.
+
+**Integration.** erp-mobile `browser-input-setup-code` was still `c8c5c0d`. It was fast-forwarded with
+`git merge --ff-only origin/visual/light-auth-spacing` to exactly `9e0b38b62f5502d9fde4b0c01ae2a446ff35230e`, then
+pushed with no force. Mobile `master` is untouched.
+
+**Gates on `9e0b38b`:**
+- **Local:**
+  - tsc clean; lint 0 errors, 28 warnings; Jest 38 suites, 364/364;
+  - release config PASS; secret scan clean (404 commits, 2950 blobs);
+  - EN/FR/AR parity holds by type (`Catalogue = Record<TranslationKey, string>`);
+  - Expo Doctor 20/21. The one finding is the documented patch-version check (expo, expo-router, expo-sharing).
+  - Pure tests: 119/123 files on Windows. The four failures (`access-boundary`, `sheet-input`, `web-accessibility`,
+    `zoned-time`) are Windows path and CRLF artifacts of source-reading tests (`C:\C:\…`, `\` separators, `\r\n`).
+- **CI, on Linux:**
+  - security `40175357685` on the pushed integration branch: green, all 123 pure files, web/iOS exports and bundle
+    audits;
+  - security `40116896564` and visual-check `40116908073` on the same commit (WebKit 818/818, Chromium 818/818; D219
+    journey 21/21 and input 245/245 in each).
+  - The web export cannot run on the PC (Smart App Control blocks lightningcss).
+
+**Release build.**
+- erp-control-web `ops/build-test-console` `26b62d2`: target console `2ebe9c5`, app `9e0b38b`.
+- Run `40174230768`, 07:49–07:51Z, green. Evidence on `ci-evidence`: `evidence/test-console/2ebe9c5-9e0b38b-40174230768`.
+- Checksums verified on the PC: dist 24 files, app export 123 files.
+- The console dist equals the earlier `2ebe9c5` build except `.well-known/security.txt`, whose `Expires` is stamped at
+  build time.
+- Packaged on the PC:
+  - app: `web-test-release.mjs --production-api` at `9e0b38b`, 99 pages and 16 dynamic routes, **124 files**;
+  - console: `caddy-release.mjs` at `2ebe9c5`, 10 header and 7 redirect rules, **23 files**.
+- The SHA-256 of each release's sorted checksum list: app `37176d11360f2584…`, console `40625f32b551588a…`. Equal on
+  both ends after upload.
+
+**Bundle audit.**
+- No secret names, no source maps, no `sourceMappingURL`, no staging or development API.
+- The `localhost`, `127.0.0.1` and `:3010` strings are fallbacks that cannot be reached: the API constant is set in
+  both bundles. The app's third such string is its own guard that refuses a local origin.
+- One external host: `fastly.jsdelivr.net`, zxing-wasm's loader for the barcode reader. It is on `audit-bundle.js`'s
+  library allow-list, and it is already in the earlier builds `da5c73c` and `c8c5c0d`.
+
+**Server (tsxmr-app-01).**
+- SSH first timed out: the PC's public IPv4 had changed. The owner replaced the source of the firewall's SSH rule (rule
+  4 only, one /32 for another, through Claude in Chrome with the owner's approval). Nothing else changed.
+- §5.1 at 08:40Z matched, except:
+  - **The test business's access is the owner's own `subscription.approve`** (2026-10-24 11:58Z, after step-up): status
+    `activated`, period to 2026-12-11, not complimentary, 0 payments. It is not a grant. **The owner confirmed it as
+    theirs; it was left unchanged.**
+  - The business holds 1 store, 1 Owner, 1 closing event and 1 opening decision. It has no products, stock or sales.
+  - Leftovers, not removed: `/tmp/s16-platform-admin.sh` and `/tmp/erp-admin-status.txt` (states and the
+    administrator's email; no secret value), and `~/erp-app-release` and `~/erp-console-release` (identical copies of
+    the 2026-10-20 releases).
+- Install:
+  - The first `install app` was refused at validation: Windows scp had created the upload's directories mode 700, so
+    the edge could not read `routes.caddy`. Nothing was served. Its copy `20261025T084828Z` (never current, not in
+    `deployments.log`) was removed.
+  - After `chmod -R u=rwX,go=rX` on the upload: **app `20261025T084923Z`** (previous `20261020T110732Z`) and **console
+    `20261025T084934Z`** (previous `20261020T110759Z`). Each passed its 401-on-every-path and exact-CORS checks.
+  - The uploads were deleted from the home folder.
+- After:
+  - smoke 16/16 with each of `--allowed-origin` erp-test and dukan-test; readiness 101 applied, 0 pending, 0 missing;
+  - image `erp-api:f5da650…`; the API container was not restarted (only the edge);
+  - §5.1 re-run identical apart from the new releases, the edge restart and two log lines;
+  - no TLS errors (erp-test and dukan-test certificates to 2027-01-18, api.tsxmr.com to 2027-01-17);
+  - an unknown origin gets no CORS grant; both sites answer 401 without the password.
+  - **The 401 still carries no `X-Robots-Tag`** (§6). Authenticated responses do carry
+    `x-robots-tag: noindex, nofollow, noarchive` and `x-frame-options: DENY`.
+- tsxmr.com is still Cloudflare. Its `/fr`, `/ar`, `/products` and `/products/riyade` pages match the `5aa8322` build
+  byte for byte, and `/admin` answers 404.
+- Not changed: the API, the database (no migration, no backup needed), `api.env`, DNS, Cloudflare, tsxmr.com, email,
+  WhatsApp and activation.
+
+**Live checks (2026-10-25):**
+- **Signed in** on erp-test, through Claude in Chrome in the owner's signed-in profile, at desktop width:
+  - entry bundle `entry-8f2f4911…` and `theme-boot.js` served;
+  - New team member: typing in Name, Phone and Email, values kept across a role change; one ring (2 px overlay, the
+    input with no outline); 16 px text; the sheet scrolls; "Ajouter à l’équipe" reachable;
+  - Add an account: typing works, and the name is kept when switching Bankily → Autre;
+  - "Works here / Y travaille / يعمل هنا". In Arabic the knob (x 71–91) is inside its track (x 51–91), clear of the
+    label (x 99–147), and the track uses the palette's purple;
+  - the theme is stored and kept across navigation and full reloads;
+  - the 404 page in EN, FR and AR (RTL) answers 404, with one way back and no sitemap link;
+  - Home, Receive (search and "Scanner"), Stock, Money, Team and Settings read with no console error.
+  - Every test sheet was closed without saving. The owner's `erp.theme` and `erp.language` were cleared back to unset.
+- **Signed out**, on the exact release files served locally in the built-in browser:
+  - sign-in, setup code, join, verify, register and 404, each in EN/FR/AR × light/dark × 320 and 640 px (1280 at
+    200 %): 72/72 loaded, no horizontal overflow, no input under 16 px;
+  - the 48×48 sun/moon on every route, right in LTR and left in RTL;
+  - toggling keeps typed text, and the choice survives navigation and refresh;
+  - dark boot: no light content visible at any observed moment. `theme-boot.css` is a render-blocking `<link>` in
+    `<head>`;
+  - setup-code wording: "Set up your business — The platform created your business and gave you a one-time setup
+    code…";
+  - registration step 1 ↔ 2 ↔ 3, and the browser's Back, keep every value. Moving between steps made **zero** network
+    calls.
+  - The final submission was not sent from this copy: it needs the live consent text, and the production API refuses
+    `localhost`. Its single `POST /auth/register` is covered by CI on this commit (businesses 3 → 3) and by the
+    server's refusal of public sign-up (400 with an empty body; `CUSTOMER_ACTIVATION=closed`; companies unchanged).
+- **dukan-test:** it answers 401 without the password. The installed bundle carries D219's wording in EN/FR/AR ("No
+  access yet / Pas encore d’accès / لا وصول بعد" and the explanations) and no "waiting for approval".
+- **Observed, not changed:**
+  - `/_sitemap` is served directly (200, behind the password): it is a file of Expo's export. Exclude it at packaging
+    before any public deployment.
+  - The signed-in screens at 320 px and 200 % were not re-measured live: Chrome was minimised, and a desktop window
+    cannot go below about 500 px. They rest on visual-check `40116908073` (818/818 per engine, every exported route at
+    320 and 200 %).
+
+**Rollback** (test sites only):
+`test-sites.sh rollback app 20261020T110732Z --confirm api.tsxmr.com` and
+`rollback console 20261020T110759Z --confirm api.tsxmr.com`.
+
+**Still open:** the owner's physical-iPhone checks (§5.9 and `docs/104` §7).
+
 ## 6. Open items
 - **`X-Robots-Tag` on the unauthenticated 401.** Root cause: Caddy's `basic_auth` returns its 401 as an error, and the
   error path writes a fresh response without the site's `header` block. Fix: a `handle_errors` block with the same
@@ -264,5 +378,10 @@ deploy/production/test-sites.sh rollback console 20261020T110759Z --confirm api.
   or payments.
 - **The physical-iPhone retest** (§5.9).
 - **WEB-F01** (`docs/83`).
-- **Seen, not changed:** in Arabic, the store switch in New team member shows the English word "On", partly under the
-  switch's knob (screenshot `new-member-ar-*.png`). It predates this phase; it is a separate, small fix.
+- ~~**Seen, not changed:** in Arabic, the store switch in New team member shows the English word "On", partly under the
+  switch's knob (screenshot `new-member-ar-*.png`).~~ Fixed by D220 (`9e0b38b`); verified live on 2026-10-25 (§5.10).
+- **A strict Content Security Policy before any public browser deployment.** The policy and the hash of Expo's
+  hydration script are in `docs/104` §3.1. They were deliberately not added to the protected test site on 2026-10-25.
+- **`/_sitemap`** is served by the app's release (§5.10). Exclude it at packaging before any public deployment.
+- **Leftovers on the server:** `/tmp/s16-platform-admin.sh`, `/tmp/erp-admin-status.txt`, `~/erp-app-release` and
+  `~/erp-console-release` (§5.10). None holds a secret. Delete them with the owner's approval.
