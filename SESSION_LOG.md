@@ -12941,3 +12941,46 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - the Storage Box;
   - WEB-F01.
 - **Next:** the owner's physical-iPhone review (`docs/103` §5.9, `docs/104` §7). Handoff READY_FOR_HANDOFF, owner NONE.
+
+## 2026-10-25 — Promoter codes, QR cards and user invitations (D221): implemented and verified on feature branches; not merged, deployed or migrated (CLAUDE, cloud)
+
+- **Claimed** at 09:56Z from READY_FOR_HANDOFF (owner NONE, `3a71aa4`, complete). The branches start at the
+  integrated heads: backend `f5da650`, web `2ebe9c5`, mobile `9e0b38b`.
+- **Built:**
+  - migration 0103, with four additive tables, triggers and CHECKs;
+  - CSPRNG six-digit codes, unique for ever, one usable per promoter;
+  - HMAC-signed, versioned registration addresses under a new `REFERRAL_KEY`;
+  - public lookups by both doors, with one unusable answer, a shared budget and a wrong-guess limit;
+  - the attribution written in the registration's own transaction, or the registration refused with nothing saved;
+  - the console's Promoters (card: EN/FR/AR, print, PNG, share) and Registration sources;
+  - `/join` on the portal and full builds;
+  - the six-box promo code on the app (native and web) and the website form;
+  - "Invite someone to Dukan ERP" in the app.
+  Attribution and factual counts only.
+- **Verified:**
+  - backend Jest 4,928, the real-MySQL 0103 spec 22/22 (and in CI's database gates), and the rehearsal from
+    production's schema (forward, reverse and restore identical);
+  - web Vitest 631 and Chromium e2e 169, with CI green on `b652181`;
+  - mobile Jest 379 and the pure tests, with CI green on `02a30ad`;
+  - end to end on a real API: run `40209004760` (`ops/verify-promoter-attribution` `0c17404`), Chromium 42/42 and
+    WebKit 42/42 on its one re-run; 41/41 locally in Chromium. WebKit's refused styles are traced to its own `<select>`
+    styling and Playwright's screenshot script; any other refusal fails the run.
+- **Fixed on the way:**
+  - the promo boxes at 320 px;
+  - the dark-mode card contrast;
+  - a self-cancelling lookup;
+  - the token left in a first-load browser address;
+  - the public build's alias depth (pre-existing);
+  - a gitleaks-flagged fixture.
+- **Not done, by instruction:** no merge, deployment, production migration, DNS, registration, messaging, association
+  file or purchase.
+- **Open:**
+  - the backend dependency audit (new `body-parser` and `multer` advisories, unchanged lockfile);
+  - the app-link identifiers;
+  - the website form's missing consent (pre-existing);
+  - promoter data deletion by hand;
+  - the physical checks (`docs/24` §69).
+- **Local disposable databases** (`acquisition_dev`, `acquisition_e2e`, `acquisition_rehearsal`, `promo_check`) were
+  dropped, and their secrets deleted.
+- **Released** READY_FOR_HANDOFF, owner NONE. Next: the owner's decision on D221, the audit, the merge and the
+  deployment (`CURRENT_HANDOFF.md`).

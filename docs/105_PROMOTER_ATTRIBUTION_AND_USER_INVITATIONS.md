@@ -251,8 +251,8 @@ The script is kept with the session's evidence; the backup was disposable and ha
 | Web: public and portal e2e | 172/172 and 34/34 in CI on `012abcd` |
 | Web: bundle and link audits | PASS for full, portal and public; the public bundle holds no QR encoder |
 | Mobile | `tsc` clean; every pure test file passes (the acquisition rules included); Jest 40 suites, 379 tests (promo code 10, invitation 5); lint 0 errors and 28 warnings (the baseline); release configuration sound; web and iOS exports; bundle audit PASS |
-| End to end, real API + MySQL, Chromium (local) | **40/40** — see the list below |
-| End to end, WebKit (CI, `ops/verify-promoter-attribution`) | see the handoff for the run and result |
+| End to end, real API + MySQL, Chromium (local) | **41/41** — see the list below |
+| End to end, Chromium and WebKit (CI, `ops/verify-promoter-attribution` `0c17404`) | run `40209004760`: **Chromium 42/42, WebKit 42/42** (WebKit on its one re-run, after a navigation timeout at a step that passed in every earlier run). The 42nd check traces each refused style to its source; WebKit's 15 are its own `<select>` styling and Playwright's screenshot script, and any other fails |
 
 The end-to-end run covered:
 - the console signing in with MFA and creating a promoter (no code until generated);

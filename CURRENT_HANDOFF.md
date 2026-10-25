@@ -1,8 +1,9 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), holding it
-since 2026-10-25T09:56Z (claimed from READY_FOR_HANDOFF, owner NONE, at `3a71aa4`; that handoff was complete).
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_at_utc: 2026-10-25T16:13Z by CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), which held it
+from 2026-10-25T09:56Z (claimed from READY_FOR_HANDOFF, owner NONE, at `3a71aa4`; that handoff was complete).
 
 ## Promoter codes, QR cards and user invitations (D221) — implemented and verified on feature branches; nothing merged, deployed or migrated (2026-10-25, CLAUDE, cloud)
 
@@ -17,7 +18,7 @@ The full record is `docs/105`, and the decision is D221. **Production is untouch
 | `erp-backend` | `promoter-attribution` | **`002e7f8`** | `superadmin-provisioning` `f5da650` (commits `5c2cd88`, `44bf0c4`, `002e7f8`) |
 | `erp-control-web` | `promoter-attribution` | **`b652181`** | `browser-input-setup-code` `2ebe9c5` (`012abcd`, `b35c6e8`, `b652181`) |
 | `erp-mobile` | `promoter-attribution` | **`02a30ad`** | `browser-input-setup-code` `9e0b38b` (`a6c2921`, `02a30ad`) |
-| `erp-control-web` | `ops/verify-promoter-attribution` | `7b5e94e` | orphan tooling branch, never merged |
+| `erp-control-web` | `ops/verify-promoter-attribution` | `0c17404` | orphan tooling branch, never merged |
 | `erp-docs` | `master` | the commit carrying this file | — |
 
 **What changed:**
@@ -53,8 +54,8 @@ The full record is `docs/105`, and the decision is D221. **Production is untouch
   - CI `40202577957` on `02a30ad` **green**.
 - **End to end:**
   - real API and MySQL 8.4, an administrator with MFA, the console build and the app's web export, in both browsers:
-    still running — CI run `40205588722` (the last check before release);
-  - locally in Chromium: 41/41;
+    run `40209004760` on `0c17404` — **Chromium 42/42; WebKit 42/42** on the job's one re-run (its first attempt timed out on a plain navigation to the local static server, at a step that passed in every earlier WebKit run). The 42nd check names every refused style: WebKit refuses 15, each traced to its source — WebKit styling its own `<select>` where React creates one (the website form's existing select does the same) or the script Playwright injects for a screenshot; any other refusal fails the run. Chromium refuses none;
+  - locally in Chromium: 41/41 (before the 42nd check was added);
   - evidence (statuses and screenshots, no secret) in `ci-evidence` under `evidence/promoter-attribution/`.
   **WebKit on Linux is not an iPhone.**
 - **Defects found and fixed by these checks:**
@@ -76,7 +77,7 @@ The full record is `docs/105`, and the decision is D221. **Production is untouch
 5. **Physical checks** (`docs/24` §69): camera QR, iOS/Android app links, the native share sheet and WhatsApp through
    it, real-device RTL, printing the card.
 
-**Next exact action (this session):** record run `40205588722` and release. **Then:** the owner reviews D221 and `docs/105`, then decides:
+**Next exact action:** the owner reviews D221 and `docs/105`, then decides:
 1. the dependency-audit resolution (item 1);
 2. the merge of the three `promoter-attribution` branches into the integration line;
 3. the deployment, per `docs/100` §17: `REFERRAL_KEY`, then a backup, then 0103, then the portal rebuild;
