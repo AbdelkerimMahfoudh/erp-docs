@@ -19,7 +19,18 @@ checkpoint_2026-10-25T08:20Z:
   `40174230768` green; evidence `2ebe9c5-9e0b38b-40174230768` checksums verified; both releases packaged on the PC.
 - **Blocker for the server steps:** SSH to tsxmr-app-01 times out. The PC's public IPv4 is no longer the firewall's
   trusted address; the owner must update the Hetzner firewall rule. Nothing on the server has been touched.
-next_action: after the owner updates the firewall, run `deploy/reconcile-readonly.sh` (`docs/103` §5.1).
+checkpoint_2026-10-25T08:55Z:
+- The owner updated the Hetzner firewall's SSH source (rule 4 only, one /32 for another). SSH works.
+- §5.1 reconciliation (08:40Z) matched, except: the test business is entitled by the owner's own `subscription.approve`
+  (2026-10-24 11:58Z; period to 2026-12-11; 0 payments; not complimentary), not by a grant. **The owner confirmed it as
+  theirs**, and it was left unchanged.
+- **Installed:** app `20261025T084923Z` (from `9e0b38b`; previous `20261020T110732Z`) and console `20261025T084934Z`
+  (from `2ebe9c5`; previous `20261020T110759Z`).
+  - The first app attempt was refused at validation (Windows scp had made the upload mode 700). Nothing was served;
+    its stray copy `20261025T084828Z` was removed.
+- Smoke 16/16 with each origin; readiness 101/0/0. §5.1 re-run identical apart from the new releases and the edge
+  restart.
+next_action: live browser checks on erp-test and dukan-test (owner signs in in the built-in browser).
 
 Previous state: READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
