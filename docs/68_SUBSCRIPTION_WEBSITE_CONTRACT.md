@@ -469,3 +469,22 @@ The app shows no price, payment, purchase or activation control for a store or a
 - **No secret reaches a log**, on a request that succeeds or fails (C16). This covers setup tokens, portal tickets,
   bearer and refresh tokens, cookies, codes, continuations, passwords and the webhook verify token, wherever they
   travel. The proof is `src/common/http/request-log.spec.ts`, plus the real-HTTP run's log scan (`docs/76` §14).
+
+## 12. Additions of 2026-10-25 — where a business came from (0103, D221; v1.4)
+
+- **`POST platform/register` and `POST auth/register`** take, optionally, `promoCode` (six digits, ASCII or Arabic) or
+  `referralToken` (the `r` of `<portal>/join?r=…`), never both:
+  - `400 acquisition_conflict` when both are given;
+  - `409 acquisition_unavailable` (with `source`) when the source stopped being usable — nothing saved;
+  - `429 acquisition_lookup_limited` once the address has spent its wrong guesses.
+- **`POST platform|auth/acquisition/code` `{ code }`** and **`POST platform|auth/acquisition/link` `{ token }`**
+  answer `{ usable: false }` | `{ usable: true, source: 'promoter', promoterName, code }` |
+  `{ usable: true, source: 'user_invite' }`.
+- **Console (administrator session; every change takes `confirmPassword` after a step-up):**
+  - `GET|POST platform/promoters`, `GET|POST platform/promoters/:id`;
+  - `POST platform/promoters/:id/code` `{ regenerate }`, `POST …/activate`, `POST …/deactivate`;
+  - `GET platform/promoters/:id/businesses`;
+  - `GET platform/acquisitions` (`source`, `from`, `to`, `inviterCompanyId`, `page`) and
+    `GET platform/acquisitions/summary`.
+- **Signed-in user (the app):** `GET referral-invitations` (their own), `POST referral-invitations` `{ language }`
+  (create or retrieve), `POST referral-invitations/:id/revoke` (their own).

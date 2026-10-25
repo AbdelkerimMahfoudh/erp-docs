@@ -34,6 +34,7 @@
 |---|---|---|---|
 | T1 | A1 guesses passwords or enumerates accounts at sign-in | argon2id, timing-even generic refusals, `AUTH_THROTTLE_LIMIT` per client, sessions bound to devices | Distributed guessing is only slowed, not detected (control 12 — medium) |
 | T2 | A1 floods registration / codes | `PUBLIC_THROTTLE`, per-number and per-person OTP caps, a code needed to finish registration | Same |
+| T2b | A1 enumerates promo codes or registration addresses (0103, `docs/105` §6) | POST-only lookups, no list; one identical unusable answer; `PUBLIC_THROTTLE` shared by both doors; a wrong-guess limit of 5 per address and 200 overall per 15 minutes that then refuses real codes too; HMAC-signed, versioned tokens | What a hit yields is a display name. At 100 live codes, one address finds one with probability < 5% a day |
 | T3 | A1 forges the delivery webhook | HMAC over the raw body with the app secret; verify token; only a challenge's delivery state can change | — |
 | T4 | A2 calls a route above their role or another branch | Global JWT guard, `PermissionsGuard` with company-wide/branch-scoped resolution, branch header validated against assignments, entitlement interceptor default-deny for unlisted writes | A route with no `@RequirePermissions` is open to any role — the route inventory (`docs/48` 3.1) is the check |
 | T5 | A2 reads costs or margins | Cost-gating interceptor strips financial fields by role; DTO selects exclude hashes | — |

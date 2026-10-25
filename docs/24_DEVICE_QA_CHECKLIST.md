@@ -4532,3 +4532,18 @@ happened**.
 | B6 | Team → add an employee → *Copy* | The reference is on the clipboard (paste it in Notes); *Share* appears only if the browser offers a share sheet and opens it | | |
 | B7 | Arabic, dark | Right to left, the home indicator and notch clear of the tab bar and the pinned buttons | | |
 | B8 | Add the site to the home screen | Opens to the password prompt or the app; no data from another tester | | |
+
+## 69. Promoter codes, QR cards and user invitations (D221, `docs/105`) — NOT DEVICE VERIFIED
+
+Browser automation (Chromium, and WebKit on Linux in `ops/verify-promoter-attribution`) passed `docs/105` §11. It is
+not an iPhone or an Android phone. The association files are **not published**, so the app links below cannot work
+until they are (`docs/105` §10, which also lists the missing Apple Team ID and Android signing SHA-256).
+
+| # | Do | Expect | Android | iPhone |
+| --- | --- | --- | --- | --- |
+| P1 | Print a promoter's card from the console; scan it with the OS camera | The camera offers `dukan.tsxmr.com`; with the app installed and the files published, the app opens on registration with "Code from: {name}" and the code in the boxes; without the app, the browser page says the same | | |
+| P2 | Same, after "Regenerate code and QR" | The old card says "no longer valid" and the ordinary registration continues; the new card works | | |
+| P3 | Registration: type the code with the Arabic keyboard, paste it, delete with Backspace, VoiceOver / TalkBack on | Digits land left to right; each box is announced "Promo code, digit n of 6"; the result is read out | | |
+| P4 | More → "Invite someone to Dukan ERP" → Arabic → Share → WhatsApp | The share sheet opens; WhatsApp gets the Arabic message with the address; Dukan ERP itself sent nothing | | |
+| P5 | Open that address on a second phone and register | "You were invited to Dukan ERP"; after registration the platform's report shows the inviting business | | |
+| P6 | Arabic layout of the registration and the invitation screen on a real device | Right to left everywhere, the code's digits still left to right | | |

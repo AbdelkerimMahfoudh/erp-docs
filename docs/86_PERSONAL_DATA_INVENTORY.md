@@ -800,3 +800,19 @@ Clipboard: Personal ID (app/settings.tsx:632), Store ID (app/settings.tsx:689) a
 | Public pages | no cookie, no request to the API, no analytics or tracking script | tested (`test/legal-pages.test.tsx`: no fetch) |
 
 No non-essential cookie exists, so there is no consent banner and no `/cookies` page (the owner's brief).
+
+## 4. Additions of 2026-10-25 — promoters and user invitations (0103, D221; `docs/105` §5)
+
+| Datum | Table | Who reads it | Where it never goes |
+| --- | --- | --- | --- |
+| A promoter's display name | `promoters.display_name`; snapshot in `business_acquisitions.promoter_name` | the platform administrator; a registrant who enters the code or opens the QR; the printed card | — |
+| A promoter's WhatsApp number (normalised E.164) | `promoters.whatsapp_number` | the platform administrator only, in full on the promoter's own page, masked (`+222***22`) in the list | public answers, the QR, the card, registration payloads, attribution rows, audit rows (a "changed" flag only), logs, analytics |
+| A promoter's private note | `promoters.note` | the platform administrator only | everywhere else |
+| Who invited a business (business and person) | `referral_invitations`, `business_acquisitions.inviter_*` | the platform's report | the invited person, the inviter (no counts shown) |
+| An invitation's recipient | — | never recorded | — |
+
+- **Retention:** these rows are history and are never deleted by the application (triggers).
+- **Account deletion:** the account-deletion flow (`docs/64`) does not yet treat promoters. A promoter is not a user of
+  the product, and a promoter's request is handled by the platform administrator by hand. That process is a
+  documented gap for counsel (`docs/93`).
+- **Processors:** none new. Nothing is sent to WhatsApp, email or any other service.

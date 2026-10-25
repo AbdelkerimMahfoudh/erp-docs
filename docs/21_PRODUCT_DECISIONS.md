@@ -8716,3 +8716,44 @@ not content. The goal: a polished operational product, not a marketing page, wit
 employee invitations, D219.
 
 The record and integration steps are `docs/104`.
+
+### ✅ DECIDED BY THE OWNER (2026-10-25), IMPLEMENTED (branches, CI), NOT DEPLOYED — D221: where a self-registered business came from — a promoter's code or QR card, or another business's invitation
+
+**The owner's brief (2026-10-25):** know, as a fact, which self-registrations a promoter brought and which another
+business invited. Two mechanisms, kept apart from employee invitations, setup codes and "Add team member".
+
+**Decided:**
+- **Attribution and factual counts only.** A registration records where it came from once, at registration, and the
+  platform can count it. Nothing is computed, recorded, shown or promised to a promoter or an inviter beyond that.
+  Nothing about any arrangement outside the product is encoded or documented.
+- **Promoters are the platform administrator's.**
+  - A display name (public), a normalised WhatsApp number and an optional private note (both administrator-only:
+    masked in the list, never public, printed, logged or snapshotted).
+  - Active or inactive. Every change is audited and asks for the password and step-up.
+  - No message is sent to a promoter and no consent is recorded.
+- **The code:**
+  - six digits, drawn by the server's CSPRNG, leading zeroes kept, never chosen or derived, unique for ever;
+  - one usable code per promoter, generated only by an explicit "Generate code and QR";
+  - regenerating retires the code and every QR printed with it, and keeps the history;
+  - nothing referenced is ever deleted.
+- **The QR card** carries `https://dukan.tsxmr.com/join?r=<opaque token>`, a signed, versioned token with no id or
+  personal data. The card shows the brand, the display name, the code, the QR and one instruction — never the number
+  or the note.
+- **User invitations:**
+  - any signed-in Owner, Manager or Employee shares "Invite someone to Dukan ERP" in English, French or Arabic, through
+    the phone's own share sheet or Copy — Dukan ERP sends nothing;
+  - the registration is attributed to the inviting business, with the person kept for the audit;
+  - no recipient is recorded; an invitation can be stopped.
+- **Registration:**
+  - "Promo code — optional", on every registration surface. Six digits are checked at once, giving the promoter's
+    display name or "This promo code is unavailable". It is removable.
+  - A registration carries one source at most; with both, the registrant chooses.
+  - The server checks it again when it creates the business and writes one immutable attribution with it. A source no
+    longer usable refuses the registration with nothing saved.
+  - Activation, the trial, the subscription, the setup code, consent and payment are untouched.
+- **Abuse:** a shared per-address request budget, plus a wrong-guess limit — 5 per address and 200 overall per
+  15 minutes — that answers even a real code with 429 once spent. One answer covers every unusable state.
+- **Not done here:** no association file is published and no device verification is claimed. Nothing is merged,
+  deployed or migrated in production. Public registration stays closed.
+
+The record, schema, contract, rehearsal and evidence are in `docs/105`.

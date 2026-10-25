@@ -17,6 +17,7 @@ environment. **Prod** means the production guard checks it when `NODE_ENV=produc
 | `PORT` | | Listening port (default 3000) | behind the edge |
 | `API_BIND` | | Bind address, `127.0.0.1` to keep the port off the network | Prod: with `API_INGRESS`, how the port is shielded |
 | `API_INGRESS` | | Declares how the API is exposed (edge/proxy mode) | Prod: required |
+| `REFERRAL_KEY` | **yes** | Signs promoter QR addresses and user invitations (0103, `docs/105` §4); rotating it voids every printed card and shared invitation | required, ≥32 characters, distinct from every other key (`REFERRAL_KEY_FILE`) |
 | `APP_DATABASE_URL` | **yes** | Runtime connection as `phonestore_app` (DML only) | required; https-only edge; add `connection_limit` (10–20) |
 | `JWT_ACCESS_SECRET` | **yes** | Signs access tokens (≥ 32 chars) | Prod: refused if it looks like a placeholder |
 | `JWT_ACCESS_TTL` | | Access-token lifetime (default 15m) | |
@@ -86,3 +87,6 @@ Apple. **None exists yet**: the owner links the `dukan-erp` EAS project and the 
 Only `.env.example` files are committed (placeholders). `scripts/scan-secrets.js` (backend, mobile) and gitleaks scan
 every blob of every ref on each push. The one real credential ever committed — G2A-CP4.5's development session tokens,
 revoked and proven dead — is named by blob in `erp-mobile/.secret-scan-revoked`.
+
+`VITE_APP_WEB_ORIGIN` (website, optional, 0103): where the portal's `/join` continues to the app's browser registration;
+blank, `/join` asks for the phone app.

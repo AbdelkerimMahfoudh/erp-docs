@@ -786,3 +786,16 @@ In Cloudflare → `tsxmr.com` → DNS → Records, add exactly two records. Chan
   administrator's password, code and step-up, and every API call is authorised by the server.
 - **Timeline notes are English.** The console timeline shows notes the server recorded in English (as every timeline
   note already is) on FR/AR pages.
+
+## 17. Promoter attribution (0103, D221) — the deployment inputs, when it is approved (2026-10-25, NOT EXECUTED)
+
+Nothing here is to be run until the owner approves the merge and deployment. The steps:
+1. `deploy/production/setup-secrets.sh` writes `api/referral_key` (48 random bytes, base64url). The preflights refuse a
+   missing, short, placeholder or duplicated key, and the API refuses to start without it.
+2. Take a fresh verified backup (`docs/22`), then `migrate deploy` (0103, additive: four tables, eight triggers). Check
+   readiness, then `verify-mysql-identities.sh` (it now probes the attribution triggers).
+3. Rebuild the portal. `/join` is served by the app shell with `noindex`, `no-store` and no referrer.
+4. App links only after the Apple Team ID and the Android signing SHA-256 are known: publish the two association
+   files, add `associatedDomains` / `intentFilters`, rebuild the app (`docs/105` §10).
+
+Rehearsal: `docs/105` §9 (forward, reverse and restore, identical schemas).
