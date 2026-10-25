@@ -1,7 +1,20 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local deployment session, the owner's PC)
+started_at_utc: 2026-10-25T07:47Z (this claim written before any change)
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `63b5175`; that handoff was complete.
+heads_at_claim (remote = local where checked out; all trees clean): erp-mobile `browser-input-setup-code` `c8c5c0d`,
+`visual/light-auth-spacing` `9e0b38b`, `ops/visual-check` `761ded3`, `superadmin-provisioning` `da5c73c`;
+erp-control-web `browser-input-setup-code` `2ebe9c5`, `ops/build-test-console` `67a3331`, `tsx-public-site` `5aa8322`;
+erp-backend `superadmin-provisioning` `f5da650`, `production-deploy` `644f4f5`; erp-docs `master` `63b5175`.
+active_phase: integrate D220 into erp-mobile `browser-input-setup-code` (fast-forward to `9e0b38b`), verify, and
+install the two **protected test sites only** (erp-test app `9e0b38b`, dukan-test console `2ebe9c5`) per `docs/103` §5.
+No API deployment, migration, backup, account, credential, DNS, Cloudflare, tsxmr.com, email, WhatsApp or activation
+change.
+next_action: fast-forward `browser-input-setup-code` to `9e0b38b`, then the combined gates.
+
+Previous state: READY_FOR_HANDOFF, owner NONE.
 released_by: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
 released_at_utc: 2026-10-24T18:27Z
 this_claim: 17:38Z–18:27Z from READY_FOR_HANDOFF (owner NONE) at `24ae78d`, documentation only: it recorded the
