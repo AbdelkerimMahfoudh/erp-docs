@@ -1,12 +1,24 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
-released_by: CLAUDE (local deployment session, the owner's PC)
-released_at_utc: 2026-10-25T09:30Z
-this_claim: 07:47Z–09:30Z from READY_FOR_HANDOFF (owner NONE) at `63b5175`. **Complete**: every tree touched is clean
-and level with its remote.
-decision_numbers: none used. The next free number is still **D221**.
+Status: IN_PROGRESS
+Owner: CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9)
+started_at_utc: 2026-10-25T09:56Z
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `3a71aa4`, released 09:30Z by the local deployment session; that
+handoff was complete (every tree clean and level).
+heads_at_claim (remote = local, all clean): erp-backend `superadmin-provisioning` `f5da650` (production),
+`production-deploy` `644f4f5` (rollback); erp-mobile `browser-input-setup-code` `9e0b38b` (= `visual/light-auth-spacing`,
+on erp-test); erp-control-web `browser-input-setup-code` `2ebe9c5` (on dukan-test), `tsx-public-site` `5aa8322`
+(tsxmr.com); erp-docs `master` `3a71aa4`.
+active_phase: **promoter codes and user-invitation attribution (owner's brief, 2026-10-25)** — a promoter model with
+six-digit codes and opaque QR links managed in the superadmin console; optional promo entry in every business
+registration; ordinary user invitations; immutable acquisition attribution; one additive migration. **Feature branches
+only**: no merge to production branches, no production migration, no deployment, no DNS, no public registration, no
+messaging, no purchase. **No reward, commission or benefit of any kind.**
+branches (to be created from the integrated heads above): erp-backend, erp-mobile and erp-control-web
+`promoter-attribution`.
+next_action: read the registration, provisioning, deep-link and console code; design the schema; then implement.
+
+Previous state (unchanged below until this claim is released): READY_FOR_HANDOFF, owner NONE.
 
 ## D219 + D220 on the protected test sites — deployed and checked live; the iPhone review is the owner's (2026-10-25, CLAUDE, local)
 
