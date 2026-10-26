@@ -1,7 +1,19 @@
 # CURRENT_HANDOFF
 
-Status: READY_FOR_HANDOFF
-Owner: NONE
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-26T14:31Z (this claim written before any change)
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `57fd97f`; that handoff was complete.
+heads_at_claim: erp-mobile `browser-input-setup-code` `9e0b38b`, `promoter-attribution` `02a30ad`; erp-control-web
+`browser-input-setup-code` `2ebe9c5`, `promoter-attribution` `b652181`; erp-backend `superadmin-provisioning`
+`f5da650`, `promoter-attribution` `002e7f8`; erp-docs `master` `57fd97f`.
+active_phase (owner-approved 2026-10-26): upgrade erp-mobile to **Expo SDK 58** on a new branch `sdk-58` from
+`9e0b38b`. Re-cut the expo-camera patch, fix the breaking changes, run every gate and CI, then serve it to the owner's
+iPhone in Expo Go (SDK 58 only), against the production test API. Decision **D222**. **No change to erp-test,
+production, the backend, the console or any server.**
+next_action: `npx expo install expo@58 --fix` on `sdk-58`.
+
+Previous state: READY_FOR_HANDOFF, owner NONE.
 released_at_utc: 2026-10-25T16:13Z by CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), which held it
 from 2026-10-25T09:56Z (claimed from READY_FOR_HANDOFF, owner NONE, at `3a71aa4`; that handoff was complete).
 
