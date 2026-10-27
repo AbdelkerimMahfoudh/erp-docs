@@ -11,7 +11,24 @@ active_phase (owner-approved 2026-10-26): upgrade erp-mobile to **Expo SDK 58** 
 `9e0b38b`. Re-cut the expo-camera patch, fix the breaking changes, run every gate and CI, then serve it to the owner's
 iPhone in Expo Go (SDK 58 only), against the production test API. Decision **D222**. **No change to erp-test,
 production, the backend, the console or any server.**
-next_action: `npx expo install expo@58 --fix` on `sdk-58`.
+progress_2026-10-27: `sdk-58` `0759336`: security CI `40363262740` green (pure 123/123, rendered 364/364, both bundle
+audits). **Open: the web build never mounts** (blank pages, no error; `ops/render-tests` web smoke `40368910628`), so
+visual-check fails. D222 and `docs/106` are drafted, not committed. The Android scanner patch is re-cut, not compiled.
+scope_extended_2026-10-27 (owner-approved, the same claim): after SDK 58, **the general-electronics inventory phase
+(D223)** on feature branches only — erp-mobile from `sdk-58`, erp-backend from `promoter-attribution` (migration
+**0104**). Owner decisions of 2026-10-27:
+- scanner-led intake is one atomic operation (product + unit/receipt + cost + audit), never product-only success;
+- tracking modes IMEI / serial / quantity; the category recommends, the Owner chooses (reverses "category decides",
+  re-opens serial);
+- default + custom categories, one sub-level;
+- no selling price at intake; a recommended price is a suggestion, **no price floor** (reverses "the floor is the price
+  the shop set");
+- below cost: Owner and Manager after a loss warning; Employee needs approval from a Manager or the Owner (reverses
+  Owner-only approval);
+- catalogue refresh from official sources: the 12 brands + HMD/Nokia, OnePlus, Motorola, Google Pixel, and the newest
+  Apple line (iPhone 18 family etc.) **only where Apple officially lists it**.
+No deploy, no production migration, no production data.
+next_action: find why the SDK 58 web export never mounts.
 
 Previous state: READY_FOR_HANDOFF, owner NONE.
 released_at_utc: 2026-10-25T16:13Z by CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), which held it
