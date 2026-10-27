@@ -12,7 +12,13 @@ with one fictional business and fictional inventory; Metro on port 8082 serving 
 Expo Go, pointed at that API. **No production, no erp-test, no merge, no deploy.** The owner's observations are
 recorded here; nothing is merged on them without approval. When the owner says testing is finished: drop
 `erp_inv_e2e`, delete the generated credentials, stop the API and Metro.
-next_action: create `erp_inv_e2e`, migrate it, seed it, start the API and Metro.
+environment_ready_2026-10-27T19:23Z: `erp_inv_e2e` migrated through 0106 (none pending); one fictional business
+(Owner, Store Manager, Employee; generated passwords in the session scratchpad, never in a repository); the day opened
+with a fictional drawer; 4 fictional products (a phone with 2 test IMEIs, a laptop with 2 serials, a charger x15,
+earbuds x8). API `12fcaad` on 0.0.0.0:3999. Metro on 8082 serving `985f995` (`EXPO_PUBLIC_API_ORIGIN` =
+the PC's LAN address, port 3999; `EXPO_PUBLIC_APP_ENV=staging`); the iOS bundle was fetched and holds the D223-only
+keys and no production origin.
+next_action: wait for the owner's device-QA observations; record them here; no merge or deploy without approval.
 
 Previous state:
 Status: READY_FOR_HANDOFF
