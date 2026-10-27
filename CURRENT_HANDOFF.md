@@ -1,5 +1,20 @@
 # CURRENT_HANDOFF
 
+Status: IN_PROGRESS
+Owner: CLAUDE (local session, the owner's PC)
+started_at_utc: 2026-10-27T19:11Z (this claim written before any change)
+claimed_from: READY_FOR_HANDOFF (owner NONE) at `222edc1`; that handoff was complete.
+heads_at_claim: erp-backend `inventory-general` `12fcaad`; erp-mobile `inventory-general` `985f995` (checkout on
+`sdk-58` `fca75c5`); erp-docs `master` `222edc1`.
+active_phase (the owner's request, 2026-10-27): **D223 physical-phone QA on a disposable environment.** Backend `12fcaad`
+as a LAN API on port 3999 against a disposable MySQL database `erp_inv_e2e` (3308, migrations through 0106), seeded
+with one fictional business and fictional inventory; Metro on port 8082 serving erp-mobile `985f995` to the owner's
+Expo Go, pointed at that API. **No production, no erp-test, no merge, no deploy.** The owner's observations are
+recorded here; nothing is merged on them without approval. When the owner says testing is finished: drop
+`erp_inv_e2e`, delete the generated credentials, stop the API and Metro.
+next_action: create `erp_inv_e2e`, migrate it, seed it, start the API and Metro.
+
+Previous state:
 Status: READY_FOR_HANDOFF
 Owner: NONE
 released_at_utc: 2026-10-27T18:52Z by CLAUDE (local session, the owner's PC), which held it from 2026-10-26T14:31Z (claimed
