@@ -1,34 +1,92 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-26T14:31Z (this claim written before any change)
-claimed_from: READY_FOR_HANDOFF (owner NONE) at `57fd97f`; that handoff was complete.
-heads_at_claim: erp-mobile `browser-input-setup-code` `9e0b38b`, `promoter-attribution` `02a30ad`; erp-control-web
-`browser-input-setup-code` `2ebe9c5`, `promoter-attribution` `b652181`; erp-backend `superadmin-provisioning`
-`f5da650`, `promoter-attribution` `002e7f8`; erp-docs `master` `57fd97f`.
-active_phase (owner-approved 2026-10-26): upgrade erp-mobile to **Expo SDK 58** on a new branch `sdk-58` from
-`9e0b38b`. Re-cut the expo-camera patch, fix the breaking changes, run every gate and CI, then serve it to the owner's
-iPhone in Expo Go (SDK 58 only), against the production test API. Decision **D222**. **No change to erp-test,
-production, the backend, the console or any server.**
-progress_2026-10-27: `sdk-58` `0759336`: security CI `40363262740` green (pure 123/123, rendered 364/364, both bundle
-audits). **Open: the web build never mounts** (blank pages, no error; `ops/render-tests` web smoke `40368910628`), so
-visual-check fails. D222 and `docs/106` are drafted, not committed. The Android scanner patch is re-cut, not compiled.
-scope_extended_2026-10-27 (owner-approved, the same claim): after SDK 58, **the general-electronics inventory phase
-(D223)** on feature branches only — erp-mobile from `sdk-58`, erp-backend from `promoter-attribution` (migration
-**0104**). Owner decisions of 2026-10-27:
-- scanner-led intake is one atomic operation (product + unit/receipt + cost + audit), never product-only success;
-- tracking modes IMEI / serial / quantity; the category recommends, the Owner chooses (reverses "category decides",
-  re-opens serial);
-- default + custom categories, one sub-level;
-- no selling price at intake; a recommended price is a suggestion, **no price floor** (reverses "the floor is the price
-  the shop set");
-- below cost: Owner and Manager after a loss warning; Employee needs approval from a Manager or the Owner (reverses
-  Owner-only approval);
-- catalogue refresh from official sources: the 12 brands + HMD/Nokia, OnePlus, Motorola, Google Pixel, and the newest
-  Apple line (iPhone 18 family etc.) **only where Apple officially lists it**.
-No deploy, no production migration, no production data.
-next_action: find why the SDK 58 web export never mounts.
+Status: READY_FOR_HANDOFF
+Owner: NONE
+released_at_utc: 2026-10-27T18:52Z by CLAUDE (local session, the owner's PC), which held it from 2026-10-26T14:31Z (claimed
+from READY_FOR_HANDOFF, owner NONE, at `57fd97f`; that handoff was complete).
+
+## Expo SDK 58 (D222) and general electronics inventory (D223) — implemented and verified on feature branches; nothing merged, deployed or migrated (2026-10-26 → 2026-10-27, CLAUDE, local)
+
+The records are `docs/106` (D222) and `docs/107` (D223). **Production is untouched:**
+- backend `superadmin-provisioning` `f5da650` and rollback `production-deploy` `644f4f5`;
+- the test sites as recorded below (app `9e0b38b`, console `2ebe9c5`);
+- tsxmr.com `5aa8322`.
+
+No DNS, server, firewall, registration, messaging or purchase change was made by this session's code. Separately, at
+the owner's request and through the owner's Chrome, Hetzner firewall rule 4 now allows `41.188.0.0/16` (the ISP's
+range), recorded in the session log.
+
+**HEADs — every tree clean and level with its remote:**
+
+| Repository | Branch | HEAD | Built on |
+| --- | --- | --- | --- |
+| `erp-mobile` | `sdk-58` | **`fca75c5`** | `browser-input-setup-code` `9e0b38b` (D222) |
+| `erp-mobile` | `inventory-general` | **`985f995`** | `sdk-58` `fca75c5` (D223) |
+| `erp-backend` | `inventory-general` | **`12fcaad`** | `promoter-attribution` `002e7f8` (D223; migrations 0104, 0105, 0106) |
+| `erp-mobile` | `ops/render-tests` | `8f21355` | orphan tooling branch, never merged (evidence under `evidence/`) |
+| `erp-mobile` | `ops/visual-check` | `b2e250f` | tooling branch, never merged (evidence under `evidence/runs/`) |
+| `erp-docs` | `master` | the commit carrying this file | — |
+
+The local `erp-mobile` checkout is on **`sdk-58`**: Metro (port 8082, LAN, against the production test API) serves it
+to the owner's Expo Go. `inventory-general` needs a D223 backend, so it is not served there.
+
+**Verification:**
+
+| Gate | Result |
+| --- | --- |
+| D222 security CI | success, run 40516759707 on `fca75c5` |
+| D222 render-tests | run 40516796050 on `fca75c5`: pure 123/123, rendered 364/364, both exports and bundle audits, web smoke |
+| D222 visual-check | success, run 40544916619 |
+| D223 backend TypeScript | clean |
+| D223 backend unit suite (Windows) | 4,970 passed; 5 Windows-only failures in files this branch does not touch |
+| D223 backend security CI | success, run 40553387761 on `12fcaad` (includes the dependency audit) |
+| D223 migrations | rehearsed on disposable databases (§ below), each re-run changing nothing |
+| D223 end-to-end journeys | **25/25**: disposable API on port 3999, `erp_inv_e2e`, one fictional business (`scripts/d223-journeys.mjs`) |
+| D223 mobile TypeScript | clean |
+| D223 mobile pure and rendered tests (Linux) | run 40553738099 on `985f995`: pure 124/124, rendered 364/364, both exports and bundle audits, web smoke |
+| D223 mobile security CI | success, run 40552841468 on `985f995` |
+| D223 visual-check (Chromium, WebKit) | success, run 40553430599 on `985f995` with backend `12fcaad` |
+
+**Migrations, applied only to disposable databases, all now dropped** (`erp_inv_clean`, `erp_inv_upgrade`,
+`erp_inv_e2e`):
+- **`0104_general_electronics_categories`:**
+  - adds `key` and `parent_id`, and a generated `custom_name` that keeps a shop's own names unique;
+  - seeds 61 built-ins per business;
+  - existing categories and products stay byte-identical.
+- **`0105_sale_below_cost_permission`:** the `sale.below_cost` key, granted to `owner` and `store_manager`.
+- **`0106_device_catalogue_refresh`:**
+  - 4 brands and 48 models from manufacturers' own pages, with provenance in `src/catalog/catalogue-refresh.ts`;
+  - Apple re-ranked.
+
+**Not applied to the shared local `phonestore` database, or anywhere real.** Before any real migration: a fresh
+backup (`docs/22`) and the owner's approval.
+
+**Found and fixed on the way:**
+- **D222:**
+  - blank web build (`asyncRoutes`, `+html.tsx`);
+  - bottom sheets under Gesture Handler 3;
+  - `.xlsx` imports;
+  - bundle audits on indexed source maps.
+- **D223:**
+  - `product_exists` lost its `productId` in the exception filter;
+  - body-parser 1.20.9 and multer 2.5.0 for two new high advisories.
+
+**Open — the next exact actions:**
+1. **The owner's review of D222 and D223**, and the device-QA checklist (`docs/107` §4). It needs a D223 backend that
+   the phone can reach, which is not running anywhere.
+2. **`promoter-attribution` needs the same dependency fix** (`12fcaad`'s `package.json` overrides and lockfile): its
+   security run fails on the same two advisories.
+3. **Merge order, when approved:**
+   - backend: `promoter-attribution` (with the fix), then `inventory-general`;
+   - mobile: `sdk-58`, then `inventory-general`.
+4. **Android:** compile and run the re-cut expo-camera patch on a native build (D222).
+5. **Smaller follow-ups** (`docs/107` §6):
+   - `categoryKey` in the product detail payload;
+   - Stock summary chips by category;
+   - the `discount.override` label;
+   - the weekly catalogue agent, deferred by the owner.
+6. **SSH:** the owner runs `ssh-add -D` and stops `ssh-agent` from an **elevated** PowerShell. `Stop-Service` refused
+   in a normal window: "cannot open the service".
 
 Previous state: READY_FOR_HANDOFF, owner NONE.
 released_at_utc: 2026-10-25T16:13Z by CLAUDE (cloud; https://claude.ai/code/session_01H7TfZHzwCoXvkvJ7ZuSzA9), which held it

@@ -8757,3 +8757,63 @@ business invited. Two mechanisms, kept apart from employee invitations, setup co
   deployed or migrated in production. Public registration stays closed.
 
 The record, schema, contract, rehearsal and evidence are in `docs/105`.
+
+### ✅ DECIDED BY THE OWNER (2026-10-26), IMPLEMENTED (branch, CI green), NOT DEPLOYED — D222: the app moves to Expo SDK 58
+
+**The owner's brief (2026-10-26):** the iPhone's Expo Go runs SDK 58 and refuses the SDK 57 app; upgrade on a new
+`sdk-58` branch, re-cut the camera patch, fix what breaks, run every gate, and leave erp-test and production alone.
+
+**Decided:**
+- erp-mobile `sdk-58` (`fca75c5`): Expo 58.0.19, React Native 0.88, Gesture Handler 3, Reanimated 4.7, Jest 30,
+  RNTL 14.
+- Fixed on the way: every bottom sheet (Gesture Handler 3 inside a `Modal`), every `.xlsx` import
+  (`readBytesSync`), the blank web build (`asyncRoutes: false`, and `+html.tsx` placing the export's nodes), and both
+  bundle audits (Metro's indexed source maps).
+- The Android scanner patch is re-cut for expo-camera 58.0.12 and must still be compiled and run on a native Android
+  build before any Android release.
+- Not merged. erp-test still serves SDK 57; moving it is a separate deployment.
+
+The record and evidence are in `docs/106`.
+
+### ✅ DECIDED BY THE OWNER (2026-10-27), IMPLEMENTED (branches), NOT DEPLOYED — D223: general electronics inventory — built-in categories, intake that creates the product with its stock, no price floor
+
+**The owner's brief (2026-10-27):** make the inventory fit any electronics shop. Scanner-led intake is one atomic
+operation; tracking modes are recommended by the category and chosen by the Owner; default categories exist in three
+languages; the scanner asks what a code is; selling has no floor, and a loss is guarded; the catalogue is refreshed
+from official sources only.
+
+**The owner's answers:** no price floor; below cost, the Owner and Managers after a high-friction warning, an Employee
+with a Manager's or the Owner's approval; brands as listed by the manufacturer only (HMD/Nokia, OnePlus, Motorola,
+Google Pixel, and the iPhone 18 family and iPhone Duo where Apple lists them).
+
+**Decided:**
+- **Categories:**
+  - 61 built-in categories with stable keys, one level of subcategories, shown in the reader's language.
+  - A built-in can only be hidden or shown again; nothing is deleted.
+  - A shop's own categories are company-scoped and may sit under a top-level one.
+  - The category recommends the tracking mode and the Owner chooses among the modes it allows.
+- **Intake:**
+  - A receiving line may create its product. The product, its units or counted stock, the cost, the payment and the
+    audit commit in one transaction.
+  - Only received lines create products, and never a product-only success.
+  - Creating needs `catalog.manage`.
+  - Intake records the buying cost only.
+- **Scanner:**
+  - "Scan an item".
+  - A non-IMEI code is asked about (one item's serial, or the product model's barcode).
+  - An IMEI is asked which kind of cellular device it is from.
+  - A mistyped IMEI is refused at intake as at Sale.
+- **Selling:**
+  - No price floor.
+  - Below cost needs a reason. `sale.below_cost` (Owner, Store Manager) sells after an acknowledged warning;
+    everyone else needs that holder's approval for the exact unit and price.
+- **Stock** filters by category with its subcategories.
+- **Catalogue:**
+  - Each added model is listed by its manufacturer and dated by a manufacturer's page, with provenance recorded.
+  - What was checked and not added is recorded too.
+  - No rumoured or expected model, and no TAC, IMEI, storage, colour or specification.
+  - The weekly agent is deferred.
+- Migrations 0104, 0105 and 0106 are additive and idempotent, rehearsed only on disposable databases. Not merged;
+  production is a separate, owner-approved step with a fresh backup.
+
+The record, verification, device-QA checklist and open items are in `docs/107`.

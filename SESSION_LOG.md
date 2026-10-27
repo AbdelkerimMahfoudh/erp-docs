@@ -12984,3 +12984,51 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   dropped, and their secrets deleted.
 - **Released** READY_FOR_HANDOFF, owner NONE. Next: the owner's decision on D221, the audit, the merge and the
   deployment (`CURRENT_HANDOFF.md`).
+
+## 2026-10-27 — Expo SDK 58 (D222) and general electronics inventory (D223): implemented and verified on feature branches; not merged, deployed or migrated (CLAUDE, local)
+
+- **Claimed** 2026-10-26T14:31Z from READY_FOR_HANDOFF (owner NONE, `57fd97f`, complete). The owner approved the SDK 58
+  upgrade, then extended the same claim to D223 and answered its four questions (no price floor; below cost by
+  warning for the Owner and Managers, by approval for Employees; brands only where the manufacturer lists them).
+- **D222 (`sdk-58` `fca75c5`):**
+  - Expo 58, React Native 0.88, Gesture Handler 3, Jest 30 and RNTL 14;
+  - the blank web build fixed (`asyncRoutes: false`; `+html.tsx` places `headNodes`/`bodyNodes`);
+  - security CI 40516759707, render-tests 40516796050 and visual-check 40544916619 green;
+  - the Android scanner patch re-cut, not compiled.
+- **D223:** erp-backend `inventory-general` `12fcaad` and erp-mobile `inventory-general` `985f995`.
+  - 61 built-in categories with keys and one sub-level (0104); the category recommends the tracking mode and the
+    Owner chooses among the modes it allows.
+  - Intake creates the product inside the purchase transaction, and only for received lines; `product_exists`;
+    `catalog.manage`.
+  - The app hands a draft to "Create product and add to stock" and says success only after the commit.
+  - "Scan an item"; the scanner asks what a non-IMEI code is, and an IMEI's kind of device; one mistyped-IMEI rule
+    for intake and Sale.
+  - No price floor; `sale.below_cost` (0105) for the Owner and Store Managers, by acknowledged warning; approvals for
+    everyone else.
+  - Stock by category.
+  - Catalogue refresh from manufacturers' own pages with provenance (0106): Google Pixel, OnePlus, Motorola, HMD, and
+    iPhone Duo, iPhone 18 Pro and 18 Pro Max. iPhone 18, 18e and Air 2 are not listed by Apple, so they were not
+    added.
+- **Verified:**
+  - migrations rehearsed on disposable databases, each re-run changing nothing;
+  - backend Jest 4,970, with 5 Windows-only failures in untouched files;
+  - 25/25 HTTP journeys on a disposable API with one fictional business;
+  - CI as recorded in `docs/107` §3.
+- **Fixed on the way:**
+  - `product_exists` lost `productId` in the exception filter (found by the journeys);
+  - body-parser 1.20.9 and multer 2.5.0 for two new high advisories (closes the D221 session's open audit item).
+    `promoter-attribution` needs the same change.
+- **Also this session, at the owner's request:** Hetzner firewall rule 4 now allows `41.188.0.0/16` (the ISP's
+  addresses change), set through the owner's Chrome. Tailscale is planned before the App Store release. A read-only
+  inventory investigation was started and then withdrawn by the owner ("the incident only happened because of me
+  confusing something"); nothing was changed.
+- **Not done, by instruction:** no merge, deployment, production migration, production data, DNS or registration
+  change; the weekly catalogue agent is not begun.
+- **Cleaned:**
+  - `erp_inv_clean`, `erp_inv_upgrade` and `erp_inv_e2e` dropped; the fixture's generated credentials deleted;
+  - the disposable API stopped, and its launch entry removed;
+  - `phonestore` untouched.
+  - Metro still serves `sdk-58` to the owner's Expo Go.
+- **Open:** the owner's review and device QA (`docs/107` §4), the dependency fix on `promoter-attribution`, the
+  merges, the Android native check, and `ssh-add -D` with `Stop-Service ssh-agent` from an elevated PowerShell.
+- **Released** READY_FOR_HANDOFF, owner NONE.
