@@ -126,8 +126,38 @@ verification**, then:
 The plan, files, risks and rehearsal are in `docs/109`, and the decision is **D224**. The owner chose
 "Test + pilot banner": a Test business only, with a pilot sub-mark changing the banner wording.
 **No deployment until every gate passes; no public App Store release.**
-next_action: implement `docs/109` §2 on new branches `deferred-verification` (backend from `inventory-general`
-`5370460`; portal from `promoter-attribution` `b652181`; mobile from `inventory-general` `a4377d2`).
+progress_2026-10-28 (D224, branches `deferred-verification`; nothing merged or deployed; production untouched):
+- erp-backend **`af107f6`**:
+  - migration 0109;
+  - test provisioning and the deferral lifecycle;
+  - setup codes;
+  - granted seats for a test business's provisioned staff (the owner's decision);
+  - security CI green on `c919354`.
+- Backend verification:
+  - Jest 5,018 passed, with the 4 known Windows-only failures;
+  - real-MySQL spec 10/10;
+  - boundary spec 10/10;
+  - HTTP journeys 46/46 with the switch on and 4/4 with it off (`scripts/d224-deferral-journeys.mjs`).
+- Rehearsal: production's set (`f5da650`, through 0102) plus seeded rows, then 0103→0109. The backfill is correct and
+  the schema is identical to a fresh build (0 diff lines).
+- erp-mobile **`8067d74`**: the pilot strip, the deferred number, neutral setup copy. Security CI and render-tests green.
+- erp-control-web **`812e4a3`**: the verification field, test staff, deferred accounts, the pilot mark, the filter.
+  CI green; vitest 12 new tests.
+- The D223 environment is closed: Metro, the API on 3999 and the codes page stopped; `erp_inv_e2e` dropped (local
+  fictional data only); its credentials deleted.
+- The D224 disposable environment remains: `erp_dv_e2e`, `provisioning_dv`, `rehearsal_d224`, and the API on 3998.
+- Apple Team ID **5B9T8L263K**. The membership is an **individual** enrolment, not the TSX-MR organisation.
+- Rollback floor: a code rollback below 0107 is unsafe once a sale or stock row of unknown (NULL) cost exists. 0109
+  itself is additive.
+next_action: BLOCKED on the owner's inputs (session report of 2026-10-28):
+1. SSH access for production;
+2. Expo/EAS account and Apple signing;
+3. the icon;
+4. iPad;
+5. the pilot staff list;
+6. the feedback email;
+7. the internal testers.
+Then merge, back up, deploy, build and run TestFlight per the brief.
 Previous state:
 Status: READY_FOR_HANDOFF
 Owner: NONE
