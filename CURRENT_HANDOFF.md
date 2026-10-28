@@ -18,7 +18,22 @@ with a fictional drawer; 4 fictional products (a phone with 2 test IMEIs, a lapt
 earbuds x8). API `12fcaad` on 0.0.0.0:3999. Metro on 8082 serving `985f995` (`EXPO_PUBLIC_API_ORIGIN` =
 the PC's LAN address, port 3999; `EXPO_PUBLIC_APP_ENV=staging`); the iOS bundle was fetched and holds the D223-only
 keys and no production origin.
-next_action: wait for the owner's device-QA observations; record them here; no merge or deploy without approval.
+device_qa_2026-10-28 (the owner's iPhone, `985f995` on `12fcaad`): **blocking defects**, now being corrected on the same
+feature branches (the owner's brief of 2026-10-28; the claim stays IN_PROGRESS):
+- **Freeze, root cause PROVEN by a temporary trace build (Metro only, reverted, never committed):** JS stayed alive and
+  every tap reached the JS root. New product's hand-back cleared its own `submitting` flag in `finally` BEFORE
+  `router.back()`, so `ProductForm`'s `usePreventRemove(dirty && !submitting)` intercepted the screen's own successful
+  exit. On iOS the native stack popped visually while navigation stayed on `/catalog/new`; the "discard changes?"
+  confirm was presented as a transparent full-screen Modal that never drew, and swallowed every touch
+  (`dialogs: 1` for ever, route never returned to `/quick-receive`).
+- **Restored-draft card:** Quick receive's draft always holds a request key and a payment method, so every visit writes a
+  draft and the next visit says "Restored" even when nothing was typed. Unrelated to the hand-back.
+- Also: no category required; the phone catalogue offered under any category (all 371 catalogue models are phones);
+  Storage/Colour shown for every category; Selling price in the intake form; "Receive a phone".
+- **Owner decision 2026-10-28: full unknown cost** (migration 0107, nullable cost; profit/margin incomplete, never
+  zero; audited Owner/Manager cost entry later, never rewriting a sale).
+next_action: implement the corrections (backend unknown cost; category-gated, single-action intake; no selling price),
+run every gate, reseed the disposable database, restart the environment for the owner's physical retest.
 
 Previous state:
 Status: READY_FOR_HANDOFF
