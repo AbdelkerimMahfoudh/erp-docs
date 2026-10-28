@@ -8856,3 +8856,18 @@ The root cause of the freeze, the record and the verification are in `docs/107` 
   an old sale.
 
 The root cause, the schema and the verification are in `docs/107` §8.
+
+### ✅ DECIDED BY THE OWNER (2026-10-28), PLANNED, NOT IMPLEMENTED — D224: deferred WhatsApp verification for admin-provisioned test accounts; a TestFlight store pilot
+- **Who may defer:** a platform superadmin, with MFA and a fresh step-up, through the protected portal only.
+- **Which accounts:** an Owner, Manager or Employee of a business marked **Test**, while the server kill switch
+  `PHONE_VERIFICATION_DEFERRAL_ENABLED` (default off) allows it.
+- **What it is:** the state `deferred_by_platform`, distinct from `required` and `verified`.
+  - It is never shown or stored as verified.
+  - No consent or message is created.
+  - No WhatsApp-dependent action becomes available.
+  - Every grant and change is audited.
+- **The pilot business:** it is a Test business with a **pilot** sub-mark, whose banner reads "Pilot business —
+  controlled test of Dukan ERP" (the owner's choice, 2026-10-28). Every other Test rule stands. Its normal use after
+  the pilot is a new customer business.
+- **Setup:** each person redeems a one-time setup code and chooses their own password.
+- **Detail:** `docs/109`.

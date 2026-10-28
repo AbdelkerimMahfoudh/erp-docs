@@ -110,18 +110,24 @@ corrections_2_2026-10-28 (same branches; nothing merged, deployed or migrated ou
     scanner-sell, return-policy and conditions code, and no ReturnPolicyCard.
 - Not rehearsed separately: 0108 on a database already holding sales at 0107 (a `CREATE TABLE`, nullable `ADD COLUMN`s
   and a guarded permission insert).
-next_action: the owner's second physical retest (`docs/107` §8.8):
-1. the card is removed;
-2. an IMEI Sale scan;
-3. a quantity barcode Sale scan;
-4. no policy on Review sale;
-5. More → Return policy editing;
-6. a named-customer receipt;
-7. the Arabic receipt policy;
-8. an old receipt unchanged.
-Record the result here BEFORE any merge or deploy; no TestFlight. When the owner says testing is finished: drop
-`erp_inv_e2e`, delete the generated credentials and QA pages, stop the API, Metro and the codes page, and remove the
-launch entries `d223-qa-api` and `d223-qa-codes`.
+device_qa_3_2026-10-28: **the owner completed the physical-iPhone testing on `a4377d2` / `5370460` and approved the
+current functionality for a controlled TestFlight pilot** (the owner's message, 2026-10-28). This approves the
+pilot, not a public App Store release.
+active_phase_2026-10-28 (the owner's pilot brief): implement admin-provisioned accounts with **deferred WhatsApp
+verification**, then:
+1. close the disposable environment;
+2. reconcile the release and merge it through the integration branches;
+3. production preflight and backup;
+4. deploy the backend and portal;
+5. provision the pilot accounts;
+6. the TestFlight build and groups;
+7. multi-phone checks;
+8. the pilot safeguards.
+The plan, files, risks and rehearsal are in `docs/109`, and the decision is **D224**. The owner chose
+"Test + pilot banner": a Test business only, with a pilot sub-mark changing the banner wording.
+**No deployment until every gate passes; no public App Store release.**
+next_action: implement `docs/109` §2 on new branches `deferred-verification` (backend from `inventory-general`
+`5370460`; portal from `promoter-attribution` `b652181`; mobile from `inventory-general` `a4377d2`).
 Previous state:
 Status: READY_FOR_HANDOFF
 Owner: NONE
