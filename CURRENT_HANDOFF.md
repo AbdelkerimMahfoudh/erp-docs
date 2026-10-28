@@ -32,8 +32,50 @@ feature branches (the owner's brief of 2026-10-28; the claim stays IN_PROGRESS):
   Storage/Colour shown for every category; Selling price in the intake form; "Receive a phone".
 - **Owner decision 2026-10-28: full unknown cost** (migration 0107, nullable cost; profit/margin incomplete, never
   zero; audited Owner/Manager cost entry later, never rewriting a sale).
-next_action: implement the corrections (backend unknown cost; category-gated, single-action intake; no selling price),
-run every gate, reseed the disposable database, restart the environment for the owner's physical retest.
+corrections_2026-10-28 (same branches; nothing merged, deployed or migrated outside disposable databases):
+- erp-backend `inventory-general` **`0e11165`** (`4a8fc6d` + journeys): migration **0107_unknown_cost** (cost nullable on
+  units/stock_items/purchase_items/stock_receipts/sale_items/return_reversals; `stock_items.missing_cost_quantity`;
+  `daily_rollups.missing_cost_lines`; `cost.complete` to owner + store_manager). Purchases take an optional cost
+  (absent = unknown, nothing paid); sales sell it at NULL cost, below-cost checks only where cost is known,
+  `knownMargin`; closing report counts NULL as missing; rollups, period figures, dashboard, product/category profit and
+  valuation over known costs with disclosure; `POST units/:id/cost` and `POST purchase-items/:id/cost` (audited, no
+  money moved, open-day sale completed with its price untouched, closed day left as frozen); transfers and purchase
+  cancellations refuse unknown-cost stock (`cost_missing`); categories carry `allowedTrackingTypes`; the device
+  catalogue answers only for the Phones family (`catalogueCovers`).
+- erp-mobile `inventory-general` **`48e0d9b`** (app code as `cef66aa`; later commits are tests): New product from Quick
+  receive is the single-item intake — category first, product, stock details, optional buying cost, payment, ONE
+  "Create product and add to stock" purchase; `allowLeaveRef` lets deliberate exits through the unsaved-changes guard
+  (the freeze), one confirm at a time; the category decides the form (allowed modes, phone catalogue only under
+  Phones, category attributes only, change clears); no selling price in any intake; the missing-cost dialog (Add
+  buying cost / Continue without cost / Cancel, EN/FR/AR as agreed); Quick receive drafts only typed work (no false
+  "Restored"); "Buying cost missing" in Stock with Add buying cost for cost.complete holders; analytics says when
+  profit is incomplete; "Receive an item"; a malformed attributes answer falls back instead of crashing the form.
+- Verification:
+  - backend: TypeScript clean; Jest 5,000 passed with 4 Windows-only failures in untouched files;
+    `unknown-cost.spec.ts` 19/19;
+  - security CI: success on `4a8fc6d` (40696617411) and `0e11165` (40697591157);
+  - real MySQL (`erp_inv_e2e` at 0107): the 25 D223 journeys pass, and **26/26** unknown-cost journeys
+    (`scripts/d223-unknown-cost-journeys.mjs`);
+  - mobile: TypeScript clean; pure tests pass apart from the 4 that fail identically at `985f995` on Windows;
+  - render-tests run 40705453294 on `48e0d9b`: pure 125/125, rendered **381/381** (17 new intake cases), both
+    exports, both bundle audits, web smoke;
+  - mobile security CI on `48e0d9b`: success, run 40705435919;
+  - visual-check on `374e9ef` (app code identical to `48e0d9b`): run 40704115462: 818/818 Chromium and WebKit, access journey 21/21, input 245/245.
+- Disposable environment for the retest (running):
+  - **database:** `erp_inv_e2e` reset at `0e11165`, migrations through 0107, nothing pending;
+  - **seed:** four fictional businesses (D223 Fictional Electronics and QA Stores 1–3, each with an Owner, a
+    Manager and an Employee and fictional stock), with new generated passwords in the session scratchpad, never in a
+    repository;
+  - **API:** `0e11165` on 0.0.0.0:3999;
+  - **Metro:** on 8082 serving `48e0d9b`. Its iOS bundle was fetched: it holds only the LAN test API, no
+    `api.tsxmr.com`, the corrected intake code, and no selling-price strings.
+- Not rehearsed separately: 0107 on a database already holding data at 0106 (statements are `MODIFY … NULL`,
+  `ADD COLUMN … DEFAULT 0` and guarded inserts).
+next_action: the owner's physical retest on the iPhone (the shorter script in `docs/107` §7.9's report); record the
+observations here; nothing is described as fixed until the sequence that froze has been repeated successfully; no
+merge, deploy or TestFlight. When the owner says testing is finished: drop `erp_inv_e2e`, delete the generated
+credentials and QA pages, stop the API, Metro and the codes page, and remove the launch entries `d223-qa-api` and
+`d223-qa-codes`.
 
 Previous state:
 Status: READY_FOR_HANDOFF

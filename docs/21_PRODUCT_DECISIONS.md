@@ -8817,3 +8817,25 @@ Google Pixel, and the iPhone 18 family and iPhone Duo where Apple lists them).
   production is a separate, owner-approved step with a fresh backup.
 
 The record, verification, device-QA checklist and open items are in `docs/107`.
+
+**Amended by the owner after the first iPhone test (2026-10-28), on the same branches, not deployed:**
+- **A single scanned item is received in one action.**
+  - In order: the category, the product, the stock details and an optional buying cost.
+  - Then **"Create product and add to stock"** commits the product with its unit or quantity in one purchase.
+  - Success comes only after the commit.
+  - A multi-item delivery stages lines with **"Add to delivery"** and commits at its own end.
+- **The category comes first, is required on create, and decides the form.**
+  - The tracking mode is suggested by the category and limited to the modes it allows, narrowed by the scan.
+  - The phone catalogue is offered only under Phones, since every row of it is a phone.
+  - Only the category's own attributes are asked.
+  - Changing the category clears the previous one's values.
+- **No selling price at intake.** The Sale decides it, and catalogue-only creation asks for metadata alone.
+- **The buying cost is optional, but leaving it out is confirmed explicitly** with Add buying cost, Continue without
+  cost, or Cancel.
+- **An unknown cost is NULL, never zero (migration 0107).**
+  - Profit, margin and valuation leave it out and say how much they leave out; the closing report states no profit
+    while any line lacks one.
+  - An Owner or a Store Manager (`cost.complete`) enters it later. That entry is audited and moves no money.
+  - It completes an open day's sale without touching its price. A closed day stays as its closing froze it.
+
+The root cause of the freeze, the record and the verification are in `docs/107` §7.

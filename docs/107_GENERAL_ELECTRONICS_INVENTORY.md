@@ -175,3 +175,195 @@ D223 (`docs/21`).
 - The Stock summary's chips (Phones, Accessories, Other) are by tracking mode, not category.
 - The `discount.override` label still says "below the set price".
 - The weekly catalogue agent is deferred by the owner.
+
+## 7. Device QA corrections (2026-10-28)
+
+The owner's first iPhone pass on `985f995` / `12fcaad` found blocking defects. They are corrected on the same feature
+branches. **The physical retest is still required**: nothing here is "fixed" until the sequence that froze has been
+repeated on the iPhone.
+
+### 7.1 The freeze: root cause, proven
+
+The cause was not guessed. A temporary trace build ran only through Metro, was never committed, and was removed
+afterwards. It logged a 3-second heartbeat, every touch that reached the JS root, every modal, sheet and dialog
+change, the route, and each step of the hand-back. The owner repeated the sequence once on the iPhone:
+
+- **JavaScript stayed alive** (the heartbeat ran on), and **every tap reached the JS root**.
+- **At the instant New product called `router.back()`, a dialog was queued.** The route never returned to
+  `/quick-receive`, and one dialog stayed queued for good.
+
+The mechanism:
+
+1. The hand-back cleared its own `submitting` flag in `finally`, *before* `router.back()`.
+2. `ProductForm`'s `usePreventRemove(dirty && !submitting)` therefore stopped the screen's own successful exit.
+3. On iOS the native stack popped visibly anyway, while navigation state stayed on New product.
+4. The "discard changes?" confirm was presented as a transparent full-screen `Modal` that never drew, and it swallowed
+   every touch.
+
+**Fix:**
+
+- A deliberate exit sets `allowLeaveRef` before navigating, and the guard lets it straight through.
+- Only one confirm can be up at a time.
+- Quick receive no longer hands back at all: see 7.3.
+
+### 7.2 The "Restored what you had here" card
+
+Quick receive's draft always held a request key and a payment method. So every visit wrote a draft, even with nothing
+typed, and the next visit announced it had restored one. It was unrelated to the hand-back.
+
+`useDraft` now takes a `persist` flag:
+
+- Quick receive keeps a draft only while a cost or IMEI 2 is typed, or an answer is outstanding.
+- A draft left from before is removed.
+- The card appears only when typed work actually came back.
+
+### 7.3 One action for a single scanned item
+
+From Quick receive, New product (`intake=quick`) **is** the intake:
+
+1. the category, first;
+2. the product;
+3. the item's stock details (the IMEI or serial with an optional IMEI 2, or how many);
+4. **Buying cost — optional**;
+5. how it was paid;
+6. one **"Create product and add to stock"**, which sends one `POST /purchases` with `newProduct` and the unit or
+   quantity.
+
+What surrounds that one action:
+
+- **The answer comes first.** Success is shown only after the server's answer, and the item is in Stock and found by
+  a Sale lookup at once.
+- **Retries replay.** A timeout keeps the request key, so the retry replays.
+- **No duplicates.** If `product_exists`, the next press receives into the existing product.
+- **No double sends.** A second press while the first is pending does nothing.
+
+From the delivery Receive, the same form says **"Add to delivery"**. It stages the line, and the delivery's own final
+commit creates both.
+
+### 7.4 The category decides the form
+
+On create, the category is chosen first and is required. Before it:
+
+- no Brand, Model or phone field;
+- no catalogue request;
+- the action cannot proceed.
+
+After it:
+
+- **Tracking:** the mode starts from the category's suggestion, among the modes it allows (`allowedTrackingTypes`,
+  now served with each category). The scan narrows it further: an IMEI is `imei`, a serial is `serial`, and a
+  product barcode is `quantity`. Categories the scan cannot go into are not offered.
+- **Catalogue:** the phone catalogue only for the Phones family.
+- **Fields:** only the category's own attributes, for example storage and colour for a phone, processor, RAM and
+  storage for a laptop, power and connector for a charger.
+- **Changing category** clears brand, model, storage, colour, the other attributes and the mode.
+
+**The catalogue rule.** All 371 rows of the 0106 catalogue are phones: there is no curated tablet, laptop or accessory
+list, and none was invented. The category is therefore derived:
+
+- `catalogueCovers(key)` holds for `phones` and `phones.*`, and for a shop's own subcategory of them.
+- Everywhere else, the brand and model are typed by hand.
+- `GET /device-catalogue/brands` and `/models` take `?category=` and answer `[]` outside Phones; old clients are
+  unchanged.
+- Apple without Phones never means an iPhone.
+
+### 7.5 No selling price at intake
+
+The Selling price section, the "Optional starting price" copy, its validation and its payload are gone from:
+
+- the product form;
+- Quick receive;
+- the delivery's item sheet;
+- every intake path.
+
+The Sale decides the price. Catalogue-only creation asks for metadata alone and says creating a product adds no
+stock.
+
+### 7.6 An unknown buying cost is NULL, never zero (migration 0107, the owner's decision of 2026-10-28)
+
+**The existing contract.** The closing report already refused to state profit when a line's cost was "missing", but
+it detected missing as a cost of about 0. That is the representation the owner ruled out.
+
+**The migration (`0107_unknown_cost`).** Additive; no existing value changes.
+
+- Cost becomes nullable on `units`, `stock_items`, `purchase_items`, `stock_receipts`, `sale_items` and
+  `return_reversals`.
+- `stock_items.missing_cost_quantity` counts the pieces on hand of unknown cost; `cost` averages the others.
+- `daily_rollups.missing_cost_lines` counts the day's sold lines of unknown cost.
+- `cost.complete` is granted to the Owner and Store Managers; the Administrator gets no money key.
+
+**Intake.** An empty cost asks once, through a native in-app dialog in EN, FR and AR, word for word as agreed:
+
+- **Add buying cost:** focus returns to the cost field; nothing is sent.
+- **Continue without cost:** the cost is sent as absent.
+- **Cancel:** nothing changes.
+
+It cannot stack, and dismissing it submits nothing. Nothing is paid for a line of unknown cost.
+
+**Sales:**
+
+- A unit, or counted stock holding unknown pieces, sells at cost `NULL`; the unknown pieces are taken first.
+- Below-cost checks and approvals apply only where cost is known, so known-cost behaviour is unchanged.
+- `sales.margin` covers the known lines (`knownMargin`): never a price minus zero.
+
+**Reports:**
+
+- The closing report counts `NULL` (and about 0, for older rows) as missing, and reports `cannot_calculate`.
+- The rollups, period figures, dashboard, product and category profit, and valuation take profit over known costs,
+  and disclose the missing lines or pieces.
+- The app says "Buying cost missing" on the item and "Profit incomplete: N sold without a buying cost".
+- `costMissing` and `missingCostQuantity` are cost-gated fields.
+
+**Entering it later.** `POST /units/:id/cost` and `POST /purchase-items/:id/cost` need `cost.complete` and
+`cost.view`. Both are audited and move no money.
+
+- A unit sold on an **open** day: the sale line takes the cost, and the sale's cost and margin are recomputed. The
+  price is untouched and no second sale is created.
+- A unit sold on a **closed** day: that sale stays as the closing froze it (the existing locked-period rule), and the
+  answer says so.
+- A counted line: its pieces still on hand are folded into the average; pieces already sold stay unknown.
+
+**Refused rather than invented.** Shipping a transfer, and cancelling a purchase, of stock whose cost is unknown are
+refused with `cost_missing` until the cost is entered.
+
+### 7.7 Wording
+
+- "Receive a phone" became "Receive an item".
+- The empty state says "Scan the item or its code".
+- The brand and model hints are general ("as written on the item or its box").
+- All new copy is in exact EN/FR/AR parity, with no hardcoded strings.
+
+### 7.8 Verification
+
+| Gate | Result |
+| --- | --- |
+| Backend TypeScript | clean |
+| Backend unit suite (Windows) | 5,000 passed; 4 Windows-only failures in files this work does not touch (trial, deploy-production, acquisition, subscription-lifecycle) |
+| New backend spec `unknown-cost.spec.ts` | 19/19 |
+| Backend security CI | success on `4a8fc6d` (40696617411) and `0e11165` (40697591157) |
+| Real MySQL, disposable `erp_inv_e2e` at 0107 | the 25 D223 journeys still pass; **26/26 unknown-cost journeys** (`scripts/d223-unknown-cost-journeys.mjs`) |
+| Mobile TypeScript | clean |
+| Mobile pure tests (Windows) | all pass except the 4 that fail identically at `985f995` (access-boundary, sheet-input, web-accessibility, zoned-time: Windows paths and CRLF) |
+| New pure test `lib/intake-form.test.ts` | 12/12 |
+| New rendered test `__tests__/single-item-intake.test.tsx` | 17 cases (Linux CI only: the local jest preset lacks its resolver) |
+| Mobile render-tests | run 40705453294 on `48e0d9b`: pure 125/125, rendered **381/381**, both exports and bundle audits, web smoke |
+| visual-check (Chromium, WebKit) | run 40704115462 on `374e9ef` (app code identical to `48e0d9b`) with backend `0e11165`: 818/818 each, access journey 21/21, input 245/245 |
+| Mobile security CI | success, run 40705435919 on `48e0d9b` |
+
+**Not rehearsed separately:** 0107 on a database that already holds data at 0106. Its statements are
+`MODIFY … NULL` and `ADD COLUMN … DEFAULT 0` plus guarded inserts, so no existing value can change. It was applied to
+a fresh disposable database, and the journeys ran on it.
+
+### 7.9 Physical retest (pending)
+
+The shorter script is in the session's report to the owner. It covers:
+
+- one IMEI phone;
+- one serial laptop without a cost, and adding the cost later;
+- one counted accessory;
+- the missing-cost dialog;
+- category and model filtering;
+- immediate Stock and Sale lookup;
+- rapid double press and repeated scan;
+- manual entry;
+- the exact sequence that froze.
