@@ -71,12 +71,57 @@ corrections_2026-10-28 (same branches; nothing merged, deployed or migrated outs
     `api.tsxmr.com`, the corrected intake code, and no selling-price strings.
 - Not rehearsed separately: 0107 on a database already holding data at 0106 (statements are `MODIFY … NULL`,
   `ADD COLUMN … DEFAULT 0` and guarded inserts).
-next_action: the owner's physical retest on the iPhone (the shorter script in `docs/107` §7.9's report); record the
-observations here; nothing is described as fixed until the sequence that froze has been repeated successfully; no
-merge, deploy or TestFlight. When the owner says testing is finished: drop `erp_inv_e2e`, delete the generated
-credentials and QA pages, stop the API, Metro and the codes page, and remove the launch entries `d223-qa-api` and
-`d223-qa-codes`.
-
+device_qa_2_2026-10-28 (the owner's second iPhone pass, `48e0d9b` on `0e11165`): the unknown cost, category filtering,
+single-item intake and navigation fix were kept. Four defects:
+- the Sale scanner said "already in inventory" for the phone being sold;
+- a staff-allowance banner on More;
+- a policy card on Review sale;
+- a receipt with no customer and only a generic final-sale line.
+corrections_2_2026-10-28 (same branches; nothing merged, deployed or migrated outside disposable databases):
+- erp-backend `inventory-general` **`5370460`**: migration **0108_branch_return_policy**.
+  - New table `branch_return_policies`.
+  - Sale snapshot columns: the three policy texts, language, version, customer name and phone.
+  - Permission `return.policy.edit` for the Owner, store_manager and store_employee (76 keys).
+  - `GET`/`PUT /return-policy`: branch-assigned only; plain text, normalised, at most 1000 characters, markup
+    refused; version compare-and-set; audited.
+  - Sales resolve the policy on the server (`effectivePolicy`) and IGNORE the legacy client window.
+  - Receipts and reprints read the sale's snapshot (`receiptCustomer`, `returnPolicy.texts`).
+  - Sale selection reports `returned` and `in_transit`.
+- erp-mobile `inventory-general` **`a4377d2`**:
+  - ScannerSheet `purpose`: receive / sell / lookup. Sell looks up `/sales/selection`, offers Add to sale (one line),
+    gives the real refusal reasons and has no receiving actions.
+  - ReturnPolicyCard deleted, and no window is sent.
+  - More → Return policy screen (EN/FR/AR, confirmation).
+  - Receipt customer and written conditions from the snapshot.
+  - The `over_limit` banner is removed; seat enforcement is untouched and Team explains `SEAT_LIMIT_REACHED`.
+    `app/access.tsx`, the Business access screen itself, still states the count.
+- Verification:
+  - backend: TypeScript clean; Jest 5,008 passed, with the same 4 Windows-only failures; `return-policy.spec` 10/10;
+  - real MySQL at 0108: D223 25/25, unknown cost 26/26, **policy 23/23** (`scripts/d223-policy-journeys.mjs`);
+  - mobile: TypeScript clean; pure tests pass apart from the same 4 Windows-only files; `receipt-policy.test` 14/14;
+  - render-tests run 40744958524 on `a4377d2`: pure 126/126, rendered **389/389**, exports, audits, web smoke;
+  - security: backend `5370460` 40744610302, mobile `a4377d2` 40744653285;
+  - visual-check run 40744976213 on `a4377d2` with backend `5370460`: 818/818 Chromium and WebKit, access journey 21/21, input 245/245.
+- Disposable environment for the second retest (running):
+  - **database:** `erp_inv_e2e` reset at `5370460`, through 0108, nothing pending;
+  - **seed:** the same four fictional businesses with new generated passwords (scratchpad only);
+  - **API:** `5370460` on 0.0.0.0:3999;
+  - **Metro:** on 8082 serving `a4377d2`. Its iOS bundle holds only the LAN API, 0 `api.tsxmr.com`, the
+    scanner-sell, return-policy and conditions code, and no ReturnPolicyCard.
+- Not rehearsed separately: 0108 on a database already holding sales at 0107 (a `CREATE TABLE`, nullable `ADD COLUMN`s
+  and a guarded permission insert).
+next_action: the owner's second physical retest (`docs/107` §8.8):
+1. the card is removed;
+2. an IMEI Sale scan;
+3. a quantity barcode Sale scan;
+4. no policy on Review sale;
+5. More → Return policy editing;
+6. a named-customer receipt;
+7. the Arabic receipt policy;
+8. an old receipt unchanged.
+Record the result here BEFORE any merge or deploy; no TestFlight. When the owner says testing is finished: drop
+`erp_inv_e2e`, delete the generated credentials and QA pages, stop the API, Metro and the codes page, and remove the
+launch entries `d223-qa-api` and `d223-qa-codes`.
 Previous state:
 Status: READY_FOR_HANDOFF
 Owner: NONE

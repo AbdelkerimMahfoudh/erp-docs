@@ -8839,3 +8839,20 @@ The record, verification, device-QA checklist and open items are in `docs/107`.
   - It completes an open day's sale without touching its price. A closed day stays as its closing froze it.
 
 The root cause of the freeze, the record and the verification are in `docs/107` §7.
+
+**Amended by the owner after the second iPhone test (2026-10-28), on the same branches, not deployed:**
+- **The scanner has a purpose.**
+  - Receive refuses a unit already held.
+  - Sale finds the unit in stock and adds that exact unit, with the server's real reason when it cannot be sold. It
+    offers no receiving action.
+- **No staff-allowance banner on general screens.** The seat rule, entitlements and billing are unchanged, and Team
+  explains a refusal.
+- **The return policy is the branch's, decided by the server, never at the sale.**
+  - Review sale has no policy card.
+  - Any active Owner, Store Manager or Store Employee of the branch edits its window and written conditions in
+    EN/FR/AR (plain text, never translated), with a confirmation. Every edit is audited (migration 0108).
+- **Each sale snapshots, at confirmation:** its policy (window, deadline, the three texts, the default language and the
+  version) and the customer's name. The receipt and every reprint print that snapshot, and later edits never change
+  an old sale.
+
+The root cause, the schema and the verification are in `docs/107` §8.

@@ -367,3 +367,176 @@ The shorter script is in the session's report to the owner. It covers:
 - rapid double press and repeated scan;
 - manual entry;
 - the exact sequence that froze.
+
+## 8. Second device pass corrections (2026-10-28)
+
+The owner's second iPhone pass on `48e0d9b` / `0e11165` kept the unknown cost, the category filtering, the single-item
+intake and the navigation fix. It found four further defects, corrected on the same branches:
+
+- erp-backend `inventory-general` **`5370460`** (migration **0108**);
+- erp-mobile `inventory-general` **`a4377d2`**.
+
+Nothing is merged or deployed. **The physical retest is still required.**
+
+### 8.1 The Sale scanner ran receiving's rule: root cause
+
+`ScannerSheet` had one behaviour. For every IMEI it called the receiving lookup (`POST /scan`) and applied receiving's
+duplicate rule. Quick sell and the cart mounted the same sheet with no notion of purpose. So the phone being sold, which
+is in stock by definition, was reported as "This phone is already in inventory". "Use this IMEI" was disabled, and
+"Product not recognized" appeared beside it, because the receiving lookup does not match a unit to its product.
+
+**Fix.** The sheet and `ScanTarget` take a typed `purpose`: `receive`, `sell` or `lookup`.
+
+- **Shared by every purpose:** parsing, the camera lock, the hold window and normalisation.
+- **Receive** (both Receive screens state `purpose="receive"`) is unchanged: a held IMEI is refused, saying where the
+  unit is.
+- **Sell** (Quick sell and the cart) looks the code up as a sale, through `GET /sales/selection/:code`, the lookup the
+  typed field already used. It shows the unit's own product and variant and **Add to sale**, which:
+  - adds the exact unit by the identifier scanned;
+  - adds one line however many taps or camera callbacks arrive;
+  - closes the sheet.
+- **Sell offers no receiving action:** no "Use this IMEI", no "Add second IMEI", no "Create product", and no "Product
+  not recognized".
+- **When a unit cannot be sold**, the server's real reason is shown and nothing is added: sold, reserved, faulty,
+  returned, in transit (`returned` and `in_transit` were added to the sale-selection availability), another branch,
+  already in this sale, or "not found in the selected store".
+- **What a sale lookup finds:** the primary IMEI, the second IMEI and a serial all find the unit. A counted product's
+  barcode finds the product with its stock and adds one.
+- The cart fetches a camera-scanned unit it had not already prefetched.
+
+### 8.2 The Business access card
+
+The staff-over warning (`over_limit`) is no longer a banner on More or any other tab. `accessNotice()` never returns
+it.
+
+**Unchanged:** the seat rule, entitlements and billing. Nobody is activated or deactivated. The server still refuses an
+addition beyond capacity (`SEAT_LIMIT_REACHED`), and Team explains that refusal when it happens.
+
+The Business access screen itself (`app/access.tsx`), which only an Owner or a Manager opens, still states the count.
+That is the contextual place, not a general surface.
+
+### 8.3 The return policy is the server's
+
+**Review sale.** The Return policy card (`ReturnPolicyCard`) is deleted. No screen chooses a window, and no request
+sends one.
+
+**The server decides.** Every sale is sold under `effectivePolicy(branch)`, resolved inside the sale's transaction:
+
+- the branch's own policy row, when it has one;
+- otherwise the company's window with no written conditions, exactly what every sale before 0108 carried.
+
+The legacy `returnWindowHours` and `returnPolicyReason` in the create-sale request are still accepted, so that older
+apps keep working, but they are **ignored**, and the override fields are written as null.
+
+### 8.4 Migration 0108_branch_return_policy (additive)
+
+**`branch_return_policies`**, one row per branch:
+
+- `branch_id` (primary key) and `company_id`;
+- `window_hours`, checked 0–8760;
+- `text_en`, `text_fr` and `text_ar`, VARCHAR(1000), nullable;
+- `default_language`, checked to `en`, `fr` or `ar`;
+- `version`, `updated_by` and timestamps;
+- foreign keys to the branch and the company.
+
+**`sales`**, the snapshot taken at confirmation:
+
+- `return_policy_text_en`, `return_policy_text_fr` and `return_policy_text_ar`;
+- `return_policy_language` and `return_policy_version`;
+- `customer_name_snapshot`, VARCHAR(160), and `customer_phone_snapshot`, VARCHAR(40).
+
+The window and the deadline were already snapshotted (`return_window_hours` and `return_deadline_at`).
+
+**Permission `return.policy.edit`:** granted to the Owner, Store Manager and Store Employee, not to the Administrator.
+The catalogue now has 76 keys.
+
+**On existing rows:** every new `sales` column is nullable, so old sales keep null texts and print the neutral wording
+they always did. No existing value changes.
+
+### 8.5 Editing the policy: permissions and audit
+
+The new screen is **More → Return policy** (`app/return-policy.tsx`), and Settings links to it. It edits:
+
+- the window: none, 24 h, 48 h, 72 h or a custom number of hours;
+- the written conditions in English, French and Arabic, each multiline with a counter, and Arabic right to left;
+- the default language.
+
+The app asks for a confirmation before it saves.
+
+**What the server enforces** (`PUT /return-policy`):
+
+- **Who may edit:** an active Owner, Store Manager or Store Employee holding `return.policy.edit`, for **a branch they
+  are assigned to**. Reading has the same assignment check, so another branch's or company's policy is refused.
+- **Text rules:**
+  - line endings normalised;
+  - control characters stripped;
+  - runs of spaces collapsed;
+  - at most one blank line;
+  - trimmed, and an empty text stored as null.
+- **Refusals,** naming the field (`policyField`):
+  - markup or an HTML entity is refused (`policy_text_markup`);
+  - more than 1,000 characters is refused (`policy_text_too_long`).
+- **Nothing is machine-translated:** each language holds only what was typed.
+- **Concurrent edits:** an optimistic version check (`expectedVersion`; a compare-and-set update) answers `409
+  policy_changed`, and the app reloads.
+- **No change, no write:** saving an unchanged policy writes nothing.
+- **Every change is audited** (`BranchReturnPolicy`), recording:
+  - the actor;
+  - the company and the branch;
+  - the values before and after;
+  - the languages changed;
+  - whether the window changed;
+  - the time.
+
+### 8.6 The snapshot and the receipt
+
+**At confirmation, the sale stores:**
+
+- the window and the deadline;
+- the three texts, the default language and the policy version;
+- the customer's name and phone.
+
+**Reprinting.** A reprint (`GET /sales/:id`, with `receiptCustomer` and `returnPolicy.texts`) reads only the sale's
+snapshot. Editing the policy or renaming the customer afterwards changes nothing on an old receipt. A legacy sale with
+no snapshot falls back to its live customer, as it always did.
+
+**On the receipt** (`lib/receipt-html.ts`; the same payload for the preview, the PDF, the share and the browser copy):
+
+- **The customer:** the name entered at the sale, escaped, or the generic cash-customer wording when no name was given.
+- **The policy:** the window's neutral line ("Returnable until …" or "This sale is final — no returns."), then that
+  sale's written conditions:
+  - in the receipt's language, else the default language, else nothing;
+  - escaped, with line breaks kept, and right to left in Arabic.
+
+### 8.7 Verification
+
+| Gate | Result |
+| --- | --- |
+| Backend TypeScript | clean |
+| Backend unit suite (Windows) | 5,008 passed; the same 4 Windows-only failures in untouched files |
+| New backend spec `return-policy.spec.ts` | 10/10; `sale-policy-snapshot.spec` rewritten for the server-resolved policy |
+| Real MySQL, disposable `erp_inv_e2e` at 0108 | D223 25/25, unknown cost 26/26, **policy 23/23** (`scripts/d223-policy-journeys.mjs`: a written policy, markup refused, the Sale lookup, a named sale with the client's window ignored, the MySQL snapshot, an Employee edit, both audited, an old sale unchanged after the policy change and a customer rename, a new sale under the new policy, Receive refusing a sold IMEI while Sale says sold, serial and barcode lookups, cross-company refusal) |
+| Mobile TypeScript | clean |
+| Mobile pure tests (Windows) | all pass except the same 4 Windows-only files; new `lib/receipt-policy.test.ts` 14/14 |
+| New rendered test `__tests__/scanner-purpose.test.tsx` | receive refuses; sell offers Add to sale with no receiving words; six refusal reasons; already in this sale; not found; IMEI 2; double tap and repeated callbacks add one line |
+| Mobile render-tests | run 40744958524 on `a4377d2`: pure 126/126, rendered **389/389** (scanner-purpose and review-sale included), both exports and bundle audits, web smoke |
+| visual-check (Chromium, WebKit) | run 40744976213 on `a4377d2` with backend `5370460`: 818/818 Chromium and WebKit, access journey 21/21, input 245/245 |
+| Security CI | success: backend `5370460` (40744610302), mobile `a4377d2` (40744653285) |
+
+**Not rehearsed separately:** 0108 on a database already holding sales at 0107. Its statements are a `CREATE TABLE`,
+nullable `ADD COLUMN`s and a guarded permission insert.
+
+### 8.8 Physical retest (pending)
+
+The owner retests on the iPhone:
+
+1. The Business access card is gone from More.
+2. An IMEI phone scanned in Sale is added.
+3. A counted barcode scanned in Sale adds one.
+4. Review sale has no Return policy card.
+5. Editing the policy under More → Return policy.
+6. A named customer's receipt.
+7. The Arabic receipt with the written conditions.
+8. An old receipt unchanged after the policy is edited.
+
+The owner's result is recorded before any merge or deployment.
