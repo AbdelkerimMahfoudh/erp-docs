@@ -1,8 +1,29 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-started_at_utc: 2026-10-27T19:11Z (this claim written before any change)
+Owner: CLAUDE (local session, the owner's PC), new account
+takeover_2026-10-29: **authorised by the owner** (brief "Dukan ERP real-store pilot and TestFlight continuation"). The
+previous holder, CLAUDE on another account, stopped when its usage ran out. Its handoff was a deliberate pause: complete,
+with `NEXT_SESSION_PROMPT.md` and one known uncommitted mobile change.
+- **Verified at takeover against Git and CI:**
+  - backend `deferred-verification` `ca5c099`: 19 linear commits on `f5da650`, containing `promoter-attribution`
+    `002e7f8` and `inventory-general` `5370460`; migrations 0103–0109; security run 40865900480 success on that exact
+    SHA;
+  - console `deferred-verification` `7ddeea79`: contains `bc112bda`; CI run 40870764729 success on that exact SHA;
+  - mobile `deferred-verification` `d26da94`: contains `6dd3213`, `927fc11` and `c369e5d`;
+  - `claude/audit-fixes`, `claude/qa-boutique-seed` and `claude/stock-finds-products` are in no release line. The
+    four backend and one mobile `audit-fixes` commits whose patches appear were already in production (`f5da650`,
+    `9e0b38b`);
+  - erp-docs `master` `21d3d057`.
+- **The uncommitted mobile work was exactly as described:**
+  - `eas.json` staged and byte-identical to its form before `c369e5d`;
+  - the awaited `fireEvent`s, with `fillFields` already async;
+  - six mechanical `await await fillForm()` were reduced to `await`.
+- Committed as mobile **`2bf0a57`** (pushed). Locally: tsc clean; promo-code + invite 15/15; lint 0 errors (34
+  warnings); release config sound with the EAS production origins; pure tests 375/382, the 7 failures in the 4
+  Windows-only files.
+- This takeover record was written right after that commit, not before it.
+started_at_utc (previous holder): 2026-10-27T19:11Z (this claim written before any change)
 claimed_from: READY_FOR_HANDOFF (owner NONE) at `222edc1`; that handoff was complete.
 heads_at_claim: erp-backend `inventory-general` `12fcaad`; erp-mobile `inventory-general` `985f995` (checkout on
 `sdk-58` `fca75c5`); erp-docs `master` `222edc1`.
