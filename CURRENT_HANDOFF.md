@@ -28,8 +28,19 @@ active_phase (the owner's brief of 2026-10-29, decision **D225**): the post-Test
 
 **Not in this phase:** a deployment, a persistent-database migration, a DNS/server/secret/EAS/Apple change, `eas
 build`, a TestFlight build, a merge into release branches, a rebase or force-push.
-next_action: discovery of the existing notification, role, category, localization, receipt and date systems, then the
-implementation per area with tests.
+progress (refreshed 2026-10-29 ~19:45Z; every commit below is pushed on `post-testflight-feedback`):
+- FB-1 dialogs: mobile `74862f5`.
+- FB-2 calendar weeks: backend `420dc9d`, mobile `f0a5dc1`.
+- FB-3 category pictures:
+  - backend `5fdc07d` (migration **0110_category_icons**, additive nullable `product_categories.icon`, **not applied to
+    any persistent database**), `28db96d`, `c414baf`, `2c85b2d`;
+  - mobile `8895b21`.
+- The cloud container was restarted at ~19:25Z and came back as a fresh clone. Pushed work was intact. Uncommitted
+  mobile FB-3 work was rebuilt and committed as `8895b21`. erp-control-web is not cloned in this container yet.
+next_action: FB-4 bilingual names (business, store, user): additive nullable `name_ar` columns, the API's display
+values, search on both names, name snapshots on immutable records, app and console forms, and a rehearsal on a
+disposable database only. Then FB-5 (roles, Acting Owner), FB-6 (notifications), FB-7 (permission screens), FB-8 (the
+Arabic pass and parity test), FB-9 (gates, docs, handoff).
 
 Previous state (the pilot release; unchanged below):
 Status: IN_PROGRESS
