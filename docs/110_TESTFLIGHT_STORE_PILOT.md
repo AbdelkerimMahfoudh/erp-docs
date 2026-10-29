@@ -30,11 +30,33 @@
 
 | Item | Value |
 | --- | --- |
-| Commit | — |
-| EAS build ID | — |
-| Version / Apple build number | 1.0.0 / — (`appVersionSource: remote`, auto-increment) |
-| Artifact SHA-256 | — |
-| Archive checks | LAN/localhost addresses, temporary origins, secrets, source maps, icon, splash, bundle ID, iPad: — |
+| Commit | `2bf0a5715ed7e60791299ba436e523ea526421b7` (= `browser-input-setup-code`, every gate green) |
+| EAS build ID | `b1308200-00ac-4029-b6ec-3ac9c6bc4e55` (production profile, store distribution, SDK 58), finished 2026-10-29T16:13Z |
+| Version / Apple build number | 1.0.0 / 1 (`appVersionSource: remote`, auto-increment) |
+| Artifact | IPA, 24 088 782 bytes, SHA-256 `aa57d76ac62a217fbf4a3013e411d236a53c3a313b0f17b68ee1b09c5ed84467` |
+| Signing | App Store profile for Team `5B9T8L263K`, app ID `5B9T8L263K.mr.tsxmr.dukanerp`, valid to 2027-10-29; `get-task-allow` false; no push and no associated domains |
+
+**Archive checks (2026-10-29, the downloaded IPA):**
+- **`Info.plist`:**
+  - `mr.tsxmr.dukanerp` 1.0.0 (1), "Dukan ERP";
+  - **`UIDeviceFamily [1]`**, iPhone only, with no iPad orientations;
+  - minimum iOS 16.4; appearance Automatic; launch storyboard `SplashScreen`;
+  - `ITSAppUsesNonExemptEncryption` false;
+  - only the camera and photos usage descriptions, as worded in §1;
+  - ATS: no arbitrary loads.
+- **The bundle (Hermes):**
+  - the only real origins are `https://api.tsxmr.com` and `https://tsxmr.com`;
+  - no source map and no `sourceMappingURL`;
+  - no secret-shaped string, and not the company sender's number.
+- **The local literals found are library defaults, not app settings:**
+  - `localhost:8081` is React Native's development-server default, unused in a release;
+  - `localhost:3000` is expo-router's web head fallback;
+  - `127.0.0.1`/`10.`/`192.168.`/`172.` are the app's own list of origins it refuses;
+  - `10.5.0.8` is a fragment of SVG path data.
+- **Icon and splash:** `AppIcon60x60@2x` (plus Xcode's standard 76 pt variant), `Assets.car`, and the
+  `SplashScreen` storyboard. Seeing them is the physical check.
+- **To note:** `NSAllowsLocalNetworking` is true, which is Expo's default. No local address is used, so it is
+  harmless. Removing it is a later, separate change.
 
 ## 3. Groups
 
