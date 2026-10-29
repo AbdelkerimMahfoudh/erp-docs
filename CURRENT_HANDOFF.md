@@ -28,19 +28,33 @@ active_phase (the owner's brief of 2026-10-29, decision **D225**): the post-Test
 
 **Not in this phase:** a deployment, a persistent-database migration, a DNS/server/secret/EAS/Apple change, `eas
 build`, a TestFlight build, a merge into release branches, a rebase or force-push.
-progress (refreshed 2026-10-29 ~19:45Z; every commit below is pushed on `post-testflight-feedback`):
+progress (refreshed 2026-10-29 ~20:40Z; every commit below is pushed on `post-testflight-feedback`):
 - FB-1 dialogs: mobile `74862f5`.
-- FB-2 calendar weeks: backend `420dc9d`, mobile `f0a5dc1`.
-- FB-3 category pictures:
-  - backend `5fdc07d` (migration **0110_category_icons**, additive nullable `product_categories.icon`, **not applied to
-    any persistent database**), `28db96d`, `c414baf`, `2c85b2d`;
-  - mobile `8895b21`.
-- The cloud container was restarted at ~19:25Z and came back as a fresh clone. Pushed work was intact. Uncommitted
-  mobile FB-3 work was rebuilt and committed as `8895b21`. erp-control-web is not cloned in this container yet.
-next_action: FB-4 bilingual names (business, store, user): additive nullable `name_ar` columns, the API's display
-values, search on both names, name snapshots on immutable records, app and console forms, and a rehearsal on a
-disposable database only. Then FB-5 (roles, Acting Owner), FB-6 (notifications), FB-7 (permission screens), FB-8 (the
-Arabic pass and parity test), FB-9 (gates, docs, handoff).
+- FB-2 calendar weeks: backend `420dc9d`, mobile `f0a5dc1`. The owner's note (2026-10-29): the time filters read
+  Today / This week / This month in EN and FR as well as AR. That was already true on this branch (the TestFlight
+  build predates it), and it is now pinned by a test. The export sheet's "last N days" was replaced by the period
+  name in mobile `821bdec`.
+- FB-3 category pictures: backend `5fdc07d` (migration **0110_category_icons**), `28db96d`, `c414baf`, `2c85b2d`;
+  mobile `8895b21`.
+- FB-4 bilingual names:
+  - backend `1bc51c3`, migration **0111_bilingual_names**: nullable `name_ar` on companies, branches and users; six
+    name snapshot columns on sales; `seat_allocations.label_ar`;
+  - mobile `821bdec`.
+- **Migrations 0110 and 0111 are not applied to any persistent database.** They were rehearsed only on a disposable
+  MySQL 8.0.46 (`/var/tmp/d225-mysql`, 127.0.0.1:3399):
+  - the CI database gates from empty pass (88 real-MySQL tests);
+  - a schema at 0109 with rows was backed up, migrated to 0111 and compared: the 0109 columns are byte-identical and
+    every new column is NULL;
+  - the backup restored to exactly the 0109 state.
+- The cloud container restarted twice (~19:25Z and ~20:30Z). Pushed work was intact both times; the uncommitted work
+  was rebuilt or survived.
+- **Not yet done:**
+  - FB-4: registration form Arabic fields in the app; console forms (erp-control-web is not cloned here); Arabic
+    names in approvals, transfers, notifications, audit timelines and reports, which still show the Latin name; a
+    real-MySQL names spec.
+  - FB-5 to FB-9.
+next_action: the FB-4 remainder above, then FB-8 (the Arabic pass and the تطبيق دكان parity test), FB-7 (permission
+screens), FB-5 (Employee/Manager role change, Acting Owner) and FB-6 (notifications), then FB-9 (gates, docs).
 
 Previous state (the pilot release; unchanged below):
 Status: IN_PROGRESS
