@@ -8857,7 +8857,32 @@ The root cause of the freeze, the record and the verification are in `docs/107` 
 
 The root cause, the schema and the verification are in `docs/107` §8.
 
-### ✅ DECIDED BY THE OWNER (2026-10-28), PLANNED, NOT IMPLEMENTED — D224: deferred WhatsApp verification for admin-provisioned test accounts; a TestFlight store pilot
+### ✅ DECIDED BY THE OWNER (2026-10-28), AMENDED (2026-10-29), IMPLEMENTED (branches, CI), NOT DEPLOYED — D224: deferred WhatsApp verification for admin-provisioned accounts; a TestFlight real-store pilot
+
+**Amended by the owner on 2026-10-29. The amendment governs where it differs from the original text below.**
+- **The pilot store is an ordinary customer business.** It is not a Test or pilot business:
+  - no banner, no exclusion from commercial reports, no relationship isolation;
+  - no free or automatically granted seats.
+  - Normal subscription, access, billing, seat, reporting and audit rules apply. Test companies already in
+    production are kept as they are.
+- **Deferral is per account, not per business.** Only the one platform superadmin may choose *verification
+  required* or *deferred by platform*, with MFA and a fresh password-and-code step-up, through the portal. Public
+  registration, tenant APIs and staff invitations refuse the field.
+  - Staff take normal seats: a full business or store answers `seat_unavailable`.
+- **The switch is `PHONE_VERIFICATION_DEFERRAL=on`.** It is off unless set; that is the exact value the API
+  accepts, `off`/`on`. The name `PHONE_VERIFICATION_DEFERRAL_ENABLED` below is wrong.
+- **`CUSTOMER_ACTIVATION=open`** lets the portal create and activate ordinary customers. Public self-registration
+  stays unchanged and closed: it refuses with nothing saved while WhatsApp is disabled.
+- **Accounts:** exactly one platform superadmin. The owner, not Claude, creates the business, the Owner, the
+  Manager, the Employee and any App Review account in the portal.
+- **The first native release is iPhone-only:**
+  - EAS owner `salah_rim`, project `@salah_rim/dukan-erp`;
+  - Apple Team `5B9T8L263K`, an individual membership;
+  - feedback to `abdelkerim@tsxmr.com`;
+  - the Dukan ledger logo.
+- The tests, the rollback limits and the deployment are in `docs/109` §8 and `docs/100` §18.
+
+The original decision of 2026-10-28:
 - **Who may defer:** a platform superadmin, with MFA and a fresh step-up, through the protected portal only.
 - **Which accounts:** an Owner, Manager or Employee of a business marked **Test**, while the server kill switch
   `PHONE_VERIFICATION_DEFERRAL_ENABLED` (default off) allows it.
