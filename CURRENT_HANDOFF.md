@@ -23,6 +23,31 @@ with `NEXT_SESSION_PROMPT.md` and one known uncommitted mobile change.
   warnings); release config sound with the EAS production origins; pure tests 375/382, the 7 failures in the 4
   Windows-only files.
 - This takeover record was written right after that commit, not before it.
+- **Incident:** a retarget push with an empty commit ID briefly **deleted** the remote tooling branches
+  `ops/render-tests` and `ops/visual-check`. Both were restored within a minute at their exact commits (`c1955bf`,
+  `925bf24`). The resulting red render-tests run 40880126198 is that restore's stale re-run.
+
+progress_2026-10-29 (this account; production still untouched at 0102):
+- **Mobile `2bf0a57`:**
+  - security CI 40879962980 success;
+  - render-tests 40880200841: pure 128/128 files, rendered 43/43 suites and **408/408** tests, iOS and web exports,
+    bundle audits, web smoke.
+- **§5 customer activation:** backend `2db5a8d` adds `scripts/d224-activation-journeys.mjs`. Seed **10/10**, open
+  **32/32**:
+  - public registration 503 with nothing saved;
+  - pending customers and every existing subscription unchanged;
+  - 401, `step_up_required` and the password-confirmation refusals;
+  - create, Owner invitation, payment, approval and period for an ordinary customer;
+  - all audited.
+- **§4 deferral** re-run on the release code: **43/43** with the switch on, **4/4** off.
+- **§10 rollback:** tested against `f5da650` and `644f4f5` on a 0109 database holding every post-migration row
+  (`docs/100` §18). Each fails 4 of the requests, all on unknown (NULL) cost. Backend **`ce23e99`**: `rollback.sh`
+  refuses a pre-0107 target while any cost is unknown, and a spec pins it. Backend security CI success on
+  `2db5a8d` (40882617151) and `ce23e99` (40888573059).
+- **§6 brand gate:** `verify/brand.mjs` on `ops/visual-check`, **44/44** locally in Chromium and WebKit.
+- **Visual check on `2bf0a57`: 812/818.** The 6 failures were the verifier's stale input count, since the D221 promo
+  boxes; reproduced, the app is correct. Corrected in `c57f166`, re-running.
+- `ops/verify-provisioning` was retargeted to the release heads (`c15d364d`) for the backend + console + app run.
 started_at_utc (previous holder): 2026-10-27T19:11Z (this claim written before any change)
 claimed_from: READY_FOR_HANDOFF (owner NONE) at `222edc1`; that handoff was complete.
 heads_at_claim: erp-backend `inventory-general` `12fcaad`; erp-mobile `inventory-general` `985f995` (checkout on

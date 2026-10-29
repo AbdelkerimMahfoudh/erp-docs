@@ -799,3 +799,62 @@ Nothing here is to be run until the owner approves the merge and deployment. The
    files, add `associatedDomains` / `intentFilters`, rebuild the app (`docs/105` §10).
 
 Rehearsal: `docs/105` §9 (forward, reverse and restore, identical schemas).
+
+---
+
+## 18. The D224 pilot release (0103 → 0109): the rollback, tested before the deployment (2026-10-29, CLAUDE, local)
+
+The owner's pilot brief (2026-10-29) forbids assuming that `erp-api:644f4f5` or `erp-api:f5da650` remains a valid
+application rollback once 0103 → 0109 and real use exist. So both were run against the release's schema before
+anything is deployed.
+
+**The test.**
+- **The database:** a disposable `erp_inv_e2e` (local MySQL 8.4) migrated to 0109 by the release itself, then
+  filled **through the release's own API** with every kind of row that exists only after 0103 → 0109:
+  - the D223 fixture business, its 25 inventory journeys and 26 unknown-cost journeys;
+  - stock of unknown (NULL) buying cost left unsold: a serial unit and 10 counted pieces; two sale lines of
+    unknown cost;
+  - a branch return policy in EN/FR/AR, and sales that snapshot it, one with a customer's name;
+  - a promoter, its code, and a business registered with it (`business_acquisitions`);
+  - an ordinary customer business, paid and activated, with a deferred Owner and a deferred Manager in normal seats.
+- **The requests:** the same 107 against each code, on a fresh restore of one dump:
+  - every parameterless GET of the old code's controllers (tenant ones as the fixture's Owner, platform ones as a
+    disposable administrator with MFA);
+  - the post-migration rows read one by one;
+  - the everyday writes: open the day, receive with a cost, sell a known-cost unit, sell the unknown-cost unit, sell
+    an unknown-cost piece.
+
+| Code | Answers as the release | Different |
+| --- | --- | --- |
+| the release (`2db5a8d`) | baseline: 107, no 5xx, every write accepted | — |
+| `f5da650` (production today) | 103 of 107 | 4 |
+| `644f4f5` | 98 of the 102 comparable | the same 4 |
+
+**The four, identical on both old images.** Each is a 400 "Database request error". Behind it, Prisma's "Error
+converting field "cost" of expected non-nullable type "Decimal", found incompatible value of "null"":
+1. `GET /inventory`, the stock list, for any branch holding such a row;
+2. `GET /sales/:id` of a sale with an unknown-cost line;
+3. selling the unknown-cost serial unit;
+4. selling an unknown-cost counted piece.
+
+Everything else answered as the release does: sign-in, the catalogue, sales and purchases of known cost, and the
+console's pages for the deferred and the attributed businesses. Readiness says ready: extra applied migrations are not
+"missing".
+
+**The rollback plan, in force for this release:**
+1. **Code rollback to `erp-api:f5da650…`** only while the database holds **no** row of unknown cost.
+   - `rollback.sh` (backend `ce23e99`) counts the six columns 0107 made nullable before switching the image, and
+     refuses otherwise.
+   - `644f4f5` is not a target at all: it also predates 0102, so test businesses would read as customers (§16.10).
+2. **Once any row of unknown cost exists** — the first time the store receives something without its cost — the way
+   back is a **forward fix**: a corrected commit, CI green, a backup, then `deploy.sh`. Never the old image.
+3. **Restoring the pre-deployment backup** (into a NEW schema, §16.3) is allowed in two cases only. It may be done
+   before real post-deployment data matters. After that, only on the owner's explicit, written authorisation that
+   names the loss: every sale, payment, stock movement and account since the backup. **Once the real store
+   transacts, it is never done silently.**
+4. **Switches that need no rollback at all:**
+   - `CUSTOMER_ACTIVATION=closed` stops new customer activations;
+   - unsetting `PHONE_VERIFICATION_DEFERRAL` stops new deferrals, and deferred accounts stay deferred, never
+     verified;
+   - `test-sites.sh off` takes the console offline.
+5. The earlier floors still hold: 0092 and 0097 (`docs/79` §C1). **A Git rollback does not roll back the database.**
