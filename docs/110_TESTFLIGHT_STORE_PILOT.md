@@ -58,6 +58,10 @@
 - **To note:** `NSAllowsLocalNetworking` is true, which is Expo's default. No local address is used, so it is
   harmless. Removing it is a later, separate change.
 
+**Submitted** (2026-10-29, `eas submit -p ios --id b1308200-…`, run by the owner with their own Apple login): that
+exact build was uploaded to App Store Connect, app ID `6828500958`. Apple's processing followed. Nothing was published
+to the App Store.
+
 ## 3. Groups
 
 1. **Internal group first.**
