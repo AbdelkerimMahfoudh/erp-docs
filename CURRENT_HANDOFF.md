@@ -149,15 +149,22 @@ progress_2026-10-28 (D224, branches `deferred-verification`; nothing merged or d
 - Apple Team ID **5B9T8L263K**. The membership is an **individual** enrolment, not the TSX-MR organisation.
 - Rollback floor: a code rollback below 0107 is unsafe once a sale or stock row of unknown (NULL) cost exists. 0109
   itself is additive.
-next_action: BLOCKED on the owner's inputs (session report of 2026-10-28):
-1. SSH access for production;
-2. Expo/EAS account and Apple signing;
-3. the icon;
-4. iPad;
-5. the pilot staff list;
-6. the feedback email;
-7. the internal testers.
-Then merge, back up, deploy, build and run TestFlight per the brief.
+handoff_2026-10-29: CLAUDE stops; its usage ran out. **The next account continues from `NEXT_SESSION_PROMPT.md`**, which
+holds the full state, the exact stopping point and the remaining steps. Status stays IN_PROGRESS for the release.
+- **Heads:** backend `ca5c099` (security green), portal `7ddeea79` (CI green), mobile `d26da94` plus uncommitted test
+  fixes (CI red).
+- **Production:** untouched; at 0102.
+- **Backup:** `phonestore-20261029T122234Z`; its restore drill PASSED.
+- **Rehearsal:** 0103→0109 from the live schema, identical to a fresh build.
+- **Decisions by the owner, 2026-10-29:**
+  - the pilot store is an ordinary customer;
+  - deferral per account;
+  - customer activation open;
+  - EAS project @salah_rim/dukan-erp;
+  - iPhone-only;
+  - the Dukan ledger logo.
+next_action: finish the mobile test fix (NEXT_SESSION_PROMPT.md "Exactly where it stopped"), then gates, merge, deploy and
+TestFlight.
 Previous state:
 Status: READY_FOR_HANDOFF
 Owner: NONE
