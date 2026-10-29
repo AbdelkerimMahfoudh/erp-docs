@@ -1,6 +1,38 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
+Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
+started_at_utc: 2026-10-29T18:50Z (this claim written before any change)
+takeover: **authorised by the owner's brief of 2026-10-29** ("continuing Dukan ERP after its first successful TestFlight
+release … claim the shared handoff"). The previous holder, CLAUDE (local session, the owner's PC, new account), still
+showed IN_PROGRESS for the pilot release. Its last recorded step was the build's submission to App Store Connect
+(`96cf01d`, `docs/110` §2). The release work it describes is complete, but the block was never formally released.
+That session's working tree is on the owner's PC and cannot be inspected from here. Every remote head below was
+checked, and none moved after `96cf01d`.
+heads_at_takeover (the reviewed TestFlight lineage):
+- erp-mobile `browser-input-setup-code` = `deferred-verification` **`2bf0a57`**: the TestFlight build b1308200, 1.0.0 (1);
+- erp-backend `superadmin-provisioning` = `deferred-verification` **`ce23e99`**: production api.tsxmr.com, 0109;
+- erp-control-web `browser-input-setup-code` = `deferred-verification` **`7ddeea79`**: the deployed console;
+- erp-docs `master` **`96cf01d`**.
+active_phase (the owner's brief of 2026-10-29, decision **D225**): the post-TestFlight feedback phase, on new branches
+`post-testflight-feedback` cut from the heads above. Scope:
+- untruncated decision dialogs;
+- an Arabic quality and RTL pass, with تطبيق دكان;
+- bilingual names for businesses, stores and people;
+- calendar weeks (Monday to Sunday, `Africa/Nouakchott`);
+- category illustrations;
+- permission explanations;
+- the notification system (three levels, a localized centre, push, deep links);
+- Employee/Manager promotion and demotion;
+- the temporary Acting Owner.
+
+**Not in this phase:** a deployment, a persistent-database migration, a DNS/server/secret/EAS/Apple change, `eas
+build`, a TestFlight build, a merge into release branches, a rebase or force-push.
+next_action: discovery of the existing notification, role, category, localization, receipt and date systems, then the
+implementation per area with tests.
+
+Previous state (the pilot release; unchanged below):
+Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC), new account
 takeover_2026-10-29: **authorised by the owner** (brief "Dukan ERP real-store pilot and TestFlight continuation"). The
 previous holder, CLAUDE on another account, stopped when its usage ran out. Its handoff was a deliberate pause: complete,
