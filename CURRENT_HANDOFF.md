@@ -48,6 +48,22 @@ progress_2026-10-29 (this account; production still untouched at 0102):
 - **Visual check on `2bf0a57`: 812/818.** The 6 failures were the verifier's stale input count, since the D221 promo
   boxes; reproduced, the app is correct. Corrected in `c57f166`, re-running.
 - `ops/verify-provisioning` was retargeted to the release heads (`c15d364d`) for the backend + console + app run.
+
+deployed_2026-10-29 (`docs/100` §18.1):
+- **Production API:** backend `ce23e99`, 0103→0109 (108). `CUSTOMER_ACTIVATION=open`,
+  `PHONE_VERIFICATION_DEFERRAL=on`; email and WhatsApp disabled.
+- **Console:** dukan-test release `20261029T152528Z` (`7ddeea79`).
+- **Rollback points:**
+  - database `phonestore-20261029T151837Z` (laptop copy restored, PASSED) and `phonestore-20261029T152338Z`;
+  - code `f5da650`, only while no cost is unknown (`rollback.sh` enforces it);
+  - console `20261025T084934Z`.
+- **Integration (fast-forward):** backend `superadmin-provisioning` = `ce23e99`; console and app
+  `browser-input-setup-code` = `7ddeea79` / `2bf0a57`.
+- **Every gate green** (§18.1). tsxmr.com is unchanged; verify-production 23/25, only the sitemap's `<lastmod>`
+  differs, as documented.
+next_action: **the owner** creates the real business, Owner, Manager and Employee (and later the App Review account)
+in the portal, checks the deferral option there, and reports back. Then the EAS iPhone build and internal TestFlight
+(`docs/110`).
 started_at_utc (previous holder): 2026-10-27T19:11Z (this claim written before any change)
 claimed_from: READY_FOR_HANDOFF (owner NONE) at `222edc1`; that handoff was complete.
 heads_at_claim: erp-backend `inventory-general` `12fcaad`; erp-mobile `inventory-general` `985f995` (checkout on

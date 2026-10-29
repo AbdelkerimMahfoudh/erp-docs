@@ -858,3 +858,63 @@ console's pages for the deferred and the attributed businesses. Readiness says r
      verified;
    - `test-sites.sh off` takes the console offline.
 5. The earlier floors still hold: 0092 and 0097 (`docs/79` §C1). **A Git rollback does not roll back the database.**
+
+### 18.1 The deployment record (2026-10-29, CLAUDE, local)
+
+**Before.** The read-only inspection matched the brief:
+- API `f5da650`, 0102 (101 migrations), 2 Test companies, 2 users, 0 sales;
+- exactly one superadmin, active, with MFA;
+- email and WhatsApp disabled, `CUSTOMER_ACTIVATION=closed`;
+- `referral_key` missing; disk 28 %, memory 2.1 GB.
+
+**Gates, every one green on the exact commits:**
+- backend `ce23e99`: security run 40888573059, with the whole Jest suite, the real-MySQL gates including the 0109
+  spec, the dependency audit and the secret scan;
+- console `7ddeea79`: CI 40870764729;
+- mobile `2bf0a57`: security 40879962980; render-tests 40880200841 (pure 128/128, rendered 408/408, exports, audits);
+- visual check 40891575760: 821/821 in WebKit and in Chromium, the brand gate 44/44 in each, the access journey
+  21/21, the input matrix 245/245;
+- end to end (backend + console + app, WebKit) 40898149271: journeys 41/41, console 103/103, app 57/57.
+
+**Integration**, by fast-forward with no force:
+- backend `superadmin-provisioning` `f5da650` → `ce23e99`;
+- console `browser-input-setup-code` `2ebe9c5a` → `7ddeea79`;
+- app `browser-input-setup-code` `9e0b38b` → `2bf0a57`.
+
+**Steps:**
+1. The bundle of `ce23e99`, its sha256 equal on both ends; checked out under `umask 022` (0 unreadable files).
+2. `setup-secrets.sh` created `referral_key` only, unprinted.
+3. `api.env`: `CUSTOMER_ACTIVATION=open` and `PHONE_VERIFICATION_DEFERRAL=off`. The previous files are
+   `api.env.pre-d224` and `api.env.pre-deferral-on`.
+4. **The database rollback point: `phonestore-20261029T151837Z`.** It was copied to the laptop (checksum OK) and the
+   laptop copy restored with the v2 identity: 121 tables, 59 triggers, every CHECKSUM. PASSED.
+5. `deploy.sh`:
+   - contract and preflight PASS;
+   - its own backup `phonestore-20261029T152338Z`;
+   - **0103 → 0109** applied by the migrator, 108 in all;
+   - catalogue 76/76, identities and triggers 21/0, both audit chains intact;
+   - smoke 15/15 on `ce23e99`, and 16/16 with each of the three origins.
+6. Console release `20261029T152528Z` (`7ddeea79`, built on CI run 40883271467) at dukan-test.tsxmr.com. Its previous
+   release is `20261025T084934Z`. It answers 401 without the password, and CORS is exact.
+7. `PHONE_VERIFICATION_DEFERRAL=on`, applied by `deploy.sh` with `SKIP_BUILD=1` and the same images: smoke 15/15.
+   - `deployments.log` now names `ce23e99` as the "previous" image, because the same image was redeployed.
+   - **The code rollback target stays `f5da650`, under §18's rule.**
+
+**After:**
+- the Test data, the users and the one superadmin are preserved; the backfill gave both users `required`, with no
+  verified timestamp invented;
+- no row of unknown cost yet, so a code rollback is still allowed;
+- public registration 503 `registration_unavailable` with nothing saved; the deferral field refused on public routes
+  (400); every platform route 401 without a session;
+- TLS valid on api, erp-test and dukan-test; Caddy renews it.
+
+**tsxmr.com** is unchanged at `5aa8322`:
+- `/account`, `/admin`, `/subscription` and `/join` are 404; the three Riyade pages are 200; the sitemap has 42 URLs;
+- verify-production 40901534888: 23/25, the browser suite 172/172, verify-not-found green;
+- the two failures are one file, `/sitemap.xml`, whose `<lastmod>` is the build day (2026-10-29) against the live
+  2026-10-20. That is the documented limitation of a re-run on a later day; the other 82 files are byte-identical.
+
+**Not done here, by the brief:**
+- the business and its staff: the owner creates them in the portal;
+- the checks that need the superadmin's own session: the deferral option shown, and refused when off;
+- the app at erp-test is still release `20261025T084923Z` (`9e0b38b`).
