@@ -17,6 +17,11 @@ current handoff … finish the outstanding verification, then implement the agre
   - read-only checks of 2026-10-30: the number is PENDING (not registered) and all 12 template languages PENDING;
   - one registration attempt was refused by Meta (permissions) and changed nothing.
   - Under §10, the registration waits for the restore gate and the owner's authorisation.
+checkpoint_2026-10-30T21Z (CLAUDE local; usage limit reached, work paused, still IN_PROGRESS):
+- The cloud session was stopped by the owner after it pushed mobile 9b018c6. Mobile 9ff6fe8: dark is the default (D226), pushed.
+- Docs: docs/111 §8.1–8.4 (visual-check 41114111688 findings, crash evidence, the auto-approve and balance-tracking proposals awaiting the owner); docs/112 off-site backups approved (VM restore, healthchecks.io), nothing run yet.
+- **UNCOMMITTED in erp-mobile** (not yet tested; npm ci was running): the intake crash fix — app/receive.tsx opens the product form with intake=quick and no longer takes a draft back; app/catalog/new.tsx without handBack/forDelivery; __tests__/single-item-intake.test.tsx (the delivery case now expects one purchase with cost). lib/scan/pending-intake(.test).ts show only as line-ending changes: restore them with git checkout before committing.
+- Next: run npx jest __tests__/single-item-intake.test.tsx and tsc; commit; retarget ops/render-tests and ops/visual-check; then section 4 (monitoring research), section 5 (transfers), and the owner answers for docs/111 §8.3, §8.4 and the docs/112 steps.
 previous_holder_claim: CLAUDE (cloud), started_at_utc 2026-10-29T18:50Z (that claim written before any change)
 takeover: **authorised by the owner's brief of 2026-10-29** ("continuing Dukan ERP after its first successful TestFlight
 release … claim the shared handoff"). The previous holder, CLAUDE (local session, the owner's PC, new account), still
