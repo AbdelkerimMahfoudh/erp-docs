@@ -50,7 +50,30 @@ continuation (the owner's brief of 2026-10-30, still D225, same branches, writte
   - every gate; docs.
 - Still forbidden: deploy, persistent migration, merge into release branches, rebase/force-push, `eas build`, a build
   number, TestFlight, App Store Connect, Meta/WhatsApp configuration, enabling `PUSH_CHANNEL`.
-next_action: native push in erp-mobile (section 2 of the brief), then the pre-permission (section 3).
+checkpoint (2026-10-30, mid-session; every tree clean and pushed at writing):
+- erp-backend `post-testflight-feedback` **`c32cf88`**:
+  - push devices on the system client;
+  - typed destinations and `GET /notifications/:id/open`;
+  - loans and consignments notified to the other business;
+  - payloads for price, transfer and closing;
+  - the week and role tests;
+  - Acting Owner step-up (WhatsApp code via OtpService);
+  - migration **0114_acting_owner_step_up** (an OTP purpose; additive, not applied anywhere persistent);
+  - the portal ticket is the real Owner's.
+- erp-mobile `post-testflight-feedback` **`2d34f87`**:
+  - native push (expo-notifications, config plugin, no build);
+  - the offer after sign-in;
+  - `openAppSettings`;
+  - `/notification-open`;
+  - all 34 events worded in EN/FR/AR;
+  - the 06:00 fallback fix.
+- erp-control-web **`638f1d6`**: unchanged.
+next_action:
+1. Bilingual names on the remaining surfaces, with a `.name` audit.
+2. Illustrations on the remaining surfaces.
+3. Rehearsal 0109 → 0114 on a disposable MySQL.
+4. Every gate, including the visual workflows.
+5. Docs: D225, docs/111, SESSION_LOG.
 Stays IN_PROGRESS until every implementable gap is closed and every gate passes.
 
 Previous state (the pilot release; unchanged below):
