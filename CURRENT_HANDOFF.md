@@ -48,13 +48,25 @@ progress (refreshed 2026-10-29 ~20:40Z; every commit below is pushed on `post-te
   - the backup restored to exactly the 0109 state.
 - The cloud container restarted twice (~19:25Z and ~20:30Z). Pushed work was intact both times; the uncommitted work
   was rebuilt or survived.
+- FB-4 more: mobile `b7697c0` (sign-up asks every name in Arabic).
+- FB-8 Arabic/RTL: mobile `5745875`:
+  - the iPhone RTL row gap. RN resolves textAlign left/right against the layout, and our helper flipped it a second
+    time; verified in RN's `RCTResolveTextAlignment`;
+  - تطبيق دكان everywhere in Arabic;
+  - the translation-parity test.
+- FB-7 camera explainer: mobile `153e71c`.
+- FB-5:
+  - backend `4e41aef`: Employee ↔ Manager, `PUT /users/:id/role`, with a real-MySQL spec;
+  - backend `76c4e4a`: the Acting Owner, **migration 0112_acting_owner**, with a real-MySQL spec.
+  Both specs are added to the CI database gates. 0112 was applied only to the disposable `grace_ci` on
+  `/var/tmp/d225-mysql`.
 - **Not yet done:**
-  - FB-4: registration form Arabic fields in the app; console forms (erp-control-web is not cloned here); Arabic
-    names in approvals, transfers, notifications, audit timelines and reports, which still show the Latin name; a
-    real-MySQL names spec.
-  - FB-5 to FB-9.
-next_action: the FB-4 remainder above, then FB-8 (the Arabic pass and the تطبيق دكان parity test), FB-7 (permission
-screens), FB-5 (Employee/Manager role change, Acting Owner) and FB-6 (notifications), then FB-9 (gates, docs).
+  - the mobile screens for the role change and the Acting Owner (the "Acting as Owner until …" banner);
+  - FB-6 notifications (levels, centre filters, read sync, push tokens and locale, deep links);
+  - the console forms (erp-control-web not cloned);
+  - Arabic names in approvals, transfers, timelines and reports;
+  - FB-9 docs and gates.
+next_action: the mobile role-change control and Acting Owner screen, then FB-6, then FB-9.
 
 Previous state (the pilot release; unchanged below):
 Status: IN_PROGRESS
