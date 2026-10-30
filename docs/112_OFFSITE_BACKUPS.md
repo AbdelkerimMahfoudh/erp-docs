@@ -1,6 +1,6 @@
 # 112 — Off-site backups to the Hetzner Storage Box: the plan, for the owner's approval
 
-**Status:** proposed on 2026-10-30. **Nothing in this document has been run.** The production server was only
+**Status:** proposed and **approved by the owner on 2026-10-30, as written**. The owner chose: the isolated restore on a **temporary Hetzner VM** (§7, alternative); alerts through **healthchecks.io free** (§6a). Implementation follows §10 step by step; nothing had been run at approval. The production server was only
 inspected, read-only. Implementation starts on the owner's explicit approval, step by step.
 
 ## 1. What exists
