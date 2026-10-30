@@ -50,30 +50,56 @@ continuation (the owner's brief of 2026-10-30, still D225, same branches, writte
   - every gate; docs.
 - Still forbidden: deploy, persistent migration, merge into release branches, rebase/force-push, `eas build`, a build
   number, TestFlight, App Store Connect, Meta/WhatsApp configuration, enabling `PUSH_CHANNEL`.
-checkpoint (2026-10-30, mid-session; every tree clean and pushed at writing):
-- erp-backend `post-testflight-feedback` **`c32cf88`**:
-  - push devices on the system client;
-  - typed destinations and `GET /notifications/:id/open`;
-  - loans and consignments notified to the other business;
-  - payloads for price, transfer and closing;
-  - the week and role tests;
-  - Acting Owner step-up (WhatsApp code via OtpService);
-  - migration **0114_acting_owner_step_up** (an OTP purpose; additive, not applied anywhere persistent);
-  - the portal ticket is the real Owner's.
-- erp-mobile `post-testflight-feedback` **`2d34f87`**:
-  - native push (expo-notifications, config plugin, no build);
-  - the offer after sign-in;
-  - `openAppSettings`;
-  - `/notification-open`;
-  - all 34 events worded in EN/FR/AR;
-  - the 06:00 fallback fix.
-- erp-control-web **`638f1d6`**: unchanged.
-next_action:
-1. Bilingual names on the remaining surfaces, with a `.name` audit.
-2. Illustrations on the remaining surfaces.
-3. Rehearsal 0109 → 0114 on a disposable MySQL.
-4. Every gate, including the visual workflows.
-5. Docs: D225, docs/111, SESSION_LOG.
+state at pause (2026-10-30; the session stopped at the account's usage limit; every working tree is clean and pushed):
+- **erp-backend `post-testflight-feedback` `c32cf88`** — CI green.
+  - Push devices on the system client; typed destinations and `GET /notifications/:id/open`.
+  - Loans and consignments notified to the other business; notification payloads (price, transfer, closing, sale,
+    stock, cash difference).
+  - Week and role tests.
+  - Acting Owner step-up: password plus WhatsApp code via `OtpService`.
+  - Migration **0114_acting_owner_step_up** (additive OTP purpose).
+  - The portal ticket now requires the real Owner.
+- **erp-mobile `post-testflight-feedback` `2d34f87`** — CI green; bundle audit passes for web and iOS.
+  - Native push: expo-notifications ~58.1.6 with its config plugin. **No build made.**
+  - The offer after sign-in; `openAppSettings`; `/notification-open`.
+  - All 34 events worded in EN/FR/AR; the 06:00 fallback fix.
+- **erp-control-web `638f1d6`** — unchanged; CI run 40981629622 success.
+- **erp-docs `master`**: this commit (docs/111 §7, D225 update, SESSION_LOG).
+migrations: 0110–0114.
+- None is applied to any persistent database.
+- Rehearsed 0109 → 0114 on a disposable MySQL 8.0.46 (results in docs/111 §7.7):
+  - old data byte-identical;
+  - upgraded schema equal to a fresh one;
+  - backup restored.
+- The disposable databases were dropped.
+parked, NOT green, NOT on the feature branch: `wip/d225-names-illustrations` — erp-backend `cc42c8d`, erp-mobile
+`8985fe8`.
+- What it is: partial work by two parallel workers, interrupted by the usage limit:
+  - bilingual names on approvals, transfers, loans, consignments, unit history, sales, returns, money, closing,
+    selectors, plus a `.name` audit spec;
+  - illustrations on receive, catalogue, sell, sale detail.
+- Failing at park time:
+  - backend `src/common/bilingual-name-audit.spec.ts`, `src/closing/money-anchors.service.spec.ts`,
+    `src/closing/money-positions.spec.ts`;
+  - mobile `lib/phone-selection.test.ts`.
+not done: the Chromium/WebKit visual workflows, the layout matrix, the D219/D223/D224 journeys. Automated WebKit is not
+a physical iPhone.
+not deployed: no deploy, no persistent migration, no merge, no EAS build, no build number, no TestFlight, no App Store
+Connect change, no Meta/WhatsApp change, `PUSH_CHANNEL` not enabled.
+next_action, exactly:
+1. Take ownership per protocol and confirm the heads above.
+2. In erp-backend and erp-mobile, merge `origin/wip/d225-names-illustrations` into a local checkout of
+   `post-testflight-feedback` without committing (`git merge --no-commit --no-ff`). Make the four failing suites
+   green:
+   - finish the audit allowlist in `bilingual-name-audit.spec.ts`;
+   - the money/closing specs, whose mocks lack the new `nameAr` selects;
+   - the phone-selection pin.
+   Then finish the surfaces listed in docs/111 §7.8. Run every gate and commit focused commits on the feature branch.
+3. Run the visual workflows (`ops/visual-check`, `ops/render-tests`, docs/110) and the layout matrix (320/375/390,
+   light/dark, EN/FR/AR, larger text), including the notification centre, the open screen and the push offer.
+4. Update docs/111 §7, then set READY_FOR_HANDOFF only when all gates pass.
+5. Release-time gate (owner authorisation): the APNs key on the EAS iOS credentials at the first build with the
+   entitlement, `PUSH_CHANNEL=expo` on the release backend, then the physical-iPhone checklist (docs/111 §5 and §7.8).
 Stays IN_PROGRESS until every implementable gap is closed and every gate passes.
 
 Previous state (the pilot release; unchanged below):

@@ -13070,3 +13070,30 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **No deployment, no persistent-database migration, no EAS build, no TestFlight upload, no build-number change, no
   merge.**
 - **Left IN_PROGRESS** with exact continuation steps in CURRENT_HANDOFF.md.
+
+
+## 2026-10-30 — CLAUDE (cloud), D225 continuation (push, routing, wording, step-up, rehearsal)
+
+- **Claimed and confirmed.** Claimed per the owner's continuation brief; heads confirmed unchanged (backend `a13031d`,
+  mobile `8d83b23`, console `638f1d6`, docs `c80f1e7`). Console CI run 40981629622: success.
+- **Owner decisions recorded:** the 06:00 week kept; native push required; no TestFlight build.
+- **Pushed — backend:**
+  - `8325246` push devices;
+  - `ba958f7` typed destinations and re-authorised opening (plus the loan/consignment recipient fix);
+  - `fce43e3` week and role tests;
+  - `596e434`, `33f7f6d` payloads;
+  - `c32cf88` Acting Owner step-up, migration 0114, portal Owner-only.
+- **Pushed — mobile:**
+  - `2430b31` 06:00 fallback fix and tests;
+  - `2d34f87` native push, offer, Settings helper, open screen, all events worded.
+- **Verified.** CI green on both final heads.
+  - Backend: 5 232 unit tests.
+  - Mobile: 462 rendered tests, the pure suite, lint, the release config, and the web and iOS bundle audits.
+- **Rehearsal.** 0109 → 0114 on a disposable MySQL: green; databases dropped.
+- **Stopped at the account's usage limit.**
+  - The names and illustrations work was partial and red. It was parked on `wip/d225-names-illustrations` (backend
+    `cc42c8d`, mobile `8985fe8`), not on the feature branch.
+  - Visual workflows not run.
+- **No deploy, persistent migration, merge, build, TestFlight, App Store Connect, Meta/WhatsApp or `PUSH_CHANNEL`
+  change.**
+- **Left IN_PROGRESS** with the exact next steps in CURRENT_HANDOFF.md.

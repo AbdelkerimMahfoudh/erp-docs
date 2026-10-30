@@ -206,7 +206,7 @@ Commits, oldest first:
 - **Routing.** Approval requests reach an active Acting Owner (`actingOwnersHolding`: price approvals, returns,
   transfers).
 - **Visible state.** The delegate sees "Acting as Owner until …" on every screen (`/auth/me` `actingOwner`).
-- **Step-up.** Store accounts have no MFA today, so the step-up is the Owner's password. The platform's MFA is the
+- **Step-up.** *(Superseded 2026-10-30, §7.5: the password and a WhatsApp one-time code.)* Store accounts have no MFA today, so the step-up is the Owner's password. The platform's MFA is the
   console's, not the shop's.
 
 ## 3. Schema and migration rehearsal
@@ -300,3 +300,237 @@ lost.
 - **The Arabic review** covered the brand, the filter labels, every new string of this phase and the parity test. A
   line-by-line native review of all 4,300 Arabic strings is still worth an Arabic-speaking reviewer's pass.
 - **The visual workflows** were not run (§4).
+
+## 7. Continuation, 2026-10-30 (the owner's brief: the 06:00 week kept, native push required, no TestFlight)
+
+Heads at the start: backend `a13031d`, mobile `8d83b23`, console `638f1d6` (its CI run 40981629622 succeeded), docs
+`c80f1e7`. Heads at the end are recorded in `CURRENT_HANDOFF.md`.
+
+### 7.1 Native push (mobile `2d34f87`, backend `8325246`)
+
+- **Module and entitlement.**
+  - expo-notifications `~58.1.6` (the version SDK 58 pins).
+  - Its config plugin in `app.json`, with `mode: production`: the iOS `aps-environment` entitlement and no background
+    mode.
+  - iPhone only, on the existing EAS project. **No build was made.**
+- **Registration.** `lib/push.ts` is the only module that speaks to the library.
+  - It registers after sign-in, again when the token rotates (naming the replaced token, which the server revokes in
+    the same call), and when the language changes.
+  - Registration is idempotent.
+  - Each phone carries its own language.
+  - A person may have several phones.
+- **Unregistering.** Signing out unregisters the phone while the session still works.
+- **Server: `PushDevicesService`.**
+  - The token is unique across businesses and is read with the system client.
+  - A counter phone that changes hands — even to another business — moves to the newcomer.
+  - Concurrent first registrations end as one row.
+  - A person who is deactivated or deleted is never pushed: the dispatcher's audience requires active users.
+- **No push on the web.** The web build has none (`lib/push.web.ts`), so the library stays out of the web bundle.
+- **Delivery.** Sending stays off: `PUSH_CHANNEL=disabled` until the release explicitly enables it.
+
+### 7.2 The pre-permission
+
+- **When the app asks.**
+  - Only right after a sign-in (password or completed registration).
+  - Never at a cold launch with a restored session.
+  - Never again after "Not now", which is remembered on the phone.
+- **What it shows.** The app's own explanation, then iOS's prompt from "Enable notifications".
+- **Turning it on later.** Notifications → This phone: on / Enable / after a refusal, the steps and **Open Settings**.
+- **The one approved way out.** `openAppSettings()` in the browser guard (`lib/navigation/no-browser.ts`).
+  - It calls `Linking.openSettings()`: no address in, none built.
+  - It is reached only by `PermissionExplainer`, so the camera explanation has it again.
+  - `lib/access-boundary.test.ts` pins its body and its single caller.
+
+### 7.3 Opening a notification (backend `ba958f7`, mobile `2d34f87`)
+
+- **Typed destinations.** Every emitter writes a typed destination (`src/notifications/notification-target.ts`):
+
+  | Event | Opens |
+  |---|---|
+  | sale | the sale |
+  | return / refund | the return |
+  | stock received | stock, for the store that received it (it was a business-wide broadcast) |
+  | price change | the product (and unit) |
+  | expense | the expense |
+  | cash difference | the discrepancy |
+  | closing | that day |
+  | loan / consignment | the record |
+  | price approval | the approval |
+  | transfer | the transfer |
+  | anomaly | analytics |
+  | role change | the person (their own account) |
+  | Acting Owner | its screen |
+
+  There is no receiving-record screen in the app, so a stock receipt opens stock. A receiving-record screen would be
+  a new feature, not built here.
+- **`GET /notifications/:id/open` decides at the moment of opening.** In order:
+  - is the notification still the person's;
+  - does the record exist;
+  - does the person hold **today** the permission its screen requires, in the record's own store.
+  It answers `ok` (kind, id, store), `unavailable`, `unauthorized` or `no_destination`.
+- **The app.** `/notification-open` switches to the record's store, then gives way to the screen mapped from the
+  kind (`lib/navigation/notification-route.ts`). Otherwise it says "No longer available" or "Not available to you",
+  showing nothing of the record. The stored link is never followed.
+- **Foreground, background and cold start.** All go the same way. A tap before sign-in waits for the sign-in. The
+  same tap reported twice navigates once.
+- **Fixed on the way.** A proposed loan or consignment was written into the **proposer's** business, so the business
+  asked to accept it never saw it. It is now written into the other business.
+- **Proven by Jest, not on a device.** APNs delivery, a real background tap and a real cold start need the physical
+  build (§5).
+
+### 7.4 Every event worded (mobile `2d34f87`, backend `596e434`, `33f7f6d`)
+
+- **Coverage.** All 34 catalogued events have a title and a body in EN, FR and AR (`lib/notification-copy.ts`).
+- **Composed from stored fields.** Reference, amount, count, date, the store, and the actor in the reader's script.
+  The server now stores these on sales, stock, prices, closings, cash differences, loans, consignments and transfers
+  (with the Arabic store and actor names).
+- **Isolation.** Values are isolated (FSI…PDI) so an Arabic sentence keeps their order.
+- **The stored English is never shown.** An old row without fields reads "Open it to see the details" in the
+  reader's language.
+- **Tests.** `lib/notification-copy.test.ts` checks every event × language:
+  - no placeholder;
+  - no Latin word outside an isolated value in Arabic;
+  - the store's name in the reader's script.
+
+### 7.5 Acting Owner step-up (backend `c32cf88`, migration **0114**)
+
+- **What is asked.** Appointing, removing and an "until revoked" appointment ask for the Owner's password **and** a
+  one-time code sent to the Owner's verified WhatsApp number.
+- **The existing second factor.** That code is store accounts' existing second factor: `OtpService`, as account
+  deletion uses it, with its hashing, single use, expiry, attempt lock, send limits and throttle. Store accounts have
+  no TOTP; it is the platform administrators'. No WhatsApp configuration was touched.
+- **Bound to one change.** A code asked for "Mohamed until Friday" cannot confirm "Aminetou until revoked". A change
+  is a removal and an appointment, each confirmed.
+- **0114 `acting_owner_step_up`.** Additive: one value appended to the two OTP purpose enums, so no other code can
+  confirm an appointment and this code confirms nothing else.
+- **Portal handoff.** Issuing a portal ticket now requires the Owner **role**. An Acting Owner holds `settings.manage`
+  and could mint one before.
+- **Renewal and cancel.** Renewal-side store routes stay allowed. Permanent cancellation exists only behind the
+  platform administrator's guard.
+
+### Acting Owner permission matrix (D225)
+
+Paths are repository-relative (erp-backend unless stated).
+Abbreviations: **powers** = `src/acting-owner/acting-owner-powers.spec.ts`, **svc** = `src/acting-owner/acting-owner.service.spec.ts`, **stepup** = `src/acting-owner/acting-owner-step-up.spec.ts`, **rules** = `src/acting-owner/acting-owner-rules.spec.ts`, **mysql** = `src/acting-owner/acting-owner.mysql.spec.ts` (needs a database: skipped unless `ACTING_ROOT_URL`/`ACTING_APP_URL` are set).
+
+#### Forbidden to the Acting Owner
+
+| Operation | Acting Owner | Refusal | Proven by (file › test) |
+|---|---|---|---|
+| Appoint an Acting Owner (and ask for its code) | Forbidden | 403 `owner_only` | powers › "cannot appoint, change or remove an Acting Owner, nor even ask for the code: 403 owner_only"; mysql › "the delegate cannot appoint anyone nor remove their own appointment…" |
+| Change or extend an appointment (no change route exists: it is revoke + appoint) | Forbidden | 403 `owner_only` on both halves | powers › same test (revoke + appoint, both refused) |
+| Revoke an Acting Owner, including their own appointment | Forbidden | 403 `owner_only` | powers › same test; mysql › same test |
+| Edit the real Owner's name, phone, email or credentials | Forbidden | 403 `owner_protected` | powers › "cannot change the real Owner's name, contacts or credentials, nor deactivate them: 403 owner_protected"; `src/users/user-management.service.spec.ts` › "is edited only by somebody who holds the Owner role — never by an Acting Owner" |
+| Deactivate (remove) the real Owner | Forbidden | 403 `owner_protected` | powers › same test (`isActive: false`) |
+| Demote or change the real Owner's role | Forbidden | 403 `owner_role_fixed` | powers › "cannot change or demote the real Owner's role: 403 owner_role_fixed"; `src/users/role-change.service.spec.ts` › "never changes the Owner, and never one's own role" |
+| `integrations.manage` (WhatsApp/push credentials) | Forbidden (never delegated) | 403 `permission_denied` (`missing: ['integrations.manage']`) | powers › "does not hold integrations.manage: a route requiring it answers 403 permission_denied"; rules › "are the Owner's, less what is never delegated"; svc › "a scheduled start: …" (asserts it is absent while in force) |
+| Close the business (account deletion of the company) | Forbidden | Not a 403: the deletion route is the caller's own. For a delegate `kindFor` is `personal_login`, so only their own login can ever be deleted | powers › "cannot close the business: their deletion request only ever deletes their own login" |
+| Open the Owner's subscription portal session | Forbidden | 403 `owner_only` | powers › "cannot open the Owner's subscription portal session: 403 owner_only" |
+| Permanently cancel the subscription | Forbidden | 401: only `POST platform/businesses/:id/cancel` exists, behind `PlatformAdminGuard`. No store route cancels | powers › "cannot cancel the subscription or read the audit log: platform-administrator routes refuse a store session (401)"; powers › "cancel a subscription and read the audit log only behind the platform administrator's guard" |
+| Read the audit log | Forbidden | 401: only `GET platform/audit`, behind `PlatformAdminGuard` | powers › same two tests |
+| Change or delete audit rows | Forbidden to everyone | Database trigger | mysql › "audits the appointment in the same transaction, and the database will not let the audit be edited" |
+| Transfer ownership | Forbidden (no route) | — | powers › "offer no ownership transfer at all" (route census) |
+| Owner MFA / recovery codes | No store route exists. TOTP MFA is for platform administrators only | — | powers › route census (no such store route) |
+
+#### Allowed to the Acting Owner (while in force)
+
+| Operation | Acting Owner | Proven by |
+|---|---|---|
+| All of `ROLE_PERMISSIONS.owner` except `integrations.manage` (approvals, below-cost sales, expenses, returns, loans, stock, closing, `user.manage`, `settings.manage`, reports and costs) | Allowed | rules › "are the Owner's, less what is never delegated"; svc › "a scheduled start: nothing until then; from then, the Owner's permissions; …"; powers › "holds the delegated Owner permissions…"; `src/rbac/access.service.spec.ts` › "a temporary Acting Owner (D225)" |
+| Subscription renewal-side requests: `platform/my-subscription` (view), seat/store/activity requests, `payment-instructions` (all `settings.manage`) | Allowed | powers › "does not hold integrations.manage…" (the `settings.manage` guard passes) |
+
+#### Lifecycle guarantees
+
+| Guarantee | Proven by |
+|---|---|
+| Appoint needs password **and** the WhatsApp code for that exact appointment, including "until revoked" | svc › "an appointment until revoked is refused without the code, and with a code sent for another change"; svc › "password and the right code: appointed until revoked…" |
+| Wrong password: no code sent, nothing changed | svc › "the password comes first: a wrong one sends no code and changes nothing" |
+| Revoke needs its own code; change = revoke + appoint, each confirmed | svc › "a removal needs its own code too; changing an appointment is a removal and an appointment, each confirmed" |
+| Code goes only to the verified WhatsApp number, uses the existing OTP service and its send limits; bound to one change; single use; attempt lock | stepup › all 8 tests |
+| Only one active delegation, no overlap (an open end blocks later ones; back-to-back is allowed) | svc › "only one active delegation…"; svc › "an appointment until revoked blocks any later one…"; rules › "overlapping windows clash; back-to-back ones do not"; mysql › "two appointments at once…" |
+| Scheduled start | svc › "a scheduled start…"; rules › "a scheduled appointment is live but not yet in force" |
+| Expiry checked on every request by the clock, with no job; afterwards the delegate holds exactly their own role again | svc › "a scheduled start: … at the end, back to their own role — no job runs"; mysql › "starts at its time and ends at its end, with nothing running…" |
+| Revocation takes effect immediately | svc › "a revocation ends it on the very next request"; mysql › same |
+| Audit rows are written, including the step-up method and challenge | svc › "password and the right code…", "a removal needs its own code too…"; mysql › "audits the appointment…" |
+| The person who acted is never pushed their own action (`actorUserId`); the delegate is pushed the appointment | svc › "both are told, with a link to the Acting Owner page; …"; svc › "what the Acting Owner does themselves is never pushed back to them (actorUserId)" |
+
+#### Mobile
+
+| Behaviour | Proven by |
+|---|---|
+| Banner "Acting as Owner until …" in EN/FR/AR, with an end and without | `__tests__/roles-acting-owner-step-up.test.tsx` › "English", "French", "Arabic", "shows nothing when no appointment is in force"; `__tests__/roles-acting-owner.test.tsx` (EN) |
+| Appoint sheet: password, then code; sends the change the code is bound to | `__tests__/roles-acting-owner-step-up.test.tsx` › "naming someone until revoked: …"; "no verified WhatsApp number: …" |
+| Remove sheet: password, then code | `__tests__/roles-acting-owner-step-up.test.tsx` › "removing: the code is asked for that removal, then confirmed with it" |
+
+
+### 7.6 Week, Employee ↔ Manager (backend `fce43e3`, mobile `2430b31`)
+
+- **The week.** A "Monday–Sunday business week, using the existing 06:00 business-day cutoff", `Africa/Nouakchott`.
+- **The shared table.** One table of instants is shared verbatim by both suites: Monday 05:59 vs 06:00, Sunday night
+  into Monday, 1 November / 1 December / 1 January at 05:59 vs 06:00, a week spanning a month and a year. It holds
+  under several process time zones.
+- **Seven days make the week.** They meet end to end; the agent report's week equals the sum of its seven days.
+- **Bug fixed.** Before the server answered, "This week" used the UTC date, so Monday 00:00–05:59 showed the new week
+  for a moment. It now applies the 06:00 rule.
+- **Employee ↔ Manager.** Re-confirmed:
+  - who may change roles, and that the Owner is untouchable;
+  - next-request effect;
+  - grant pruning;
+  - audit before/after;
+  - the person notified and the actor not pushed;
+  - a repeat refused unchanged;
+  - the row lock.
+
+### 7.7 Rehearsal 0109 → 0114 (disposable MySQL 8.0.46 only)
+
+- **Seed.** Built from 0109 and seeded: 3 businesses, 3 stores, Owner / Manager / two Employees with their roles and
+  store assignments, sales, receipts (purchases), seat allocations, categories, notifications, OTP challenges and
+  intents.
+- **Backup.** mysqldump, 459 221 bytes.
+- **Upgrade.** `prisma migrate deploy` applied 0110–0114.
+- **Results:**
+  - Every 0109 column byte-identical.
+  - Every new column NULL; every new table empty.
+  - Name fallback: no Arabic name → the Latin one.
+  - An Arabic name round-trips in utf8mb4 (`D985D8B1D983D8B2…`).
+  - Refused, as they must be:
+    - deleting a delegation;
+    - changing a delegation other than revoking it;
+    - an end before the start;
+    - a duplicate push token;
+    - a second delivery of one notification to one device;
+    - a second read mark by one person.
+  - A revocation is accepted.
+  - The upgraded schema equals a fresh-from-migrations schema: 3 449 lines of columns, indexes, CHECKs, triggers and
+    foreign keys.
+  - The backup restored into another schema equals the 0109 state.
+  - All three databases dropped afterwards.
+- **Rollback boundary.** Every migration is additive. Before the release writes anything, rolling back is restoring
+  the pre-migration dump (docs/22). After it has written — Arabic names, delegations, device tokens, read marks,
+  deliveries, step-up codes — a dump restore loses those rows. The strategy is then **forward-fix**: new code over the
+  same columns. Nothing in 0110–0114 needs reversing for old code to run: an older build ignores the new columns and
+  tables. The one exception is 0112's triggers, which still forbid deleting a delegation, as intended.
+
+### 7.8 Not finished in this continuation
+
+- **Bilingual names on the remaining surfaces and the `.name` audit;**
+- **illustrations on the remaining surfaces.**
+
+Both were started by parallel workers that stopped at the account's usage limit. Their partial, **not green** work is
+parked on `wip/d225-names-illustrations` in erp-backend (`cc42c8d`) and erp-mobile (`8985fe8`). It is not on
+`post-testflight-feedback`. At park time it failed:
+- backend: `bilingual-name-audit.spec`, `money-anchors.service.spec`, `money-positions.spec`;
+- mobile: `lib/phone-selection.test.ts`.
+
+**Also not run:**
+- the Chromium/WebKit visual workflows;
+- the layout matrix;
+- the D219/D223/D224 journeys.
+
+Automated WebKit on Linux is not a physical iPhone.
+
+**Release-time gate (needs the build, the owner's authorisation and Apple):**
+- confirm the APNs key is attached to the EAS project's iOS credentials (EAS manages it on the first build that has
+  the entitlement);
+- set `PUSH_CHANNEL=expo` on the release backend;
+- then the physical checklist in §5, plus foreground, background and cold-start taps.

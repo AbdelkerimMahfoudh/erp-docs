@@ -8938,3 +8938,23 @@ the iPhone checklist are in `docs/111`.
   - it is never deleted or rewritten.
 - **Migrations 0110 to 0113** are additive and were rehearsed on a disposable MySQL only.
 - **No deployment and no TestFlight build.**
+
+- **Update 2026-10-30 (the owner's continuation brief):**
+  - **Week:** the owner kept the 06:00 cut. "This week" is a Monday–Sunday business week, using the existing 06:00
+    business-day cutoff: Monday 06:00 to the next Monday 05:59:59.999, `Africa/Nouakchott`.
+  - **Native push is required** in the consolidated release. It is implemented:
+    - expo-notifications with the iOS entitlement;
+    - registration, rotation, unregister on sign-out;
+    - the offer after sign-in only, "Not now" remembered;
+    - one approved Settings helper.
+    `PUSH_CHANNEL` stays disabled until the release enables it. No TestFlight build in this phase.
+  - **Opening a notification** is re-authorised by the server at the moment of opening, and leads to the exact record
+    or says why not.
+  - **Every catalogued event** is worded in EN/FR/AR from its fields; the stored English is never shown.
+  - **Acting Owner:** appoint and remove need the Owner's password **and** a WhatsApp one-time code (the existing
+    `OtpService`), bound to that change. This supersedes "confirmed with the Owner's password". Migration 0114 gives
+    the code its own purpose. The portal ticket is the real Owner's.
+  - **Loans and consignments** are now notified to the business asked to accept them; they were written into the
+    proposer's own.
+  - **Still open:** bilingual names on the remaining surfaces and illustrations on the remaining surfaces (partial
+    work parked on `wip/d225-names-illustrations`). Detail: docs/111 §7.
