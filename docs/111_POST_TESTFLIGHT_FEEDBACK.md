@@ -665,3 +665,30 @@ or need a new state.
 
 **Existing records:** no bulk change. Any console-created business still `pending_activation` is listed for the owner
 to act on one by one. Production has one ordinary customer and three test businesses, all activated.
+
+### 8.4 Balance tracking per payment method (brief §6): the live state, and a migration policy awaiting the owner
+
+**The model as built:**
+- **Receiving accounts** (`receiving_accounts`: Bankily, Sedad, BIM, …) are configured per **business**, not per store.
+- A **money anchor** (`money_anchors`) records a known balance at a moment, and later movements are tracked from it.
+- **Cash** is the drawer, counted at the day's opening and closing (`daily_closings`, `closing_channel_counts`).
+
+**Production, read only, 2026-10-30** (counts only, no amounts):
+
+| Business | Receiving accounts | Stores | Anchors | Closings |
+| --- | --- | --- | --- | --- |
+| Test (2026-10-24) | none | 1 | 0 | 0 |
+| Test (2026-10-29) | Bankily (active) | 1 | **1** | 0 |
+| Test (2026-10-29) | none | 1 | 0 | 0 |
+| Ordinary (2026-10-30) | none | 1 | 0 | 0 |
+
+**Proposed migration policy** (needs the owner's choice before the code changes behaviour):
+- A new per-store setting, "Dedicated to this store", on each method, **OFF by default**.
+- For existing configurations:
+  - **(A, recommended)** a method that has an anchor starts **ON** at that store, from its latest anchor as the
+    effective starting point; everything else is **OFF**. No recorded balance is erased or reinterpreted.
+  - **(B)** everything starts **OFF**. The single anchor stays in history, and re-enabling it asks for a new starting
+    point.
+- Either way, past closings and anchors keep the meaning they were recorded with.
+- **Cash:** the drawer stays counted at opening and closing whatever the switch says. The switch only decides whether
+  cash is shown as a store's own tracked balance.
