@@ -568,3 +568,68 @@ its three ways, as its title says.
     the entitlement);
   - set `PUSH_CHANNEL=expo` on the release backend;
   - then the physical checklist in §5, plus foreground, background and cold-start taps.
+
+## 8. Second continuation, 2026-10-30 evening (CLAUDE, local; the owner's brief §§2–11)
+
+### 8.1 Visual workflows on the D225 heads (backend `4cf32b3`, mobile `c006f71`)
+
+- **render-tests 41110132839: passed** (the owner's report, on the final heads).
+- **visual-check 41110129486: failed on tooling, not the app.** Its fixtures predated D225's required Arabic
+  business and person names. The brand checks passed 44/44 in Chromium and WebKit.
+- **The replacement visual-check 41114111688** (tooling `0b8a878`): failure in the steps D219 regression, WebKit,
+  Chromium and the business count. Brand passed 44/44 in both engines; the access journey 21/21 (WebKit).
+  - **Every remaining failure matches a check that D225 made stale. Each still needs proof by reproduction**, so
+    none is waived:
+    - `register …: Continue on an empty step focuses its first field` and `Back twice … still filled` (EN/FR/AR): the
+      first step now carries names in both scripts;
+    - `setup|join|verify ar: the shared header (Dukan ERP …)`: the Arabic product name is now تطبيق دكان;
+    - `New team member: the fields are the same elements … — true,true,true`: every value is true, but a second-script
+      name field was added.
+  - **Not yet explained:** both engines' logs end without a summary (after "team sheet fr light 390"); the D219 input
+    matrix ended on a `TimeoutError`; the business count "before" is empty.
+  - A CI build of console `638f1d63` + app `c006f71` (`ops/build-test-console` `74b9b26d`) was started to reproduce
+    them locally.
+
+### 8.2 The mouse intake crash in TestFlight build 1.0.0 (1): evidence first
+
+**Production, read only:** structure, counts and times only; no names, identifiers, prices or costs.
+- Since 2026-10-29 there are **3 products, 3 purchases (one line each) and 3 `POST /purchases`, all 201.** No 4xx or
+  5xx on purchases. No purchase shares a client key with another.
+- **No partial product** (none without a unit or stock), **no orphan unit**, **no duplicate serial**.
+- The mouse is `pcaccessories.mice`, tracking `serial`, created **10-30 09:38:22**: 1 unit, 1 purchase line, cost known
+  on both.
+
+**The request timeline (API log, 10-30, UTC):**
+
+| Time | Request | Reading |
+| --- | --- | --- |
+| 09:32:14 | `POST /scan` 201 | the typed serial classified, opening the product form |
+| 09:32:19 | `GET /categories` | the form loads its categories |
+| 09:32:58 | `GET /products?active=…&q=…` 200 | Save: the exact-product lookup both save paths run first |
+| — | *no write request* | no `POST /products`, no `POST /purchases`, no `POST /scan` |
+| 09:33:01 | `POST /devices/adopt` | the app starting again: the crash fell between 09:32:58 and 09:33:01 |
+| 09:33:33 | `POST /scan` 201 | the restored details classified again |
+| 09:38:22 | `GET /products?q=…`, then `POST /purchases` 201 in the same second | the retry, in one purchase: the only one |
+
+**Conclusions (evidence):**
+- **The first save never reached the server as a write.** Nothing was committed, so there is nothing to clean up and no
+  duplicate.
+- **The crash was on the device,** after the lookup on Save and before any further request.
+
+**Hypothesis (strong, not yet proven):** the first form was opened from the **multi-item Receive** screen.
+- `newProductParams` in `app/receive.tsx` passes no `intake=quick`. The product form then runs "for the delivery": it
+  shows **no buying cost** (by design, cost is entered per line back in Receive). On Save it runs the lookup, writes a
+  draft into memory and calls `router.back()` — **no write request**. That matches the timeline exactly.
+- Receive's focus handler would first `lookUp` the serial (a `POST /scan`), and none was sent. So the failure is in the
+  navigation back from `catalog/new` to Receive, before Receive's focus handler ran. That is the seam of the 2026-10-28
+  freeze.
+- The retry showed the cost field and saved in one purchase: the **Quick receive** path (`intake=quick`).
+- An unhandled JavaScript exception closes a release app, which TestFlight reports as a crash.
+
+**Still needed:**
+- Apple's crash report for build 1 (TestFlight → Crashes). App Store Connect was signed out in the session's Chrome;
+  the owner is to sign in.
+- A reproduction on disposable data.
+
+The fix is specified by the owner's brief §3 whatever the exact exception: one intake with the cost always shown, the
+recoverable states, and idempotent retries.
