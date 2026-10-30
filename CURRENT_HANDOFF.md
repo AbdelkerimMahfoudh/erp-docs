@@ -28,36 +28,30 @@ active_phase (the owner's brief of 2026-10-29, decision **D225**): the post-Test
 
 **Not in this phase:** a deployment, a persistent-database migration, a DNS/server/secret/EAS/Apple change, `eas
 build`, a TestFlight build, a merge into release branches, a rebase or force-push.
-progress (refreshed 2026-10-30 ~00:50Z): **every area of the brief is implemented and pushed; see `docs/111`.**
-heads_now:
-- erp-backend `post-testflight-feedback` **`a13031d`**: migrations 0110–0113, CI green;
-- erp-mobile `post-testflight-feedback` **`8d83b23`**: CI green;
-- erp-control-web `post-testflight-feedback` **`638f1d6`**: CI was running at writing;
-- erp-docs `master`: this commit.
-migrations: 0110 `category_icons`, 0111 `bilingual_names`, 0112 `acting_owner`, 0113 `notification_delivery`.
-- All four are additive.
-- **None is applied to any persistent database.** They were rehearsed on a disposable MySQL 8.0.46 only
-  (`/var/tmp/d225-mysql` in the cloud container, discarded with it): gates from empty; 0109 → 0111 with data,
-  byte-identical; backup restored.
-not deployed: no deploy, no EAS build, no TestFlight upload, no build-number change, no merge.
-why IN_PROGRESS and not READY_FOR_HANDOFF: the relevant gates are not all done.
-- The Chromium/WebKit visual workflows were not run on the final heads.
-- The console CI result is still to be read.
-- Push on the phone needs an owner decision (notification module and APNs entitlement).
-next_action, exactly:
-1. Read console CI run 40981629622 on `638f1d6`. If it is red, fix it on the same branch.
-2. Run the visual workflows (`ops/visual-check`, `ops/render-tests`, as in docs/110) against the three heads above.
-   Fix any regression, paying attention to Arabic rows after the `textAlign` change on the web.
-3. Optional, within D225:
-   - Arabic names in approvals, transfers, timelines and reports;
-   - pictures on Receive, reports and catalogue lists.
-4. The owner decides:
-   - the week's 06:00 versus 00:00 start;
-   - whether the consolidated build adds expo-notifications and the push entitlement (`PUSH_CHANNEL=expo`);
-   - when to release.
-5. Then the physical-iPhone checklist in `docs/111` §5. Only on the owner's explicit authorisation: merge, a backup
-   per docs/22, migrations 0110–0113 on production, deployment, and one consolidated TestFlight build.
-Then set READY_FOR_HANDOFF once steps 1–2 are green and the trees are clean.
+continuation (the owner's brief of 2026-10-30, still D225, same branches, written before any change):
+- **Owner decisions:**
+  1. The week keeps the 06:00 business-day cutoff: "This week" runs Monday 06:00 to the next Monday 05:59:59.999,
+     `Africa/Nouakchott`.
+  2. Native push is required in the eventual consolidated release.
+  3. No TestFlight build in this phase.
+- Remote heads confirmed at 2026-10-30, unchanged since the previous refresh: erp-backend **`a13031d`**, erp-mobile
+  **`8d83b23`**, erp-control-web **`638f1d6`** (console CI run 40981629622: **success**), erp-docs **`c80f1e7`**.
+- Scope of the continuation:
+  - native push (expo-notifications, the iOS entitlement through the Expo config, registration, rotation,
+    unregister), a pre-permission after sign-in and one approved Settings helper;
+  - typed, re-authorised deep links;
+  - localized titles **and** bodies in EN/FR/AR;
+  - bilingual names on every remaining surface, plus a `.name` audit;
+  - illustrations on every remaining surface;
+  - Acting Owner step-up through the existing secure mechanism, with a permission-to-test matrix;
+  - Employee/Manager re-confirmation;
+  - the 06:00 week tests;
+  - a full 0109 → 0113 rehearsal;
+  - every gate; docs.
+- Still forbidden: deploy, persistent migration, merge into release branches, rebase/force-push, `eas build`, a build
+  number, TestFlight, App Store Connect, Meta/WhatsApp configuration, enabling `PUSH_CHANNEL`.
+next_action: native push in erp-mobile (section 2 of the brief), then the pre-permission (section 3).
+Stays IN_PROGRESS until every implementable gap is closed and every gate passes.
 
 Previous state (the pilot release; unchanged below):
 Status: IN_PROGRESS
