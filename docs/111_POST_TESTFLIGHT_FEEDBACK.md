@@ -633,3 +633,35 @@ its three ways, as its title says.
 
 The fix is specified by the owner's brief §3 whatever the exact exception: one intake with the cost always shown, the
 recoverable states, and idempotent retries.
+
+### 8.3 Auto-approving businesses the console creates (brief §8): the state map, and a proposal awaiting the owner
+
+**The states as built** (backend `4cf32b3`):
+- Console "New business" and public registration go through the same `RegistrationService`. The subscription starts
+  `pending_activation`; the console's note says "Awaiting approval".
+- **Approve** (`subscription.approve`) moves `pending_activation` or `rejected` to **`activated` with a paid period end**
+  (`currentPeriodEnd`, from N months or a date). **Approval and access are one act: there is no "approved but not
+  paid" state.**
+- **The grant** (`subscription.activate_grant`) is the separate, audited no-payment path: `isComplimentary`, a reason
+  and a duration.
+- A payment (`payment.record_and_confirm`) is recorded on its own and activates nothing.
+- Stores beyond the first follow the store-allocation requests. They are out of scope here and stay as they are.
+
+**So "approve at creation" cannot simply be added.** It would either grant a period that no payment covers (forbidden),
+or need a new state.
+
+**Options:**
+1. **Create with access in one step** (recommended; no schema change):
+   - the console's New business form gains a required **Access** choice, enforced on the server;
+   - **Payment received** records the confirmed payment, then activates for the paid period, in one audited request;
+   - **No-payment grant** follows the existing grant rules: reason, duration, step-up;
+   - **Awaiting payment** creates the business `pending_activation`. Its label and next action become "Awaiting
+     payment — record payment to activate", never "Approve": the platform created it, so there is nothing left to
+     approve, only to pay;
+   - public self-registration and an Owner's extra stores keep their own approval and payment rules.
+2. **A new `approved` state** before `activated` (a migration):
+   - keeps the words "approved" and "paid" apart in the data;
+   - more work, and every reader of the status must be revisited.
+
+**Existing records:** no bulk change. Any console-created business still `pending_activation` is listed for the owner
+to act on one by one. Production has one ordinary customer and three test businesses, all activated.
