@@ -1,8 +1,23 @@
 # CURRENT_HANDOFF
 
 Status: IN_PROGRESS
-Owner: CLAUDE (cloud), https://claude.ai/code/session_01WqJ1WH6TJWfctbXGjyqFZt
-started_at_utc: 2026-10-29T18:50Z (this claim written before any change)
+Owner: CLAUDE (local session, the owner's PC)
+takeover_2026-10-30T19:33Z: **authorised by the owner in chat.** The owner's brief "Continue Dukan ERP from the
+current handoff … finish the outstanding verification, then implement the agreed feedback" (§§2–11) applies.
+- The previous holder was CLAUDE (cloud), session_01WqJ1WH6TJWfctbXGjyqFZt. Its last commit is `f78f9b3`, at
+  18:49Z. Its block is complete up to its own next_action (read runs 41110129486 and 41110132839), which this session
+  continues; the owner was asked to stop it.
+- Heads verified at takeover, all clean and level with origin, branch `post-testflight-feedback`:
+  - backend `4cf32b3`, mobile `c006f71`, portal `638f1d63`;
+  - docs `master` `f78f9b3`.
+- `wip/d225-names-illustrations`: backend `cc42c8d`, mobile `8985fe8`. Kept, not deleted.
+- **WhatsApp, recorded here:**
+  - the production token and app secret are stored on the server as secret files (owner's hidden prompts), unused
+    by the API;
+  - read-only checks of 2026-10-30: the number is PENDING (not registered) and all 12 template languages PENDING;
+  - one registration attempt was refused by Meta (permissions) and changed nothing.
+  - Under §10, the registration waits for the restore gate and the owner's authorisation.
+previous_holder_claim: CLAUDE (cloud), started_at_utc 2026-10-29T18:50Z (that claim written before any change)
 takeover: **authorised by the owner's brief of 2026-10-29** ("continuing Dukan ERP after its first successful TestFlight
 release … claim the shared handoff"). The previous holder, CLAUDE (local session, the owner's PC, new account), still
 showed IN_PROGRESS for the pilot release. Its last recorded step was the build's submission to App Store Connect
