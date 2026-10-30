@@ -13097,3 +13097,13 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **No deploy, persistent migration, merge, build, TestFlight, App Store Connect, Meta/WhatsApp or `PUSH_CHANNEL`
   change.**
 - **Left IN_PROGRESS** with the exact next steps in CURRENT_HANDOFF.md.
+
+## 2026-10-30 (evening) — CLAUDE (cloud), D225 continuation resumed after the usage limit
+
+- **Finished the parked names and illustrations work** on `post-testflight-feedback`:
+  - backend `4cf32b3`: names on every API surface; audit 207 paired / 141 classified;
+  - mobile `e4e666a` (illustrations, surface pins), `0569bc3` (names in the reader's script, app audit), `c006f71`
+    (Arabic report headers).
+- **Verified.** All local gates green (backend 5 242; mobile 462 rendered plus the pure suite, tsc, lint).
+- **Visual workflows** retargeted: visual-check `ccd91dd`, render-tests `f9df297`. Running at writing.
+- **No deploy, persistent migration, merge, build, TestFlight, Apple, Meta/WhatsApp or `PUSH_CHANNEL` change.**

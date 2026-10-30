@@ -8956,5 +8956,5 @@ the iPhone checklist are in `docs/111`.
     the code its own purpose. The portal ticket is the real Owner's.
   - **Loans and consignments** are now notified to the business asked to accept them; they were written into the
     proposer's own.
-  - **Still open:** bilingual names on the remaining surfaces and illustrations on the remaining surfaces (partial
-    work parked on `wip/d225-names-illustrations`). Detail: docs/111 §7.
+  - **Bilingual names everywhere and illustrations on every product surface:** done, with a server audit and an app
+    audit that fail on a new Latin-only name. Detail: docs/111 §7.8.

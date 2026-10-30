@@ -50,56 +50,31 @@ continuation (the owner's brief of 2026-10-30, still D225, same branches, writte
   - every gate; docs.
 - Still forbidden: deploy, persistent migration, merge into release branches, rebase/force-push, `eas build`, a build
   number, TestFlight, App Store Connect, Meta/WhatsApp configuration, enabling `PUSH_CHANNEL`.
-state at pause (2026-10-30; the session stopped at the account's usage limit; every working tree is clean and pushed):
-- **erp-backend `post-testflight-feedback` `c32cf88`** — CI green.
-  - Push devices on the system client; typed destinations and `GET /notifications/:id/open`.
-  - Loans and consignments notified to the other business; notification payloads (price, transfer, closing, sale,
-    stock, cash difference).
-  - Week and role tests.
-  - Acting Owner step-up: password plus WhatsApp code via `OtpService`.
-  - Migration **0114_acting_owner_step_up** (additive OTP purpose).
-  - The portal ticket now requires the real Owner.
-- **erp-mobile `post-testflight-feedback` `2d34f87`** — CI green; bundle audit passes for web and iOS.
-  - Native push: expo-notifications ~58.1.6 with its config plugin. **No build made.**
-  - The offer after sign-in; `openAppSettings`; `/notification-open`.
-  - All 34 events worded in EN/FR/AR; the 06:00 fallback fix.
-- **erp-control-web `638f1d6`** — unchanged; CI run 40981629622 success.
-- **erp-docs `master`**: this commit (docs/111 §7, D225 update, SESSION_LOG).
-migrations: 0110–0114.
-- None is applied to any persistent database.
-- Rehearsed 0109 → 0114 on a disposable MySQL 8.0.46 (results in docs/111 §7.7):
-  - old data byte-identical;
-  - upgraded schema equal to a fresh one;
-  - backup restored.
-- The disposable databases were dropped.
-parked, NOT green, NOT on the feature branch: `wip/d225-names-illustrations` — erp-backend `cc42c8d`, erp-mobile
-`8985fe8`.
-- What it is: partial work by two parallel workers, interrupted by the usage limit:
-  - bilingual names on approvals, transfers, loans, consignments, unit history, sales, returns, money, closing,
-    selectors, plus a `.name` audit spec;
-  - illustrations on receive, catalogue, sell, sale detail.
-- Failing at park time:
-  - backend `src/common/bilingual-name-audit.spec.ts`, `src/closing/money-anchors.service.spec.ts`,
-    `src/closing/money-positions.spec.ts`;
-  - mobile `lib/phone-selection.test.ts`.
-not done: the Chromium/WebKit visual workflows, the layout matrix, the D219/D223/D224 journeys. Automated WebKit is not
-a physical iPhone.
-not deployed: no deploy, no persistent migration, no merge, no EAS build, no build number, no TestFlight, no App Store
-Connect change, no Meta/WhatsApp change, `PUSH_CHANNEL` not enabled.
+state (2026-10-30 ~18:50Z; every working tree clean and pushed):
+- **erp-backend `post-testflight-feedback` `4cf32b3`**:
+  - everything before, plus bilingual names on every remaining API surface and the `.name` audit spec;
+  - full unit suite 5 242 passed; secret scan clean.
+- **erp-mobile `post-testflight-feedback` `c006f71`**:
+  - everything before, plus illustrations on every product surface (`e4e666a`);
+  - names in the reader's script on every screen, with the app audit (`0569bc3`);
+  - Arabic report headers (`c006f71`);
+  - tsc, lint (38/40 warnings), the pure suite and 462 rendered tests pass.
+- **erp-control-web `638f1d6`**: unchanged, CI success.
+- **`wip/d225-names-illustrations`** (backend `cc42c8d`, mobile `8985fe8`): superseded. Its work is finished on the
+  feature branch; delete it once the owner agrees.
+- **Visual workflows**, retargeted to these heads and running at writing:
+  - `ops/visual-check` `ccd91dd` (run 41110129486, Chromium and WebKit; the seed now sends the Arabic names);
+  - `ops/render-tests` `f9df297` (run 41110132839).
+migrations: 0110–0114, none applied to any persistent database; rehearsal 0109 → 0114 green (docs/111 §7.7).
+not deployed: no deploy, persistent migration, merge, EAS build, build number, TestFlight, App Store Connect,
+Meta/WhatsApp or `PUSH_CHANNEL` change.
 next_action, exactly:
-1. Take ownership per protocol and confirm the heads above.
-2. In erp-backend and erp-mobile, merge `origin/wip/d225-names-illustrations` into a local checkout of
-   `post-testflight-feedback` without committing (`git merge --no-commit --no-ff`). Make the four failing suites
-   green:
-   - finish the audit allowlist in `bilingual-name-audit.spec.ts`;
-   - the money/closing specs, whose mocks lack the new `nameAr` selects;
-   - the phone-selection pin.
-   Then finish the surfaces listed in docs/111 §7.8. Run every gate and commit focused commits on the feature branch.
-3. Run the visual workflows (`ops/visual-check`, `ops/render-tests`, docs/110) and the layout matrix (320/375/390,
-   light/dark, EN/FR/AR, larger text), including the notification centre, the open screen and the push offer.
-4. Update docs/111 §7, then set READY_FOR_HANDOFF only when all gates pass.
-5. Release-time gate (owner authorisation): the APNs key on the EAS iOS credentials at the first build with the
-   entitlement, `PUSH_CHANNEL=expo` on the release backend, then the physical-iPhone checklist (docs/111 §5 and §7.8).
+1. Read runs 41110129486 (visual-check) and 41110132839 (render-tests).
+   - If red, fix on `post-testflight-feedback` (or the seed or checks on the ops branch), then retarget and re-run.
+   - Expect registration and team steps may need the Arabic name fields, which D225 made required.
+2. When both are green, record them in docs/111 §7.9 and set READY_FOR_HANDOFF. The trees are already clean.
+3. Release-time gate (owner authorisation): APNs key on the EAS iOS credentials with the first entitlement build,
+   `PUSH_CHANNEL=expo`, then the physical-iPhone checklist (docs/111 §5 and §7.9).
 Stays IN_PROGRESS until every implementable gap is closed and every gate passes.
 
 Previous state (the pilot release; unchanged below):

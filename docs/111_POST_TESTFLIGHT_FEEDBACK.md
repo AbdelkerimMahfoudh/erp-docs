@@ -511,26 +511,60 @@ Abbreviations: **powers** = `src/acting-owner/acting-owner-powers.spec.ts`, **sv
   same columns. Nothing in 0110–0114 needs reversing for old code to run: an older build ignores the new columns and
   tables. The one exception is 0112's triggers, which still forbid deleting a delegation, as intended.
 
-### 7.8 Not finished in this continuation
+### 7.8 Bilingual names and illustrations everywhere (backend `4cf32b3`, mobile `e4e666a`, `0569bc3`, `c006f71`)
 
-- **Bilingual names on the remaining surfaces and the `.name` audit;**
-- **illustrations on the remaining surfaces.**
+Two parallel workers started this and stopped at the account's usage limit. Their partial work was parked on
+`wip/d225-names-illustrations`, then finished, verified and committed on `post-testflight-feedback`. The WIP branches
+are superseded.
 
-Both were started by parallel workers that stopped at the account's usage limit. Their partial, **not green** work is
-parked on `wip/d225-names-illustrations` in erp-backend (`cc42c8d`) and erp-mobile (`8985fe8`). It is not on
-`post-testflight-feedback`. At park time it failed:
-- backend: `bilingual-name-audit.spec`, `money-anchors.service.spec`, `money-positions.spec`;
-- mobile: `lib/phone-selection.test.ts`.
+**Names — server.**
+- An additive `…Ar` field sits next to every Latin name a screen reads:
+  - approvals; transfers (every person in the timeline); loans and consignments (the other business);
+  - unit history; sales, payments, policy override and cancellation; returns, refunds and corrections; expenses;
+  - money positions and anchors; closing; the debt ledger; analytics (stores and sellers); goals;
+  - catalogue stock by store; scanner proposals; team seats; the account.
+- Report documents carry `companyAr` and `branchAr`; an export's store label uses the export's language.
+- The Owner's WhatsApp closing notice names the store in the Owner's language.
+- The below-cost anomaly carries the seller's Arabic name.
+- No schema change. Immutable records keep their snapshots.
 
-**Also not run:**
-- the Chromium/WebKit visual workflows;
-- the layout matrix;
-- the D219/D223/D224 journeys.
+**Names — the server audit.** `src/common/bilingual-name-audit.spec.ts` scans every Company/Branch/User name select
+and read: 207 carry the Arabic twin. 141 are classified, each with its reason:
+- platform console, provisioning, invitation and billing text;
+- WhatsApp templates;
+- the stored English fallback text of notifications;
+- immutable snapshots that would need a new column — the agent records' `recordedByName` and the counted-float anchor.
+  These are listed, not migrated;
+- English API errors;
+- internal lookups;
+- a counterparty's single name.
 
-Automated WebKit on Linux is not a physical iPhone.
+A new unclassified occurrence fails the spec.
 
-**Release-time gate (needs the build, the owner's authorisation and Apple):**
-- confirm the APNs key is attached to the EAS project's iOS credentials (EAS manages it on the first build that has
-  the entitlement);
-- set `PUSH_CHANNEL=expo` on the release backend;
-- then the physical checklist in §5, plus foreground, background and cold-start taps.
+**Names — the app.**
+- Every one of those screens reads the reader's script: `nameIn(latin, arabic, language)` or `displayName`.
+- `lib/bilingual-names-audit.test.ts` fails on a screen that reads such a name without its Arabic twin. Agent screens
+  stay Latin; they show the same immutable snapshots.
+- An Arabic report PDF prints the business and store in Arabic; the file name stays Latin.
+
+**Illustrations.** The category's picture appears on:
+- receive, quick receive and receiving from a file;
+- the catalogue list and product details;
+- stock;
+- sell: results, the stock picker's units, the chosen item and the cart;
+- sale details and payment, and sales history rows.
+
+`lib/category-illustration-surfaces.test.ts` pins each surface. The sell picker's older "no pictures" pin is scoped to
+its three ways, as its title says.
+
+### 7.9 Still open at writing
+
+- **The Chromium/WebKit visual workflows** were retargeted to the final heads: `ops/visual-check` `ccd91dd` (seed now
+  sends the Arabic names) and `ops/render-tests` `f9df297`. Results are recorded in CURRENT_HANDOFF.md.
+- **The D219/D223/D224 journeys and the full layout matrix** are covered only as far as those workflows cover them.
+  Automated WebKit on Linux is not a physical iPhone.
+- **Release-time gate** (needs the build, the owner's authorisation and Apple):
+  - confirm the APNs key is attached to the EAS project's iOS credentials (EAS manages it on the first build that has
+    the entitlement);
+  - set `PUSH_CHANNEL=expo` on the release backend;
+  - then the physical checklist in §5, plus foreground, background and cold-start taps.
