@@ -28,45 +28,36 @@ active_phase (the owner's brief of 2026-10-29, decision **D225**): the post-Test
 
 **Not in this phase:** a deployment, a persistent-database migration, a DNS/server/secret/EAS/Apple change, `eas
 build`, a TestFlight build, a merge into release branches, a rebase or force-push.
-progress (refreshed 2026-10-29 ~20:40Z; every commit below is pushed on `post-testflight-feedback`):
-- FB-1 dialogs: mobile `74862f5`.
-- FB-2 calendar weeks: backend `420dc9d`, mobile `f0a5dc1`. The owner's note (2026-10-29): the time filters read
-  Today / This week / This month in EN and FR as well as AR. That was already true on this branch (the TestFlight
-  build predates it), and it is now pinned by a test. The export sheet's "last N days" was replaced by the period
-  name in mobile `821bdec`.
-- FB-3 category pictures: backend `5fdc07d` (migration **0110_category_icons**), `28db96d`, `c414baf`, `2c85b2d`;
-  mobile `8895b21`.
-- FB-4 bilingual names:
-  - backend `1bc51c3`, migration **0111_bilingual_names**: nullable `name_ar` on companies, branches and users; six
-    name snapshot columns on sales; `seat_allocations.label_ar`;
-  - mobile `821bdec`.
-- **Migrations 0110 and 0111 are not applied to any persistent database.** They were rehearsed only on a disposable
-  MySQL 8.0.46 (`/var/tmp/d225-mysql`, 127.0.0.1:3399):
-  - the CI database gates from empty pass (88 real-MySQL tests);
-  - a schema at 0109 with rows was backed up, migrated to 0111 and compared: the 0109 columns are byte-identical and
-    every new column is NULL;
-  - the backup restored to exactly the 0109 state.
-- The cloud container restarted twice (~19:25Z and ~20:30Z). Pushed work was intact both times; the uncommitted work
-  was rebuilt or survived.
-- FB-4 more: mobile `b7697c0` (sign-up asks every name in Arabic).
-- FB-8 Arabic/RTL: mobile `5745875`:
-  - the iPhone RTL row gap. RN resolves textAlign left/right against the layout, and our helper flipped it a second
-    time; verified in RN's `RCTResolveTextAlignment`;
-  - تطبيق دكان everywhere in Arabic;
-  - the translation-parity test.
-- FB-7 camera explainer: mobile `153e71c`.
-- FB-5:
-  - backend `4e41aef`: Employee ↔ Manager, `PUT /users/:id/role`, with a real-MySQL spec;
-  - backend `76c4e4a`: the Acting Owner, **migration 0112_acting_owner**, with a real-MySQL spec.
-  Both specs are added to the CI database gates. 0112 was applied only to the disposable `grace_ci` on
-  `/var/tmp/d225-mysql`.
-- **Not yet done:**
-  - the mobile screens for the role change and the Acting Owner (the "Acting as Owner until …" banner);
-  - FB-6 notifications (levels, centre filters, read sync, push tokens and locale, deep links);
-  - the console forms (erp-control-web not cloned);
-  - Arabic names in approvals, transfers, timelines and reports;
-  - FB-9 docs and gates.
-next_action: the mobile role-change control and Acting Owner screen, then FB-6, then FB-9.
+progress (refreshed 2026-10-30 ~00:50Z): **every area of the brief is implemented and pushed; see `docs/111`.**
+heads_now:
+- erp-backend `post-testflight-feedback` **`a13031d`**: migrations 0110–0113, CI green;
+- erp-mobile `post-testflight-feedback` **`8d83b23`**: CI green;
+- erp-control-web `post-testflight-feedback` **`638f1d6`**: CI was running at writing;
+- erp-docs `master`: this commit.
+migrations: 0110 `category_icons`, 0111 `bilingual_names`, 0112 `acting_owner`, 0113 `notification_delivery`.
+- All four are additive.
+- **None is applied to any persistent database.** They were rehearsed on a disposable MySQL 8.0.46 only
+  (`/var/tmp/d225-mysql` in the cloud container, discarded with it): gates from empty; 0109 → 0111 with data,
+  byte-identical; backup restored.
+not deployed: no deploy, no EAS build, no TestFlight upload, no build-number change, no merge.
+why IN_PROGRESS and not READY_FOR_HANDOFF: the relevant gates are not all done.
+- The Chromium/WebKit visual workflows were not run on the final heads.
+- The console CI result is still to be read.
+- Push on the phone needs an owner decision (notification module and APNs entitlement).
+next_action, exactly:
+1. Read console CI run 40981629622 on `638f1d6`. If it is red, fix it on the same branch.
+2. Run the visual workflows (`ops/visual-check`, `ops/render-tests`, as in docs/110) against the three heads above.
+   Fix any regression, paying attention to Arabic rows after the `textAlign` change on the web.
+3. Optional, within D225:
+   - Arabic names in approvals, transfers, timelines and reports;
+   - pictures on Receive, reports and catalogue lists.
+4. The owner decides:
+   - the week's 06:00 versus 00:00 start;
+   - whether the consolidated build adds expo-notifications and the push entitlement (`PUSH_CHANNEL=expo`);
+   - when to release.
+5. Then the physical-iPhone checklist in `docs/111` §5. Only on the owner's explicit authorisation: merge, a backup
+   per docs/22, migrations 0110–0113 on production, deployment, and one consolidated TestFlight build.
+Then set READY_FOR_HANDOFF once steps 1–2 are green and the trees are clean.
 
 Previous state (the pilot release; unchanged below):
 Status: IN_PROGRESS

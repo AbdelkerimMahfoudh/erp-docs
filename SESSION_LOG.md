@@ -13032,3 +13032,41 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Open:** the owner's review and device QA (`docs/107` §4), the dependency fix on `promoter-attribution`, the
   merges, the Android native check, and `ssh-add -D` with `Stop-Service ssh-agent` from an elevated PowerShell.
 - **Released** READY_FOR_HANDOFF, owner NONE.
+
+## 2026-10-29/30 — Post-TestFlight feedback (D225): implemented on feature branches; not merged, deployed or migrated (CLAUDE, cloud)
+
+- **Takeover:** authorised by the owner's brief. The local session's IN_PROGRESS pilot block was taken over, its last
+  step (the App Store Connect submission, `96cf01d`) complete.
+- **Branches** `post-testflight-feedback`:
+  - backend from `ce23e99`, ending `a13031d`;
+  - mobile from `2bf0a57`, ending `8d83b23`;
+  - console from `7ddeea7`, ending `638f1d6`.
+- **Done:** all ten areas, per `docs/111`:
+  - dialogs, Arabic/RTL (root cause of the iPhone row gap found in RN's iOS alignment), تطبيق دكان, a parity test;
+  - bilingual names (0111) in the app, API and console;
+  - calendar weeks; category pictures (0110); the camera explainer;
+  - Employee ↔ Manager; the Acting Owner (0112);
+  - notification levels, per-person reads, filters, localized push with one delivery per device (0113), routing to an
+    Acting Owner.
+- **Owner's note mid-session:** the time filters read Today / This week / This month in FR and EN too. That was
+  already so on the branch, and is now pinned by a test. The export's "last N days" became the period name.
+- **Verified:**
+  - backend 5126 tests, tsc, prisma validate, secret scan;
+  - mobile tsc, lint, pure tests, 435 rendered tests;
+  - console tsc, 647 tests, build:preview and audits;
+  - CI green on the backend and mobile heads;
+  - three new real-MySQL specs plus the existing gates on a disposable MySQL 8.0.46 (`/var/tmp/d225-mysql`);
+  - 0109 → 0111 with data byte-identical, and the backup restored.
+- **Incidents:** the cloud container restarted twice. Pushed work was intact; uncommitted FB-3 app work was rebuilt
+  and committed. The app account's password on the disposable server was set locally for its specs, never printed,
+  and never used anywhere else.
+- **Not done:**
+  - push on the phone (needs the notification module and the APNs entitlement: owner's decision);
+  - names in approvals, transfers, timelines and reports;
+  - pictures on Receive, reports and catalogue lists;
+  - the Chromium/WebKit visual workflows on the final heads;
+  - a native Arabic reviewer's full pass;
+  - the 06:00 week-start choice.
+- **No deployment, no persistent-database migration, no EAS build, no TestFlight upload, no build-number change, no
+  merge.**
+- **Left IN_PROGRESS** with exact continuation steps in CURRENT_HANDOFF.md.

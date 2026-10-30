@@ -8896,3 +8896,45 @@ The original decision of 2026-10-28:
   the pilot is a new customer business.
 - **Setup:** each person redeems a one-time setup code and chooses their own password.
 - **Detail:** `docs/109`.
+
+### ✅ DECIDED BY THE OWNER (2026-10-29), IMPLEMENTED (branches, CI), NOT DEPLOYED — D225: post-TestFlight feedback — dialogs, Arabic/RTL, bilingual names, calendar weeks, category pictures, permission explanations, notifications, Employee ↔ Manager, the temporary Acting Owner
+
+The owner's brief of 2026-10-29, after physical-iPhone testing of build b1308200. All detail, matrices, rehearsal and
+the iPhone checklist are in `docs/111`.
+- **Decision dialogs** draw each answer as a title and a description, never cut, in a scrolling body with the actions
+  outside it.
+- **Arabic:**
+  - the product is **تطبيق دكان**;
+  - the time filters read هذا اليوم / هذا الأسبوع / هذا الشهر, and Today / This week / This month in EN (Aujourd'hui
+    / Cette semaine / Ce mois-ci in FR);
+  - a parity test stops untranslated keys.
+- **The iPhone RTL row gap** was a double flip of text alignment in the shared helper; native alignment is now left to
+  React Native.
+- **Bilingual names:**
+  - Latin `name` for FR/EN and `name_ar` for AR, on businesses, stores and people;
+  - new records need both, except from the released 1.0.0 (1), which sends one name;
+  - an older record shows its existing name, is marked for completion, and is never blocked or transliterated;
+  - receipts keep the names they were issued under.
+- **Calendar weeks run Monday to Sunday.**
+  - *Assumption recorded for the owner:* days keep the 06:00 business-day cut, so a week is the sum of its closings.
+  - The owner may choose a 00:00 cut instead.
+- **Category pictures** come from the category: a custom icon, the built-in key, the parent, then a neutral generic,
+  never a phone.
+- **Permissions:** the app explains before iOS asks. After a refusal it gives the Settings path in words, because the
+  app opens no other app. The notification permission and push entitlement are an owner-side native/Apple step,
+  deferred to the consolidated release.
+- **Notification levels:** All activity, Important (the default for Owners and Managers) and Approvals only (the
+  default for Employees), per account.
+  - The centre keeps everything the person may see.
+  - Your own action is never pushed.
+  - Pushes are once per device and localized per device.
+  - Push is off (`PUSH_CHANNEL=disabled`) until the entitlement exists.
+- **Employee ↔ Manager:** the Owner's to change. It is in force on the next request and audited.
+- **The Acting Owner:**
+  - one at a time, timed or until revoked, and confirmed with the Owner's password;
+  - it holds the Owner's operational permissions in the delegate's stores, never `integrations.manage`, the Owner's
+    own record or the appointment itself;
+  - it starts and ends on time server-side;
+  - it is never deleted or rewritten.
+- **Migrations 0110 to 0113** are additive and were rehearsed on a disposable MySQL only.
+- **No deployment and no TestFlight build.**
