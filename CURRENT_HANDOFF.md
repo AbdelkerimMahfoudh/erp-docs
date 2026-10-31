@@ -21,6 +21,39 @@ phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the 
 - Heads at claim, all clean and level with origin: backend `4cf32b3` (production, migrations to 0114), mobile `10a260e` (TestFlight 1.0.0 (3)), portal `638f1d63` (dukan-test still serves `7ddeea79`, which has no Arabic name inputs), docs `35b4c2d`.
 - Scope: (1) portal bilingual business/store/person forms, field errors, no raw validator text, tests, test-portal deploy via the reviewed workflow; (2) the shared "Discard changes" freeze; (3) localized discard confirmation; (4) remove More → names and More → return policy, names in Business settings / store details, fix the names route's bad query; (5) the mouse-intake anomaly, diagnosed separately; (6) a second platform administrator for medmahmoud@tsxmr.com, only after the mailbox is confirmed; (7) verification.
 - Not in scope: any EAS/TestFlight build, App Store upload, enabling push/WhatsApp/email, unrelated production configuration.
+- **Checkpoint 2026-10-31 ~22:10Z** (detail and evidence: docs/111 §9; decisions: docs/21 D226):
+  - **Mobile** (all pushed, `post-testflight-feedback`):
+    - `0d06a14`: the shared unsaved-changes guard; the Discard freeze fixed; one EN/FR/AR wording;
+    - `ace5ff7`: names and the return policy in Business settings, More entries removed, `/names` redirects, localized
+      server errors;
+    - `208b835`: intake trail on Devices;
+    - `37fb5d6`: two Linux-only pure-test fixes.
+    - Local verification:
+      - jest: 58 suites / 502 tests on `ace5ff7`, plus the intake-trail suite (5 tests);
+      - pure tests: all pass except the 4 Windows-only;
+      - tsc 0, lint 0 errors.
+  - **Backend** (pushed):
+    - `c178ec6`: business names through the unscoped client;
+    - `5131909`: joi 17.13.9 (audit gate).
+    - **Production still runs `4cf32b3`.** `c178ec6` is NOT deployed (needs the owner's authorisation).
+  - **Console** `cd987227` (pushed): bilingual forms with field messages.
+    - Deployed to **dukan-test**: release `20261031T220359Z`, previous `releases/20261029T152528Z`; smoke 16/16; still
+      401 without the password.
+    - Rollback: `test-sites.sh rollback console 20261029T152528Z --confirm api.tsxmr.com`.
+    - Live form not exercised by Claude: it needs the site password, the admin password and MFA.
+  - **CI:**
+    - console `build-test-sites` 41245654675 success;
+    - mobile security on `ace5ff7` failed (fixed in `37fb5d6`); backend security on `c178ec6` failed on the joi audit
+      (fixed in `5131909`);
+    - render-tests and visual-check retargeted to `37fb5d6`;
+    - results pending at this checkpoint.
+  - **Finding 6, second administrator: NOT STARTED.**
+    - The mailbox was not confirmed in this session.
+    - `create-platform-admin.ts` has no first-use password flow, and it resets an existing email's password: never run
+      it with the current admin's email.
+    - Owner to choose (a) a hidden prompt typed by the new admin, or (b) a new setup-code feature (docs/111 §9.5).
+  - **Not run here:** small-iPhone and largest-text device checks; the device run of the Discard flows (TestFlight
+    later, in one consolidated build).
 checkpoint_2026-10-30T21Z (CLAUDE local; usage limit reached, work paused, still IN_PROGRESS):
 - The cloud session was stopped by the owner after it pushed mobile 9b018c6. Mobile 9ff6fe8: dark is the default (D226), pushed.
 - Docs: docs/111 §8.1–8.4 (visual-check 41114111688 findings, crash evidence, the auto-approve and balance-tracking proposals awaiting the owner); docs/112 off-site backups approved (VM restore, healthchecks.io), nothing run yet.

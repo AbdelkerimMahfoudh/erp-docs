@@ -692,3 +692,180 @@ to act on one by one. Production has one ordinary customer and three test busine
 - Either way, past closings and anchors keep the meaning they were recorded with.
 - **Cash:** the drawer stays counted at opening and closing whatever the switch says. The switch only decides whether
   cash is shown as a store's own tracked balance.
+
+## 9. Third continuation, 2026-10-31 (CLAUDE, local; the owner's physical-test findings 1–7)
+
+Heads at the start: backend `4cf32b3` (production, migrations to 0114), mobile `10a260e` (TestFlight 1.0.0 (3)),
+console `638f1d63` (dukan-test served `7ddeea79`). No EAS/TestFlight build, App Store upload, push, WhatsApp or email
+change in this phase.
+
+### 9.1 The console's business creation (finding 1)
+
+**Cause:** dukan-test served `7ddeea79`, from before D225's Arabic fields; the API (`4cf32b3`) requires
+`ownerNameAr` and `businessNameAr`, and the first store's Arabic name with its Latin one. `638f1d63` already had the
+fields but had not been deployed, and the forms still leaned on the browser's `required` and showed the API's English.
+
+**Console `cd987227`:**
+- `src/lib/names.ts` mirrors `erp-backend/src/common/bilingual-name.ts` exactly (script, blank, ≤ 160, hidden
+  characters).
+- New business: every Latin field labelled "(Latin letters)", every Arabic field `dir="rtl" lang="ar"`. The required set
+  matches `CreateBusinessDto`: business and Owner both names; the first store's two together or neither.
+- Checked before the step-up: the message under the field (`aria-describedby`), a summary above the buttons, nothing
+  sent, nothing typed lost (`noValidate`).
+- The same rules in the names editor (business, store, person) and in the Owner portal's store request, whose Arabic
+  name is optional as the API has it.
+- `ErrorNotice` never shows the API's validation wording ("… must be a string"); other server sentences only on an
+  English screen; a refusal the page words itself is shown in every language.
+
+**Audit of forms that create or edit a business, store or person:**
+- Console: new business, names editor.
+- Owner portal: store request.
+- Not admin-portal, so unchanged: the public Apply page, where the API keeps Arabic optional
+  (`RegistrationDto`).
+
+**Tests:**
+- 9 new in `test/bilingual-names-console.test.tsx`; the existing console tests use the new labels.
+- Full suite: 651/656 passed. Of the 5 failures:
+  - 2 in `source-rules` fail identically on the unchanged tree;
+  - 3 are 5-second timeouts under load, and those files pass alone (68/68).
+- Typecheck clean. The build runs only in CI: `build-test-sites` run 41245654675 succeeded.
+
+**Deployed to dukan-test (the reviewed workflow, `docs/103` §5.3–5.6):**
+- **Packaging:** evidence `cd98722-ace5ff7-41245654675`, 28 files checked against `dist.sha256`, packaged by
+  `caddy-release.mjs`, 27 files identical on both ends.
+- **First install refused before touching the edge:** Windows `scp` creates directories as 700, which the edge
+  container cannot read. The release was re-sent and set to `u=rwX,go=rX`. The refused copy `20261031T220317Z` stays,
+  unused, in `releases/`.
+- **Installed:** release `20261031T220359Z`, previous `releases/20261029T152528Z`. 401 without the password on every
+  path, CORS exact.
+- **After:**
+  - smoke 16/16 with `--allowed-origin https://dukan-test.tsxmr.com`;
+  - API ready, 113/113;
+  - the served bundle holds the new labels and all six field messages.
+- **Rollback:** `test-sites.sh rollback console 20261029T152528Z --confirm api.tsxmr.com`.
+- **Not done by Claude:** creating a business through the live form. It needs the site password, the administrator's
+  password and MFA, which are the owner's.
+
+### 9.2 "Discard changes" froze the app (findings 2 and 3), mobile `0d06a14`, `37fb5d6`
+
+**Cause, proven in rendered tests with Expo Router's real stack:** each form hand-rolled its guard, in two faulty ways.
+- `navigation.dispatch(data.action)` with the screen still marked dirty is blocked **again** by this router.
+  - On Business settings the guard then asked a second time while the first dialog's modal was being dismissed. iOS
+    cannot present it, so an invisible modal took every touch.
+  - On the product form it did nothing; after a save it re-entered itself.
+  - The router's own `repeat()` is blocked the same way: it lifts prevention through React state not yet committed when
+    it replays, and the blocked event is then dropped silently.
+- The exit also ran in the same tick the dialog's modal unmounted, popping the screen the modal was presented from.
+
+**Fix: one guard, `lib/navigation/unsaved-changes.ts`:**
+1. It asks once.
+2. It waits for the dialog's modal to be fully gone. `DialogHost` keeps the modal mounted until iOS reports `onDismiss`
+   (fallback 500 ms), and `dialog.afterClose()` waits for that.
+3. It resets the draft (`onDiscard`) and keeps the blocked action, which lifts the prevention.
+4. It dispatches the action only once the router no longer lists the route as prevented
+   (`useRoutesWithRemovalPrevented`). The action goes through once.
+
+Wiring and wording:
+- Business settings and the product form (new and edit) use the guard.
+- Registration replays with `repeat()` after the modal closes; Receive leaves after `afterClose()`.
+- One wording in EN/FR/AR (`unsaved.*`: *Keep editing* / *Discard changes*); the per-screen copies are gone.
+
+**English in Arabic:**
+- Not reproducible from source: every confirmation goes through `t()` with an Arabic entry, and there is no native
+  `Alert`.
+- Tests now prove no English word of the question appears in French or Arabic.
+
+**Tests (rendered):**
+- **Harness** (`__tests__/unsaved-changes.test.tsx`), in EN/FR/AR:
+  - *Keep editing* keeps the draft and asks again on the next Back;
+  - *Discard* leaves once and leaves no visible modal;
+  - the dialog store is empty, and a button on the screen underneath answers a press;
+  - rapid Back asks once; a save leaves without asking; a clean form leaves without a question.
+- **Real screens** (`unsaved-changes-screens.test.tsx`), in EN/FR/AR:
+  - Business settings (summary language) and New product (category and brand): Discard leaves cleanly and nothing is
+    sent (`put`, `post`, `patch` none);
+  - *Keep editing* on settings.
+- Hardware Back and the swipe are the same navigation action as the header arrow. Small-iPhone and largest-text checks
+  were not run here.
+
+### 9.3 Settings entries (finding 4), mobile `ace5ff7`, backend `c178ec6`
+
+- **"Invalid query parameters":**
+  - Cause: `names.service` read and renamed the business through the tenant Prisma client, which adds `company_id` to
+    every `where`, and `companies` has no such column. Prisma refused, and the filter reported its validation error.
+    `GET` and `PATCH /business/names` failed for every Owner.
+  - Fixed in backend `c178ec6` (the unscoped client, always by the tenant's own id; the spec's tenant client now
+    refuses `company` as Prisma does).
+  - **Not deployed:** a production backend deployment is outside this phase's authorisation.
+- **Names now in Business settings:**
+  - More no longer lists "Business and store names". The business and each store have their rows in a Names section
+    of Business settings.
+  - The app has no per-store settings screen (`/stores` redirects to Partners), so each store's names are its own row
+    there.
+  - A failure of that section stays in it.
+  - `/names` (bookmarks, deep links) redirects to Business settings.
+- **Return policy:**
+  - More no longer lists "Return policy"; it opens from Business settings → Returns.
+  - Because Store Managers and Employees edit the policy (`return.policy.edit`), the Business settings entry shows for
+    `settings.manage` **or** `return.policy.edit`. Someone without `settings.manage` sees only the Returns section.
+  - The policy, its screen and its permission are unchanged.
+- **Server text:** shown only on an English screen, and never the API's validation wording. French and Arabic show the
+  app's words.
+- **Tests:**
+  - rendered (`settings-names.test.tsx`): each name reaches `/business/names` or `/branches/:id/names` with only what
+    changed; a refused read is localized in FR and AR; `/names` lands on settings; a returns editor reaches the policy
+    and sees nothing of the Owner's;
+  - registry: both entries gone, settings visible to either permission.
+
+### 9.4 The mouse intake (finding 5), diagnosed on its own
+
+- **§8.2:**
+  - The 2026-10-30 crash was the delivery Receive hand-back in build 1.0.0 (1): no cost field by design, then a crash on
+    the way back, with no write.
+  - The retry was Quick receive, which saved in one purchase.
+  - That path is gone (`be32092`, in build 3).
+- **The cost field:**
+  - In the single-item intake it shows once a category is chosen (category first, D226).
+  - Opened from the catalogue there is no cost at all, by design.
+- **Partial saves:** none possible on the server.
+  - The product is created inside the purchase's one transaction (`catalog.insertProductTx` within
+    `purchasing.service`).
+  - A retry replays by `clientUuid`, which the screen keeps across uncertain retries.
+  - The app says "saved" only on a server-confirmed purchase.
+- **Freeze on save:** the save-and-leave exit ran into the guard replay of §9.2. That exit is now the guard's bypass,
+  covered by "a deliberate exit after saving passes without asking".
+- **Observability, mobile `208b835`:**
+  - `lib/intake-trail.ts` keeps the last 12 intake steps across a restart: opened, category chosen, sent, saved (the
+    last safe point), refused, no answer, left.
+  - A step name from a fixed list and a time only. Anything else is dropped before it is kept; a test proves no
+    product, code or text is stored.
+  - Shown on Devices in every build.
+- **Gap:** a freeze still produces no crash report. The trail says where it stopped, not why.
+
+### 9.5 A second platform administrator (finding 6): stopped before any change
+
+- **Not started:** the mailbox `medmahmoud@tsxmr.com` was not confirmed in this session.
+- **No one-administrator invariant in code:**
+  - "exactly one superadmin" in `docs/100` §18.1 is an inspection record, not a rule;
+  - `platform_admins` has a unique email and nothing else.
+- **The documented mechanism does not meet the brief as written:**
+  - `prisma/create-platform-admin.ts` takes the new administrator's password from whoever runs it
+    (`PLATFORM_ADMIN_PASSWORD`, hidden prompt) — there is no invitation or first-use password flow for administrators;
+  - **run against an existing email it resets that administrator's password and revokes its sessions**: it must never
+    be run with the current administrator's email.
+  - MFA is independent: `prisma/platform-admin-mfa.ts enrolment-token <email>` issues a one-time token. The new
+    administrator enrols with it and reaches nothing before.
+- **Options for the owner:**
+  - **(a)** the new administrator types their own password into the hidden prompt, in a server session the owner
+    opens; the enrolment token is then handed to them privately;
+  - **(b)** build a one-time setup code for administrators like the Owner's (D217): a new feature, needing approval.
+
+### 9.6 CI on these heads
+
+- **ace5ff7:** the mobile security workflow failed on two pure tests that cannot run on Windows. Both failures came from
+  this phase's code:
+  - `access-boundary` lists the expo-router internals allowed; the guard's two were not listed yet;
+  - `sheet-input` reads a `<Modal>` tag up to its first `>`, and an inline `onDismiss` arrow ended it early.
+  - Fixed in `37fb5d6`; render-tests and visual-check retargeted to `37fb5d6`.
+- **c178ec6:** the backend security workflow's audit failed on a new advisory in `joi`, a direct dependency used only to
+  validate the environment at start (GHSA-4528-x5fx-h6hg). Fixed by the lockfile-only bump to 17.13.9 in `5131909`.

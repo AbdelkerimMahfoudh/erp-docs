@@ -8958,3 +8958,52 @@ the iPhone checklist are in `docs/111`.
     proposer's own.
   - **Bilingual names everywhere and illustrations on every product surface:** done, with a server audit and an app
     audit that fail on a new Latin-only name. Detail: docs/111 §7.8.
+
+
+---
+
+## D226 — The owner's physical-test feedback, 2026-10-30 and 2026-10-31
+
+Recorded in [`docs/111`](111_POST_TESTFLIGHT_FEEDBACK.md) §8 and §9. It covers the single-item intake (one purchase with
+its cost, no hand-back), the transfer page, dark as the default theme, and the following (2026-10-31).
+
+### ✅ IMPLEMENTED — leaving a form with unsaved changes
+
+- One guard for every form (`lib/navigation/unsaved-changes.ts`), worded once in EN/FR/AR (*Leave without saving?* —
+  *Keep editing* / *Discard changes*).
+- *Keep editing* changes nothing.
+- *Discard changes* puts the saved values back, never saves, and leaves exactly once. It waits until the question's
+  window is fully gone, so no invisible layer is ever left over the screen.
+
+### ✅ IMPLEMENTED — Business settings is the one place for names and the return policy
+
+- More no longer lists "Business and store names" or "Return policy".
+- The business's and each store's Latin and Arabic names are edited in Business settings, one row each. The app has no
+  per-store settings screen.
+- The return policy opens from Business settings → Returns:
+  - the entry shows for whoever may edit the policy (`return.policy.edit`), so Store Managers and Employees keep it;
+  - they see only that section;
+  - the policy's rules and permission are unchanged.
+- `/names` leads to Business settings.
+
+### ✅ IMPLEMENTED — the console's forms carry both names and say what is wrong themselves
+
+- Creating a business asks the business's and the Owner's names in Latin letters and in Arabic, and the first store's
+  two together or neither, exactly as the API requires.
+- The same holds in the names editor and in the Owner portal's store request (Arabic optional there, as the API has
+  it).
+- What is wrong is said under the field, in the operator's language, before anything is sent.
+- The API's validation wording is never shown.
+
+### ✅ IMPLEMENTED — server sentences on screen
+
+- The app and the console show the server's own sentence only on an English screen, and never its input-validation
+  wording.
+- In French and Arabic, the screen's own words are shown.
+
+### 🟡 OWED
+
+- **Backend `c178ec6` (business names read and saved):** to deploy, with the owner's authorisation.
+- **The second platform administrator:** waits for the mailbox and for the owner's choice of provisioning (`docs/111`
+  §9.5).
+- **One consolidated TestFlight build:** later, when the physical-test feedback is complete.
