@@ -17,6 +17,10 @@ current handoff … finish the outstanding verification, then implement the agre
   - read-only checks of 2026-10-30: the number is PENDING (not registered) and all 12 template languages PENDING;
   - one registration attempt was refused by Meta (permissions) and changed nothing.
   - Under §10, the registration waits for the restore gate and the owner's authorisation.
+phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the start of the phase; still IN_PROGRESS):
+- Heads at claim, all clean and level with origin: backend `4cf32b3` (production, migrations to 0114), mobile `10a260e` (TestFlight 1.0.0 (3)), portal `638f1d63` (dukan-test still serves `7ddeea79`, which has no Arabic name inputs), docs `35b4c2d`.
+- Scope: (1) portal bilingual business/store/person forms, field errors, no raw validator text, tests, test-portal deploy via the reviewed workflow; (2) the shared "Discard changes" freeze; (3) localized discard confirmation; (4) remove More → names and More → return policy, names in Business settings / store details, fix the names route's bad query; (5) the mouse-intake anomaly, diagnosed separately; (6) a second platform administrator for medmahmoud@tsxmr.com, only after the mailbox is confirmed; (7) verification.
+- Not in scope: any EAS/TestFlight build, App Store upload, enabling push/WhatsApp/email, unrelated production configuration.
 checkpoint_2026-10-30T21Z (CLAUDE local; usage limit reached, work paused, still IN_PROGRESS):
 - The cloud session was stopped by the owner after it pushed mobile 9b018c6. Mobile 9ff6fe8: dark is the default (D226), pushed.
 - Docs: docs/111 §8.1–8.4 (visual-check 41114111688 findings, crash evidence, the auto-approve and balance-tracking proposals awaiting the owner); docs/112 off-site backups approved (VM restore, healthchecks.io), nothing run yet.
