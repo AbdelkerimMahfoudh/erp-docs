@@ -45,8 +45,11 @@ phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the 
     - console `build-test-sites` 41245654675 success;
     - mobile security on `ace5ff7` failed (fixed in `37fb5d6`); backend security on `c178ec6` failed on the joi audit
       (fixed in `5131909`);
-    - render-tests and visual-check retargeted to `37fb5d6`;
-    - results pending at this checkpoint.
+    - **final, all green:**
+      - mobile security 41246254928 (`37fb5d6`);
+      - render-tests 41246285242 and visual-check 41246294427 (both on `37fb5d6`);
+      - backend security 41246194027 (`5131909`);
+      - console ci 41245606882 (`cd987227`).
   - **Finding 6, second administrator: NOT STARTED.**
     - The mailbox was not confirmed in this session.
     - `create-platform-admin.ts` has no first-use password flow, and it resets an existing email's password: never run
