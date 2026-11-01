@@ -2,6 +2,32 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+whatsapp_activation_checkpoint_2026-11-01T16:50Z (owner's brief; outbound STILL DISABLED, nothing sent):
+- **Production:** API `e1ef1da`, 114/114 per the other session; `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`, `WHATSAPP_WEBHOOK=enabled`.
+- **Backend `ca7465e`** (pushed, NOT deployed; CI pending): rolling unique-recipient guard (default 200 per 24 h,
+  fails closed); `account.deletion` and `delivery.check` as authentication templates; per-language readiness;
+  `whatsapp:prove --language` sends one message. Local Jest: 5,291 passed before the last spec fix, messaging 282/282;
+  remaining failures are the known Windows-only files.
+- **Off-host restore:** completed full application restore proof, as recorded by the other session (borg check
+  --verify-data, empty-VM stack with 114 migrations, restore, 23 identity checks, audit chains for 6 companies). This
+  replaces any statement that only the database restore was proven.
+- **Hetzner, verified in the console:** server `erp-rehearsal-tmp`, both primary IPs and `firewall-1` deleted (activity
+  log); the project holds 1 server, 1 firewall, 2 primary IPs, 1 Storage Box. VM runtime about 10 minutes; billed at
+  most one CPX22 hour plus IP share (a few cents; exact line not read). Account usage for November: $0.23 so far.
+- **Meta, read from the API:** WABA "Dukan ERP Production" APPROVED; business verification `pending_submission`
+  (intentional; do not submit until TSXMR is registered, and before significant scaling); number VERIFIED, `TIER_250`,
+  name "Dukan ERP"; token permanent SYSTEM_USER; webhook app subscribed.
+- **Templates:**
+  - `dukan_phone_verification`, `dukan_account_action_code` (AUTHENTICATION), `dukan_security_notice` (UTILITY): en, fr, ar APPROVED;
+  - `dukan_staff_invitation`: fr, ar APPROVED, **en PENDING** (English invitations unavailable);
+  - `dukan_staff_invitationdukan_staff_invitation` en APPROVED: malformed, unused, not deleted.
+- **Code gaps still open:** `dukan_security_notice` and the staff-invitation template are not wired to any code path, so
+  neither can be sent; the deletion-completed notice has no template and is not sent.
+- **Not yet set in api.env:** `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_ID`, `WHATSAPP_ACCESS_TOKEN_FILE`, template names.
+- **`ops/setup-secrets-scope` `58829cc`:** reviewed; two commits, not in the release line, kept separate. The relocated
+  backup secrets avoid its failure, so it blocks nothing.
+next_action (whatsapp): CI on `ca7465e`; fresh backup; deploy; owner gives the test number and the decision on the proof
+sequence; then one proof send, webhook check, app-flow check, kill-switch proof; then record the result here.
 takeover_2026-10-30T19:33Z: **authorised by the owner in chat.** The owner's brief "Continue Dukan ERP from the
 current handoff … finish the outstanding verification, then implement the agreed feedback" (§§2–11) applies.
 - The previous holder was CLAUDE (cloud), session_01WqJ1WH6TJWfctbXGjyqFZt. Its last commit is `f78f9b3`, at
