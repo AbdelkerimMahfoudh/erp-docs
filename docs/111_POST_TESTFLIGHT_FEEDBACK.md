@@ -869,3 +869,136 @@ Wiring and wording:
   - Fixed in `37fb5d6`; render-tests and visual-check retargeted to `37fb5d6`.
 - **c178ec6:** the backend security workflow's audit failed on a new advisory in `joi`, a direct dependency used only to
   validate the environment at start (GHSA-4528-x5fx-h6hg). Fixed by the lockfile-only bump to 17.13.9 in `5131909`.
+
+## 10. A second platform administrator, invited (2026-11-01; migration 0115)
+
+The owner approved, on 2026-11-01:
+- the invitation feature, migration 0115 and a 24-hour setup code;
+- a private handover through a server file.
+
+The old `prisma/create-platform-admin.ts` is not used for it: it takes an operator-supplied password and resets an
+existing address.
+
+### 10.1 What was built
+
+Backend `02b40e5`, console `9b56870d`. Security CI 41268764282 green, with the real-MySQL migration gates through
+0115.
+
+**States.** `platform_admins.admin_state` (0115, additive):
+- `invited`: a setup code is outstanding; no sign-in at all.
+- `enrolling`: the code was spent and the password chosen. A sign-in opens a pending session that reaches the two
+  enrolment routes only, and it is never verified.
+- `active`: every administrator from before 0115, and an invited one once their authenticator is confirmed.
+
+A CHECK keeps the code's digest and expiry present exactly while `invited`.
+
+**The setup code:**
+- 192 random bits, 24 hours, single use.
+- Stored only as an HMAC-SHA256 under `PLATFORM_MFA_KEY`, in its own domain.
+- Spent by one conditional update (still invited, same digest, not expired), so two tries at once spend it once.
+
+**Issuing, resuming and revoking (server only):**
+- `issue` refuses an address that exists in any state.
+- `resume` and `revoke` refuse an `active` administrator. Nothing here updates, resets, demotes or signs out the
+  existing administrator.
+
+**`POST /platform/admin/setup`** (public, 5 tries a minute per address):
+- It takes the email, the code and a password of at least 12 characters.
+- Every failure is one refusal (`admin_setup_refused`), and one Argon2 hash is spent on every path.
+- On success:
+  - the account becomes `enrolling` with the chosen password;
+  - a 30-minute enrolment token is returned to that answer only.
+- The console's `/admin/setup` signs in with the new password and opens the existing enrolment at once.
+
+**Activation.** In `confirmEnrolment`, an `enrolling` account becomes `active` in the same transaction as its factor.
+The recovery codes are returned once, to that browser only.
+
+**Abandoned enrolment.**
+- An abandoned enrolment or an expired token opens nothing.
+- `resume` issues a new code. It voids the old code, any enrolment in progress and every session of that invited
+  account, and touches nobody else.
+
+**Audited:** `admin.invitation.issued`, `.resumed`, `.revoked`, `.used`, `.expired`, `.refused`, `.activated`. Never
+the code, a password, a secret or a recovery code.
+
+**The handover (`deploy/production/admin-invitation.sh`):**
+- It runs the CLI in the tools container with no terminal attached. The code arrives on standard output, into a shell
+  variable.
+- From there it is written atomically: a mode-600 temporary file renamed into
+  `/srv/erp-production/admin-invitations/<id>.code` (directory mode 700).
+- That directory is outside the checkout, the deployment bundles, `SECRETS_DIR`, `BACKUP_DIR` and the off-site
+  archive's paths. The file holds the code only.
+- Only the path is printed. Run by hand, the CLI refuses to print a code or to create anything.
+- A transient timer (`erp-admin-invitation-sweep`, every 5 minutes) shreds the file once its invitation is spent,
+  expired or revoked, then stops itself.
+
+**Tests:**
+- Backend (in-memory, end to end, 13 cases):
+  - the existing administrator unchanged byte for byte;
+  - no sign-in while invited; a pending session only while enrolling; active only with the factor;
+  - abandoned enrolment, then resume;
+  - single use, expiry, revocation;
+  - one refusal for four different failures;
+  - nothing secret in the database or the audit.
+- Console (6 cases): the full setup in EN; field problems; the refusal and the throttle in the page's own words; FR
+  and AR.
+
+### 10.2 Rehearsal of 0115 on a disposable copy of the production schema (2026-11-01)
+
+**Set-up:**
+- A throwaway MySQL 8.4.7 (WAMP binaries, its own data directory, port 3399, nothing else touched).
+- The production schema, dumped from the live database with `--no-data` by the read-only backup account, plus the
+  `_prisma_migrations` rows: 133 tables, 113 migrations to 0114, no customer row.
+- One synthetic administrator, with MFA and a session.
+
+**Upgrade:** `prisma migrate deploy` applied `0115_platform_admin_invitation` alone.
+
+**Results:**
+- The administrator became `active` with no code. Every pre-0115 column of its row is identical, and its session
+  row is identical.
+- **Refused by the CHECKs or the unique email:**
+  - an unknown state;
+  - `invited` without a code;
+  - an `active` account holding a code;
+  - a code without an expiry, and an expiry without a code;
+  - `enrolling` holding a code;
+  - a second account on the existing address (any case).
+- **Accepted:** a new invited account with its code and expiry, then enrolling (code cleared), then active.
+- `platform_admins` after the upgrade equals the same table built fresh from 0001–0115. The only difference is MySQL
+  spelling an explicit column character set, which other, older tables show too.
+- The documented reverse applied cleanly. The table it leaves equals the 0114 table.
+- Every database was dropped, the server stopped, its data directory and dumps deleted.
+
+**Rollback implications:**
+- 0115 is additive, and an API from before it ignores the columns.
+- That older API would then let an `invited` or `enrolling` row sign in like any other. Only its unknown password or
+  missing factor would stand in the way, not the state.
+- So before a code rollback, revoke every non-active invitation (`admin-invitation.sh revoke`). The columns may then
+  stay, or be dropped with the reverse in the migration's header.
+- A dump restore taken before 0115 loses any invitation made since; it touches no other data.
+
+### 10.3 The operator's steps (only when §10.4 is satisfied)
+
+1. **Back up first.** Deploy the backend (0115) and the console with the documented procedures (docs/100 §6,
+   docs/103 §5.3–5.6). Use `test-sites.sh` for dukan-test, and the portal's own release for production.
+2. **Invite:**
+   `deploy/production/admin-invitation.sh invite medmahmoud@tsxmr.com Mohamed Mahmoud --confirm api.tsxmr.com`.
+   It prints the handover file's path only.
+3. **Hand over:** in your own SSH session, `cat` that path and pass the code to Mahmoud privately. Then delete it at
+   once:
+   `deploy/production/admin-invitation.sh delete`.
+4. **Mahmoud sets up:** he opens `<console origin>/admin/setup`, enters his address, the code and his own password,
+   then enrols his own authenticator and keeps his recovery codes.
+5. **If he runs out of time:** `deploy/production/admin-invitation.sh resume medmahmoud@tsxmr.com --confirm
+   api.tsxmr.com` issues a new code. The old one is void.
+6. **To withdraw:** `deploy/production/admin-invitation.sh revoke medmahmoud@tsxmr.com --confirm api.tsxmr.com`.
+
+### 10.4 Gates before the real account (the owner's conditions)
+
+- `medmahmoud@tsxmr.com` forwards exclusively to `behlibade@gmail.com`;
+- the destination is verified;
+- a harmless test message was delivered;
+- then 0115 deployed, the CI and security gates green, and only then the invitation.
+
+**None of these were done in this session.** Nothing was deployed for 0115, no account was created, and no code was
+issued.

@@ -111,8 +111,25 @@ phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the 
   - Regression spec: an unrelated mode-000 file is neither read nor changed.
   - Not merged into `post-testflight-feedback` and not on the host. The host deploys `5131909` unchanged; the
     relocation removed the foreign files the old tool tripped on.
-- **Next:** the platform-administrator setup-code flow (owner-authorised; account creation waits for the
-  `medmahmoud@tsxmr.com` → `behlibade@gmail.com` forwarding check and a harmless delivery test).
+- **Platform-administrator invitation, owner-approved 2026-11-01** (0115, a 24-hour code, private handover through a
+  server file; detail in docs/111 §10):
+  - **Built:** backend `02b40e5` (security CI 41268764282 green, real-MySQL gates through 0115); console `9b56870d`.
+  - **Rehearsed** on a disposable copy of the production schema:
+    - the existing admin stays active and its row and session are identical;
+    - every CHECK refuses what it must;
+    - the upgraded table equals the fresh one;
+    - the reverse is clean;
+    - everything was dropped and deleted afterwards.
+  - **NOT deployed, no account created, no code issued.**
+  - **Gates still open:**
+    - `medmahmoud@tsxmr.com` forwarding exclusively to `behlibade@gmail.com`;
+    - the destination verified;
+    - a harmless test message delivered;
+    - then the 0115 deployment (with its backup) and the console release.
+  - Operator steps: docs/111 §10.3.
+- **Production backup secrets:** `borg_passphrase` and `healthchecks_ping_url` are in `/srv/erp-production/ops/secrets`
+  (root:root 700/600), separated from the application secrets. `5131909` was deployed without the
+  `ops/setup-secrets-scope` tooling branch, which stays unmerged until reviewed (CI green on `58829cc`).
 checkpoint_2026-10-30T21Z (CLAUDE local; usage limit reached, work paused, still IN_PROGRESS):
 - The cloud session was stopped by the owner after it pushed mobile 9b018c6. Mobile 9ff6fe8: dark is the default (D226), pushed.
 - Docs: docs/111 §8.1–8.4 (visual-check 41114111688 findings, crash evidence, the auto-approve and balance-tracking proposals awaiting the owner); docs/112 off-site backups approved (VM restore, healthchecks.io), nothing run yet.
