@@ -9063,3 +9063,11 @@ stop if payment is asked.
   submitted; existing templates, credentials and limits stay untouched. Audit what exists before building.
 - **Incident B, "Invalid query parameters" on a cash sale in build 1.0.0 (3), with active manually granted access.**
   Investigated and fixed by a separate session at the owner's direction; that fix takes priority over D227 work.
+
+**The iOS app and payment (owner, 2026-11-01).** No portal address, external link, price, payment number, proof upload,
+trial-claim button or purchase wording anywhere in the iOS app; none hidden, dormant, remotely enabled or left unused in the
+bundle, and none routed through Support, Privacy or Terms. Business access shows only status, activation or expiry date and
+days left when active, stores and seats covered, the owner's neutral inactive message (EN/FR/AR, in docs/113), and ordinary
+support. `dukan.tsxmr.com` and WhatsApp carry the trial and payment, separate from the app. App Review notes describe Dukan
+honestly as a business store-management service for existing users, claim no exemption without evidence, and give a test
+account with active access. Reconsider only if Apple confirms an entitlement or exception.

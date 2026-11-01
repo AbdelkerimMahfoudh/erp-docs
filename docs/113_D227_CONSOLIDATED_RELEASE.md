@@ -118,3 +118,8 @@ eligibility; that rule stays.
 - **Conclusion:** no payment link, button, price or call to pay in the iOS app for this release. WhatsApp and the website carry
   it. The app already blocks outside addresses, and that stays.
 - This conflicts with the brief's "always reachable from More → Business access". Proposed wording is for the owner's approval.
+
+**Owner's decision on iOS (2026-11-01): the conservative behaviour; see docs/21.** Inactive wording:
+- EN: "Your business access is not active. Account information has been sent to your verified WhatsApp number. If you need help, contact Dukan support."
+- FR: « L’accès de votre commerce n’est pas actif. Les informations relatives à votre compte ont été envoyées sur votre numéro WhatsApp vérifié. Si vous avez besoin d’aide, contactez l’assistance Dukan. »
+- AR: « وصول نشاطك التجاري غير مفعّل. أُرسلت معلومات حسابك إلى رقم واتساب الموثّق لديك. إذا احتجت إلى المساعدة، فتواصل مع دعم دكان. »
