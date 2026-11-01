@@ -143,3 +143,13 @@ spec; `backup-offhost.sh` itself has not yet run against the host. Run it first 
 **Supervised gate at the next deployment:** the first real `backup-offhost.sh` run must show remote and local files both non-empty,
 with the exact same filename, size and 64-character checksum, and the fresh receipt must validate, before `deploy.sh` starts. Stop if
 any value is empty or ambiguous. The multi-item cart is still being designed: not an implementation instruction.
+
+## 7. Access basis and add-store (backend `c964cd1`, not deployed)
+
+- `POST platform/businesses` requires `access`: payment (amount, date, reference, months; recorded, confirmed, then activated) or grant
+  (days, reason). A test business takes a grant only. Refused before anything is created. A later failure answers `accessFailed`, and
+  retrying the same key finishes it.
+- `POST platform/businesses/:id/stores`, customer: covered opens at once, with no Owner request; otherwise `access_basis_required` with
+  the amount, and sending it again with a payment opens the store. The priced row stays `pending_payment` meanwhile and opens nothing.
+- **Open, owner's decision:** a no-payment grant for a customer's store answers `store_grant_not_decided`.
+- **Lessons:** full suites before pushing; targeted runs missed real failures. CI: backend red from `8f1dcec` to `e416b38`, green at `3b29cab`.
