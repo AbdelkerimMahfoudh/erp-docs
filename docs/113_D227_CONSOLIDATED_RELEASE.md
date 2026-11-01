@@ -131,3 +131,10 @@ trial text. Who sees the neutral message: `settings.manage` holders; staff keep 
 
 **App Review (for the release):** honest note as the owner worded it, plus a test account with active access. Not yet created.
 **Open:** the message says information "has been sent", which is untrue until the access template is approved and sending.
+
+## 6. Deployment tooling (backend `b0bc4ec`)
+
+Hotfix `fbe4778` is in the D227 history (the owner confirmed it with a real build-3 sale). `deploy.sh` in production now refuses to start
+without a receipt from `backup-receipt.sh`, written by `backup-offhost.sh` from the operator's machine: a real 64-hex checksum on both
+sides, equal, a non-empty file, at most 4 hours old. Regression spec: `deploy-backup-receipt.spec.ts`. The receipt script is proven by
+spec; `backup-offhost.sh` itself has not yet run against the host. Run it first at the next deployment, with the key reloaded.
