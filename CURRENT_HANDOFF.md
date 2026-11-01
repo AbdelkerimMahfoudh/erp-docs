@@ -18,7 +18,9 @@ phase_consolidated_release_claim_2026-11-01 (owner's brief in chat: one consolid
 - **Progress:** backend `8f1dcec` (optional Arabic names, Goals dormant), mobile `bd191f4` (Goals removed); pushed, nothing deployed. Console untouched. Design and exact next steps: docs/113. Full backend and pure suites not rerun on these heads.
 - **Backend `37771db`** (pushed, not deployed): hotfix `fbe4778` merged; Owner identity and 0116 (real-MySQL race and email-case spec passes on a disposable 8.4.7, 115 migrations applied from empty). Not rehearsed from the production schema yet; the backfill has not been exercised with rows. Mobile `59457e4`, console `2bdbbe4f`.
 - **Next:** access basis and add-store, in docs/113 §3 order.
-- **SSH key stays loaded** for the eventual deployment, at the owner's request; remind them afterwards: `ssh-add -D`, `Stop-Service ssh-agent`.
+- **Checkpoint:** backend `93cb24a` pushed, not deployed; **Linux CI RED** on it (database gates step; logs unreadable without admin rights; passes locally with the restricted account; full gate script being run on a disposable server). No uncommitted work in any repo. Security and sign-in not started.
+- **Multi-item sales (one basket, one receipt):** scope relayed by the hotfix fork as owner-approved, 2026-11-01; awaiting the owner's confirmation in this session. Not started. Must build on the fixed sale path, already merged (`fbe4778`).
+- **SSH key:** the owner was advised to clear it; ask them to reload it at deployment, and remind them afterwards.
 - **Design settled:** duplicate phone at public registration is revealed only after the code to that phone is proven; a duplicate email is dropped silently; existing shared Owner contacts (production: one phone on 3 businesses, one on 2) stay usable.
 whatsapp_activated_2026-11-01T17:45Z (owner-authorised; **outbound LIVE**, detail in docs/112 §12):
 - **Commits:** production backend `ca7465e` (security CI 41327545548 green), branch `post-testflight-feedback`. 114/114 migrations; smoke 15/15, identities 23/23, audit chains 6/6, preflight PASS. Rollback image `erp-api:e1ef1da`.
