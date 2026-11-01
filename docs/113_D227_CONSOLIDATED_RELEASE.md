@@ -151,5 +151,5 @@ any value is empty or ambiguous. The multi-item cart is still being designed: no
   retrying the same key finishes it.
 - `POST platform/businesses/:id/stores`, customer: covered opens at once, with no Owner request; otherwise `access_basis_required` with
   the amount, and sending it again with a payment opens the store. The priced row stays `pending_payment` meanwhile and opens nothing.
-- **Open, owner's decision:** a no-payment grant for a customer's store answers `store_grant_not_decided`.
+- **Owner's decision (2026-11-01): free until renewal** (backend `6b8b67f`, migration 0117). The grant needs a reason; the running period is its duration, and none running refuses `no_running_period`. `seat_allocations.free_until_period_id` names that one period: `assessNow` leaves the store and its staff out, so no mid-period charge; a renewal's new period does not match, so it is billed. Real-MySQL spec passes.
 - **Lessons:** full suites before pushing; targeted runs missed real failures. CI: backend red from `8f1dcec` to `e416b38`, green at `3b29cab`.
