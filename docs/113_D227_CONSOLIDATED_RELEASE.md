@@ -172,3 +172,9 @@ So build 3's request needs no mapping: it is already a one-line `lines[]`.
 - Draft isolation: the `sell.cart` key has not been shown to be per user and store, or cleared on logout, and must be proven or changed.
 - Partial quantity return: to verify; the return path has per-unit claim logic and `quantityOnly`.
 - Receipt, reports, corrections: to verify with several lines and split payments.
+
+## 9. The CI failure on `93cb24a` (log read with the owner's permission, credential not printed, log deleted)
+
+Gate 9b, not the renewal spec: two businesses opening their day at the same moment got Prisma P2034 from `/closings/open`, a deadlock, answered as a
+generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. Backend `5ac1df6`: the open transaction uses `withLockRetry`; P2034 answers
+409 "try again" everywhere. Other transactions (sales among them) are not retried yet; the multi-item work must decide that for the sale path.
