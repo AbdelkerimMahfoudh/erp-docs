@@ -156,3 +156,19 @@ any value is empty or ambiguous. The multi-item cart is still being designed: no
 - **Proof:** `store-grant-renewal.mysql.spec.ts`, real MySQL and the real `extend` + `rollIfDue`: no charge in the period; included seat free; extra seat charged; renewal charges once under concurrent rolls; a grant racing a renewal does not double-charge or leak.
 - **Known limit:** `setPeriodEnd` re-dates a running period, so an administrator's correction also lengthens the free time. Pending the owner's call.
 - **Lessons:** full suites before pushing; targeted runs missed real failures. CI: backend red from `8f1dcec` to `e416b38`, green at `3b29cab`.
+
+## 8. Multi-item sales: audit (2026-11-01, code read only; no behaviour tested)
+
+**Already there, to reuse:** `POST /sales` takes `lines[]` (serialized or quantity) and `payments[]` in one transaction with a client key and
+replay; `sale_items` holds per-line price, cost and discount; sold-once is a unique generated column; Sell has a multi-line cart in a saved draft
+(`sell.cart`), scanner duplicate refusal, and `lib/sale-recovery`; the sales list already counts lines and items; returns name a `saleItemId`.
+So build 3's request needs no mapping: it is already a one-line `lines[]`.
+
+**Missing:**
+- One basket shared beyond Sell: the cart is local state in `app/(tabs)/sell.tsx`. Stock has no Select, no sticky action, no Add to basket.
+- Line-level conflicts: a failed line answers a plain 404 or 409 sentence, and 404 echoes the identifier.
+- Approvals bound to a basket: `discount_approvals` is one row per unit (`unit_id` required), with no cart hash and no quantity-product case. Needs a
+  migration.
+- Draft isolation: the `sell.cart` key has not been shown to be per user and store, or cleared on logout, and must be proven or changed.
+- Partial quantity return: to verify; the return path has per-unit claim logic and `quantityOnly`.
+- Receipt, reports, corrections: to verify with several lines and split payments.
