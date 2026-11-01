@@ -9007,3 +9007,50 @@ its cost, no hand-back), the transfer page, dark as the default theme, and the f
 - **The second platform administrator:** waits for the mailbox and for the owner's choice of provisioning (`docs/111`
   §9.5).
 - **One consolidated TestFlight build:** later, when the physical-test feedback is complete.
+
+---
+
+## D227 — One consolidated product release (the owner's brief, 2026-11-01)
+
+Status: decided by the owner; being implemented. Detail, evidence and the physical-iPhone checklist go in `docs/113`.
+
+**Scope.** Optional Arabic names; no duplicate external business for an existing Owner; a shared international phone
+input; More and Business settings reorganised; optional per-store dedicated money balances (default OFF); Devices
+layout; Discard retained; product-intake reliability; the transfer workflow; the admin portal; crash and freeze
+monitoring; everything listed as preserved in the brief.
+
+**Access for an administrator-created business (owner's choice, option A).**
+- The server requires an explicit basis. *Payment received* records the actual payment, the covered period and the
+  audit trail, then activates at once. *No-payment grant* requires a reason and a duration, under the audited grant rules.
+- Never a silent trial or free access.
+- A store added to an existing business creates no Owner approval request: it opens at once if existing paid or granted
+  access covers it; otherwise the same explicit choice is required before it opens.
+
+**Sentry.** Integration, privacy protections, error boundary, release tags and tests ship with monitoring disabled until
+the DSN and EAS token exist. It blocks nothing else. The owner creates the account and enters the credentials directly;
+stop if payment is asked.
+
+**Security and sign-in (More → Your account), for every user.**
+- Password: current password + purpose-bound code to a verified channel; other sessions revoked, the current rotated;
+  audited; the contact notified. Forgotten-password recovery stays separate.
+- WhatsApp number and email: authorise through the existing verified channel, then a separate code to the new contact,
+  bound to that pending change; replaced atomically only after both. A refused or abandoned change leaves the old
+  credential working. Refusals never reveal who holds a contact.
+- Email stays guarded until production email delivery is configured and proven; an address is never called verified
+  without proof. No purchase or DNS change without the owner's approval.
+
+**Objectives/Goals removed from the product (dormant, not deleted).**
+- Gone from every user-facing surface, jobs, notifications, calculations, permissions and current documentation.
+- Tables and records are kept. Routes stay only as far as build 1.0.0 (3) needs them, marked deprecated; creating
+  answers a stable "currently unavailable".
+
+**Store Maintenance income.**
+- A Home action below Sell and Receive; a completed repair is description, repair cost, customer paid and, when paid is
+  above zero, a payment destination. No scan, model, IMEI or customer identity. Accidental zeros need confirmation.
+- Profit = paid − cost. Atomic and idempotent; not a sale, not a stock movement, never counted as an item sold. Shown
+  separately in Money, reports, closings and exports, with its net effect in store totals; follows the dedicated-balance
+  rules.
+- `maintenance.record`: Owner and Manager by default; an Employee by the existing per-store delegated grant, so no new
+  role is needed.
+- Records are never edited or deleted: a correction is a reversing entry with a reason and an audit trail, under the
+  established correction permission.
