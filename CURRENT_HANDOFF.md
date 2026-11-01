@@ -2,6 +2,19 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+whatsapp_activated_2026-11-01T17:45Z (owner-authorised; **outbound LIVE**, detail in docs/112 §12):
+- **Commits:** production backend `ca7465e` (security CI 41327545548 green), branch `post-testflight-feedback`. 114/114 migrations; smoke 15/15, identities 23/23, audit chains 6/6, preflight PASS. Rollback image `erp-api:e1ef1da`.
+- **Backup before:** `phonestore-20261101T165634Z.sql.gz.age`; checksum OK on host and off-host (`20deb38625a44eaf…`).
+- **Proofs (`dukan_phone_verification`, one each to the owner's test number; the number stored nowhere):** EN, FR, AR all accepted, delivered and read through signed webhooks; the owner confirmed all three arrived. Signed replay of a status: 200, state unchanged, no extra event. An earlier EN attempt never left the server (tools container has no outbound route); recorded as failed.
+- **Real app flow, FR:** one code requested in the app and redeemed by the owner; `auth.otp`, live, one attempt, read; challenge `verified`, active key cleared; consent pending → active; number verified.
+- **NOT tested live:** resubmitting the same code (the owner chose not to share it, and the app offers no screen for it). Single use rests on the spent challenge state and `otp.service.spec` ("consumed exactly once"). Expiry, concurrency and rate limits rest on automated tests too.
+- **Privacy:** full number 0 times in API logs, audit rows (last hour), message and webhook records; token 0; code pattern 0. Masked and keyed-hash forms only there. `otp_challenges.destination` holds the full number by design, with the code only as a hash.
+- **Limit:** application 200 unique recipients per rolling 24 h, fails closed; Meta's limit 250 (headroom 50). Currently 1 used. Meta business verification stays `pending_submission`: complete it after TSXMR's registration and before significant scaling.
+- **Enabled:** telephone verification (`dukan_phone_verification`) and account-action/deletion codes (`dukan_account_action_code`), EN/FR/AR. The deletion template is enabled and its shape tested, but no production deletion code has been sent.
+- **Unavailable:** marketing, broadcasts, summaries, closing and subscription notices (no template names set); staff invitations (no send path; `dukan_staff_invitation` en PENDING, fr/ar approved); security notices (`dukan_security_notice` approved, no send path); deletion-completed notice (no template); the malformed staff template (unused, not deleted).
+- **Kill switch (proven: off 9 s, on 8 s):** in `/srv/erp-production/api.env` set `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_MODE=test`, `WHATSAPP_LIVE_SENDS=disabled`, then from `/srv/erp-production/erp-backend` run `sudo bash -c 'source deploy/production/lib.sh; compose up -d --no-deps api'`. The webhook stays on. To reopen: `cloud`, `live`, `enabled`, same command.
+- **Off-host restore:** full application restore proof complete; VM, its IPs and `firewall-1` deleted; about 10 minutes of VM runtime, a few cents.
+- **Open:** `ops/setup-secrets-scope` `58829cc` unmerged, kept. Mahmoud's administrator invitation untouched. The owner's queued mobile feedback is next, on request; no TestFlight build made. Remind the owner: `ssh-add -D`, `Stop-Service ssh-agent`.
 whatsapp_activation_checkpoint_2026-11-01T16:50Z (owner's brief; outbound STILL DISABLED, nothing sent):
 - **Production:** API `e1ef1da`, 114/114 per the other session; `WHATSAPP_CHANNEL=disabled`, `WHATSAPP_LIVE_SENDS=disabled`, `WHATSAPP_WEBHOOK=enabled`.
 - **Backend `ca7465e`** (pushed, NOT deployed; CI pending): rolling unique-recipient guard (default 200 per 24 h,

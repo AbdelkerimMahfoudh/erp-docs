@@ -147,3 +147,14 @@ restoration.
    the timer.
 4. The isolated restore (§7) and `RESTORE.md`. Only then may the WhatsApp gate open, and only on the owner's separate
    authorisation.
+
+## 12. WhatsApp activation (2026-11-01)
+
+The off-host application restore gate passed, and the owner opened WhatsApp for verification and account-action codes. The
+record, limits, enabled and disabled purposes and the kill switch are in `CURRENT_HANDOFF.md`, block
+`whatsapp_activated_2026-11-01T17:45Z`.
+
+A delivery proof needs the database and the provider, and the `tools` service has no outbound route. Run it with a
+temporary compose override adding `edge` to `tools`, delete the override afterwards, pass the recipient through the
+process environment only, and use `npx ts-node --transpile-only scripts/whatsapp-prove.ts --to <n> --language <l>`
+(`npm run` type-checks and runs out of memory in that container).
