@@ -9047,6 +9047,7 @@ stop if payment is asked.
 **Store Maintenance income.**
 - A Home action below Sell and Receive; a completed repair is description, repair cost, customer paid and, when paid is
   above zero, a payment destination. No scan, model, IMEI or customer identity. Accidental zeros need confirmation.
+- The form also asks where the repair cost left from, required when the cost is above zero (owner, 2026-11-01).
 - Profit = paid − cost. Atomic and idempotent; not a sale, not a stock movement, never counted as an item sold. Shown
   separately in Money, reports, closings and exports, with its net effect in store totals; follows the dedicated-balance
   rules.

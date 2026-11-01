@@ -50,8 +50,8 @@ after it; never before.
 - Money enters one equation: add `maintenanceIn` (+) and `maintenanceOut` (−) to `COMPONENT_SIGN` in `closing/channels.ts`,
   then `INFLOW` in `money-positions.ts`, the closing's expected cash, the rollup (new columns, requested in the same
   transaction per 0081), `period-figures`, reports and exports. Sale columns stay untouched.
-- Open point: the repair cost has no payment destination in the brief. Decision to take: it leaves the same destination as
-  the payment, or cash when nothing was paid. Record it here when implemented.
+- The owner decided (2026-11-01): the form asks where the repair cost left from, required when the cost is above zero;
+  it may differ from where the customer's payment went.
 - Corrections: a new target in `corrections/correction-targets.ts`, posting reversing legs.
 
 **Money tracking.** `money_anchors` and accounts are per business, the switch is per store. New per-store setting table,
