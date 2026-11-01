@@ -9071,3 +9071,9 @@ days left when active, stores and seats covered, the owner's neutral inactive me
 support. `dukan.tsxmr.com` and WhatsApp carry the trial and payment, separate from the app. App Review notes describe Dukan
 honestly as a business store-management service for existing users, claim no exemption without evidence, and give a test
 account with active access. Reconsider only if Apple confirms an entitlement or exception.
+
+**Multi-item sales, one basket and one receipt (owner confirmed in chat, 2026-11-01).** Part of D227, before the consolidated
+build. Reuse the existing sale, line and payment model. One current basket per user and store, fed by every selection method; visible
+Select on the stock list; no stock reservation; one approval bound to a cart hash; `lines[]` beside build 3's single-item request;
+one all-or-nothing transaction with line-level conflicts and one request ID; drafts local and cleared on logout; one receipt; returns by
+line; reports count one sale and many items. Maintenance stays separate. No bundle discounts.
