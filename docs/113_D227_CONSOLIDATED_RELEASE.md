@@ -66,3 +66,23 @@ closing either way. Goal: no history rewritten.
 
 `goal.manage` stays in the backend catalogue, inert, because its rows and drift specs come from migration 0047. Mobile
 no longer lists it.
+
+## 4. Incident A audit, 2026-11-01 (read-only; code and production)
+
+| Question | Finding |
+|---|---|
+| Portal exists? | In code: console `/subscription` (`src/pages/portal`), sign-in with the store account. **Not live:** `PORTAL_ORIGIN` is `https://dukan.tsxmr.com`, which did not answer from the server or the laptop (no HTTP response, no address returned by DNS), and `/srv/erp-production/web` holds only `app` and `console`. |
+| Trial claim | Exists: `POST platform/my-subscription/trial/claim`, with a card in the portal. |
+| Receiving accounts | Exists: `GET platform/payment-instructions`, shown on the portal. |
+| Amount owed | Stores and seats are priced on the server and shown on the portal; to confirm when the portal runs. |
+| Proof upload | **Does not exist.** A payment holds only a reference; no file. |
+| Admin approve/refuse of a proof | **Does not exist.** An administrator records a payment; there is no submission to review. |
+| Mobile can open it? | **No, by design:** `lib/navigation/no-browser.ts` refuses every outside address. Apple's rules on linking out must be checked before this changes. |
+| What was attempted | The `portal_instructions` notice, queued on verification. |
+| Why it failed | `template_unavailable`, recorded 2026-11-01 19:36Z: `WHATSAPP_TEMPLATE_PORTAL_INSTRUCTIONS` is not set. With no email on file it ended `no_email`. |
+| Template for this purpose? | None configured. docs/101 §240 planned it; a new template is needed. |
+
+Incident B: being fixed by a separate session; not touched here.
+
+Backend D227 work in progress is in `git stash` on erp-backend ("D227 owner identity WIP (0116)", 2aa8835), moved aside for
+that fix. One test fake still needs `userBranch` (account-deletion spec); the real-MySQL spec has not been run.
