@@ -57,6 +57,62 @@ phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the 
     - Owner to choose (a) a hidden prompt typed by the new admin, or (b) a new setup-code feature (docs/111 §9.5).
   - **Not run here:** small-iPhone and largest-text device checks; the device run of the Discard flows (TestFlight
     later, in one consolidated build).
+- **Owner's signed-in end-to-end check, recorded 2026-11-01:**
+  - business creation on dukan-test (console `cd987227`): the Arabic inputs appeared and the business saved;
+  - production's fifth company, created 2026-10-31 22:33Z.
+- **Infrastructure added by the other local session** ("Dukan ERP backup and WhatsApp infrastructure", 2026-10-31
+  21:47–22:50Z), recorded here at the owner's request. That session is to write its own detail in docs/112.
+  - Hetzner Storage Box with Borg: `erp-offsite-backup.timer`, daily at 02:30Z with up to 10 minutes of random delay.
+    It runs `/srv/erp-production/ops/offsite-backup.sh`, root-only and installed outside the repository (docs/112
+    §10.3).
+  - Retention 7 daily / 4 weekly / 6 monthly.
+  - Restore proof `kind=storage-box` at 22:31Z.
+  - A healthchecks.io check, `erp-offsite-backup`.
+- **Backend `5131909` DEPLOYED to production, 2026-11-01 02:53Z** (owner-authorised; documented backup, deploy, smoke,
+  rollback):
+  - **Backup before:** `phonestore-20261101T004845Z.sql.gz.age`, 105 543 bytes, sha256 `9c76e9589facbf32…`. Checksum
+    OK on the host and in the laptop's `.tsxmr\production-backups\`.
+  - **First run, 00:52Z: FAILED at step=secrets.**
+    - `setup-secrets.sh` ran `find … -exec chmod 600` over the whole directory and met two root-owned backup files
+      (`borg_passphrase`, `healthchecks_ping_url`).
+    - The API was untouched (still `4cf32b3`). The FAILED entry is kept in `deployments.log`.
+  - **Owner's instruction:** no chown; let the 02:34Z off-site backup run; relocate the two backup-only secrets.
+  - **Scheduled off-site run, 02:34:51Z: success in 11 s.**
+    - Archive `erp-production-20261101T023454Z`, dump `phonestore-20261101T023452Z`.
+    - `borg check --archives-only` OK; the dump inside the archive equals the disk copy and its recorded sha256
+      (`4eda099d8c6138f5…`).
+    - healthchecks.io: exactly "Started" 02:34 and "OK" 02:35; the check is up.
+  - **Relocation:**
+    - Both files copied (hash-compared, values never shown) to `/srv/erp-production/ops/secrets/`: directory root:root
+      700, files root:root 600.
+    - `offsite-backup.sh`: only those two paths changed. The previous copy is kept as
+      `offsite-backup.sh.pre-20261101`.
+    - **Proof with the new paths:** borg check OK, dump MATCH; one healthchecks `/log` event at 02:51 ("relocation
+      proof"), which changes no status.
+    - Then the old copies were shredded (`shred -u -z`). No secret was recreated or rotated. The Borg repository,
+      schedule and retention are unchanged.
+    - The relocated files are no longer inside the Borg archive's `$SECRETS_DIR` path. The Borg key and SSH key were
+      never in it either.
+  - **Recovery:** `deploy.sh --confirm api.tsxmr.com --after-interrupted` on the clean checkout `5131909`.
+    - Identities 23/23; audit chain 5 companies, 0 broken; smoke 15/15.
+    - api.env + stack.env unchanged, secret names unchanged; no deploy.inprogress.
+    - Rollback target `erp-api:4cf32b3…`.
+  - **After:**
+    - images `erp-api:5131909…` healthy;
+    - 113/113 migrations, 133 tables, 72 triggers;
+    - data unchanged (5 companies, 5 users, 5 stores, 1 sale);
+    - every protected route 401 without a session, `GET`/`PATCH /business/names` included;
+    - channels: PUSH_CHANNEL unset (default disabled), EMAIL/WHATSAPP/WHATSAPP_LIVE_SENDS disabled;
+    - off-site timer enabled, next 2026-11-02 02:30Z.
+  - **Not proven by Claude:** an Owner-session read and save of business names, since that needs the Owner's sign-in.
+    TestFlight 1.0.0 (3)'s More → "Business and store names" calls exactly these routes.
+- **Tooling fix, separate branch `ops/setup-secrets-scope`:** `7ef1a07` (spec corrected in `58829cc`).
+  - `setup-secrets.sh` manages only its named application secrets.
+  - Regression spec: an unrelated mode-000 file is neither read nor changed.
+  - Not merged into `post-testflight-feedback` and not on the host. The host deploys `5131909` unchanged; the
+    relocation removed the foreign files the old tool tripped on.
+- **Next:** the platform-administrator setup-code flow (owner-authorised; account creation waits for the
+  `medmahmoud@tsxmr.com` → `behlibade@gmail.com` forwarding check and a harmless delivery test).
 checkpoint_2026-10-30T21Z (CLAUDE local; usage limit reached, work paused, still IN_PROGRESS):
 - The cloud session was stopped by the owner after it pushed mobile 9b018c6. Mobile 9ff6fe8: dark is the default (D226), pushed.
 - Docs: docs/111 §8.1–8.4 (visual-check 41114111688 findings, crash evidence, the auto-approve and balance-tracking proposals awaiting the owner); docs/112 off-site backups approved (VM restore, healthchecks.io), nothing run yet.
