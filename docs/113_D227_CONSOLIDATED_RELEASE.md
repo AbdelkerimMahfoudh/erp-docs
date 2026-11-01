@@ -138,3 +138,8 @@ Hotfix `fbe4778` is in the D227 history (the owner confirmed it with a real buil
 without a receipt from `backup-receipt.sh`, written by `backup-offhost.sh` from the operator's machine: a real 64-hex checksum on both
 sides, equal, a non-empty file, at most 4 hours old. Regression spec: `deploy-backup-receipt.spec.ts`. The receipt script is proven by
 spec; `backup-offhost.sh` itself has not yet run against the host. Run it first at the next deployment, with the key reloaded.
+
+**Status of the safeguard: NOT complete until Linux CI is green on `e416b38` (owner, 2026-11-01).**
+**Supervised gate at the next deployment:** the first real `backup-offhost.sh` run must show remote and local files both non-empty,
+with the exact same filename, size and 64-character checksum, and the fresh receipt must validate, before `deploy.sh` starts. Stop if
+any value is empty or ambiguous. The multi-item cart is still being designed: not an implementation instruction.
