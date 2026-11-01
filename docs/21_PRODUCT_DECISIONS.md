@@ -9055,3 +9055,11 @@ stop if payment is asked.
   role is needed.
 - Records are never edited or deleted: a correction is a reversing entry with a reason and an audit trail, under the
   established correction permission.
+
+**Two separate release blockers (owner's addendum, 2026-11-01).** Unrelated to each other; separate causes, fixes and tests.
+- **Incident A, no access or payment journey after registration.** The trial never starts by itself. The Owner must always
+  reach a secure page, from WhatsApp and from More → Business access, to claim the trial or pay and upload proof for
+  administrator review. A proof never activates anything by itself. A new EN/FR/AR access template may be prepared and
+  submitted; existing templates, credentials and limits stay untouched. Audit what exists before building.
+- **Incident B, "Invalid query parameters" on a cash sale in build 1.0.0 (3), with active manually granted access.**
+  Investigated and fixed by a separate session at the owner's direction; that fix takes priority over D227 work.
