@@ -2,6 +2,14 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+hotfix_sale_2026-11-01T20:58Z (owner-authorised, separate from D227; **DEPLOYED**, awaiting the owner's retry in build 3):
+- **Bug:** every `POST /sales` answered 400 "Invalid query parameters" since `4cf32b3` (2026-10-31): the receipt-name snapshot read `companies` through the tenant client (`1bc51c3`, D225). Only real Prisma refuses that; the mocks accepted it, and one spec pinned the faulty call.
+- **Fix:** branch `hotfix/sale-name-snapshot` from `ca7465e`; `93b2466` (fix, `sale-http.mysql.spec`), `fbe4778` (scanner allowlist for the spec's throwaway JWT). No migration. Security CI 41349017563 all green, the real sale spec in the gates. The spec failed 4/4 on the old code.
+- **D227 MUST merge `refs/heads/hotfix/sale-name-snapshot`** before its release; production is otherwise regressed by a D227 deploy.
+- **Failed attempts:** 3 at 19:43-19:44Z, business Mimi. No sale, audit, notification, unit or stock row after 19:43:16Z. A Customer row committed at 19:43:01 by its own earlier request remains; it is not partial sale state.
+- **Backup:** `phonestore-20261101T205601Z.sql.gz.age`, 123 222 bytes, sha256 `5f6b08bf00b17ede...`. **Process deviation:** a script fault meant the off-host copy was not made before the deploy started (a false "OK" from comparing two empty values). It was made and verified right after: checksum OK on host and laptop. deploy.sh's own pre-migration backup `phonestore-20261101T205733Z` is host only.
+- **After:** image `erp-api:fbe47784...`, rollback `erp-api:ca7465e...`; 114/114 migrations; contract and identities through deploy.sh; audit chain 7 companies, 0 broken; smoke 15/15. api.env, stack.env and secret names fingerprints unchanged; WhatsApp cloud/live/enabled, limit 200, email disabled, push unset, off-site timer active. Sales total still 1.
+- **Verified on the Test business:** read-only probe of the fixed queries through the production client; no sale written. A complete production sale is NOT yet proven: the owner's retry in build 3 is that proof. Isolation is proven by the real spec, not on production.
 phase_consolidated_release_claim_2026-11-01 (owner's brief in chat: one consolidated product release, items 1-12; decision number **D227**; same holder, previous block complete):
 - **Heads at claim, all clean and level with origin:** backend `post-testflight-feedback` `ca7465e` (production), mobile `37fb5d6` (TestFlight 1.0.0 (3) is the older `10a260e`), console `9b56870d`, docs `master` before this commit `89d33a1`.
 - **Production, read only:** API `ca7465e` healthy, 114/114 migrations to 0115, 0 pending; WhatsApp live, unchanged.
