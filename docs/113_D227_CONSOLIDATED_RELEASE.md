@@ -86,3 +86,35 @@ Incident B: being fixed by a separate session; not touched here.
 
 Backend D227 work in progress is in `git stash` on erp-backend ("D227 owner identity WIP (0116)", 2aa8835), moved aside for
 that fix. One test fake still needs `userBranch` (account-deletion spec); the real-MySQL spec has not been run.
+
+## 5. The Owner portal, `https://dukan.tsxmr.com` (owner approved, 2026-11-01)
+
+**Order, each a condition of the next:** sale hotfix deployed and reconciled → portal build and security tests pass →
+virtual host reviewed → rollback prepared → DNS record → TLS → portal live → template approved and proven → first message.
+No backend D227 work or stash restore until the hotfix is finished. This business's grant correctly closes its trial
+eligibility; that rule stays.
+
+**Found in review.**
+- The portal surface included `/admin`. Fixed for production builds (console b3e6bc40; CI builds only preview, so the swap itself is proven at the first production portal build): the console's code is swapped
+  out at build time and the bundle audit refuses it. `dukan-test` is a preview build and keeps it, behind its password.
+- Existing and suitable: separate HttpOnly `SameSite=Strict` session cookies, a CSRF token, sign-in throttling, a CSP from
+  the build's `_headers`, a release gate (`PORTAL`) that refuses a production build without its inputs.
+- Still needed:
+  - a production `dukan.tsxmr.com` virtual host, without basic auth, on the edge's import path; the Caddyfile has only the
+    test sites today;
+  - `dukan.tsxmr.com` in the API's `CORS_ORIGINS`, and a check that the session cookies work across it;
+  - production `VITE_*` inputs and the legal blockers the `PORTAL` gate names;
+  - private proof storage and the review workflow, backend, after the hotfix;
+  - tenant-isolation tests for those routes.
+- **Rollback:** remove the DNS record and the site file, reload the edge. `tsxmr.com`, `api.tsxmr.com` and the test sites are
+  separate blocks and untouched.
+
+**Apple (App Store Review Guidelines, read 2026-11-01; the page shows no date).**
+- 3.1.1(a): outside the United States storefront, apps "may not include buttons, external links, or other calls to action
+  that direct customers to purchasing mechanisms other than in-app purchase".
+- 3.1.3: exempt categories still may not encourage another purchasing method in the app, except on the US storefront;
+  developers may contact their users outside the app.
+- 3.1.3(c) (organisations) covers access to what was already bought, and says nothing about a link.
+- **Conclusion:** no payment link, button, price or call to pay in the iOS app for this release. WhatsApp and the website carry
+  it. The app already blocks outside addresses, and that stays.
+- This conflicts with the brief's "always reachable from More → Business access". Proposed wording is for the owner's approval.
