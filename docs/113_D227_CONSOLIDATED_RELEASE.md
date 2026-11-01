@@ -123,3 +123,11 @@ eligibility; that rule stays.
 - EN: "Your business access is not active. Account information has been sent to your verified WhatsApp number. If you need help, contact Dukan support."
 - FR: « L’accès de votre commerce n’est pas actif. Les informations relatives à votre compte ont été envoyées sur votre numéro WhatsApp vérifié. Si vous avez besoin d’aide, contactez l’assistance Dukan. »
 - AR: « وصول نشاطك التجاري غير مفعّل. أُرسلت معلومات حسابك إلى رقم واتساب الموثّق لديك. إذا احتجت إلى المساعدة، فتواصل مع دعم دكان. »
+
+**Implemented in mobile `59457e4 f`.** Removed the trial card, its route read and all `trialSetup.*`/`access.trial.*` wording; states read
+Not active / Active / Access ended; stores and seats covered and the server's days left are shown; the bundle audit no longer requires
+trial text. Who sees the neutral message: `settings.manage` holders; staff keep the state's own words, because the message speaks of
+"your verified WhatsApp number". API state values such as `trial_active` remain as protocol values, never displayed.
+
+**App Review (for the release):** honest note as the owner worded it, plus a test account with active access. Not yet created.
+**Open:** the message says information "has been sent", which is untrue until the access template is approved and sending.
