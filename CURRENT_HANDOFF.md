@@ -16,6 +16,8 @@ phase_consolidated_release_claim_2026-11-01 (owner's brief in chat: one consolid
 - **Left alone:** `ops/setup-secrets-scope`, `wip/d225-names-illustrations`, old scratch worktrees, Mahmoud's invitation, Meta, templates, the 200-recipient limit, secrets.
 - **Owner approved the plan** and added to D227: access basis option A, Sentry disabled until credentials exist, Security and sign-in, Goals removal, Maintenance income (docs/21 D227).
 - **Progress:** backend `8f1dcec` (optional Arabic names, Goals dormant), mobile `bd191f4` (Goals removed); pushed, nothing deployed. Console untouched. Design and exact next steps: docs/113. Full backend and pure suites not rerun on these heads.
+- **Backend `37771db`** (pushed, not deployed): hotfix `fbe4778` merged; Owner identity and 0116 (real-MySQL race and email-case spec passes on a disposable 8.4.7, 115 migrations applied from empty). Not rehearsed from the production schema yet; the backfill has not been exercised with rows. Mobile `59457e4`, console `2bdbbe4f`.
+- **Next:** access basis and add-store, in docs/113 §3 order.
 - **SSH key stays loaded** for the eventual deployment, at the owner's request; remind them afterwards: `ssh-add -D`, `Stop-Service ssh-agent`.
 - **Design settled:** duplicate phone at public registration is revealed only after the code to that phone is proven; a duplicate email is dropped silently; existing shared Owner contacts (production: one phone on 3 businesses, one on 2) stay usable.
 whatsapp_activated_2026-11-01T17:45Z (owner-authorised; **outbound LIVE**, detail in docs/112 §12):
