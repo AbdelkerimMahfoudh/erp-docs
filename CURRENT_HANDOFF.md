@@ -2,6 +2,11 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+phase_consolidated_release_claim_2026-11-01 (owner's brief in chat: one consolidated product release, items 1-12; decision number **D227**; same holder, previous block complete):
+- **Heads at claim, all clean and level with origin:** backend `post-testflight-feedback` `ca7465e` (production), mobile `37fb5d6` (TestFlight 1.0.0 (3) is the older `10a260e`), console `9b56870d`, docs `master` before this commit `89d33a1`.
+- **Production, read only:** API `ca7465e` healthy, 114/114 migrations to 0115, 0 pending; WhatsApp live, unchanged.
+- **Left alone:** `ops/setup-secrets-scope`, `wip/d225-names-illustrations`, old scratch worktrees, Mahmoud's invitation, Meta, templates, the 200-recipient limit, secrets.
+- **Next:** the owner sees the plan; no code changed yet at this claim.
 whatsapp_activated_2026-11-01T17:45Z (owner-authorised; **outbound LIVE**, detail in docs/112 §12):
 - **Commits:** production backend `ca7465e` (security CI 41327545548 green), branch `post-testflight-feedback`. 114/114 migrations; smoke 15/15, identities 23/23, audit chains 6/6, preflight PASS. Rollback image `erp-api:e1ef1da`.
 - **Backup before:** `phonestore-20261101T165634Z.sql.gz.age`; checksum OK on host and off-host (`20deb38625a44eaf…`).
