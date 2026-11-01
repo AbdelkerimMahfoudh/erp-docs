@@ -127,6 +127,40 @@ phase_feedback2_2026-10-31 (owner brief in chat, claimed by CLAUDE local at the 
     - a harmless test message delivered;
     - then the 0115 deployment (with its backup) and the console release.
   - Operator steps: docs/111 §10.3.
+  - **RELEASED 2026-11-01** (owner-authorised after confirming the forwarding check):
+    - **Owner check:** medmahmoud@tsxmr.com forwards only to the verified behlibade@gmail.com; a harmless test message
+      was delivered.
+    - **Backup:** `phonestore-20261101T035302Z.sql.gz.age`, 105 700 bytes, sha256 `542c02540c4d8acf…`, OK on the host
+      and the laptop.
+    - **Backend `02b40e5` deployed 03:55Z:**
+      - 0115 applied 03:55:38Z (114/114), both CHECKs live;
+      - identities 23/23; audit chain 5 companies, 0 broken; smoke 15/15;
+      - api.env + stack.env unchanged, secret names unchanged;
+      - data unchanged; channels unchanged (PUSH unset, EMAIL/WHATSAPP/LIVE_SENDS disabled);
+      - `POST /platform/admin/setup` answers an unknown address with the generic `admin_setup_refused`;
+      - rollback target `erp-api:5131909…`.
+    - **Existing administrator:** row, 10 sessions (1 live) and recovery-code fingerprints identical before and after
+      (`fa4ba085…`, `f5fd6cab…`, `c29094ce…`); state `active`.
+    - **Console `9b56870d`:**
+      - build-test-sites run 41271122708; 28 files verified; 27 identical on both ends;
+      - installed on dukan-test as release `20261101T040124Z` (previous `20261031T220359Z`); smoke 16/16; 401
+        without the password.
+    - **`/admin/setup` checked** on the byte-identical built files, served locally (dukan-test is behind the owner's
+      password):
+      - EN, FR and AR (rtl, with the email and code fields ltr) correct;
+      - the form's own checks shown in AR, and no request sent.
+    - **Invitation issued 04:03:21Z** for medmahmoud@tsxmr.com by `admin-invitation.sh invite`:
+      - admin id `01a19546b507733c9212e83c99090208`, state `invited`, code valid until 2026-11-02T04:03:21Z;
+      - handover file `/srv/erp-production/admin-invitations/01a19546b507733c9212e83c99090208.code` (600; directory
+        700), never read or shown by Claude;
+      - sweep timer `erp-admin-invitation-sweep` running.
+    - **Next (owner):**
+      1. read the file in their own SSH session;
+      2. pass the code privately;
+      3. run `deploy/production/admin-invitation.sh delete`;
+      4. Mahmoud completes `/admin/setup` on the console origin, then enrols his authenticator.
+    - **Gap found:** in the dark theme the console's field-error text (`.field-error`, from `cd987227`) is nearly
+      invisible, dark red on dark. Cosmetic and accessibility; fix in a later console release.
 - **Production backup secrets:** `borg_passphrase` and `healthchecks_ping_url` are in `/srv/erp-production/ops/secrets`
   (root:root 700/600), separated from the application secrets. `5131909` was deployed without the
   `ops/setup-secrets-scope` tooling branch, which stays unmerged until reviewed (CI green on `58829cc`).
