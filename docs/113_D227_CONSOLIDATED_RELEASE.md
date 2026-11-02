@@ -182,6 +182,6 @@ generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. 
 ## 10. Owner's safeguards (backend `ceb81b9`)
 
 - Retries: `P2034`, or `P2010` with whole-number 1213/1205 only; 3 attempts with jitter; `onRetry` logs the attempt number only. Exhausted: 409 `write_conflict`, localized in the app. A duplicate opening still refuses at once.
-- **Production log check NOT done:** the SSH key is cleared. Hotfix decision waits: any occurrence on `/closings/open` since 2026-10-31 means a separate minimal hotfix from production's head; none keeps `5ac1df6` in D227. Container logs restart with each deployment, so history before the last one may be gone.
+- **Production check, 2026-11-02, read only: no occurrence; the fix stays in D227.** MySQL up about 14 days, so its counters span the 2026-10-31 deployment: `lock_deadlocks` 0, and no latest-deadlock section in InnoDB status. API log (only since the 2026-11-01 20:57Z container): 0 write-conflict, lock or "Database request error" lines. `closing_events`: at most 2 openings a day, so the collision has had little chance to happen. Older API logs are gone.
 - Multi-item: no blind sale retry until the basket-wide key and return-existing-sale are in place; injected write-conflict tests plus repeated real-MySQL runs.
 - Store exemption: `free_until_at` is recorded at the grant. `setPeriodEnd` does not move it. `POST platform/businesses/:id/stores/:requestId/extend-grant` is the one way: password step-up, reason, audited, forward, inside the same period.
