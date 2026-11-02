@@ -2,6 +2,13 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**d227_current_state_2026-11-02 (replaces older head lists below). Nothing deployed; production stays `fbe4778`, migrations to 0115.**
+- **Heads:** backend `d3655a8`, mobile `c70748c`, console `92a8c4c5`; all pushed. New unreleased migrations 0121 (proof recovery), 0122 (cart approval), 0123 (counted returns).
+- **CI on these heads:** backend security 41521693092, mobile security 41521705150, console ci 41518008742: all success.
+- **Pending on these heads:** render-tests (first run 41521730779 died at checkout: a SHA was put in BACKEND_BRANCH; retargeted, no test result yet); visual-check 41521751278 running. Green runs on earlier commits verify nothing here.
+- **Owner's new basket requirements before Security and Maintenance:** repeated partial returns to the remaining quantity; explicit return disposition with atomic stock and money; counted-line approvals bound to exact items, quantities and prices; refund arithmetic from original amounts; proven build 3 read of return responses; whole-journey verification.
+- **Open question for the owner:** "configured minimum-price rules" versus D223 (no price floor); no such rule exists in the code.
+- **Corrected assumption:** access-boundary, sheet-input and web-accessibility are no longer Windows-only failures; they run here. Remaining Windows-only backend specs: acquisition, subscription-lifecycle (one rule), trial.service, deploy-production; Linux CI is their verdict.
 hotfix_sale_2026-11-01T20:58Z (owner-authorised, separate from D227; **DEPLOYED**, awaiting the owner's retry in build 3):
 - **Bug:** every `POST /sales` answered 400 "Invalid query parameters" since `4cf32b3` (2026-10-31): the receipt-name snapshot read `companies` through the tenant client (`1bc51c3`, D225). Only real Prisma refuses that; the mocks accepted it, and one spec pinned the faulty call.
 - **Fix:** branch `hotfix/sale-name-snapshot` from `ca7465e`; `93b2466` (fix, `sale-http.mysql.spec`), `fbe4778` (scanner allowlist for the spec's throwaway JWT). No migration. Security CI 41349017563 all green, the real sale spec in the gates. The spec failed 4/4 on the old code.
