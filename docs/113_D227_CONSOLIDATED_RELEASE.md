@@ -185,3 +185,10 @@ generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. 
 - **Production check, 2026-11-02, read only: no occurrence; the fix stays in D227.** MySQL up about 14 days, so its counters span the 2026-10-31 deployment: `lock_deadlocks` 0, and no latest-deadlock section in InnoDB status. API log (only since the 2026-11-01 20:57Z container): 0 write-conflict, lock or "Database request error" lines. `closing_events`: at most 2 openings a day, so the collision has had little chance to happen. Older API logs are gone.
 - Multi-item: no blind sale retry until the basket-wide key and return-existing-sale are in place; injected write-conflict tests plus repeated real-MySQL runs.
 - Store exemption: `free_until_at` is recorded at the grant. `setPeriodEnd` does not move it. `POST platform/businesses/:id/stores/:requestId/extend-grant` is the one way: password step-up, reason, audited, forward, inside the same period.
+
+## 11. Multi-item backend, part 1 (backend `916728c`, not deployed)
+
+- `sale_line_conflict`: every refused line at once, by position and reason, never the identifier. All-or-nothing; a fully unknown basket stays 404. Reaches clients through the filter's allowlist, which also now passes the add-store `amount` and `pendingRequestId` (renamed: `requestId` is every response's own).
+- Retry: only with a key, only recognised conflicts, 3 attempts; out of retries looks for a committed twin before answering. No key, no retry.
+- Real MySQL: `sale-basket.mysql.spec.ts`, gate 9b0, races repeated 5 times. Injected conflicts: `sales-idempotency.spec.ts`.
+- **Next:** basket approval with a cart hash (migration); partial returns; receipt and reports with several lines; split-payment and receivable cases in the basket spec; then the app.
