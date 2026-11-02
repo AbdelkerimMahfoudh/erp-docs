@@ -192,3 +192,17 @@ generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. 
 - Retry: only with a key, only recognised conflicts, 3 attempts; out of retries looks for a committed twin before answering. No key, no retry.
 - Real MySQL: `sale-basket.mysql.spec.ts`, gate 9b0, races repeated 5 times. Injected conflicts: `sales-idempotency.spec.ts`.
 - **Next:** basket approval with a cart hash (migration); partial returns; receipt and reports with several lines; split-payment and receivable cases in the basket spec; then the app.
+
+## 12. Accounts with no name (backend `dc60c494`, not deployed; migration 0118)
+
+`companies.name` and `name_ar` are the one optional trading name; existing values untouched. Without one (`common/account-label.ts`):
+- **A record with a store** names that store: a consignment its source store, a loan its recorded store. A loan with no recorded store says nothing rather than guess.
+- **An invitation** returns `stores`, exactly those assigned. `business` stays for builds up to 1.0.0 (3), as those stores written out.
+- **Sign-in chooser** returns each person's `stores`; `companyName` is the same written-out list for old builds, not an invented parent.
+- **Account-wide messages:** neutral words, EN/FR/AR (`your Dukan account`). No store stands in.
+- **Portal session:** `business.name` is null without a trading name, with `stores` beside it.
+- **Receipts:** a sale since 0111 keeps its recorded answer; none is `null`, which build 3 replaces with the store name.
+- **Admin list:** `accountLabel` parts (Owner by role, active stores in explicit order); the console words `Owner — Store`, `+ n more`, `No stores`.
+- **Legacy, documented:** a connection records no participating store and the app has no primary store, so connections alone use the oldest active store, `createdAt` then `id` (`LEGACY_OLDEST_STORE`). The spec's source scan pins that. Recording a participating store on a connection would be new work, not done.
+- With a trading name set, that name is shown for loans, consignments and connections, as existing accounts expect.
+- **Still to do:** mobile and console read `stores`, `accountLabel` and null names; the console's `business.name` headings.

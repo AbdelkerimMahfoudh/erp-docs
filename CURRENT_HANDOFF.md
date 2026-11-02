@@ -20,7 +20,7 @@ phase_consolidated_release_claim_2026-11-01 (owner's brief in chat: one consolid
 - **Next:** access basis and add-store, in docs/113 §3 order.
 - **Checkpoint:** backend `8c2085e5` pushed, CI green including the basket gate 9b0; not deployed. Earlier red runs on this line were a literal `
 ` in that gate. Mobile green on `31b2aadf`, console `a3e32025`.
-- **Next, owner's order:** remove the required business name (docs/21), before more onboarding, identity or portal work; adapt 0116/0117 first if they assume it.
+- **Business name:** backend optional with context rules at `dc60c494` (docs/113 §12); mobile and console forms, wording and reads next, then onboarding, portal, multi-item.
 - **Multi-item sales (one basket, one receipt):** confirmed by the owner in this session, 2026-11-01; audit first. Must build on the fixed sale path, already merged (`fbe4778`).
 - **SSH key:** the owner was advised to clear it; ask them to reload it at deployment, and remind them afterwards.
 - **Design settled:** duplicate phone at public registration is revealed only after the code to that phone is proven; a duplicate email is dropped silently; existing shared Owner contacts (production: one phone on 3 businesses, one on 2) stay usable.
