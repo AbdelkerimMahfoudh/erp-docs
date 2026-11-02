@@ -9077,3 +9077,7 @@ build. Reuse the existing sale, line and payment model. One current basket per u
 Select on the stock list; no stock reservation; one approval bound to a cart hash; `lines[]` beside build 3's single-item request;
 one all-or-nothing transaction with line-level conflicts and one request ID; drafts local and cleared on logout; one receipt; returns by
 line; reports count one sale and many items. Maintenance stays separate. No bundle discounts.
+
+**No required business name (owner, 2026-11-02).** New accounts need only the Owner's name, the first store's name, a verified contact and what a store genuinely needs. The internal company stays the tenant boundary (`companyId`, isolation, roles, audit, subscription); its name becomes optional, never invented, and every stored name is kept. An optional registered/trading name (Latin, optional Arabic) lives in Account settings and appears on receipts and reports only when set; otherwise the store name alone, never the Owner's personal name. The visible model is Owner account → stores; wording follows actual scope. Admin search covers Owner, store, phone, email and trading name. Build 3 may still send a name, which is accepted and kept. To be incorporated before more onboarding, identity or portal work.
+
+**CI logs (owner, 2026-11-02):** the stored credential may be used read-only for failed Actions logs on the four D227 repositories, only when public information is insufficient, never printed; logs deleted after extraction; not retained after D227.
