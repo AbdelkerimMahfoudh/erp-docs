@@ -178,3 +178,10 @@ So build 3's request needs no mapping: it is already a one-line `lines[]`.
 Gate 9b, not the renewal spec: two businesses opening their day at the same moment got Prisma P2034 from `/closings/open`, a deadlock, answered as a
 generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. Backend `5ac1df6`: the open transaction uses `withLockRetry`; P2034 answers
 409 "try again" everywhere. Other transactions (sales among them) are not retried yet; the multi-item work must decide that for the sale path.
+
+## 10. Owner's safeguards (backend `ceb81b9`)
+
+- Retries: `P2034`, or `P2010` with whole-number 1213/1205 only; 3 attempts with jitter; `onRetry` logs the attempt number only. Exhausted: 409 `write_conflict`, localized in the app. A duplicate opening still refuses at once.
+- **Production log check NOT done:** the SSH key is cleared. Hotfix decision waits: any occurrence on `/closings/open` since 2026-10-31 means a separate minimal hotfix from production's head; none keeps `5ac1df6` in D227. Container logs restart with each deployment, so history before the last one may be gone.
+- Multi-item: no blind sale retry until the basket-wide key and return-existing-sale are in place; injected write-conflict tests plus repeated real-MySQL runs.
+- Store exemption: `free_until_at` is recorded at the grant. `setPeriodEnd` does not move it. `POST platform/businesses/:id/stores/:requestId/extend-grant` is the one way: password step-up, reason, audited, forward, inside the same period.
