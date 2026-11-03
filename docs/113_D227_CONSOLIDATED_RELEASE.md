@@ -437,3 +437,10 @@ failed before testing, on `repository 'https://github.com/AbdelkerimMahfoudh/erp
 | Pending | The owner's sign-in, second factor, step-up and sign-out on `admin.tsxmr.com` in a real browser, with the cookie checked. Then the removal of `dukan-test` from `ADMIN_ORIGINS`. Then dukan-test's preview update. |
 
 **Build 4:** EAS build `a6570f09-db87-4821-964d-faf49705ed50`, iOS production, **1.0.0 (4)**, from mobile `8570ff6` (D227 plus the Offset Spiral identity), `EXPO_PUBLIC_API_ORIGIN=https://api.tsxmr.com`. Free plan, 0 of 15 iOS builds used before it; resets 2026-12-01. Sentry deferred to the next build (owner).
+
+**Admin verification and the origin removal (2026-11-03, ~14:15-14:28Z).**
+- **Owner's check:** the owner signed in on `https://admin.tsxmr.com` in their browser, viewed the customer list and signed out (owner's report).
+- **Not observed by Claude:** the cookie attributes and the step-up dialog. They rest on the existing tests; record them at the owner's next sign-in.
+- **The removal (docs/116 §4.5):** `ADMIN_ORIGINS=https://admin.tsxmr.com` (copy `api.env.pre-dukan-test-removal`; fingerprint `f3fe96c7…` → `0f677c34…`). The API container was recreated, healthy, 126/126 migrations.
+- **Checks:** `platform/admin/me` 401 from `admin.tsxmr.com`, 403 from `dukan-test.tsxmr.com` and `dukan.tsxmr.com`. `dukan-test` keeps its CORS grant for the portal pages; the preview still asks its password (401).
+- **Build 4:** FINISHED at 14:12Z (EAS build time about 6 min). `eas.json` gained `submit.production.ios.ascAppId=6828500958` (mobile `e3d87cb`, the Build 3 follow-up). Then submitted to App Store Connect.
