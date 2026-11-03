@@ -386,3 +386,28 @@ The backend commits after `d142d4c` change only a deploy script and its spec, wh
 **Console `97a99ccb`: CI 41598292778.**
 
 **Candidates for the owner's admin decision:** backend `3aa7ccd` (CI 41617737800) and console `907963e1` (CI 41599301712).
+
+## 23. Production-schema rehearsal and the release heads (2026-11-03, 11:47Z)
+
+**The rehearsal on production's exact schema: PASS.**
+- **Fetched read-only:** `deploy/production/schema-for-rehearsal.sh tsxmr-app-01`, with the owner's key in the agent (fingerprint `SHA256:PBOHtt…`, as recorded). It used the read-only `phonestore_backup` account, structure and `_prisma_migrations` rows only. Nothing was written on the host.
+- **Result:** 133 tables, last migration `0115_platform_admin_invitation`. `prod-schema-20261103T114715Z.sql`, sha256 `d736adf7…6d24a0`, kept on the laptop outside every repository, to be deleted after the release.
+- **Rehearsal `20261103T114729Z`:**
+  - 0116-0127 applied;
+  - a second deploy applied nothing;
+  - the upgraded production schema equals a fresh install (139 tables, 1957 columns, 72 triggers);
+  - the base dump restored with identical counts and CHECKSUMs.
+- **Not covered:** an upgrade over production's rows. The schema carries no data, by design.
+
+**Release heads after the owner's decisions:**
+
+| Repository | Head | What it adds | CI on that head |
+|---|---|---|---|
+| backend | **`b945098`** | `3aa7ccd` (admin hosting merged) → `5acde6b` (Manager option A) → `b945098` (rollback floors) | security 41625331832 **success** |
+| mobile | **`a108e7c`** | Manager card | security 41626043305 **failed in setup**: "the backend beside this checkout" could not clone `erp-backend` |
+| console | **`907963e1`** | admin hosting merged | ci 41622232435 **failed**: 2 of 172 browser checks (public `/fr` at 375 px and desktop; `/fr` and `/ar/products/dukan-erp` at 375 px). The same commit passed as the candidate (41599301712). Not reproduced; treated as intermittent until rerun. |
+
+**Gates pointed at mobile `a108e7c` with backend `b945098`:** render-tests 41626063732 and visual-check 41626081018 both
+failed before testing, on `repository 'https://github.com/AbdelkerimMahfoudh/erp-backend/' not found`.
+- **Cause:** all four repositories are now **private** (read 11:5xZ); the mobile workflows clone the backend anonymously ("The repository is public").
+- **Not a code failure, but the gates prove nothing until one of these is done:** the visibility is restored, or the workflows get read access to `erp-backend`. Either is a repository-settings change for the owner.
