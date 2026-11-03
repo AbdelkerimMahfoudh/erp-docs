@@ -208,3 +208,75 @@ generic 400. Intermittent, not reproduced in 6 local runs, and older than D227. 
 - **Still to do:** mobile and console read `stores`, `accountLabel` and null names; the console's `business.name` headings.
 
 **Display rules, owner, 2026-11-02 (backend `168a378f`, supersedes the matching lines above).** Loans and consignments always name the exact store, with `otherPartyTradingName` as context. A connection joins whole accounts and is shown as one: `name` is the trading name or a compact `Store A + 2 more` (build 3 reads this), and an accepted connection adds `tradingName` and the full ordered `stores`. The oldest-active ordering decides only the first displayed name, a presentation label, never a "participating store". A stranger's search preview keeps the compact label only. Store-specific connections would be a later schema and consent change. Not deployed until mobile and console handle null names and store lists.
+
+## 13. Security and sign-in: design and privacy review (2026-11-03; backend `999daa0`)
+
+**What it does.** More → Your account → Security and sign-in. Each change is one `credential_changes` row: who, what,
+which stage, and the code that stage is waiting for. A code is checked only against that row's own challenge, purpose
+`credential_change`, so no code from another flow can answer it. Nothing about the account moves until the final step,
+which commits in one transaction.
+- **Password:** current password, then a code on the verified channel, then the new password (8 to 128 characters, not the same as the current one). On commit every other session is revoked and this session's refresh token is rotated: this phone stays signed in on the new token.
+- **WhatsApp number:** current password, then a code on the existing verified channel, then a code on the new number, then the swap. The old number's consent is superseded and the new one's pending consent is activated, in the same transaction. Other sessions end.
+- **Email:** refused up front (`email_unavailable`) while no email channel is enabled. No address is ever marked verified without a message that really went.
+- **Legacy route:** the old app's phone-verification route can still verify a first number but can no longer move a verified one (`use_security_screen`).
+
+**Privacy review.**
+| Question | Finding |
+|---|---|
+| Passwords and codes in logs or audit | None. Only Argon hashes are stored. Audit rows carry `security:<event>`, and the only detail written is a masked destination (`whatsapp_changed`, `{to: masked}`). Logger lines are fixed sentences. |
+| Account enumeration | A new contact held by somebody else in the same business looks identical until the end: no code is sent to it, and the final step answers the generic `change_refused`. A platform-wide Owner clash rolls back with the same answer. A wrong password gives one sentence whether or not the account exists. |
+| What the screen sees | Masked destinations only (`+222••••1234`, `a***@domain`). The history lists event names and times; nothing else was ever written. |
+| Consent | A pending WhatsApp consent is recorded at the start, with version, locale and IP (as at registration). It becomes active only on the final step; an abandoned change leaves it pending. |
+| Retention (**fixed in `999daa0`**) | A cancelled, superseded, expired or completed change kept the contact it would have moved to, which may be somebody else's, in `new_contact` indefinitely, and account deletion did not clear it. It is now cleared when a change ends, swept at the person's next change (expired rows), and cleared, with open changes cancelled, by account and business deletion. Real MySQL spec added. **Residual:** an expired change of a person who never changes again keeps its contact until their deletion; the TTL is 15 minutes. A periodic sweep would close it. Not added, because a new scheduled job is a release change. |
+| Notices | A security notice goes by verified email only, best effort, in English (`language: 'en'` is hard-coded, a wording gap, not a leak). With email disabled in production, nobody is told; the in-app history is the record. |
+
+**Not verified interactively:** see the handoff: the local channel is `development-log`, which reports codes as
+undelivered. The flows are proven by the real-MySQL spec, not on a screen.
+
+## 14. Migration rehearsal 0116-0127 (`deploy/rehearse-migrations.sh`, backend `6f1a321`)
+
+**Dry run, 2026-11-03T08:10Z, disposable MySQL 8.4.7 (port 3399), base built from the repository at `0115`:**
+- 0116 to 0127 applied with `prisma migrate deploy`; a second deploy reported `No pending migrations to apply`.
+- `mysqldump --no-data` of the upgraded database equals a fresh install from every migration: 139 tables, triggers and indexes included, AUTO_INCREMENT counters and DEFINERs aside.
+- The base dump restored into a new database: row counts and `CHECKSUM TABLE` identical on all 133 tables.
+- All rehearsal databases dropped.
+
+**What it does not prove yet:**
+- production's *exact* schema: the dry base is the repository's 0115, not a dump of the live database;
+- an upgrade over real tenant rows: the dry base holds only the seed rows the migrations themselves insert (catalogues, permissions).
+
+The release rehearsal runs the same script with `PROD_SCHEMA=` (a `mysqldump --no-data --routines --triggers` of
+production) and, ideally, `PROD_DATA=` (a sanitised dump, `scripts/sanitize-dump.js`). Producing both needs the server,
+so it waits for the SSH session. The restore proof against the real pre-deploy backup stays `deploy/production/restore-drill.sh`.
+
+## 15. Release matrix (2026-11-03; nothing deployed; production backend `fbe4778`, migrations to 0115)
+
+| Repository | Head | Evidence on exactly that commit |
+|---|---|---|
+| backend `post-testflight-feedback` | `6f1a321` (adds the rehearsal script only to `999daa0`) | CI pending at this writing. `999daa0`: tsc clean, Security spec on real MySQL and deletion spec 50/50 locally. `469c36b` (before the privacy fix): CI 41582449844 success. |
+| mobile `post-testflight-feedback` | `8cf3d36` | security 41586428626 success; intake 21/21, tsc clean, lint 37. **Render and visual cover `0589431`, not `8cf3d36`:** render-tests 41585324124 and visual-check 41585336786, both with backend `469c36b`. `bb75232` and `8cf3d36` change only test files. `0589431`: Jest 529/529 locally. |
+| console D227 `d227/console-phone-errors` | `97a99ccb` (on `92a8c4c5`) | CI 41598292778 success. Local, whole suite: 673/680. The 7 failures were 2 `source-rules` tests (Windows paths; they also fail on the clean baseline) and 5 timeouts under full-suite load; `activity-public` and `trial-account` alone: 68/68. |
+| console reviewed hosting `ops/admin-console-host` | `b09f5a90` | CI 41557833862 success. Not merged into the D227 line: the admin-console merge awaits the owner. |
+| console integration candidate `d227/console-integration-candidate` | `907963e1` = `--no-ff` merge of `b09f5a90` into `97a99ccb`, no conflicts (no shared files, confirmed by both sessions) | CI 41599301712 success; tsc clean. Local, whole suite run alongside backend tests: 661/680. The 19 failures were 2 `source-rules` (Windows) and 17 under load; the 9 affected files rerun: 182/184, the remaining 2 then 82/82 alone. No failure is reproducible outside load. |
+| docs `master` | this commit | — |
+
+**Not yet on any matrix row:** render-tests and visual-check on mobile `8cf3d36` (test-only changes since `0589431`);
+backend CI on `6f1a321`; a fresh render/visual pairing of the final mobile head with the final backend head before release.
+
+## 16. Remaining release blockers (2026-11-03)
+
+1. **Owner decisions:** the admin-console merge (candidate `907963e1` is ready for review); the Manager money card (options A, B and C in the handoff); the periodic sweep of expired sign-in changes (§13 residual), or acceptance of the residual.
+2. **Interactive passes not done:**
+   - Security and sign-in on a build with a working test channel;
+   - the basket on an iPhone or equivalent interactive build (Add from stock, price review, approval, split payment, receipt, repeated counted returns);
+   - the opening and day-choice sheets, seen on screen;
+   - no physical small iPhone used for any D227 screen yet.
+3. **Rehearsal on production's exact schema** and, ideally, its sanitised data (§14): needs an SSH session to the server.
+4. **Sentry:** the owner sets up the account. The token goes only into the protected EAS environment, entered by the owner. Monitoring stays disabled until the configuration is verified.
+5. **Portal hosting and template:** on hold. `dukan.tsxmr.com` is not live (§5).
+6. **Release mechanics, all after approval:**
+   - merge `refs/heads/hotfix/sale-name-snapshot` into D227;
+   - the verified off-host backup before migrating;
+   - deploy;
+   - Build 4 (scope fixed).
+7. **Kept open:** the `agent-money` render suite timing out under full-suite load; the intermittent theme-boot-flash sample.
