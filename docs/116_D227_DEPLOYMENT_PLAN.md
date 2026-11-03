@@ -25,7 +25,11 @@ migrations to `0115`, no admin hostname, the customers' portal not live. Detail 
 ## 2. Backup, off-host copy and restore proof (before anything changes)
 
 1. `deploy/production/backup-offhost.sh tsxmr-app-01 <laptop folder>`. It makes a fresh age-encrypted backup on the host, copies it to the laptop and compares both SHA-256 sums. Its receipt is what `deploy.sh` requires.
-2. **Restore proof from that copy:** `deploy/production/restore-drill.sh --offsite laptop <file>`.
+2. **Restore proof of that same backup:** `deploy/production/restore-drill.sh --identity /dev/shm/… <file>`, **without `--offsite`**.
+   - **Correction, 2026-11-03.** `--offsite laptop` would overwrite `offsite-restore-proof` with `kind=laptop`. Production's preflight refuses any WhatsApp channel unless that proof says `kind=storage-box` (docs/100 §5, docs/112 §7). The deployment would then stop at its own preflight.
+   - The Storage Box proof stays as it is.
+   - This drill proves that the exact pre-deploy backup decrypts and restores whole.
+   - The laptop copy's matching sha256 proves it is held off the host.
    - The owner supplies the backup identity v2 (`production-backup-identity-v2.txt`) to memory only, on the same SSH session, by the established clipboard pipe. The identity is never in chat.
    - The drill restores into `phonestore_drill_<stamp>` and compares tables, triggers, row counts, key digests, money sums and every `CHECKSUM`. It then drops the copy.
 3. Record in the handoff: the backup's name, size and sha256 (host and laptop), and the drill's verdict line.
