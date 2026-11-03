@@ -9030,6 +9030,12 @@ monitoring; everything listed as preserved in the brief.
 the DSN and EAS token exist. It blocks nothing else. The owner creates the account and enters the credentials directly;
 stop if payment is asked.
 
+**Owner, 2026-11-03:**
+- **Sentry:** deferred to the next build, explicitly; D227 and Build 4 ship without it.
+- **The customers' portal hosting (`dukan.tsxmr.com`):** stays deferred.
+- **The Manager's money card:** option A, this store's tracked cash only, read-only, the Owner's figure; no card when cash is untracked. Configuration stays the Owner's.
+- **The reviewed admin-hosting branches are merged into D227:** backend `145c56c` (via `3aa7ccd`), console `b09f5a90` (via `907963e1`). `dukan-test` leaves `ADMIN_ORIGINS` once `admin.tsxmr.com` is verified (docs/116 §4).
+
 **Security and sign-in (More → Your account), for every user.**
 - Password: current password + purpose-bound code to a verified channel; other sessions revoked, the current rotated;
   audited; the contact notified. Forgotten-password recovery stays separate.
