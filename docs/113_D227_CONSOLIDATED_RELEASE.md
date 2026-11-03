@@ -280,3 +280,109 @@ visual-check 41602356671 success (ops `c4d0f98`). Every head in this matrix is g
    - deploy;
    - Build 4 (scope fixed).
 7. **Kept open:** the `agent-money` render suite timing out under full-suite load; the intermittent theme-boot-flash sample.
+
+## 17. Update 2026-11-03 afternoon (supersedes the matching lines of §13-§16)
+
+**The expired-contact residual of §13 is closed (backend `987eea7`).** An hourly sweep, started at boot like the
+WhatsApp webhook worker's (unref'd timer, cleared on shutdown), sets every change past its 15 minutes to `expired` and
+drops its contact. Ended changes still holding a contact from before `999daa0` are cleared on the same pass. Real MySQL
+spec: an expired change is swept, an open one is left alone, and a swept change cannot be confirmed. `src/account`:
+67/67 locally.
+
+**The sale-name hotfix is in the D227 line.** `fbe4778` (`hotfix/sale-name-snapshot`) is an ancestor of backend
+`987eea7` and every later head; `sale-http.mysql.spec.ts` runs in the database gates. No merge was needed.
+
+**Hosting reconciled, as reviewable candidates only.** The admin-console merge into the D227 line waits for the owner.
+- **Backend:** `d227/backend-integration-candidate` `3aa7ccd` (CI 41617737800 success). It holds D227 `eb96f5a` plus `ops/admin-console-host` `145c56c` (origin rule, `ADMIN_ORIGINS` production guard). The merge was clean (14 files). tsc clean. The origin specs and `src/platform` pass locally, except the two suites on the Windows-only list (`trial.service`, `subscription-lifecycle`).
+- **Console:** `d227/console-integration-candidate` `907963e1`. CI 41599301712 success (§15).
+
+**Rehearsal tooling (backend `d142d4c`; CI 41613196102 failed, see the final heads below).**
+- `rehearse-migrations.sh` now compares the schemas through `information_schema`: columns with type, charset, collation, nullability and default; indexes; foreign keys; CHECKs; triggers. Comparing dump text was wrong: after a reload, `SHOW CREATE TABLE` printed identical columns with and without `CHARACTER SET`.
+- Both paths PASS locally: from a production-format dump of 0115 (structure plus `_prisma_migrations` rows), and from the repository's 0115. Result: 139 tables, 1957 columns, 72 triggers.
+- `deploy/production/schema-for-rehearsal.sh` fetches production's schema read-only (§18).
+
+## 18. Production's schema for the rehearsal: the exact read-only commands
+
+The established access: the owner's key `~/.ssh/tsxmr-production-admin` and host alias `tsxmr-app-01` (user
+`tsxmr-admin`). The passphrase is typed by the owner into the Windows ssh-agent, never into chat. If SSH times out,
+compare the laptop's public IP with firewall rule 4 first.
+
+In an **administrator** PowerShell, by the owner:
+```
+Start-Service ssh-agent
+ssh-add $env:USERPROFILE\.ssh\tsxmr-production-admin
+```
+Then, by me from Git Bash in `erp-backend`, read-only on the server:
+```
+mkdir -p "$HOME/d227-rehearsal"
+SSH_BIN=/c/Windows/System32/OpenSSH/ssh.exe deploy/production/schema-for-rehearsal.sh tsxmr-app-01 "$HOME/d227-rehearsal"
+MYSQL_BIN=/c/wamp64/bin/mysql/mysql8.4.7/bin ROOT_URL=mysql://root@127.0.0.1:3399 \
+  PROD_SCHEMA="$(ls -1t "$HOME"/d227-rehearsal/prod-schema-*.sql | head -n 1)" deploy/rehearse-migrations.sh
+```
+- **What runs on the host:** `cd /srv/erp-production/erp-backend && sudo -n bash -c 'source deploy/production/lib.sh && compose exec -T db sh -c "… mysqldump … -u phonestore_backup …"'`, twice. The first reads the structure (`--no-data --routines --triggers --events`), the second the `_prisma_migrations` rows only.
+- **What it does not do:** take a lock, write a file on the host, stop a container, or read a business row. It also refuses to finish if a `users`, `companies`, `sales` or `customers` INSERT ever appears.
+- **Expected result:** production's last migration reads `0115_platform_admin_invitation`.
+
+Afterwards, by the owner: `ssh-add -D`, then `Stop-Service ssh-agent`. The schema file holds no personal data but
+stays outside every repository. It is deleted after the rehearsal is recorded.
+
+**Optional, stronger:** the same rehearsal over sanitised production rows (`scripts/sanitize-dump.js` on a decrypted
+backup, done on the laptop) proves the data-bearing upgrade. It needs the backup identity, so it happens only if the
+owner asks for it.
+
+## 19. Manager money card: the options (unchanged, no code changed)
+
+- **Before D227 (build 3, production):** anyone with `report.view` (Owner, Manager; not Employee) sees "Expected money in store". The Owner sees the total, the Manager only the drawer's figure, carried from the last count.
+- **Now in code:** the Owner sees Store balances, which shows tracked locations only. The Manager still sees the old card, so it claims a drawer figure even when cash is untracked. That contradicts "OFF: no balance claimed".
+
+| Option | The Manager sees | Effect |
+|---|---|---|
+| **A (proposed)** | Tracked cash only, read-only, the same figure and label as the Owner's. Never accounts, never the settings. Nothing when cash is untracked. | Consistent with OFF; the Manager loses the untracked drawer figure. Reading needs `report.view`; changing stays Owner-only (`money.anchor.record`). |
+| B | The old card, unchanged. | No change for Managers; the untracked contradiction remains. |
+| C | No card. | Simplest; Managers lose a figure they had in build 3. |
+
+Employees are unchanged under all three. Implementing A is a small mobile change, plus a backend read scope for the
+tracked cash figure. The gates are rerun after it.
+
+## 20. Portal hosting and Sentry in this release
+
+- **Sentry is required by D227's scope, and it is not implemented.**
+  - D227 decides: integration, privacy protections, error boundary, release tags and tests ship with monitoring disabled until the DSN and EAS token exist. It blocks nothing else.
+  - The mobile app has no Sentry code or dependency at all.
+  - Adding `@sentry/react-native` is a new native dependency in Build 4, which the rulebook treats as major. It needs the owner's go-ahead on the dependency, or an explicit decision that this release ships without it and Sentry moves to a later build.
+  - The account, DSN and token stay the owner's either way.
+- **Portal hosting is deferred and does not block D227.**
+  - The portal code ships in the console build. `dukan.tsxmr.com` is not live (§5), and the iOS app links to no portal (D227's iOS payment rule).
+  - Making it live needs DNS, a vhost and a template. Those are hosting changes, separate from this release and owner-decided.
+  - The admin console hosting (`admin.tsxmr.com`) is likewise the owner's separate decision (candidates above).
+
+## 21. Remaining release blockers (replaces §16)
+
+1. **Owner decisions:**
+   - the admin-console merge (backend `3aa7ccd`, console `907963e1`);
+   - the Manager card (§19);
+   - Sentry: implement it disabled, or defer it explicitly (§20).
+2. **Interactive passes:** `docs/115`. Pass 1 needs the owner's iPhone on the laptop's Wi-Fi. Pass 2 needs the approved deployment and a TestFlight internal Build 4 candidate. A small iPhone is needed, or the gap stays recorded.
+3. **Rehearsal on production's schema:** §18, the SSH session.
+4. **After approval:**
+   - the verified off-host backup (`backup-offhost.sh`);
+   - deploy (backend, console);
+   - Pass 2;
+   - Build 4 (scope fixed).
+5. **Kept open:** the `agent-money` render timeout under load; the intermittent theme-boot-flash sample.
+
+## 22. Final heads (2026-11-03; nothing deployed)
+
+**Backend `eb96f5a`: CI 41617725833 success.** It includes the sale-name hotfix `fbe4778`, the privacy fixes `999daa0` and `987eea7`, and the rehearsal tooling. `d142d4c` failed CI 41613196102 in `deploy-production.spec`: the new operator script was neither on the no-`stack.env` list nor committed `100755`. Fixed in `eb96f5a`. The failed job's log was read with the stored credential, read-only, and deleted.
+
+**Mobile `8cf3d36`.**
+- render-tests 41602347950, with backend `6f1a321`;
+- visual-check 41602356671, with backend `6f1a321`;
+- visual-check 41613319164 (ops `b4f5558`), with backend `d142d4c`;
+- security 41586428626.
+
+The backend commits after `d142d4c` change only a deploy script and its spec, which these gates do not exercise.
+
+**Console `97a99ccb`: CI 41598292778.**
+
+**Candidates for the owner's admin decision:** backend `3aa7ccd` (CI 41617737800) and console `907963e1` (CI 41599301712).
