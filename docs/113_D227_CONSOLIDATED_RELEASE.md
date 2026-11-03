@@ -411,3 +411,10 @@ The backend commits after `d142d4c` change only a deploy script and its spec, wh
 failed before testing, on `repository 'https://github.com/AbdelkerimMahfoudh/erp-backend/' not found`.
 - **Cause:** all four repositories are now **private** (read 11:5xZ); the mobile workflows clone the backend anonymously ("The repository is public").
 - **Not a code failure, but the gates prove nothing until one of these is done:** the visibility is restored, or the workflows get read access to `erp-backend`. Either is a repository-settings change for the owner.
+
+## 24. Pass 1 (docs/115), 2026-11-03 ~13:10Z: owner-reported, partial
+
+- **Setup:** Expo Go on the owner's iPhone, LAN, Metro 8082. The build line read `2ca6f15`, whose app code equals `a108e7c`. The local D227 API ran on the disposable database with the fictitious "Pass One Shop".
+- **Owner's report:** "I tested most of the changes and it is green". No ❌ reported.
+- **Not recorded item by item:** which docs/115 items were covered. The owner deferred the rest (2026-11-03) and asked not to be asked again; this is the recorded gap.
+- **Covered by neither pass:** Arabic right-to-left layout, real code delivery, and the small iPhone. Pass 2 (TestFlight internal) covers the first two.
