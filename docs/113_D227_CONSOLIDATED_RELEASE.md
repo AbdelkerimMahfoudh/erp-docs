@@ -418,3 +418,22 @@ failed before testing, on `repository 'https://github.com/AbdelkerimMahfoudh/erp
 - **Owner's report:** "I tested most of the changes and it is green". No ❌ reported.
 - **Not recorded item by item:** which docs/115 items were covered. The owner deferred the rest (2026-11-03) and asked not to be asked again; this is the recorded gap.
 - **Covered by neither pass:** Arabic right-to-left layout, real code delivery, and the small iPhone. Pass 2 (TestFlight internal) covers the first two.
+
+## 25. The D227 deployment (owner-authorised 2026-11-03; docs/116)
+
+**Gates before:** backend `b945098` security 41625331832; mobile `2ca6f15` security 41633917087, render 41633928647 and visual 41633937783 (app code `a108e7c`, backend `b945098`); console `bb620d03` CI 41640574120, the `/fr` language fix (§23); production-schema rehearsal PASS (§23). Pass 1: owner-reported, partial (§24).
+
+| Step | Result |
+|---|---|
+| Release onto the host | Git bundle of backend `b945098`, sha256 `06a1b9366583d58b…` on both ends. Host checkout detached at `b945098`. The running API was untouched until deploy. |
+| Off-host backup | `phonestore-20261103T135100Z.sql.gz.age` (128 KB), copied to the laptop (`.tsxmr/production-backups`), checksums equal, receipt recorded. A first attempt (`…135014Z`) made its copy but could not write the receipt: the old checkout had no `backup-receipt.sh`. |
+| Restore proof of that backup | `restore-drill.sh --identity /dev/shm/…`, **without `--offsite`**, so `offsite-restore-proof` keeps `kind=storage-box` (checked before and after). The identity was piped from the laptop file into a `/dev/shm` directory of the same SSH session and shredded on exit. Drill `20261103T135152Z`: **PASSED**. 133 tables, 72 triggers, row counts, binary-key digests, money sums (sales and payments 96000.00), trigger bodies, every CHECKSUM. Copy dropped. |
+| Configuration | `api.env` (copy `api.env.pre-d227`): `CORS_ORIGINS` gained `https://admin.tsxmr.com`; `ADMIN_ORIGINS=https://admin.tsxmr.com,https://dukan-test.tsxmr.com` (transition). Fingerprint `766e9e2f…` → `f3fe96c7…`. `stack.env` (copy `stack.env.pre-d227`): `ADMIN_CONSOLE_HOST=admin.tsxmr.com`, set at the admin step. |
+| `deploy.sh` | Exit 0. Preflight PASS (email disabled, WhatsApp cloud, 4 CORS origins, 7 secrets as files). Its own pre-migration backup `phonestore-20261103T135506Z`. Migrations 0116-0127 applied, 126/126. Catalogue 77/77. Identities 25/25. Audit chain OK for all 8 companies. Smoke 15/15, commit `b94509847214`. Image `erp-api:b945098…`, previous (rollback target) `erp-api:fbe47784…`. |
+| After | WhatsApp cloud with live sends enabled, recipient limit 200, email disabled, push unset; the off-site timer active; `offsite-restore-proof kind=storage-box`. |
+| Origin rule over HTTP | `platform/admin/me`: 401 from `admin` and `dukan-test` (allowed, no session); 403 from `dukan`, `erp-test` and an unknown origin; CORS granted only to listed origins. |
+| DNS (Cloudflare, by Claude in the owner's browser) | **Added exactly one record:** `A admin.tsxmr.com → 178.104.245.227`, DNS only, TTL Auto, no AAAA. The other 14 records were unchanged (15 of 200). Resolved from 1.1.1.1 and 8.8.8.8 at once. The laptop's router served a cached NXDOMAIN for up to 30 minutes (SOA TTL 1800). |
+| Admin site | CI release `bb620d03` (`admin-release.txt`: commit `bb620d03…`, api `https://api.tsxmr.com`), 27 files. First `admin-site.sh install` refused: `/admin` answered 000 before the certificate existed. Caddy obtained it from Let's Encrypt seconds later. The second install: release `20261103T140051Z` installed, checks passed. `/admin` 200 with `X-Robots-Tag: noindex, nofollow, noarchive`, CSP, HSTS, nosniff, frame denial; `/subscription` 404. |
+| Pending | The owner's sign-in, second factor, step-up and sign-out on `admin.tsxmr.com` in a real browser, with the cookie checked. Then the removal of `dukan-test` from `ADMIN_ORIGINS`. Then dukan-test's preview update. |
+
+**Build 4:** EAS build `a6570f09-db87-4821-964d-faf49705ed50`, iOS production, **1.0.0 (4)**, from mobile `8570ff6` (D227 plus the Offset Spiral identity), `EXPO_PUBLIC_API_ORIGIN=https://api.tsxmr.com`. Free plan, 0 of 15 iOS builds used before it; resets 2026-12-01. Sentry deferred to the next build (owner).
