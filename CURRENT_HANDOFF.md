@@ -2,6 +2,7 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**post_build4_2026-11-03 (owner-approved scope; the active phase).** Production stays backend `b945098` and admin console `bb620d03`; Build 4 1.0.0 (4) in TestFlight internal (Pass 2 tests 3-8 postponed by the owner). Branch `post-build4` from backend `b945098`, mobile `e3d87cb`, console `bb620d03`. Scope: step-up window reused across every sensitive admin action; staged business deletion (de-identify, never bypass the 37 delete-protected tables); portal-only build for `dukan.tsxmr.com` (no admin code in the artefact) with single-use claim links; account-ready WhatsApp after commit, gated on portal live and Meta approval; "Require unlock after" wording; full country selector (`libphonenumber-js`, `i18n-iso-countries`); combined login field. Nothing of it deployed or built for TestFlight until the owner reviews the candidate.
 **d227_current_state_2026-11-02 (replaces older head lists below). Nothing deployed; production stays `fbe4778`, migrations to 0115.**
 - **Heads:** backend `40eac2e`, mobile `5269fb4`, console `92a8c4c5`. Unreleased migrations 0116-0124.
 - **Green on these heads:** backend security 41536418545 (includes real-MySQL gates and `basket-journey.mysql.spec`), mobile security 41532268312, render-tests 41532292321, visual-check 41532309682 (ran backend `e04fe76`; `40eac2e` adds only a scanner allowlist line), console ci 41518008742.
