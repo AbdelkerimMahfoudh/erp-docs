@@ -90,7 +90,7 @@ subscription, nothing pending). Applies the Owner-closure de-identification (`Ac
 - "Require unlock after" / "Redemander le déverrouillage après" / "طلب فتح التطبيق مجددًا بعد", with the explanation
   that Dukan stays open and access is locked; same five choices and the same Owner-maximum rule.
 - Countries: `libphonenumber-js` 1.13.15 (runtime; metadata derived from Google's libphonenumber project) and
-  `i18n-iso-countries` 7.14.0 (dev only: names generated into `lib/phone-country-names.ts`, EN/FR/AR). 245 regions.
+  `i18n-iso-countries` 7.14.0 (dev only: names generated into `lib/phone-country-names.ts`, EN/FR/AR). 245 regions, Mauritania first, then alphabetical in the reading language (owner, 2026-11-03). The console phone field uses the same module, with a search box above its list (console `9366b085`, mobile `e3df1ef`).
   Bundle: about 84 KB of calling-code metadata plus 15 KB of names before minification; the render gate's export
   measures the real figure.
 - Sign-in: `identifierKind` — `U-XXXXXXXX` staff IDs and emails are sent as typed; a number gets the sign-up's country
@@ -98,7 +98,7 @@ subscription, nothing pending). Applies the Owner-closure de-identification (`Ac
 
 ## 8. Not done or not verified
 
-- Console phone field still uses its own 22-country list (mobile is complete); RTL, large-text and 320/375-point
+- RTL, large-text and 320/375-point
   checks of the new country sheet are not run on a device; the render/visual gates cover the web export only.
 - Portal publication, the portal install script, the Meta template, the production-schema rehearsal of 0128-0129.
 - Pass 2 tests 3-8 on Build 4 (postponed by the owner).
