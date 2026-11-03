@@ -253,15 +253,15 @@ so it waits for the SSH session. The restore proof against the real pre-deploy b
 
 | Repository | Head | Evidence on exactly that commit |
 |---|---|---|
-| backend `post-testflight-feedback` | `6f1a321` (adds the rehearsal script only to `999daa0`) | CI pending at this writing. `999daa0`: tsc clean, Security spec on real MySQL and deletion spec 50/50 locally. `469c36b` (before the privacy fix): CI 41582449844 success. |
+| backend `post-testflight-feedback` | `6f1a321` (adds the rehearsal script only to `999daa0`) | CI 41602180151 success; `999daa0` CI 41600107710 success. `999daa0`: tsc clean, Security spec on real MySQL and deletion spec 50/50 locally. `469c36b` (before the privacy fix): CI 41582449844 success. |
 | mobile `post-testflight-feedback` | `8cf3d36` | security 41586428626 success; intake 21/21, tsc clean, lint 37. **Render and visual cover `0589431`, not `8cf3d36`:** render-tests 41585324124 and visual-check 41585336786, both with backend `469c36b`. `bb75232` and `8cf3d36` change only test files. `0589431`: Jest 529/529 locally. |
 | console D227 `d227/console-phone-errors` | `97a99ccb` (on `92a8c4c5`) | CI 41598292778 success. Local, whole suite: 673/680. The 7 failures were 2 `source-rules` tests (Windows paths; they also fail on the clean baseline) and 5 timeouts under full-suite load; `activity-public` and `trial-account` alone: 68/68. |
 | console reviewed hosting `ops/admin-console-host` | `b09f5a90` | CI 41557833862 success. Not merged into the D227 line: the admin-console merge awaits the owner. |
 | console integration candidate `d227/console-integration-candidate` | `907963e1` = `--no-ff` merge of `b09f5a90` into `97a99ccb`, no conflicts (no shared files, confirmed by both sessions) | CI 41599301712 success; tsc clean. Local, whole suite run alongside backend tests: 661/680. The 19 failures were 2 `source-rules` (Windows) and 17 under load; the 9 affected files rerun: 182/184, the remaining 2 then 82/82 alone. No failure is reproducible outside load. |
 | docs `master` | this commit | — |
 
-**Not yet on any matrix row:** render-tests and visual-check on mobile `8cf3d36` (test-only changes since `0589431`);
-backend CI on `6f1a321`; a fresh render/visual pairing of the final mobile head with the final backend head before release.
+**Final heads paired:** mobile `8cf3d36` with backend `6f1a321`: render-tests 41602347950 success (ops `43f54de`),
+visual-check 41602356671 success (ops `c4d0f98`). Every head in this matrix is green in CI. Release still waits on §16.
 
 ## 16. Remaining release blockers (2026-11-03)
 
