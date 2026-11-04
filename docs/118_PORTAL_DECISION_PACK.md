@@ -14,10 +14,10 @@ Facts given by the owner, 2026-11-04 (as stated; nothing inferred):
 | Operator's full legal name | Abdel Kerim Taleb Ould Sidi |
 | Legal status | individual developer (no trade registration: counsel item 1) |
 | Residence | Tevragh Zeina, Nouakchott (the owner asks that no personal address be published; counsel item 10) |
-| Correspondence / postal address | **not to be published** (owner) |
+| Correspondence address | as already published on tsxmr.com/contact: Tevragh Zeina, Nouakchott-Ouest, Mauritania (district only; no street address published, at the owner's request) |
 | Publication director | Abdel Kerim Taleb Ould Sidi |
-| Support, privacy and billing emails | at `@tsxmr.com` — **exact addresses to confirm** (e.g. support@, privacy@, billing@) |
-| Public WhatsApp contact | +22236963839 |
+| Emails (published at tsxmr.com/contact, read 2026-11-04) | general contact@tsxmr.com · support support@tsxmr.com · privacy privacy@tsxmr.com · security security@tsxmr.com · **no billing address published**: contact@ unless the owner names another |
+| Telephone (published) | +222 36 96 38 39 · +222 37 67 68 27 |
 
 Operational proposals — **recommended, not approved until the owner confirms**:
 
