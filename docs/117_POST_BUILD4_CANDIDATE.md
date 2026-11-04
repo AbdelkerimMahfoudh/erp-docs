@@ -222,3 +222,19 @@ overflow did not recur (821/821).
 | mobile render-tests | `f796cc0` | 41775641297 success |
 | visual-check, with backend `37856b3` (brand gate `657ae1c`: the intro's arcs begin at the approved small scale, settle at 200 on screen, stay in the window) | `f796cc0` | 41833904956 success |
 Nothing deployed; the public portal stays closed pending counsel (docs/118 §2).
+
+## 13. Production deployment, 2026-11-04 (owner-approved; portal disabled)
+- **Backup:** `phonestore-20261104T145202Z.sql.gz.age` (148K), age-encrypted, laptop copy, checksums match.
+- **Restore proof:** `restore-drill.sh --identity /dev/shm/…` (no `--offsite`): PASSED — 139 tables' CHECKSUMs, row counts,
+  key digests, money sums and trigger bodies identical; drill copy dropped; identity shredded; Storage Box proof kept.
+- **Migration preflight:** production schema re-read: identical to the rehearsed one (139 tables, 72 triggers, last 0127).
+- **Release:** git bundle (sha256 `43a555cc…` both ends); host checkout `37856b3`.
+- **`deploy.sh`:** 0128-0129 applied and verified (128/128); smoke 15/15; image `erp-api:37856b3…`, built 14:54:16Z;
+  rollback target `erp-api:b945098…` (the 0128 floor allows it while `business_deletions` is empty: 0 rows).
+- **Admin console:** CI package of `a9cf1a9a` (no portal route or code), release `20261104T145817Z`, previous
+  `20261103T140051Z`; `/admin` 200, `/subscription` and `/claim/` 404, `admin/me` 401.
+- **Unchanged:** `api.env` fingerprint `0f677c34…`; WhatsApp cloud/live/enabled; email disabled; `PORTAL_LIVE` absent.
+- **Portal off:** no portal deployed, no `dukan.tsxmr.com` DNS, `PORTAL` gate closed, no account-ready template configured.
+- **Found:** 4 earlier `portal_instructions` notices are `failed` (old code fell back to email with no template). The new
+  code holds such messages; these 4 need a deliberate requeue once the template is approved.
+- **EAS (read-only):** Free plan, iOS 1/15 and Android 0/15 used, period 2026-11-01 → 2026-12-01, no overage.
