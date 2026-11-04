@@ -212,3 +212,13 @@ localised "number already connected" refusal, the signup swipe-back, partner sto
 the country code's alignment fixed in `f796cc0` and confirmed on the phone. Brand gate (ops/visual-check `091185e`)
 reads the Offset Spiral's layers and identity colours; the logo itself unchanged. The 320-point WebKit Balances
 overflow did not recur (821/821).
+
+## 12. Final candidate gates, 2026-11-04 (supersedes §11)
+| Gate | Head | Run |
+|---|---|---|
+| backend security CI (real-MySQL journeys, `portal-site.sh` on Linux) | `37856b3` | 41779015071 success |
+| console CI (portal audit package) | `a9cf1a9a` | 41832956752 success |
+| mobile security | `f796cc0` | 41775626979 success |
+| mobile render-tests | `f796cc0` | 41775641297 success |
+| visual-check, with backend `37856b3` (brand gate `657ae1c`: the intro's arcs begin at the approved small scale, settle at 200 on screen, stay in the window) | `f796cc0` | 41833904956 success |
+Nothing deployed; the public portal stays closed pending counsel (docs/118 §2).
