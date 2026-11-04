@@ -166,3 +166,30 @@ submitted; sending stays disabled until approved.
 ### 9.7 Device checks
 The country list in Arabic, the largest text size and the 320/375-point layouts are **not passed**: pre-external-TestFlight
 blockers, with Pass 2 tests 3-8.
+
+## 10. Two defects added to the candidate (owner, 2026-11-04)
+
+### 10.1 Signup with a contact that already has an account — backend `4698712`, mobile `d3e996d`
+- **Root cause.** D227 kept a known number in a "hold": the same answer as a new signup, a real code sent, and
+  "already has an account" only after the code. That path answered "That code did not match" for an expired hold and
+  for a superseded or expired challenge too. **The screenshot's message could therefore hide the duplicate**: the
+  backend did not convert a conflict into an OTP error directly, but its hold path gave the OTP wording to non-OTP
+  failures. Which applied to that attempt cannot be read back: holds and challenges keep no per-attempt outcome.
+- **Now.** Refused at the contact step for the number or the email, before any code is generated or sent and before
+  anything is created: `409 CONTACT_UNAVAILABLE_FOR_SIGNUP`, generic, audited without the contact
+  (`registration.contact_unavailable`), behind the registration throttle. A lost race for the unique index gets the
+  same answer. Wrong, expired and superseded codes for new contacts keep their own errors. `normalisePhone` now reads a
+  leading `00` as the international prefix (production stores no such number: 0 identities, 0 users).
+- **App.** EN/FR/AR message, with Sign in, Recover access (the existing setup-code screen) and Use another number.
+
+### 10.2 Partner stores: "the code does not exist" for every code — backend `ced13ce`, mobile `071bce1`
+- **Root cause.** Exact-code lookup and the request required `is_discoverable = true`; nothing in the backend or the
+  app ever sets it. Production, read-only: 10 businesses, every code valid (10 characters, uppercase), **0
+  discoverable** — every lookup was a 404. Not an API base mismatch, a tenant filter, ID confusion or normalisation.
+- **Now.** An exact code finds the store; name search keeps its opt-in. Distinct answers, localised in the app:
+  invalid, unknown, own code, inactive/closed/deleted, pending (shown as the relationship), already partners.
+  Only the public preview before acceptance. Lookup and request throttled (20 a minute). A store in the same
+  business shares the business's code, so it is "own code".
+- **Journey on real MySQL** (`connections.mysql.spec.ts`, two businesses, as `phonestore_app`): A's code found by B in
+  lowercase with spaces, without search; B asks; A sees and accepts; both see it accepted; retries add nothing.
+- **Production:** no migration and no backfill.
