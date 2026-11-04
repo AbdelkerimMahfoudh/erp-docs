@@ -102,3 +102,67 @@ subscription, nothing pending). Applies the Owner-closure de-identification (`Ac
   checks of the new country sheet are not run on a device; the render/visual gates cover the web export only.
 - Portal publication, the portal install script, the Meta template, the production-schema rehearsal of 0128-0129.
 - Pass 2 tests 3-8 on Build 4 (postponed by the owner).
+
+## 9. Owner's pre-approval items (2026-11-04)
+
+### 9.1 Step-up invalidation, proven
+`src/platform/step-up-invalidation.spec.ts` with `platform-mfa.service.spec.ts`: an administrator's password is written
+only by the CLI reset (revokes every session and window) and by an invited administrator's setup (before `active`; a
+window needs `active`); a new authenticator only through the server's enrolment token (revokes every session); platform
+administrators have no role or permission to change, and their state is read on every check. Backend `861da3e`.
+
+### 9.2 Deletion retention matrix (backend `552d508`)
+| Area | Removed or anonymised | Kept, de-identified, marked by `companies.deleted_at` |
+|---|---|---|
+| Staff | names → "Deleted user", logins, personal IDs replaced, phones, emails, passwords, PINs, sessions, devices, codes, invitations | the rows their records point at |
+| Customers | names, phones, notes | the rows (sales point at them) |
+| Stock (units) | IMEIs, serials, photos (files removed) | units, costs, prices, statuses |
+| Catalogue / products | — (business data, no person) | as they are |
+| Repairs | description → "Repair", notes | amounts, dates, statuses |
+| Transfers | decision reasons | the transfers and their lines |
+| Consignments | the business's own unshared ones: notes, dispute reasons | shared ones stay the other business's record; `consignment_ledger` (protected) untouched |
+| Closings | notes | figures and lines |
+| Expenses | notes, receipt files removed | amounts, categories, dates |
+| Uploaded documents | expense receipts, payment-proof images, unit photos, the logo, report exports | — |
+| Money agent | customer numbers and fingerprints, people's names where allowed | amounts and legs; append-only snapshots (protected) |
+| Subscription, payments | proof images | subscription, events, payments |
+| Audit | — | `audit_logs`, `platform_audit_events` (protected; older platform rows may name the business) |
+No delete statement touches any of the 37 protected tables; the real-MySQL spec runs as `phonestore_app`. Backups keep
+data until rotation (monthly copies up to 6 months).
+
+### 9.3 Two separate gates
+`PORTAL_LIVE=enabled` means only: the portal is deployed and a real claim flow was verified (§9.5). It does not depend on
+Meta. The sender holds independently on each: `held_portal` until `PORTAL_LIVE`, `held_template` until an approved
+template name is configured (`notice.service.ts`). The portal works while Meta reviews.
+
+### 9.4 Production-schema rehearsal, 2026-11-04 00:13Z — PASS
+Read-only fetch `prod-schema-20261104T001238Z.sql` (sha256 `3413927b…`; 139 tables, 72 triggers, last 0127). 0128 and
+0129 applied; a second deploy applied nothing; identical to a fresh install (141 tables, 1979 columns, 74 triggers);
+restore of the base dump: row counts and CHECKSUMs identical. Not deployed. The production backup and its restore drill
+are part of the deployment itself (docs/116 §2), as for D227.
+
+### 9.5 Portal verification plan, before `PORTAL_LIVE=enabled`
+The production portal build is closed by the console's own `PORTAL` gate (`src/config/gates.ts`: backend in production,
+email and WhatsApp proven). Opening it is the owner's decision; until then CI builds and checks the package in audit
+mode (console `889bb1e2`), and `portal-site.sh` refuses an audit package. `portal-site.sh` is executed on Linux in
+backend CI (`src/prisma/portal-site.spec.ts`).
+1. Backup and off-host copy; deploy backend (0128-0129); `PORTAL_HOST`, `CORS_ORIGINS` and `PORTAL_ORIGIN` set.
+2. Build, package, `portal-site.sh install`; Cloudflare `A dukan.tsxmr.com` (DNS only).
+3. HTTPS and certificate; `/subscription` and the status page in EN/FR/AR; `/admin` 404; noindex; no referrer.
+4. On the Test business: issue a link from the console, open it once (session opens, trial not started), open it again
+   (refused: used), an expired link (refused: expired), reissue (earlier refused), claim on the page and check the trial
+   starts then, for seven days.
+5. Edge and API logs: no `/claim/` token, no full claim URL.
+6. Only then `PORTAL_LIVE=enabled`. Messages stay held until the template is approved.
+
+### 9.6 Meta template — prepared, not submitted
+Name `dukan_account_ready`; category UTILITY; languages `en`, `fr`, `ar`; body variable `{{1}}` = business name;
+one URL button, dynamic, base `https://dukan.tsxmr.com/claim/{{1}}`. Proposed text, EN: "Your Dukan account for {{1}}
+is ready. Open Dukan to complete the setup and manage your subscription." Button: "Open Dukan". FR: "Votre compte Dukan
+pour {{1}} est prêt. Ouvrez Dukan pour terminer la configuration et gérer votre abonnement." Button: "Ouvrir Dukan". AR:
+"حسابك على دكان لـ {{1}} جاهز. افتح دكان لإكمال الإعداد وإدارة اشتراكك." Button: "افتح دكان". Review status: not
+submitted; sending stays disabled until approved.
+
+### 9.7 Device checks
+The country list in Arabic, the largest text size and the 320/375-point layouts are **not passed**: pre-external-TestFlight
+blockers, with Pass 2 tests 3-8.
