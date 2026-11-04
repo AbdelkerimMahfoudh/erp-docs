@@ -199,3 +199,16 @@ blockers, with Pass 2 tests 3-8.
 verified challenge, so it is not an account recovery and is not reused. The refusal offers Sign in and Use another
 number only. **Required work:** a recovery screen that proves the contact with a fresh code, refuses old invitation or
 setup codes, and follows the password-change policy (rotate the password, end every other session).
+
+## 11. Heads and gates, 2026-11-04 (supersedes §1)
+| Repository | Head | Gates |
+|---|---|---|
+| erp-backend | `4699efa` | security CI 41763966388 success (real-MySQL deletion, claim links, partners; `portal-site.sh` executed on Linux) |
+| erp-control-web | `09f1e5ef` | ci 41766976248 success, including the portal audit package: audit-noted, no `/admin` route or header, `/claim/*` routed |
+| erp-mobile | `f796cc0` | security, render-tests and visual-check: running at this entry |
+
+Owner's phone test on Expo Go against the local API (2026-11-04): the Offset Spiral, the sign-in country chooser, the
+localised "number already connected" refusal, the signup swipe-back, partner stores between two shops — all passed;
+the country code's alignment fixed in `f796cc0` and confirmed on the phone. Brand gate (ops/visual-check `091185e`)
+reads the Offset Spiral's layers and identity colours; the logo itself unchanged. The 320-point WebKit Balances
+overflow did not recur (821/821).
