@@ -193,3 +193,9 @@ blockers, with Pass 2 tests 3-8.
 - **Journey on real MySQL** (`connections.mysql.spec.ts`, two businesses, as `phonestore_app`): A's code found by B in
   lowercase with spaces, without search; B asks; A sees and accepts; both see it accepted; retries add nothing.
 - **Production:** no migration and no backfill.
+
+### 10.3 Recover access — not offered yet (mobile `275de9c`)
+`/(auth)/setup` is a console-created Owner's first password from an administrator's one-time setup code: no fresh
+verified challenge, so it is not an account recovery and is not reused. The refusal offers Sign in and Use another
+number only. **Required work:** a recovery screen that proves the contact with a fresh code, refuses old invitation or
+setup codes, and follows the password-change policy (rotate the password, end every other session).
