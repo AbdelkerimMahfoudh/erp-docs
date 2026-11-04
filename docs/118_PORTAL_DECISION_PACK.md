@@ -7,29 +7,28 @@ texts live in `erp-control-web/src/content/legal-*.ts`; this checklist does not 
 
 ## 1. Owner questionnaire
 
-Facts (blank until you give them; nothing inferred from accounts or records):
+Facts given by the owner, 2026-11-04 (as stated; nothing inferred):
 
 | Fact | Answer |
 |---|---|
-| Operator's full legal name | |
-| Legal status (individual, trader, company) | |
-| Correspondence / postal address | |
-| Publication director | |
-| Support email | |
-| Privacy email | |
-| Billing / contact email | |
-| Telephone / WhatsApp contact | |
+| Operator's full legal name | Abdel Kerim Taleb Ould Sidi |
+| Legal status | individual developer (no trade registration: counsel item 1) |
+| Residence | Tevragh Zeina, Nouakchott (the owner asks that no personal address be published; counsel item 10) |
+| Correspondence / postal address | **not to be published** (owner) |
+| Publication director | Abdel Kerim Taleb Ould Sidi |
+| Support, privacy and billing emails | at `@tsxmr.com` — **exact addresses to confirm** (e.g. support@, privacy@, billing@) |
+| Public WhatsApp contact | +22236963839 |
 
-Operational decisions you can approve:
+Operational proposals — **recommended, not approved until the owner confirms**:
 
-| Decision | Proposal (not decided) |
+| Decision | Proposal |
 |---|---|
-| Support hours | Sunday–Thursday, 9:00–17:00, Nouakchott time (GMT) |
+| Support hours | Sunday–Thursday, 09:00–17:00, Nouakchott time |
 | Support languages | Arabic, French, English |
-| Support response target | within one working day |
-| Refund business policy | your choice: no refunds of paid access / pro-rata / case by case |
-| Backup schedule (matches production) | daily off-site copy kept 7 days, then 4 weekly and 6 monthly (about 6 months at most); 14 on-server copies |
-| Indemnity clause | **omit the clause**, or keep one drafted by counsel |
+| Support response target | within two working days |
+| Backup schedule (as production runs it) | 7 daily off-site, 4 weekly, 6 monthly (Borg, Storage Box), plus 14 rotating server copies |
+| Indemnity | omit it, unless Mauritanian counsel recommends and drafts one |
+| Refunds | no automatic or prorated refund after a paid subscription is activated, except duplicate or incorrect payments, or a paid period Dukan cannot provide; cancellation prevents renewal; mandatory legal rights prevail (for owner and counsel) |
 | Account-deletion channel | **decided: WhatsApp** |
 | Onboarding channel | **decided: WhatsApp only; email disabled** |
 
@@ -44,6 +43,7 @@ Operational decisions you can approve:
 7. Indemnity: only if counsel advises one; otherwise none.
 8. Approval of the sealed-history disclosure (audit and subscription history cannot be edited by a deletion).
 9. Review and approval of the six DRAFT pages: privacy, legal notice, account deletion, terms, security, privacy choices.
+10. Whether the legal notice must publish the operator's address, or whether an email and WhatsApp contact satisfy it for an individual operator.
 
 ## 3. Known infrastructure and processors (production, read 2026-11-04)
 
@@ -63,7 +63,7 @@ Operational decisions you can approve:
 |---|---|
 | Privacy page said the admin "asks again for the password before every decision" | fixed in the draft (EN/FR/AR), console `a9cf1a9a`: five-minute step-up |
 | Request logs kept IMEIs and serials in URLs: `units/:identifier`, `selection/:identifier`, `recognition/:imei`, and `code`/`imei`/`serial` queries | fixed in backend `37856b3` (redacted, tested); the draft says so; **production unchanged until deployed** |
-| Log retention: no log is kept by Caddy; API container logs rotate by size (5 × 10 MB per container), not by time | the privacy draft ("kept until a retention period is set") must state the real rotation |
+| Log retention: no log is kept by Caddy; API container logs rotate by size (5 × 10 MB per container), not by time. The old, unredacted lines leave either as 50 MB of newer lines push them out, or when the release recreates the API container (its log files go with the old container). No manual deletion without a reviewed procedure | the privacy draft ("kept until a retention period is set") must state the real rotation |
 | Backup retention in the deletion and privacy drafts is a blocker | the real schedule is above (§1): once you approve it, the drafts can state it |
 | Processors were "not selected" in the privacy draft | they are in production (§3): the drafts must name them |
 | Deletion wording across self-deletion, last-Owner closure, admin prepare/delete (`deleted-business-v1`) | one consistency table to be added to the deletion draft before legal review; backups keep a copy until they expire in every case |
