@@ -16,10 +16,10 @@ Facts given by the owner, 2026-11-04 (as stated; nothing inferred):
 | Residence | Tevragh Zeina, Nouakchott (the owner asks that no personal address be published; counsel item 10) |
 | Correspondence address | as already published on tsxmr.com/contact: Tevragh Zeina, Nouakchott-Ouest, Mauritania (district only; no street address published, at the owner's request) |
 | Publication director | Abdel Kerim Taleb Ould Sidi |
-| Emails (published at tsxmr.com/contact, read 2026-11-04) | general contact@tsxmr.com · support support@tsxmr.com · privacy privacy@tsxmr.com · security security@tsxmr.com · **no billing address published**: contact@ unless the owner names another |
+| Emails (published at tsxmr.com/contact, read 2026-11-04) | general contact@tsxmr.com · support support@tsxmr.com · privacy privacy@tsxmr.com · security security@tsxmr.com · billing: contact@tsxmr.com (owner, 2026-11-04) |
 | Telephone (published) | +222 36 96 38 39 · +222 37 67 68 27 |
 
-Operational proposals — **recommended, not approved until the owner confirms**:
+Operational decisions — **approved by the owner, 2026-11-04** (refunds as amended):
 
 | Decision | Proposal |
 |---|---|
@@ -28,7 +28,7 @@ Operational proposals — **recommended, not approved until the owner confirms**
 | Support response target | within two working days |
 | Backup schedule (as production runs it) | 7 daily off-site, 4 weekly, 6 monthly (Borg, Storage Box), plus 14 rotating server copies |
 | Indemnity | omit it, unless Mauritanian counsel recommends and drafts one |
-| Refunds | no automatic or prorated refund after a paid subscription is activated, except duplicate or incorrect payments, or a paid period Dukan cannot provide; cancellation prevents renewal; mandatory legal rights prevail (for owner and counsel) |
+| Refunds | **no refunds for now** (owner); counsel to confirm which mandatory legal rights, if any, still apply |
 | Account-deletion channel | **decided: WhatsApp** |
 | Onboarding channel | **decided: WhatsApp only; email disabled** |
 
