@@ -2,6 +2,21 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**dukan_portal_launch_2026-11-04 (takeover by owner brief; this block replaces older state where they differ).** Owner said "Start dukan launch".
+- **Heads verified, level with origin, branch `post-build4`:**
+  - backend `37856b3` (production, API `erp-api:37856b3`, rollback `b945098`);
+  - console `5411d513` (not CI-verified at this head; two uncommitted edits found, not this session's, left untouched:
+    `e2e/public-site.spec.ts`, `public/icons/icon.svg`);
+  - mobile `22c4b8d` (not a Build 4 candidate);
+  - public site `tsx-public-site` `e4b23b2f` (live on tsxmr.com);
+  - docs `6ee92b4`.
+- **Sequence (do not reorder):** 2.1 production portal package (CI build, console-less, `caddy-portal-release.mjs`);
+  2.2 install with `deploy/portal-site.sh`; 2.3 Cloudflare A record `dukan` (DNS only; ask before saving); 2.4 verify;
+  2.5 claim journey on the Test business; 2.6 trial starts after the claim; 2.7 `PORTAL_LIVE` (ask first); 2.8 Meta
+  templates (ask first).
+- **Next action:** present the plan for 2.1 and wait for the owner's approval before changing any workflow.
+- **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
+  tests 3–8 still owed.
 **post_build4_2026-11-03 (owner-approved scope; the active phase).** Production stays backend `b945098` and admin console `bb620d03`; Build 4 1.0.0 (4) in TestFlight internal (Pass 2 tests 3-8 postponed by the owner). Branch `post-build4` from backend `b945098`, mobile `e3d87cb`, console `bb620d03`. Scope: step-up window reused across every sensitive admin action; staged business deletion (de-identify, never bypass the 37 delete-protected tables); portal-only build for `dukan.tsxmr.com` (no admin code in the artefact) with single-use claim links; account-ready WhatsApp after commit, gated on portal live and Meta approval; "Require unlock after" wording; full country selector (`libphonenumber-js`, `i18n-iso-countries`); combined login field. Nothing of it deployed or built for TestFlight until the owner reviews the candidate.
 **d227_current_state_2026-11-02 (replaces older head lists below). Nothing deployed; production stays `fbe4778`, migrations to 0115.**
 - **Heads:** backend `40eac2e`, mobile `5269fb4`, console `92a8c4c5`. Unreleased migrations 0116-0124.
