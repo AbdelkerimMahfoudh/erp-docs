@@ -14,7 +14,33 @@ Owner: CLAUDE (local session, the owner's PC)
   2.2 install with `deploy/portal-site.sh`; 2.3 Cloudflare A record `dukan` (DNS only; ask before saving); 2.4 verify;
   2.5 claim journey on the Test business; 2.6 trial starts after the claim; 2.7 `PORTAL_LIVE` (ask first); 2.8 Meta
   templates (ask first).
-- **Next action:** present the plan for 2.1 and wait for the owner's approval before changing any workflow.
+- **2.1 DONE 2026-11-05: production portal package built in CI** (owner-approved).
+  - **Console head `55b1b73c`:**
+    - `eb17b222` TSXMR test titles and icon label;
+    - `105278f1` comments;
+    - `d93aebcc` deletion page 1.1, email-assisted deletion at launch, PORTAL gate accepts `email-assisted` (APP_STORE
+      still requires `whatsapp`);
+    - `f4c46f0e` CI portal production package step;
+    - `55b1b73c` privacy policy 1.1 (deletion paragraph).
+    - Owner's wording for both texts; effective 2026-11-04.
+  - **Repository variables `PORTAL_*`** (public values):
+    - backend `37856b3ffc35812d3dd5e49591813181012c625b`;
+    - `https://tsxmr.com`;
+    - the two published numbers from Cloudflare (organization contacts, not WhatsApp);
+    - 2026-11-04;
+    - Sunday–Thursday, 09:00–17:00, Nouakchott time; Arabic, French and English; two working days;
+    - `email-assisted`.
+  - **support@tsxmr.com:** routed via Cloudflare Email Routing to the owner's verified Gmail; the owner confirmed it
+    is monitored.
+  - **CI run 41939994656: success.**
+    - unit 717/717; browser 169 + portal 34 + admin 11 + public 172;
+    - production portal build: 28 files, 0 test values, no secret or source map; links 24/24; gitleaks no leaks.
+  - **Package:** `evidence/55b1b73c…/portal-production-release.tar.gz`, sha256
+    `078e0199047c909a0c405ac20ecb88368f8938300911099752b138ca795de1b5`; file checksums in
+    `portal-production-release.sha256` (28 files). It is not an audit package.
+  - **Not done:** install (2.2), DNS (2.3), `PORTAL_LIVE`, Meta, messages. Each needs its own approval.
+- **Next action:** owner approval for 2.2, installing with `deploy/production/portal-site.sh`, after a read-only check of
+  `PORTAL_HOST` and `PORTAL_ORIGIN` on the server.
 - **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
   tests 3–8 still owed.
 **post_build4_2026-11-03 (owner-approved scope; the active phase).** Production stays backend `b945098` and admin console `bb620d03`; Build 4 1.0.0 (4) in TestFlight internal (Pass 2 tests 3-8 postponed by the owner). Branch `post-build4` from backend `b945098`, mobile `e3d87cb`, console `bb620d03`. Scope: step-up window reused across every sensitive admin action; staged business deletion (de-identify, never bypass the 37 delete-protected tables); portal-only build for `dukan.tsxmr.com` (no admin code in the artefact) with single-use claim links; account-ready WhatsApp after commit, gated on portal live and Meta approval; "Require unlock after" wording; full country selector (`libphonenumber-js`, `i18n-iso-countries`); combined login field. Nothing of it deployed or built for TestFlight until the owner reviews the candidate.
