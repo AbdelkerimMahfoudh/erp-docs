@@ -100,6 +100,38 @@ Owner: CLAUDE (local session, the owner's PC)
     - authentication WhatsApp sending is unchanged;
     - the four legacy failed notices are NOT requeued until the final account-ready template is approved and its sender passes a controlled test.
   - **SSH agent:** stopped by the owner.
+- **BUILD 5 AND EXTERNAL TESTFLIGHT (2026-11-05):**
+  - EAS build `d595c328-99dd-4bc4-a1c6-9e68740ad381`: mobile `a95e660`, 1.0.0 (5), production, auto-submitted (submission `6aeed4cd`).
+  - Gates green on `a95e660`:
+    - mobile security;
+    - render-tests;
+    - visual-check run on gate `e504dad`: brand 56/56 in Chromium and WebKit, layout 821/821 in both;
+    - Expo Doctor: only the documented exception.
+  - EAS production env changed: `EXPO_PUBLIC_LEGAL_ORIGIN=https://dukan.tsxmr.com` (was tsxmr.com, which serves the pre-launch texts).
+  - Beta App Review: **approved**. External group "Pilot shops":
+    - public link https://testflight.apple.com/join/9J8P3yvE, limit 50;
+    - Test Information filled; contact details and demo account entered by the owner.
+  - Mobile since Build 4 (`8570ff6`):
+    - the logo pack (`2a42534`);
+    - the renewal banner (`ed47f6f`);
+    - the opaque RGB icon and the clipped launch overlay (`a95e660`).
+  - **Owner plan:**
+    1. Test Build 5 thoroughly.
+    2. Make ONE final internal + external build with all remaining changes.
+    3. Then submit to the App Store.
+    - No builds before then.
+- **Not deployed yet:** backend `3a125fd` and console `ce326256`, carrying:
+  - the renewal reminder endpoint;
+  - plans per store and the Bankily/Sedad payment;
+  - the admin WhatsApp alert;
+  - the console fixes.
+
+  Production is still backend `37856b3`. After deploying:
+  - set `PAYMENT_ALERT_NUMBERS` in api.env;
+  - set the console Prices page to 600/300/800/100 (owner step-up).
+- **Meta:** seven templates all IN REVIEW (checked 2026-11-05): account_ready EN/FR/AR, subscription_expiry EN/FR/AR, payment_submitted EN.
+  - Senders unset; the 4 legacy notices not requeued.
+  - On approval of `dukan_account_ready`, apply the "Welcome aboard" wording (SESSION_LOG 2026-11-05).
 - **Rollback:** `portal-site.sh off` (disables the site) or `rollback`; the DNS record can be deleted in Cloudflare.
 - **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
   tests 3–8 still owed.
