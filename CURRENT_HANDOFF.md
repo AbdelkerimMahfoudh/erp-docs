@@ -54,14 +54,52 @@ Owner: CLAUDE (local session, the owner's PC)
   - **Logging:** a claim path is not logged (0 hits in edge and API logs while other dukan requests are logged).
   - **WhatsApp state found, not changed:** `WHATSAPP_CHANNEL=cloud`, `WHATSAPP_LIVE_SENDS=enabled` (set by another
     session); `EMAIL_CHANNEL=disabled`.
-- **BLOCKERS before `PORTAL_LIVE` (not set):**
-  1. **Legal pages:** the portal links its legal pages to tsxmr.com, which publishes the PRE-LAUNCH texts (1.1
-     prelaunch), not the approved Dukan ERP texts (privacy 1.1, deletion 1.1, the other four 1.0). The route code says
-     a portal build carries no public pages. The approved texts are therefore published nowhere, contrary to the
-     brief's assumption. Needs an owner decision.
-  2. **Claim journey:** links are issued only by the account-ready WhatsApp notice (`notice.service`). Testing needs
-     that message (template not yet approved) or a server-issued link used by the owner; Claude may not hold a
-     production account session.
+- **PORTAL LAUNCH AND CLAIM JOURNEY: COMPLETE (owner-recorded, 2026-11-05).**
+  - **Legal pages (blocker 1 resolved, owner option b):**
+    - console `fd641acc` (CI 41953599597 green) serves the approved texts on the portal itself, at `/in-app/<page>`, `/fr/in-app/…` and `/ar/in-app/…`;
+    - privacy and deletion 1.1, the other four 1.0, effective 2026-11-04;
+    - the footer links are local; no canonical or alternate on tsxmr.com; a regression test forbids links back to tsxmr.com.
+  - **Package and install:**
+    - package sha256 `e049478c3ac448f61cbfd0f95ad49403acb7e0804b3ffe4cea8ea07fde3337a1`, 28 files verified locally and on the server;
+    - installed as release `20261105T024113Z` (previous `20261105T011555Z`).
+  - **Live checks passed:**
+    - 21 legal addresses 200 with noindex in EN, FR and AR; versions and dates shown; RTL in Arabic;
+    - footer and language switching stay on the portal, with no external link;
+    - HSTS, the CSP, frame denial and `no-referrer` present;
+    - `/admin` 404.
+  - **Claim journey (blocker 2 resolved):**
+    - Synthetic business:
+      - self-registered by the owner in the app with a spare number;
+      - company `01a1a9d5…`, Owner "Test1", store ID 907AA6670E;
+      - trial eligibility `self_registration`; the contact is never printed.
+    - Links were issued through the compiled `ClaimLinkService` inside the API container (no raw insert, no WhatsApp).
+    - Results:
+      - expired link (service clock -73 h) → 410 `claim_link_expired`;
+      - A, then B reissued → A refused with 400 `claim_link_invalid`;
+      - B moved to a protected local file without being printed; the server copy shredded;
+      - the owner claimed with B; reusing B → 409 `claim_link_used`.
+    - Trial: claimed 04:07:10Z, after B was spent at 04:04:10Z; starts at the claim, ends 2026-11-12 04:07:10Z (168 h).
+    - Events: registered → trial_eligible → trial_claimed.
+    - The spent local file was deleted.
+  - **Synthetic business closed:**
+    - refused by the owner in the console (reason "testing"), giving status `rejected`;
+    - the trial claim, events and audit are kept; no raw cleanup.
+  - **`PORTAL_LIVE=enabled`** (2026-11-05 ~04:31Z):
+    - set in `/srv/erp-production/api.env` (previous copy `api.env.pre-portal-live-20261105`);
+    - the API container was recreated on the same image `37856b3`;
+    - healthy and ready: 128/128 migrations, CORS limited to dukan, admin API 403 from the portal origin.
+  - **Meta templates (Utility), submitted 2026-11-05 on the "Dukan ERP Production" WhatsApp account; all IN REVIEW:**
+    - `dukan_account_ready` EN/FR/AR:
+      - body `{{1}}` = business name; dynamic URL button `https://dukan.tsxmr.com/claim/{{1}}`;
+      - owner decision: once each language is approved, edit it in place to the "Welcome aboard Dukan ERP!" wording
+        (EN/FR/AR text in SESSION_LOG 2026-11-05) and let it return to review.
+    - `dukan_subscription_expiry` EN/FR/AR:
+      - `{{1}}` = business, `{{2}}` = days; static button `https://dukan.tsxmr.com/subscription`.
+  - **Senders and notices:**
+    - both template-specific senders stay UNSET (disabled) until every language is approved and tested;
+    - authentication WhatsApp sending is unchanged;
+    - the four legacy failed notices are NOT requeued until the final account-ready template is approved and its sender passes a controlled test.
+  - **SSH agent:** stopped by the owner.
 - **Rollback:** `portal-site.sh off` (disables the site) or `rollback`; the DNS record can be deleted in Cloudflare.
 - **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
   tests 3–8 still owed.

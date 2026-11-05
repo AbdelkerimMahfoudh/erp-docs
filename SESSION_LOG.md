@@ -13107,3 +13107,29 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Verified.** All local gates green (backend 5 242; mobile 462 rendered plus the pure suite, tsc, lint).
 - **Visual workflows** retargeted: visual-check `ccd91dd`, render-tests `f9df297`. Running at writing.
 - **No deploy, persistent migration, merge, build, TestFlight, Apple, Meta/WhatsApp or `PUSH_CHANNEL` change.**
+
+## 2026-11-05 — CLAUDE (local), dukan.tsxmr.com launch completed
+
+- **Portal legal pages:** console `fd641acc` (CI 41953599597 green) serves the approved texts at `/in-app/…` (EN/FR/AR). Package sha256 `e049478c…37a1` was installed as release `20261105T024113Z`, and every live check passed.
+- **Claim journey:** synthetic self-registered business `01a1a9d5…` (the owner's spare number, never printed).
+  - Links were issued through `ClaimLinkService`.
+  - Results: expired 410; A after reissue 400; B reused 409.
+  - The trial started at the owner's claim (04:07:10Z) and runs 168 h.
+  - The business was then refused in the console; its records are kept.
+- **`PORTAL_LIVE=enabled`** in api.env. The API was recreated on `37856b3` and is healthy.
+- **Meta Utility templates submitted, all in review:**
+  - `dukan_account_ready` EN/FR/AR (claim URL button);
+  - `dukan_subscription_expiry` EN/FR/AR (2 variables, static subscription button).
+  - Senders are unset; authentication sending is unchanged; the 4 legacy notices are not requeued.
+- **Owner decision, "Welcome aboard" wording** for `dukan_account_ready`, to be applied in place after each language is approved:
+  - EN "Welcome aboard Dukan ERP! Your account for {{1}} is ready. Open the secure page to complete your setup and view your subscription."
+  - FR "Bienvenue à bord de Dukan ERP ! Votre compte pour {{1}} est prêt. Ouvrez la page sécurisée pour terminer la configuration et consulter votre abonnement."
+  - AR "أهلًا بك في Dukan ERP! حسابك الخاص بـ {{1}} جاهز. افتح الصفحة الآمنة لإكمال الإعداد والاطلاع على اشتراكك."
+- **Next (owner brief):**
+  - the 3/2/1 renewal reminder, with the sender aligned to the 2-variable expiry template;
+  - brand-gate rewrite;
+  - regenerate docs/119;
+  - admin-console fixes: the Owner's contact; trial status instead of "Not given yet / can still claim";
+  - approval during a trial defaults its end to the trial end;
+  - one batched gate run.
+  - No EAS Build 4.
