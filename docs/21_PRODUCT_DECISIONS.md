@@ -9095,3 +9095,33 @@ line; reports count one sale and many items. Maintenance stays separate. No bund
 **Post-Build-4 scope (owner, 2026-11-03; candidate in docs/117).** The existing five-minute admin step-up is reused, not rebuilt: absolute, per session, enforced on every sensitive admin route, the console showing the time left and never asking again inside it. A business is deleted in two stages: prepare (cancel the usable subscription, deactivate, revoke every session, two audit records, no automatic refund), then delete with the open window and the exact name, retry-safe, recorded permanently with the retention policy applied (`deleted-business-v1`). Deletion de-identifies people, contacts, credentials, sessions, files and non-essential data and keeps financial, subscription and audit records de-identified and marked as a deleted business; the 37 delete-protected tables are never bypassed. The portal `dukan.tsxmr.com` is published as a portal-only artefact (no `/admin`, no console code). The trial starts only when claimed; claim links are single-use, hashed, short-lived and reissuable. The account-ready WhatsApp message is queued after commit and sent only once the portal is live and its Meta template approved; neutral wording, the trial offered on the authenticated page. Countries from `libphonenumber-js` (metadata derived from Google's libphonenumber) and `i18n-iso-countries`, three locales only. Staff `U-` IDs and emails stay as typed at sign-in. None of this is mixed into the Build 4 deployment; the reviewed candidate comes back before any deployment or TestFlight build.
 
 **Portal operational decisions (owner, 2026-11-04; docs/118).** Support Sunday–Thursday, 09:00–17:00 Nouakchott time, in Arabic, French and English, replying within two working days; contacts as published at tsxmr.com/contact, with billing at contact@tsxmr.com; backups as production runs them (7 daily, 4 weekly and 6 monthly off-site copies, plus 14 on the server); no indemnity clause unless Mauritanian counsel recommends and drafts one; **no refunds for now**, counsel to confirm any mandatory right. The legal questions in docs/118 §2 stay with counsel, and the public portal stays closed until the legal pages are approved.
+
+**Portal prices and payment (owner, 2026-11-05).**
+
+- **Prices are per store.** Two stores are two prices in one payment. Durations are 1, 3 or 12 months only:
+  - electronics: 600 / 1 500 / 5 000 MRU;
+  - money services agent: 300 MRU a month × months;
+  - a store doing both: 800 MRU a month × months;
+  - each additional paid seat: 100 MRU a month × months.
+- **Shown on the portal only**, never in the app. The server computes them (`billing/period-offers.ts`, `GET platform/my-subscription/plans`).
+- **Payment flow:**
+  - the Owner chooses a plan;
+  - a dialog shows the Bankily and Sedad number 36963839, each with a copy button;
+  - the Owner uploads a screenshot and presses Confirm payment;
+  - the proof records the plan's months and the server's amount.
+- **Admin alert:** the administrators get an automatic WhatsApp alert (template `dukan_payment_submitted`, EN, operator use) on the numbers in `PAYMENT_ALERT_NUMBERS`, which live only in the server's environment. The alert is sent once the template is approved and `WHATSAPP_TEMPLATE_PAYMENT_SUBMITTED` names it.
+- **Decision:** the console's Verified / Not verified decides. Verified records the payment and extends access by the plan's months.
+
+**Renewal reminder (owner, 2026-11-05).**
+
+- **When and who:** 3, 2 and 1 days before access ends (72/48/24 h), for the Owner only. The server computes the days.
+- **Once per milestone:** at most once per business, Owner and milestone across devices (a deduplicated targeted notification; reading it on one device hides it on the others).
+- **When it is not shown:** while renewed, while a payment proof is pending, during grace, after expiry, or under a grant.
+- **WhatsApp:** `dukan_subscription_expiry` with two variables (business, days), never the exact end date.
+- **In the app:** the banner says only when access ends. No link, no price and no way to pay, per D227 and the App Store boundary.
+
+**Admin console during a trial (owner, 2026-11-05).**
+
+- The business page says "Free trial until …" instead of "Not given yet", and "the eligibility was used" once the trial is claimed.
+- Approving mid-trial counts the months from the trial's end and shows the resulting end date. No zero-length period, and no grace or billing rule changed.
+- The businesses list shows the Owner's verified number.
