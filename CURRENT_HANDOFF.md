@@ -132,6 +132,7 @@ Owner: CLAUDE (local session, the owner's PC)
 - **Meta:** seven templates all IN REVIEW (checked 2026-11-05): account_ready EN/FR/AR, subscription_expiry EN/FR/AR, payment_submitted EN.
   - Senders unset; the 4 legacy notices not requeued.
   - On approval of `dukan_account_ready`, apply the "Welcome aboard" wording (SESSION_LOG 2026-11-05).
+- **BUILD 6 CANDIDATE (IN_PROGRESS, 2026-11-05T19:53Z, owner-approved scope):** mobile from Build 5 commit `a95e660` (clean, level with origin). Three fixes: (1) notification tap navigates straight to its target (no Notifications screen flash), fallback to Notifications with a localized reason, push warm/cold too; (2) More: Branch and Store access cards separated with standard spacing; (3) Branch card opens the branch list and keeps it open (sole-branch auto-select only at bootstrap), explicit selection switches to the Home tab without pushing it onto More. Mobile-only; stop before any backend/API/dependency change. No deploy, no Build 6, no ASC change.
 - **Rollback:** `portal-site.sh off` (disables the site) or `rollback`; the DNS record can be deleted in Cloudflare.
 - **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
   tests 3–8 still owed.
