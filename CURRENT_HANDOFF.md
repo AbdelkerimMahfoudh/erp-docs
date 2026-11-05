@@ -39,8 +39,30 @@ Owner: CLAUDE (local session, the owner's PC)
     `078e0199047c909a0c405ac20ecb88368f8938300911099752b138ca795de1b5`; file checksums in
     `portal-production-release.sha256` (28 files). It is not an audit package.
   - **Not done:** install (2.2), DNS (2.3), `PORTAL_LIVE`, Meta, messages. Each needs its own approval.
-- **Next action:** owner approval for 2.2, installing with `deploy/production/portal-site.sh`, after a read-only check of
-  `PORTAL_HOST` and `PORTAL_ORIGIN` on the server.
+- **2.2–2.4, 2026-11-05 ~01:15–01:45Z (owner-approved):**
+  - **Package:** sha256 `078e0199…`, 28 files verified locally and on the server.
+  - **`PORTAL_HOST=dukan.tsxmr.com` added** to `stack.env`, which lacked it (previous copy
+    `/srv/erp-production/stack.env.pre-portal-20261105`).
+  - **Installed** `portal-site.sh install` → release `20261105T011555Z`, `customer-portal.caddy` enabled, logged. Its
+    final live check refused ("/subscription answered 000"), because there was no DNS yet.
+  - **Cloudflare:** A `dukan.tsxmr.com` → 178.104.245.227, DNS only (created via the dashboard).
+  - **Certificate:** the first ACME attempts ran before DNS (NXDOMAIN), so the edge was restarted once (as
+    portal-site.sh does) and the certificate was then obtained (Let's Encrypt YE2, to 2027-02-03).
+  - **Live checks:** `/subscription` 200; `/claim/…` 200; `/admin` and `/admin/` 404; `/` 302 → /subscription.
+    Headers: noindex, `Referrer-Policy: no-referrer`, HSTS, CSP `connect-src` api.tsxmr.com. API CORS grants exactly
+    dukan; an admin route from the portal origin gives 403. API ready.
+  - **Logging:** a claim path is not logged (0 hits in edge and API logs while other dukan requests are logged).
+  - **WhatsApp state found, not changed:** `WHATSAPP_CHANNEL=cloud`, `WHATSAPP_LIVE_SENDS=enabled` (set by another
+    session); `EMAIL_CHANNEL=disabled`.
+- **BLOCKERS before `PORTAL_LIVE` (not set):**
+  1. **Legal pages:** the portal links its legal pages to tsxmr.com, which publishes the PRE-LAUNCH texts (1.1
+     prelaunch), not the approved Dukan ERP texts (privacy 1.1, deletion 1.1, the other four 1.0). The route code says
+     a portal build carries no public pages. The approved texts are therefore published nowhere, contrary to the
+     brief's assumption. Needs an owner decision.
+  2. **Claim journey:** links are issued only by the account-ready WhatsApp notice (`notice.service`). Testing needs
+     that message (template not yet approved) or a server-issued link used by the owner; Claude may not hold a
+     production account session.
+- **Rollback:** `portal-site.sh off` (disables the site) or `rollback`; the DNS record can be deleted in Cloudflare.
 - **Then owed:** brand-gate rewrite, in-app renewal reminder, docs/119 regeneration; Build 4 stays blocked; Pass 2
   tests 3–8 still owed.
 **post_build4_2026-11-03 (owner-approved scope; the active phase).** Production stays backend `b945098` and admin console `bb620d03`; Build 4 1.0.0 (4) in TestFlight internal (Pass 2 tests 3-8 postponed by the owner). Branch `post-build4` from backend `b945098`, mobile `e3d87cb`, console `bb620d03`. Scope: step-up window reused across every sensitive admin action; staged business deletion (de-identify, never bypass the 37 delete-protected tables); portal-only build for `dukan.tsxmr.com` (no admin code in the artefact) with single-use claim links; account-ready WhatsApp after commit, gated on portal live and Meta approval; "Require unlock after" wording; full country selector (`libphonenumber-js`, `i18n-iso-countries`); combined login field. Nothing of it deployed or built for TestFlight until the owner reviews the candidate.
