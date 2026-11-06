@@ -2,6 +2,32 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**branch_entitlements_2026-11-06 (owner briefs of 2026-11-06; replaces older state where they differ).**
+- **Heads (post-build4, pushed):** backend `56e8537` (517145b trial-notice staleness, 5504a71 0132 core, 56e8537
+  per-store notices/status); mobile `cabc034` (6439d86 intro 1.4 s / 2 s, 6791bc1 tap-to-skip, cabc034 store access);
+  console `c96c48db`; docs: this commit. Production unchanged (backend `37856b3`). No deploy, no iOS build.
+- **0132_branch_entitlements** (additive: branch_entitlements, branch_periods, branch_grace_episodes,
+  payment_proofs.lines) applied to LOCAL phonestore after backup `~/erp-backups/phonestore-local-0131-20261106T*.sql`.
+  Rehearsed on production's schema (dump 2026-11-06, base 0129 → 0130, 0131, 0132): PASS. Temporary DBs on 3308 to drop
+  later: `prisma_qa_branch`, `grace_qa0131`, `addon_qa0131`, `grace_qa0132`, `addon_qa0132` (phonestore_app DML
+  grants on the grace_/addon_ ones — revoke when dropping).
+- **Feature:** docs/122 + D230. Each store its own trial (first store only), paid end, grace (72 h, 3/12 months per
+  store) and history. A branch paid in the app opens at approval with its own months. Enforced per branch-scoped request
+  and per branch named in path/body. Stores without a row follow the business (never locked by the change).
+  Per-store 3/2/1 reminders (keys `s:<store>:…`, business variable "Business · Store"); portal store choice; console
+  store status and proof lines; app store-access words (no payment in the app).
+- **Production census (2026-11-06, counts only):** 8 businesses, one store each, 0 payments, 0 waiting requests;
+  automatic trial would reach 1 (eligible_unclaimed_ready). SSH agent stopped by the owner afterwards.
+- **Switches at deployment:** `BRANCH_ENTITLEMENTS=shadow` first (logs differences, blocks nothing) → `enforce` only
+  after a clean shadow review. `AUTOMATIC_TRIAL` as docs/121. Both new senders stay off
+  (`WHATSAPP_TEMPLATE_TRIAL_STARTED`, `WHATSAPP_TEMPLATE_BRANCH_ACTIVATION` empty).
+- **Before deployment (owner's condition):** rehearse 0130–0132 backfill on a RESTORED PRODUCTION BACKUP with real rows
+  (not only the schema) and verify each of the 8 existing stores keeps exactly its current access (state, end, grace).
+- **Meta:** `dukan_trial_started` EN/FR/AR In review; `dukan_account_ready` Active, unedited, sender off;
+  `dukan_branch_activation_ready` not submitted.
+- **Next:** fresh full suites + exact-head render/visual gates on these heads (see SESSION_LOG); then the real-data
+  backfill rehearsal in a server session; owner review; deploy decision.
+
 **automatic_trial_2026-11-06 (owner brief; replaces older state where they differ).**
 - **Heads (post-build4, pushed):** backend `d978ad2` (feature `6a9891b`), mobile `ef9831a`, console `fe4999a0`.
   Production unchanged (backend `37856b3`). No deploy, no iOS build.

@@ -13150,3 +13150,18 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - 0131 applied locally after backup phonestore-local-0130-20261106T054603Z.sql; temp DBs grace_qa0131, addon_qa0131.
 - Meta: dukan_trial_started EN/FR/AR submitted (In review); dukan_account_ready found Active, left unedited.
 - No deploy, no iOS build, sender keys unset.
+
+## 2026-11-06 — CLAUDE — per-branch entitlements (0132), trial-notice staleness, launch intro
+
+- **Trial notice (backend 517145b):** a `trial_started` notice is superseded at delivery when the trial ended
+  (`trial_not_running`) or is more than 24 h old (`trial_notice_late`); business-name whitespace fix. 20/20 real-MySQL.
+- **Production census (read-only, counts only, SSH session opened by the owner):** 8 businesses, one store each, no
+  payments, no waiting requests; automatic trial reaches 1. Production schema dumped (structure + migration rows only).
+- **0132 (backend 5504a71, 56e8537):** design docs/122; per-store state rules, interceptor enforcement with
+  `BRANCH_ENTITLEMENTS`, idempotent audited per-store approval, first-store trial, per-store reminders, console/portal
+  status. Real-MySQL 9/9 mixed states + per-store notice test. Rehearsal on production schema PASS (0129 → 0132).
+- **Console c96c48db, mobile cabc034:** portal store choice and dates; console store status and proof lines; app store
+  access words, no payment in the app.
+- **Launch intro (mobile 6791bc1, 6439d86):** a tap skips forward; owner measured on an iPhone → motion 1.4 s, 2 s in all.
+- **Not done:** real-data backfill rehearsal (needs a restored production backup); gates on the final heads (next entry).
+- Nothing deployed; no iOS build; both new senders off.

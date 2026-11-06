@@ -9143,3 +9143,24 @@ with no claim and no payment taken. Businesses eligible before this change get i
 created, paid, granted, refused, closed and already-started businesses never do, nor a contact that already had a trial.
 Old claim links stay compatible until they expire; no new ones are issued. The trial covers the first branch only:
 additional branches need their own paid activation (D228). Message: `dukan_trial_started`. Detail: docs/121.
+
+## D230 — Each store is its own subscription (the owner's briefs, 2026-11-06)
+
+- **Rule:** every store branch has its own state, start, end, grace and payment history (docs/122). The business keeps
+  only account facts: its people, suspension or refusal, its proofs, its registration and trial eligibility.
+- **Trial:** the automatic seven-day trial (D229) is the business's first store's alone. An additional store never
+  inherits or receives it, and never waits for its end: paid, it opens at the payment's approval with its own months.
+- **Prices:** the existing catalogue (`billing/period-offers.ts`), 1, 3 or 12 months per store. Nothing duplicated.
+- **Renewal:** from the store's own paid end while active or in grace; otherwise from the approval.
+- **Grace:** 72 hours, at most three granted in any rolling 12 months — per store.
+- **Enforcement:** every branch-scoped request checks its store; every branch named in the path or body is checked too.
+  Sign-in, the branch list, branch requests, subscription pages and proof submission stay open when every store is locked.
+  Managers and Employees never reach a locked store (it has no branch row or assignment until it opens).
+- **Messages:** one 3/2/1-day timeline per store, the store named beside the business. No new template.
+- **Grandfathering:** each existing store copies its business's timeline at 0132; a store with no row follows the business
+  as before. Nobody loses access at the change.
+- **iOS:** the app shows a store's state in words and never a price, payment link or purchase button (Apple 3.1.1);
+  activation stays outside the app, through the portal and the approved WhatsApp process.
+- **Rollout:** `BRANCH_ENTITLEMENTS=shadow` first, `enforce` only after a clean shadow review; rehearse the backfill on a
+  restored production backup with real rows first and check each of the 8 stores keeps exactly its access.
+- **Supersedes:** D176's `scheduled` opening for stores added in the app (docs/120 §3).

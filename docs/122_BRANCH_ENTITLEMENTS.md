@@ -163,3 +163,16 @@ migration 0129), with 0130 and 0131 applied first, as the deployment will.
 
 The rules are the same as today: 72 hours, and at most three granted in any rolling 12 months. Both apply **per
 branch** instead of per business. A business with two branches can therefore receive grace on each branch separately.
+
+## 10. As built (2026-11-06)
+
+- **A store with no row follows the business.** Any store opened outside the per-branch flows (a fixture, an older path)
+  reads its business's state, as before 0132, so the change cannot lock it. The trial is the exception: an additional
+  store never inherits it.
+- **Reminders:** a business whose stores have rows gets one 3/2/1-day timeline per store, keyed `s:<store hex>:<period
+  key>`, re-validated per store at delivery. When the business has more than one store, the message's existing
+  `business` variable reads "Business · Store": no template change, so no new Meta review.
+- **Console decisions** (approve, extend, grant) still decide for the whole business and every store follows them; a
+  payment proof applies its own lines store by store and does not.
+- **Before deployment:** the owner requires the 0130–0132 backfill rehearsed on a restored production backup with real
+  rows, verifying that each of the 8 stores keeps exactly its current access; then `shadow`, then `enforce`.
