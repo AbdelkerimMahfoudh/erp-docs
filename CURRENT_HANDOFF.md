@@ -2,6 +2,22 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**automatic_trial_2026-11-06 (owner brief; replaces older state where they differ).**
+- **Heads (post-build4, pushed):** backend `d978ad2` (feature `6a9891b`), mobile `ef9831a`, console `fe4999a0`.
+  Production unchanged (backend `37856b3`). No deploy, no iOS build.
+- **0131_automatic_trial** (additive: notice kind `trial_started`) applied to LOCAL phonestore after backup
+  `~/erp-backups/phonestore-local-0130-20261106T054603Z.sql`. Temporary DBs on 3308 to drop later: `prisma_qa_branch`,
+  `grace_qa0131`, `addon_qa0131` (phonestore_app has DML grants on the last two — revoke when dropping).
+- **Feature:** docs/121. Trial starts at registration completion (code proved), or at a legacy eligible Owner's next sign-in;
+  `AUTOMATIC_TRIAL` switch (default enabled); old links answer `alreadyActive`; no new setup links.
+- **Meta:** `dukan_trial_started` EN/FR/AR submitted 2026-11-06 — In review. `dukan_account_ready` EN/FR/AR now Active,
+  unedited, sender stays off. `dukan_branch_activation_ready` still NOT submitted (awaits owner).
+- **Tests:** backend all real-MySQL suites pass on disposable grace_/addon_ DBs (225 + 2 skipped); unit suite only the 2
+  pre-existing Windows failures; mobile 561/561, pure all pass, lint 37 warnings; console only the 2 pre-existing CRLF
+  failures. Gates on ef9831a: see SESSION_LOG.
+- **Next:** production census (deploy/automatic-trial-census.sql) in a server session; owner review; Meta approvals →
+  controlled Test-business send → set WHATSAPP_TEMPLATE_TRIAL_STARTED; retire dukan_account_ready; then deploy decision.
+
 **new_branch_setup_2026-11-06 (owner brief of 2026-11-05; this block replaces older state where they differ).**
 - **Heads, branch `post-build4`, pushed:** backend `f839c55` (0ee252a, c255c3e, f839c55); mobile `d067dd7`; console `540bcbcf`.
   Production unchanged: backend `37856b3`; `3a125fd`/`ce326256` and everything since are NOT deployed. No iOS build.

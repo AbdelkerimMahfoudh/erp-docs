@@ -9134,3 +9134,12 @@ request pending activation — no branch, no free trial, no seat, not selectable
 when the platform approves a payment that covers it (or, during the business's trial, at the trial's end). The app shows
 no price, plan, payment or link; the activation instructions go to the Owner's verified WhatsApp number through the
 template `dukan_branch_activation_ready`, disabled until Meta approves it. Detail: docs/120.
+
+
+## D229 — The 7-day trial starts automatically (the owner's brief, 2026-11-06)
+
+A self-registered business's free trial starts when its registration completes (the code proved), for exactly 168 hours,
+with no claim and no payment taken. Businesses eligible before this change get it at the Owner's next sign-in. Console-
+created, paid, granted, refused, closed and already-started businesses never do, nor a contact that already had a trial.
+Old claim links stay compatible until they expire; no new ones are issued. The trial covers the first branch only:
+additional branches need their own paid activation (D228). Message: `dukan_trial_started`. Detail: docs/121.

@@ -13142,3 +13142,11 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   App Review note and 3.1.3(c) question).
 - 0130 applied to the local DB after backup phonestore-local-0129-20261106T033401Z.sql; temp DB prisma_qa_branch kept.
 - Tests: see CURRENT_HANDOFF. Meta template NOT submitted (waits for the owner). No deploy, no iOS build.
+
+## 2026-11-06 — Automatic 7-day trial (0131), CLAUDE, local session
+
+- Owner brief: trial starts automatically at registration; claim flow kept only for old links.
+- Backend 6a9891b + d978ad2; mobile ef9831a; console fe4999a0; docs/121, D229.
+- 0131 applied locally after backup phonestore-local-0130-20261106T054603Z.sql; temp DBs grace_qa0131, addon_qa0131.
+- Meta: dukan_trial_started EN/FR/AR submitted (In review); dukan_account_ready found Active, left unedited.
+- No deploy, no iOS build, sender keys unset.
