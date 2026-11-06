@@ -9125,3 +9125,12 @@ line; reports count one sale and many items. Maintenance stays separate. No bund
 - The business page says "Free trial until …" instead of "Not given yet", and "the eligibility was used" once the trial is claimed.
 - Approving mid-trial counts the months from the trial's end and shows the resulting end date. No zero-length period, and no grace or billing rule changed.
 - The businesses list shows the Owner's verified number.
+
+
+## D228 — A store added from the app waits for activation (the owner's brief, 2026-11-05)
+
+The Owner may add a store from the app's store list: a name and an optional place, nothing else. It is created as a
+request pending activation — no branch, no free trial, no seat, not selectable or operable — and becomes a store only
+when the platform approves a payment that covers it (or, during the business's trial, at the trial's end). The app shows
+no price, plan, payment or link; the activation instructions go to the Owner's verified WhatsApp number through the
+template `dukan_branch_activation_ready`, disabled until Meta approves it. Detail: docs/120.

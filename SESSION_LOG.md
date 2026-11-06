@@ -13133,3 +13133,12 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   - approval during a trial defaults its end to the trial end;
   - one batched gate run.
   - No EAS Build 4.
+
+
+## 2026-11-06 — New-branch setup (0130), CLAUDE, local session
+
+- Owner brief of 2026-11-05: add a store from the app, pending activation, activated by a verified payment.
+- Backend 0ee252a, c255c3e, f839c55; mobile d067dd7; console 540bcbcf; docs/120 written (state model, rules, Meta texts,
+  App Review note and 3.1.3(c) question).
+- 0130 applied to the local DB after backup phonestore-local-0129-20261106T033401Z.sql; temp DB prisma_qa_branch kept.
+- Tests: see CURRENT_HANDOFF. Meta template NOT submitted (waits for the owner). No deploy, no iOS build.

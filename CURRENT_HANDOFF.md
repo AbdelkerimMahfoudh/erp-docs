@@ -2,6 +2,26 @@
 
 Status: IN_PROGRESS
 Owner: CLAUDE (local session, the owner's PC)
+**new_branch_setup_2026-11-06 (owner brief of 2026-11-05; this block replaces older state where they differ).**
+- **Heads, branch `post-build4`, pushed:** backend `f839c55` (0ee252a, c255c3e, f839c55); mobile `d067dd7`; console `540bcbcf`.
+  Production unchanged: backend `37856b3`; `3a125fd`/`ce326256` and everything since are NOT deployed. No iOS build.
+- **Migration 0130_branch_requests** (additive) applied to the LOCAL dev DB (3308, phonestore) on 2026-11-06 after backup
+  `~/erp-backups/phonestore-local-0129-20261106T033401Z.sql`. Not applied to production. Temporary DB `prisma_qa_branch`
+  (3308) still exists — drop it once no longer needed.
+- **Feature:** docs/120. Owner-only "Add a store" in the app → pending store request (no Branch row, no trial, no seat);
+  portal quote prices it; proof approval activates it atomically (or schedules at trial end); notice
+  `dukan_branch_activation_ready` held until `WHATSAPP_TEMPLATE_BRANCH_ACTIVATION` is set; admin audited resend.
+- **Verification:** backend real-MySQL 16/16 journeys; backend full Jest: 3 failing suites are pre-existing Windows-only
+  (trial.service, subscription-lifecycle, deploy-production — untouched files; CRLF/backslash). Mobile: tsc clean, lint 37
+  warnings (≤40), Jest 559/559, all pure tests pass. Console: tsc clean; vitest only the 2 pre-existing source-rules
+  CRLF failures (load timeouts pass alone). Live local API journey passed. CI: security ✓ on d067dd7; render-tests run
+  42163036368 and visual-check run 42163029039 targeted at d067dd7/f839c55.
+- **Local:** API on 3010 (nest start) at f839c55; Metro 8082 still running. A live request "Ksar live 71590" (pending)
+  exists for Boutique 1 in the local DB.
+- **Next:** (1) owner reviews; (2) owner approves Meta submission of dukan_branch_activation_ready EN/FR/AR (texts in
+  docs/120 §4) — not submitted; (3) after approval + Test-business send, set the env key; (4) App Review note and
+  3.1.3(c) question in docs/120 §6; (5) only then a new iOS build, on the owner's word.
+
 **dukan_portal_launch_2026-11-04 (takeover by owner brief; this block replaces older state where they differ).** Owner said "Start dukan launch".
 - **Heads verified, level with origin, branch `post-build4`:**
   - backend `37856b3` (production, API `erp-api:37856b3`, rollback `b945098`);
