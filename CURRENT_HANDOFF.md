@@ -22,6 +22,20 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
   /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
   traffic yet).
+- **Deployed 2026-11-07 22:41Z (owner-approved): backend `5419fda` + 0133** — WhatsApp daily summary (first close of a day)
+  and monthly summary (close of a month's last day): in-app always, WhatsApp while its switch is on, verified Owner number,
+  once. 0133: both switches default ON and set ON for all 7 settings rows (owner: all businesses). CI 42417715079;
+  off-host backup `phonestore-20261107T224132Z`; smoke 15/15; identities 25/25; audit 12/12; 132/132 migrations; 8 stores
+  unchanged; env unchanged (shadow, trial disabled, all new template keys unset). Rollback target `erp-api:66518fe`
+  (0133 needs no floor). Floors now 2/0/0: a second Test-business request "Test" (22:14Z) — both pending, notices held.
+- **Meta, submitted 2026-11-07 (Utility, In review), owner-approved:** `dukan_daily_summary`, `dukan_monthly_summary`,
+  `dukan_branch_activation_ready` — EN/FR/AR each. Report-style wording (Meta flagged the first drafts as marketing):
+  daily EN "Your store {{1}} closed the day {{2}}. Closing report: {{3}}. {{4}}. Open the app to view it."; monthly EN
+  "Your store {{1}} closed the month {{2}}. Monthly report: {{3}}, {{4}}. Open the app to view it."; activation as docs/120
+  §4 (AR reworded: "تحديث حسابك: الفرع {{1}} التابع لـ {{2}} بانتظار التفعيل…"), button View subscription →
+  dukan.tsxmr.com/subscription. Keys to set after approval + a controlled send: WHATSAPP_TEMPLATE_CLOSING_SUMMARY=
+  dukan_daily_summary, WHATSAPP_TEMPLATE_CLOSING_MONTHLY=dukan_monthly_summary, WHATSAPP_TEMPLATE_BRANCH_ACTIVATION=
+  dukan_branch_activation_ready.
 - **Fix-forward deployed 2026-11-07 21:31Z (owner-approved): backend `66518fe`** — the 0132 deploy made one duplicate
   24-hour grace reminder for e1946d13 (business key `grace:…` + store key `s:<store>:grace:…`; both failed
   template_unavailable, nothing sent). Fix: a reminder already made under the business key stands for that moment.
