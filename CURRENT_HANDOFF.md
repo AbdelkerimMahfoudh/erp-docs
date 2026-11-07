@@ -2,6 +2,29 @@
 
 Status: READY_FOR_HANDOFF
 Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushed, 2026-11-07
+**production_0132_deploy_2026-11-07 — BACKEND 80c8f2c DEPLOYED (owner-approved; replaces older state where they differ).**
+- **Deployed:** erp-api:80c8f2c (built 2026-11-07T16:42:10Z) to erp-production; migrations 0130, 0131, 0132 applied (131/131,
+  none pending/missing). Rollback target `erp-api:37856b3`; rollback floors 0130/0131/0132 all 0 → rollback still
+  permitted. Server checkout detached at 80c8f2c, clean (delivered by bundle `~/erp-backend-80c8f2c.bundle`).
+- **Settings:** `api.env` gained ONLY `BRANCH_ENTITLEMENTS=shadow`, `AUTOMATIC_TRIAL=disabled` (copy `api.env.pre-0132`).
+  Fingerprints: stack.env `b0deb3e485d091bd` (unchanged, 15 keys); api.env `787e60523b70cf86` (58) → `78bcaacad8182fc4`
+  (60). Sender keys `WHATSAPP_TEMPLATE_TRIAL_STARTED`, `WHATSAPP_TEMPLATE_BRANCH_ACTIVATION` unset (verified in container).
+- **Backups:** off-host copy + receipt `phonestore-20261107T163233Z` (restore drill PASSED, laptop key in /dev/shm,
+  removed), then `phonestore-20261107T164157Z` (receipt for the deploy); migrate.sh took its own backup. Storage Box: fresh
+  archive `erp-production-20261107T164059Z`, `borg check --verify-data` OK, restore drill PASSED →
+  `offsite-restore-proof kind=storage-box` (16:41:46Z). Note: my laptop-kind drill at 16:33 had overwritten the
+  storage-box proof, and the first deploy attempt stopped at preflight (nothing migrated); the Storage Box drill above
+  restored it legitimately, then the deploy was resumed with `--after-interrupted`.
+- **Verified after deploy:** smoke 15/15; identities 25/25; audit chain 12/12; 144 tables, 74 triggers (bodies md5
+  e3f1bfd4…, unchanged); new columns + notice kinds present. The 8 live stores: identical to the pre-deploy snapshot
+  (7 rows = business timeline incl. e1946d13 grace to 2026-11-08; 86202db8 no row, eligible, 0 claims, 0 trial_started
+  notices). Deleted businesses' 4 stores: 3 got dormant rows (backfill copied paid ends) but each business is inactive,
+  deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
+  /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
+  traffic yet).
+- **Pending:** step 10 (Test-business pending branch exercise) — needs the owner's sign-ins (no passwords typed on
+  production by Claude). Then shadow review; enforce, automatic trials and both senders stay OFF; no iOS build yet.
+
 **branch_entitlements_2026-11-07 — FINAL HEADS, exact-head gates green (replaces older state where they differ).**
 - **Final heads (post-build4, pushed):** backend `f2daba2` (517145b, 5504a71, 56e8537, f5e49dd, aa1a7fb hardening,
   dbdf150, f2daba2 lifecycle spec); mobile `b9b612d` (6791bc1, 6439d86, cabc034, b1f5536 pointer-transparent intro,

@@ -13207,3 +13207,10 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - Cleanup: copy dropped, migrator grant revoked, /tmp/rh removed. Live stays at 0129, untouched.
 - Deploy recommendation: BRANCH_ENTITLEMENTS=shadow, AUTOMATIC_TRIAL=disabled (until WHATSAPP_TEMPLATE_TRIAL_STARTED is
   set together), both new senders off. Awaiting the owner's deployment approval. No build started.
+
+## 2026-11-07 — CLAUDE — production deployment of backend 80c8f2c (0130–0132, shadow)
+
+- See CURRENT_HANDOFF block production_0132_deploy_2026-11-07 for backups, fingerprints and verification.
+- Incident (self-caused, no data impact): a laptop-kind restore drill overwrote offsite-restore-proof kind=storage-box;
+  the deploy refused at preflight before migrating; a real Storage Box restore drill restored the proof; deploy resumed.
+- Deployed and verified; Test-business step 10 pending owner sign-ins.
