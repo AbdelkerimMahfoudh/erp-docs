@@ -13180,3 +13180,5 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
   CI 42306110671 green. Visual run 42311285696 had Chromium cancelled; retry fit in 90 min, workflow left unchanged.
 - Meta templates not re-checked this session: Chrome extension disconnected and the built-in browser is signed out.
 - Nothing deployed; no iOS build; no SSH; both new senders off; BRANCH_ENTITLEMENTS undeployed.
+
+- 2026-11-07 (later): Meta re-checked in Chrome — dukan_trial_started EN/FR/AR now Active; dukan_subscription_expiry and dukan_account_ready Active; dukan_branch_activation_ready not submitted. Senders unchanged (off).

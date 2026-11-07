@@ -47,7 +47,7 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   (`WHATSAPP_TEMPLATE_TRIAL_STARTED`, `WHATSAPP_TEMPLATE_BRANCH_ACTIVATION` empty).
 - **Before deployment (owner's condition):** rehearse 0130–0132 backfill on a RESTORED PRODUCTION BACKUP with real rows
   (not only the schema) and verify each of the 8 existing stores keeps exactly its current access (state, end, grace).
-- **Meta:** `dukan_trial_started` EN/FR/AR In review; `dukan_account_ready` Active, unedited, sender off;
+- **Meta:** `dukan_trial_started` EN/FR/AR **Active** (checked 2026-11-07; sender still off until a controlled Test-business send); `dukan_account_ready` Active, unedited, sender off;
   `dukan_branch_activation_ready` not submitted.
 - **Next (owner-dependent):** owner confirms the 2 s intro on the iPhone; Meta template statuses re-checked (needs a
   signed-in browser); real-data 0130–0132 backfill rehearsal on a restored production backup (server session) proving
