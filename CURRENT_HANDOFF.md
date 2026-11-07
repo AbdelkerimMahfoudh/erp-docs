@@ -22,6 +22,11 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
   /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
   traffic yet).
+- **Rollback position accepted by the owner (2026-11-07, before step 10):** creating the Test-business branch request
+  writes a `branch_activation` notice row (held, sender off), moving the 0130 floor 0 → 1; refusing the request keeps
+  the row. From then on `rollback.sh` to `erp-api:37856b3` is refused. The owner consciously accepts this because the
+  pre-deploy backups and restore proofs passed (laptop drill on `phonestore-20261107T163233Z`, Storage Box drill on
+  `erp-production-20261107T164059Z`). Fallback afterward: fix forward, or full restoration of the verified backup.
 - **Pending:** step 10 (Test-business pending branch exercise) — needs the owner's sign-ins (no passwords typed on
   production by Claude). Then shadow review; enforce, automatic trials and both senders stay OFF; no iOS build yet.
 
