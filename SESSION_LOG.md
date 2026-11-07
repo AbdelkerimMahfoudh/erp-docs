@@ -13183,3 +13183,27 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 
 - 2026-11-07 (later): Meta re-checked in Chrome — dukan_trial_started EN/FR/AR now Active; dukan_subscription_expiry and dukan_account_ready Active; dukan_branch_activation_ready not submitted. Senders unchanged (off).
 - 2026-11-07: controlled send of dukan_trial_started (EN) to the owner's own number, through the f2daba2 sender code run once inside the production API container (not deployed), production credentials: Meta status accepted. One-off files removed; WHATSAPP_TEMPLATE_TRIAL_STARTED still unset; production code unchanged. Awaiting the owner's confirmation that it arrived and reads correctly.
+
+## 2026-11-07 — CLAUDE — 0130–0132 backfill rehearsal on production data (SSH opened by the owner)
+
+- Latest backup `phonestore-20261107T024000Z.sql.gz.age` (169,489 B): sha256 OK. Owner chose a fresh read-only dump
+  (phonestore_backup, backup.sh flags) instead of decrypting; restored by deploy/restore-drill.sh into
+  `phonestore_drill_20261107T161123Z` (KEEP_DRILL=1): PASS — 141 tables, 74 triggers, row counts, binary keys, money
+  (sales 120,000.00 / payments 120,000.00), trigger bodies, every table's CHECKSUM.
+- Migrations from backend f2daba2 via the production tools image (erp-api-tools:37856b3), as phonestore_migrator with a
+  temporary grant on the copy only: 0130, 0131, 0132 applied; second run "No pending migrations"; status up to date.
+  (Prisma-level idempotency; the raw 0132 backfill SQL is not meant to be re-executed by hand.)
+- Before/after (8 live businesses, 12 stores incl. 4 of deleted businesses; hashed ids): 7 stores got a row identical
+  to their business's timeline (paid end, trial end, complimentary, granted grace — e1946d13 keeps grace to 2026-11-08);
+  the trial-eligible business 86202db8 (pending_activation) has no row = follows the business as before, eligibility
+  still open, 0 claims — the migration starts no trial. Rows: 10 entitlements, 10 periods (all grandfathered),
+  2 grace copies, 0 proofs with lines; notices 17 and trial_claims 1 unchanged.
+- After migration vs live: 141/141 pre-existing table checksums identical except `_prisma_migrations` (+3 rows);
+  pre-existing trigger bodies identical (md5 e3f1bfd4…); new: 3 tables, 4 columns (seat_allocations.location,
+  request_key; subscription_notices.kind +2; payment_proofs.lines).
+- Rollback floors added (backend 80c8f2c): detection on the copy 0/0/0 → allowed; after a test store payment and the
+  two new notice kinds 1/1/1 → refused.
+- Shadow rule (backend e5d0286): shadow mode refuses a never-opened (`locked`) store; real-MySQL test.
+- Cleanup: copy dropped, migrator grant revoked, /tmp/rh removed. Live stays at 0129, untouched.
+- Deploy recommendation: BRANCH_ENTITLEMENTS=shadow, AUTOMATIC_TRIAL=disabled (until WHATSAPP_TEMPLATE_TRIAL_STARTED is
+  set together), both new senders off. Awaiting the owner's deployment approval. No build started.
