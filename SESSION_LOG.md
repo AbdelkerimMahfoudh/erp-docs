@@ -13182,3 +13182,4 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - Nothing deployed; no iOS build; no SSH; both new senders off; BRANCH_ENTITLEMENTS undeployed.
 
 - 2026-11-07 (later): Meta re-checked in Chrome — dukan_trial_started EN/FR/AR now Active; dukan_subscription_expiry and dukan_account_ready Active; dukan_branch_activation_ready not submitted. Senders unchanged (off).
+- 2026-11-07: controlled send of dukan_trial_started (EN) to the owner's own number, through the f2daba2 sender code run once inside the production API container (not deployed), production credentials: Meta status accepted. One-off files removed; WHATSAPP_TEMPLATE_TRIAL_STARTED still unset; production code unchanged. Awaiting the owner's confirmation that it arrived and reads correctly.
