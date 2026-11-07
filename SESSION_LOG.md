@@ -13165,3 +13165,18 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - **Launch intro (mobile 6791bc1, 6439d86):** a tap skips forward; owner measured on an iPhone → motion 1.4 s, 2 s in all.
 - **Not done:** real-data backfill rehearsal (needs a restored production backup); gates on the final heads (next entry).
 - Nothing deployed; no iOS build; both new senders off.
+
+## 2026-11-07 — CLAUDE — final verification of per-branch entitlements on exact heads
+
+- Hardening (backend aa1a7fb, dbdf150): proof key reuse, duplicate/foreign stores refused, server price; store name kept
+  in reminders (a genuine truncation defect, found by the new EN/FR/AR length test and fixed).
+- Backend Linux CI had been red since 5504a71: `subscription-lifecycle.spec` lacked per-store fakes and pinned the old
+  fence shape. Earlier local reports had wrongly grouped these with the Windows-only failures. Fixed (test only) in
+  f2daba2; Linux CI 42371926112 green. Local Windows suite (dbdf150): 5,641 passed with six known Windows failures.
+- Mobile b1f5536 (intro overlay pointer-transparent, tap-skip via root capture); b9b612d Expo SDK 58 deps aligned
+  (safe-area ~5.11.1 + 16 patches, owner-approved; expo-camera patch re-cut for 58.0.14, identical changes); zero
+  mismatches, expo-doctor 20/20, jest 561/561.
+- Gates on final heads: render 42370958797, visual 42372388414 (mobile b9b612d + backend f2daba2) all green; console
+  CI 42306110671 green. Visual run 42311285696 had Chromium cancelled; retry fit in 90 min, workflow left unchanged.
+- Meta templates not re-checked this session: Chrome extension disconnected and the built-in browser is signed out.
+- Nothing deployed; no iOS build; no SSH; both new senders off; BRANCH_ENTITLEMENTS undeployed.

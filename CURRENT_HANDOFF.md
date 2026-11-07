@@ -1,17 +1,41 @@
 # CURRENT_HANDOFF
 
-Status: IN_PROGRESS
-Owner: CLAUDE (local session, the owner's PC)
-**branch_entitlements_2026-11-06 (owner briefs of 2026-11-06; replaces older state where they differ).**
-- **Heads (post-build4, pushed):** backend `56e8537` (517145b trial-notice staleness, 5504a71 0132 core, 56e8537
-  per-store notices/status); mobile `cabc034` (6439d86 intro 1.4 s / 2 s, 6791bc1 tap-to-skip, cabc034 store access);
-  console `c96c48db`; docs: this commit. Production unchanged (backend `37856b3`). No deploy, no iOS build.
+Status: READY_FOR_HANDOFF
+Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushed, 2026-11-07
+**branch_entitlements_2026-11-07 — FINAL HEADS, exact-head gates green (replaces older state where they differ).**
+- **Final heads (post-build4, pushed):** backend `f2daba2` (517145b, 5504a71, 56e8537, f5e49dd, aa1a7fb hardening,
+  dbdf150, f2daba2 lifecycle spec); mobile `b9b612d` (6791bc1, 6439d86, cabc034, b1f5536 pointer-transparent intro,
+  b9b612d Expo SDK 58 deps aligned); console `98704632`; docs: this commit. Production unchanged (backend `37856b3`).
+  Nothing deployed, no iOS build, no SSH session, both new senders off, `BRANCH_ENTITLEMENTS` undeployed.
+- **Exact-head gates:**
+  - Backend Linux CI (security.yml) on `f2daba2`: run 42371926112 **success** (all six jobs). It had been red since
+    5504a71: `subscription-lifecycle.spec` lacked the per-store fakes and pinned the old fence shape — fixed in f2daba2
+    (test-only; the product code was right).
+  - Backend local full suite (Windows, fresh `grace_qa0132d`/`addon_qa0132d`, at dbdf150): 5,641 passed with six known
+    Windows failures — NOT a fully passed suite. On re-inspection three of those six were the lifecycle spec above (real,
+    now fixed); the remaining three are `deploy-production.spec` CRLF shebang (Windows-only, green on Linux).
+  - Mobile dependencies: `npx expo install react-native-safe-area-context` (~5.11.1) + `expo install --fix` for 16 SDK 58
+    patch mismatches (owner approved all); expo-camera native patch re-cut for 58.0.14 with identical changes;
+    expo-doctor 20/20, `expo install --check` zero mismatches; tsc clean; jest 561/561.
+  - Render gate on `b9b612d`: run 42370958797 — 561/561, web + iOS export, bundle/deps audit, web smoke: all exit 0.
+  - Visual gate on mobile `b9b612d` + backend `f2daba2`: run 42372388414 — layout 1205/1205 Chromium and WebKit
+    (incl. disclosure matrix), brand 59/59 both (timing 2000 ms / motion 1400 ms, tap-skip), ui-input 245/245 both,
+    access-journey 21/21 both, expo-doctor 20/20. (Run 42311285696 had Chromium cancelled with brand skipped; the
+    retry finished inside 90 min, so the workflow structure was left as is.)
+  - Console Linux CI on `98704632`: run 42306110671 success (typecheck, 747 vitest, 169 Playwright, builds, gitleaks).
+- **Verified rules (brief items 4–8):** backend/console/mobile response shapes match (`plans.branches`,
+  `businesses/:id.storeStatus`, `proof.lines`, `/entitlement.branches`). Server recalculates price; rejects another
+  business's store (`branch_not_quotable`), duplicates (`branches_duplicate`), released requests, and a reused key
+  with a different file/months/stores (`proof_key_reused`). Reminders: one per store per remaining day under concurrent
+  refreshes. Meta `dukan_subscription_expiry` has 2 variables = sender's `['business','days']`; "Business · Store" with
+  the store name kept (≤60) and the business shortened first (variable ≤100, body ≤1024) in EN/FR/AR. **Same-date
+  expiry:** several stores ending the same day each get their own notice naming their store (tested).
 - **0132_branch_entitlements** (additive: branch_entitlements, branch_periods, branch_grace_episodes,
   payment_proofs.lines) applied to LOCAL phonestore after backup `~/erp-backups/phonestore-local-0131-20261106T*.sql`.
   Rehearsed on production's schema (dump 2026-11-06, base 0129 → 0130, 0131, 0132): PASS. Temporary DBs on 3308 to drop
   later: `prisma_qa_branch`, `grace_qa0131`, `addon_qa0131`, `grace_qa0132`, `addon_qa0132` (phonestore_app DML
   grants on the grace_/addon_ ones — revoke when dropping).
-- **Feature:** docs/122 + D230. Each store its own trial (first store only), paid end, grace (72 h, 3/12 months per
+- **Feature:** docs/122 + D230. Each store its own trial (first store only), paid end, grace (72 h; 1/3/12 months per
   store) and history. A branch paid in the app opens at approval with its own months. Enforced per branch-scoped request
   and per branch named in path/body. Stores without a row follow the business (never locked by the change).
   Per-store 3/2/1 reminders (keys `s:<store>:…`, business variable "Business · Store"); portal store choice; console
@@ -25,8 +49,10 @@ Owner: CLAUDE (local session, the owner's PC)
   (not only the schema) and verify each of the 8 existing stores keeps exactly its current access (state, end, grace).
 - **Meta:** `dukan_trial_started` EN/FR/AR In review; `dukan_account_ready` Active, unedited, sender off;
   `dukan_branch_activation_ready` not submitted.
-- **Next:** fresh full suites + exact-head render/visual gates on these heads (see SESSION_LOG); then the real-data
-  backfill rehearsal in a server session; owner review; deploy decision.
+- **Next (owner-dependent):** owner confirms the 2 s intro on the iPhone; Meta template statuses re-checked (needs a
+  signed-in browser); real-data 0130–0132 backfill rehearsal on a restored production backup (server session) proving
+  all 8 stores keep their access; deploy with `BRANCH_ENTITLEMENTS=shadow`, `enforce` only after a clean shadow review;
+  drop temp DBs `prisma_qa_branch`, `grace_/addon_qa0131`, `qa0132`, `qa0132b`, `qa0132c`, `qa0132d` and revoke grants.
 
 **automatic_trial_2026-11-06 (owner brief; replaces older state where they differ).**
 - **Heads (post-build4, pushed):** backend `d978ad2` (feature `6a9891b`), mobile `ef9831a`, console `fe4999a0`.

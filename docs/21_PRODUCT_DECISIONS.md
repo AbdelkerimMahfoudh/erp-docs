@@ -9164,3 +9164,16 @@ additional branches need their own paid activation (D228). Message: `dukan_trial
 - **Rollout:** `BRANCH_ENTITLEMENTS=shadow` first, `enforce` only after a clean shadow review; rehearse the backfill on a
   restored production backup with real rows first and check each of the 8 stores keeps exactly its access.
 - **Supersedes:** D176's `scheduled` opening for stores added in the app (docs/120 §3).
+
+### D230 — verified on the final heads (2026-11-07)
+
+- Final heads: backend `f2daba2`, mobile `b9b612d`, console `98704632`. Gates: backend Linux CI 42371926112 green;
+  render 42370958797 green; visual 42372388414 green (layout 1205/1205 ×2, brand 59/59 ×2, ui-input 245/245 ×2,
+  access-journey 21/21 ×2, expo-doctor 20/20); console CI 42306110671 green.
+- Hardening rules (aa1a7fb): the price is always the server's quote; a store not quotable for this business is
+  `branch_not_quotable`; a store named twice is `branches_duplicate`; an idempotency key reused with a different file,
+  months or stores is `proof_key_reused` (a true retry still returns the first proof).
+- Several stores expiring on the same date: each gets its own 3/2/1-day notice naming its store, once per store per
+  remaining day; the store name is kept and the business name shortened first to fit WhatsApp's variable limit.
+- Rollout: deploy with `BRANCH_ENTITLEMENTS=shadow`; `enforce` only after a clean shadow review, and only after the
+  0130–0132 backfill is rehearsed on a restored production backup showing all 8 stores keep their current access.
