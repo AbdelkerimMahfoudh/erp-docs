@@ -13214,3 +13214,5 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - Incident (self-caused, no data impact): a laptop-kind restore drill overwrote offsite-restore-proof kind=storage-box;
   the deploy refused at preflight before migrating; a real Storage Box restore drill restored the proof; deploy resumed.
 - Deployed and verified; Test-business step 10 pending owner sign-ins.
+
+- 2026-11-07 21:31Z: fix-forward backend 66518fe deployed (duplicate deploy-day reminder). Owner approved building WhatsApp daily/monthly summaries (never implemented: toggles saved only) with defaults ON for all businesses; Meta submission still needs the owner's OK on wording. Step 10 paused (request pending, floors 1/0/0). Mobile cd2918e fixes the Add-a-store loop before a store is chosen.

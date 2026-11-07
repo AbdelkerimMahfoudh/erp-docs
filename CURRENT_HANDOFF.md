@@ -22,6 +22,12 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
   /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
   traffic yet).
+- **Fix-forward deployed 2026-11-07 21:31Z (owner-approved): backend `66518fe`** — the 0132 deploy made one duplicate
+  24-hour grace reminder for e1946d13 (business key `grace:…` + store key `s:<store>:grace:…`; both failed
+  template_unavailable, nothing sent). Fix: a reminder already made under the business key stands for that moment.
+  CI 42413639828 green; off-host backup `phonestore-20261107T213046Z` + receipt; no migrations; smoke 15/15; identities
+  25/25; audit chain 12/12; 8 stores unchanged; no new duplicate; env unchanged (shadow, trial disabled, senders unset);
+  floors 1/0/0. Rollback target now `erp-api:80c8f2c` (same schema, floors allow). Storage Box proof kept.
 - **Rollback position accepted by the owner (2026-11-07, before step 10):** creating the Test-business branch request
   writes a `branch_activation` notice row (held, sender off), moving the 0130 floor 0 → 1; refusing the request keeps
   the row. From then on `rollback.sh` to `erp-api:37856b3` is refused. The owner consciously accepts this because the
