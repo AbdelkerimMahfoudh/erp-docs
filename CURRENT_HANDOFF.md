@@ -22,7 +22,7 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
   /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
   traffic yet).
-- **App Store: 1.0 (build 6) SUBMITTED for review 2026-11-08, Waiting for Review; manual release (owner releases after approval).** Listing EN/FR/AR, 4+, free, all countries, App Privacy published — docs/114.
+- **App Store: 1.0 (build 6) SUBMITTED for review 2026-11-08, Waiting for Review; AUTOMATIC release (owner switched it before submission): live as soon as Apple approves.** Listing EN/FR/AR, 4+, free, all countries, App Privacy published — docs/114.
 - **iOS build 6 (1.0.0) from mobile `5dcfb74` — uploaded to TestFlight 2026-11-08 00:58Z (owner-approved).** EAS build
   `15a6e035-4574-485f-9473-a68bd97418af`, submission `2e88f310…` succeeded; API https://api.tsxmr.com, legal
   https://dukan.tsxmr.com. Gates on 5dcfb74: render 42425979790, visual 42426865628 (+ backend 5419fda), mobile security
