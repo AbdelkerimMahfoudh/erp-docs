@@ -13222,3 +13222,8 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - 2026-11-08 00:58Z: iOS build 6 from mobile 5dcfb74 uploaded to TestFlight (all gates green). Step 10 complete.
 
 - 2026-11-08: Dukan ERP 1.0 (build 6) submitted to App Review; manual release. App Privacy published.
+
+## 2026-11-08 — 0134 prices and payment categories deployed (owner-approved)
+- Backend `5c7a984` (migration 0134): off-host backup phonestore-20261108T201124Z; deploy 15/15 smoke; rollback target erp-api:5419fda. plan_versions v4 = 600/300/800, seat 100, effective 2026-11-08 20:14Z. AUTOMATIC_TRIAL=disabled, BRANCH_ENTITLEMENTS=shadow unchanged; new WhatsApp senders still unset.
+- Admin console release 20261108T201632Z and portal release 20261108T201637Z from console `fcc6bf0b` CI packages (run 42454499122); both serve the payment-category bundle. Previous releases kept for rollback (admin 20261104T145817Z, portal 20261105T024113Z).
+- CI fixes before deploy: trial-addons real-MySQL spec expectations moved to V4 (`778bb9a`, `5c7a984`). Visual gate: build 6 code against the new backend passed.
