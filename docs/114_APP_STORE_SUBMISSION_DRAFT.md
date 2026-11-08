@@ -119,3 +119,19 @@ Required: iPhone 6.9" (1320×2868) and 6.5" (1284×2778 or 1242×2688), up to 10
 Proposed 5: Home · Scan a product · Sale · Day closing · Stores. Fictitious data only (Dukan-test). Either the owner takes
 them on an iPhone (6.9" = Pro Max), or Claude captures them from the app at those sizes in the browser and frames
 nothing — plain screenshots.
+
+## 7. Entered in App Store Connect (2026-11-08, CLAUDE) — saved, NOT submitted
+
+- Version 1.0: EN/FR/AR promotional text, description, keywords, support URL (per-language /in-app/support), marketing
+  URL; copyright "2026 Mohamed Mahmoud Behli" (company TSXMR not yet registered); build 6 attached; **manual release**.
+- Screenshots: 5 × iPhone with Dynamic Island 1206×2622 (Apple's current required set; app is iPhone-only, no iPad
+  set needed). Files: C:\wamp64\www\ERP\app-store-screenshots\ (also 6.9" and 6.5" sets).
+- App Information: subtitle EN/FR/AR; category Business / Productivity; content rights "no third-party content";
+  age rating 4+ (all No/None, not Made for Kids).
+- Pricing: Free; availability all 175 countries/regions (after release).
+- App Privacy: privacy URL per language; 11 data types (Name, Email, Phone, Physical Address, Other Financial Info,
+  Precise Location, Photos/Videos, Other User Content, User ID, Device ID, Other Diagnostic Data), each App
+  Functionality only, linked, not tracking. **Not published:** "Publish" requires the owner's attestation.
+- **Pending (owner):** App Review → Sign-In Information (demo user + password, typed by the owner). The section does not
+  save without them, so contact (Abdel Kerim Taleb Ould Sidi, abdelkerim@tsxmr.com) and the §5 notes are re-entered
+  after that. Then the owner publishes App Privacy and, after the internal iPhone check, approves "Add for Review".
