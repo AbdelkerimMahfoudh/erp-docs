@@ -135,3 +135,5 @@ nothing — plain screenshots.
 - **Pending (owner):** App Review → Sign-In Information (demo user + password, typed by the owner). The section does not
   save without them, so contact (Abdel Kerim Taleb Ould Sidi, abdelkerim@tsxmr.com) and the §5 notes are re-entered
   after that. Then the owner publishes App Privacy and, after the internal iPhone check, approves "Add for Review".
+
+- **2026-11-08: SUBMITTED to App Review** (owner-approved): Dukan ERP 1.0, build 6 (mobile 5dcfb74), status "Waiting for Review". App Privacy published (owner instructed Claude to publish). Demo sign-in entered by the owner. Manual release: nothing goes live until the owner releases it after approval.

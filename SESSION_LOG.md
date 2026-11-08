@@ -13220,3 +13220,5 @@ backend d3c11a8; mobile e6773aa; docs b579ed3. The claim is `aff4afd`.
 - 2026-11-07 22:41Z: backend 5419fda + 0133 deployed (summaries, switches on for all). 9 Meta templates submitted (daily/monthly/activation x EN/FR/AR), In review. Mobile 782082c (summary wording) not yet gated; candidate for the iOS build is now 782082c. Step 10 still paused; Test business has two pending requests (Shadow Verfication Branch, Test).
 
 - 2026-11-08 00:58Z: iOS build 6 from mobile 5dcfb74 uploaded to TestFlight (all gates green). Step 10 complete.
+
+- 2026-11-08: Dukan ERP 1.0 (build 6) submitted to App Review; manual release. App Privacy published.
