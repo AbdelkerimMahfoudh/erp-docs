@@ -22,6 +22,17 @@ Owner: CLAUDE (local session, the owner's PC) — all four trees clean and pushe
   deleted and cancelled → every branch decision `suspended`, sign-in refused, no restore path exists. Admin console
   /admin 200, portal /subscription 200, `/api/v1/branches/requests` 401 (exists). Shadow log: 0 differences (no user
   traffic yet).
+- **iOS build 6 (1.0.0) from mobile `5dcfb74` — uploaded to TestFlight 2026-11-08 00:58Z (owner-approved).** EAS build
+  `15a6e035-4574-485f-9473-a68bd97418af`, submission `2e88f310…` succeeded; API https://api.tsxmr.com, legal
+  https://dukan.tsxmr.com. Gates on 5dcfb74: render 42425979790, visual 42426865628 (+ backend 5419fda), mobile security
+  42425972149 — all green. Fixes before the build: Add-a-store loop (cd2918e), summary wording (782082c), Arabic note
+  tripping the App Store bundle audit ("في الشهر") and lint 41>40 (security red since 6791bc1) (5dcfb74).
+  Next: owner internal test (intro 2 s, add store before choosing one, summaries in-app, portal proof form, Build 4
+  Pass 2 tests 3-8) → external TestFlight → App Store review of the SAME binary, each on the owner's go-ahead.
+- **Step 10 done:** both Test-business requests refused in the console (store.refuse audits 22:48/22:49Z); no store,
+  payment or message created; Test store and 8 live stores unchanged; shadow log clean. Note: their two
+  branch_activation notices stay `pending` (held) after refusal — check cancellation before setting
+  WHATSAPP_TEMPLATE_BRANCH_ACTIVATION.
 - **Deployed 2026-11-07 22:41Z (owner-approved): backend `5419fda` + 0133** — WhatsApp daily summary (first close of a day)
   and monthly summary (close of a month's last day): in-app always, WhatsApp while its switch is on, verified Owner number,
   once. 0133: both switches default ON and set ON for all 7 settings rows (owner: all businesses). CI 42417715079;
